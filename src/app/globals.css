@@ -1524,17 +1524,38 @@ body {
 .runner-detail-row:hover td {
   background: var(--color-panel-alt);
 }
+/* Three columns when the runs table fits beside the others, otherwise the
+   runs take a full row beneath the horse and the expectations. */
 .runner-detail {
   display: grid;
   gap: var(--sp-4);
-  grid-template-columns: minmax(180px, 1fr) minmax(360px, 2.2fr) minmax(200px, 1.2fr);
+  grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.2fr);
+  grid-template-areas:
+    "horse expect"
+    "runs runs";
   padding: var(--sp-4);
   border-left: 3px solid var(--color-lime);
 }
-@media (max-width: 900px) {
+.runner-detail > .runner-detail-col:nth-child(1) { grid-area: horse; }
+.runner-detail > .runner-detail-col:nth-child(2) { grid-area: runs; }
+.runner-detail > .runner-detail-col:nth-child(3) { grid-area: expect; }
+@media (min-width: 1400px) {
+  .runner-detail {
+    grid-template-columns: minmax(200px, 1fr) minmax(640px, 2.6fr) minmax(240px, 1.2fr);
+    grid-template-areas: "horse runs expect";
+  }
+}
+@media (max-width: 700px) {
   .runner-detail {
     grid-template-columns: 1fr;
+    grid-template-areas:
+      "horse"
+      "runs"
+      "expect";
   }
+}
+.runner-detail-col {
+  min-width: 0;
 }
 .runner-detail h4 {
   font-family: var(--font-archivo), sans-serif;
@@ -1567,8 +1588,8 @@ body {
 .runner-detail-runs {
   overflow-x: auto;
 }
-/* Wide screens fit the table, so nothing clips the tooltips. */
-@media (min-width: 1024px) {
+/* From tablet up the runs table has the room it needs, so nothing clips the tooltips. */
+@media (min-width: 900px) {
   .runner-detail-runs {
     overflow: visible;
   }
