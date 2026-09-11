@@ -1,0 +1,96 @@
+import { MatrixCell } from "./Countdown";
+import { jumpTime } from "@/lib/format";
+import type { PublishedMeeting, Selection } from "@/lib/model/types";
+
+/**
+ * The day at a glance: one row per track, one column per race number. A
+ * resulted race shows the first four home; one still to jump shows the
+ * countdown and how many tips it carries.
+ */
+/** Colour the going chip by band so a wet track stands out down the column. */
+function goingClass(condition: string): string {
+  const c = condition.toLowerCase();
+  if (c.startsWith("heavy")) return "is-heavy";
+  if (c.startsWith("soft")) return "is-soft";
+  return "";
+}
+
+export function RaceMatrix({
+  meetings,
+  selections,
+  date,
+}: {
+  meetings: PublishedMeeting[];
+  selections: Selection[];
+  date: string;
+}) {
+  const cols = Math.max(0, ...meetings.map((m) => m.races.length));
+  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => s.raceId));
+
+  return (
+    <div className="matrix-wrap">
+      <table className="matrix-table">
+        <thead>
+          <tr>
+            <th className="matrix-track">Track</th>
+            {Array.from({ length: cols }, (_, i) => (
+              <th key={i}>R{i + 1}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {meetings.map((m) => (
+            <tr key={m.meetingId}>
+              <td className="matrix-track">
+                <div>
+                  {m.track}
+                  <span className="matrix-track-state">
+                    {m.state}
+                    {m.trackCondition && (
+                      <span className={`going-chip ${goingClass(m.trackCondition)}`}>
+                        {m.trackCondition}
+                      </span>
+                    )}
+                  </span>
+                </div>
+              </td>
+              {Array.from({ length: cols }, (_, i) => {
+                const race = m.races[i];
+                if (!race) {
+                  return (
+                    <td key={i} className="matrix-cell matrix-empty">
+                      -
+                    </td>
+                  );
+                }
+                const backs = race.runners.filter((r) => r.signal === "back").length;
+                const lays = race.runners.filter((r) => r.signal === "lay").length;
+                return (
+                  <td key={race.raceId} className="matrix-cell">
+                    <MatrixCell
+                      href={`/racing/${date}/${m.meetingId}/${race.raceId}`}
+                      raceNumber={race.raceNumber}
+                      iso={race.jumpTime}
+                      clock={jumpTime(race.jumpTime)}
+                      result={race.result}
+                      backs={backs}
+                      lays={lays}
+                      prime={prime.has(race.raceId)}
+                    />
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="legend border-t border-line px-4 py-3">
+        <span className="font-bold uppercase tracking-[0.08em] text-[0.65rem]">Legend</span>
+        <span><span className="legend-dot bg-lime" />Prime Overlay</span>
+        <span><span className="legend-dot bg-blue" />Bet</span>
+        <span><span className="legend-dot bg-red" />Lay</span>
+        <span><span className="legend-dot bg-surface-alt" />Resulted, first four, border shows what we had on</span>
+      </div>
+    </div>
+  );
+}
