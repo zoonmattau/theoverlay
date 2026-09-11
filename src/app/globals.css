@@ -1937,12 +1937,19 @@ body {
 .race-tab {
   position: relative;
 }
+/* On the race tabs the medal is a bar along the bottom, so every tab stays the same size. */
 .race-tab .medal {
-  top: 2px;
-  right: 2px;
-  font-size: 8px;
-  padding: 1px 2px;
+  top: auto;
+  right: 5px;
+  left: 5px;
+  bottom: 2px;
+  height: 3px;
+  padding: 0;
+  border-radius: 2px;
+  font-size: 0;
+  color: transparent;
+  overflow: hidden;
 }
-.race-tab:has(.medal) {
-  padding-right: 22px;
+.race-tab {
+  overflow: hidden;
 }
