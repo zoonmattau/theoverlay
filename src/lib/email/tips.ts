@@ -21,19 +21,20 @@ interface Row {
   bonus_until: string | null;
   paused_at: string | null;
   marketing_opt_in: boolean;
+  is_admin: boolean;
 }
 
 /** Members whose access covers the date and who ticked tips emails. */
 async function recipients(date: string): Promise<Row[]> {
   const { data } = await supabaseAdmin()
     .from("profiles")
-    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in")
+    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin")
     .eq("marketing_opt_in", true)
     .not("email", "is", null);
   const now = Date.now();
   return ((data ?? []) as Row[]).filter((r) => {
     if (r.paused_at) return false;
-    if (isAdminEmail(r.email)) return true;
+    if (r.is_admin || isAdminEmail(r.email)) return true;
     const pro = r.access_until && new Date(r.access_until).getTime() > now;
     if (pro && planCovers(r.plan ?? undefined, date)) return true;
     return Boolean(r.bonus_until && new Date(r.bonus_until).getTime() > now);

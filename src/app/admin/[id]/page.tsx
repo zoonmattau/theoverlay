@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { addDays, addPasses, cancelMember, pauseMember, resumeMember, saveNote } from "@/app/admin/actions";
+import { addDays, addPasses, cancelMember, pauseMember, resumeMember, saveNote, setAdmin } from "@/app/admin/actions";
 import { getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
@@ -47,6 +47,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           </p>
         </div>
         <div className="flex gap-2">
+          {m.is_admin && <span className="badge badge-prime">Admin</span>}
           {m.paused_at ? <span className="badge badge-warn">Paused</span> : live ? <span className="badge badge-prime">{m.subscription_status ?? "active"}</span> : <span className="badge badge-muted">no access</span>}
         </div>
       </div>
@@ -94,6 +95,14 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             {m.stripe_subscription_id && (
               <form action={cancelMember.bind(null, m.id)}><button className="btn btn-secondary btn-sm text-red" type="submit">Cancel at period end</button></form>
             )}
+          </div>
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-line-soft">
+            {m.is_admin ? (
+              <form action={setAdmin.bind(null, m.id, false)}><button className="btn btn-secondary btn-sm text-red" type="submit" disabled={m.id === viewer.id}>Remove admin</button></form>
+            ) : (
+              <form action={setAdmin.bind(null, m.id, true)}><button className="btn btn-secondary btn-sm" type="submit">Make admin</button></form>
+            )}
+            <span className="text-ink-soft">admins see every race free and can open this panel</span>
           </div>
           <form action={async (fd) => { "use server"; await saveNote(m.id, String(fd.get("note") ?? "")); }} className="pt-2 border-t border-line-soft">
             <label className="field"><span>Note</span><textarea name="note" defaultValue={m.admin_note ?? ""} rows={3} className="field-input w-full" /></label>

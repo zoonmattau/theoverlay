@@ -125,6 +125,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
                       <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">
                         {m.email ?? m.id}
                       </Link>
+                      {m.is_admin && <span className="badge badge-prime ml-2">Admin</span>}
                     </td>
                     <td>{m.plan ? (planById(m.plan)?.name ?? m.plan) : "—"}</td>
                     <td>

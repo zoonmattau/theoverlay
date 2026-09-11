@@ -21,6 +21,7 @@ export interface Member {
   marketing_opt_in: boolean;
   referral_code: string | null;
   admin_note: string | null;
+  is_admin: boolean;
   created_at: string;
 }
 
@@ -35,7 +36,7 @@ export interface Event {
 }
 
 const MEMBER_COLS =
-  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, created_at";
+  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, created_at";
 
 export async function listMembers(search?: string): Promise<Member[]> {
   let q = supabaseAdmin().from("profiles").select(MEMBER_COLS).order("created_at", { ascending: false }).limit(500);

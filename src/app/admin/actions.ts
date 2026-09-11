@@ -100,3 +100,13 @@ export async function resendTips(): Promise<void> {
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "resend_tips", date, sent, by: admin.email } });
   revalidatePath("/admin");
 }
+
+/** Admin on or off for a member; you cannot take your own away. */
+export async function setAdmin(userId: string, on: boolean): Promise<void> {
+  const admin = await requireAdmin();
+  if (!on && admin.id === userId) return;
+  await supabaseAdmin().from("profiles").update({ is_admin: on }).eq("id", userId);
+  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: on ? "make_admin" : "remove_admin", by: admin.email } });
+  revalidatePath(`/admin/${userId}`);
+  revalidatePath("/admin");
+}

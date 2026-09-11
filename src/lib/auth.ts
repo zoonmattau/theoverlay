@@ -14,7 +14,7 @@ export interface Viewer {
   accessUntil?: string;
   /** Access is paused by an admin, so the board stays closed. */
   paused: boolean;
-  /** Listed in ADMIN_EMAILS: runs the admin panel and sees every race free. */
+  /** Listed in ADMIN_EMAILS or flagged in the panel: runs admin and sees every race free. */
   admin: boolean;
   stripeCustomerId?: string;
   /** Unused day passes. */
@@ -66,7 +66,7 @@ export async function getViewer(): Promise<Viewer> {
   const [{ data: profile }, { data: passes }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in")
+      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
@@ -82,7 +82,7 @@ export async function getViewer(): Promise<Viewer> {
     plan: pro ? (profile?.plan ?? undefined) : undefined,
     accessUntil: until?.toISOString(),
     paused: Boolean(profile?.paused_at),
-    admin: isAdminEmail(user.email),
+    admin: isAdminEmail(user.email) || Boolean(profile?.is_admin),
     stripeCustomerId: profile?.stripe_customer_id ?? undefined,
     passCredits: profile?.pass_credits ?? 0,
     passDates: (passes ?? []).map((p) => String(p.date)),
