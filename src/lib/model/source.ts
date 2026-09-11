@@ -43,7 +43,7 @@ function meetingWeight(m: PublishedMeeting): number {
 const firstJump = (m: PublishedMeeting) => m.races.map((r) => r.jumpTime ?? "9").sort()[0] ?? "9";
 
 /** How old a stored card can be before a page view asks for a rebuild. */
-const STALE_MS = Number(process.env.OVERLAY_STALE_MIN ?? 10) * 60_000;
+const STALE_MS = Number(process.env.OVERLAY_STALE_MIN ?? 20) * 60_000;
 
 /**
  * Credits. Race form (two credits, the benchmarks and full career) is bought
