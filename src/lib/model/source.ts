@@ -30,7 +30,41 @@ const STATES = (process.env.OVERLAY_STATES ?? "NSW,VIC,QLD").split(",");
 const WANT_SPEEDMAPS = process.env.OVERLAY_SPEEDMAPS === "1";
 
 /** How old a stored card can be before a page view asks for a rebuild. */
-const STALE_MS = 20 * 60_000;
+const STALE_MS = Number(process.env.OVERLAY_STALE_MIN ?? 10) * 60_000;
+
+/**
+ * What a race refresh costs is two credits, so each race is re-bought only
+ * when it is due: every hour while it is a long way off, every ten minutes
+ * from 45 minutes before the jump until the result is in, then never.
+ */
+const FAR_TTL_MS = 60 * 60_000;
+const NEAR_TTL_MS = Number(process.env.OVERLAY_NEAR_MIN ?? 10) * 60_000;
+const NEAR_WINDOW_MS = 45 * 60_000;
+const DONE_TTL_MS = 24 * 60 * 60_000;
+
+const hasResult = (r: RaceSummary) => r.entries.some((e) => e.horseResult && e.horseResult.finishPosition > 0);
+
+function raceTtl(lite: { status?: string; startTime?: string }, meetingDate: number | undefined): { ttlMs: number; accept?: (r: RaceSummary) => boolean } {
+  const resulted = /result|final|paid|abandon/i.test(lite.status ?? "");
+  if (resulted) return { ttlMs: DONE_TTL_MS, accept: hasResult };
+  const jump = jumpMillis(meetingDate, lite.startTime);
+  if (jump === undefined) return { ttlMs: NEAR_TTL_MS };
+  const until = jump - Date.now();
+  return { ttlMs: until > NEAR_WINDOW_MS ? FAR_TTL_MS : NEAR_TTL_MS };
+}
+
+/** "12:35pm" on the meeting date, Sydney time, as epoch millis. */
+function jumpMillis(meetingDate: number | undefined, startTime?: string): number | undefined {
+  const m = startTime?.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
+  if (!m || !meetingDate) return undefined;
+  let h = Number(m[1]) % 12;
+  if (m[3].toLowerCase() === "pm") h += 12;
+  const day = new Date(meetingDate).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const offset = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", timeZoneName: "longOffset" })
+    .formatToParts(new Date(meetingDate))
+    .find((p) => p.type === "timeZoneName")?.value.match(/GMT([+-]\d{2}:\d{2})/)?.[1] ?? "+10:00";
+  return new Date(`${day}T${String(h).padStart(2, "0")}:${m[2]}:00${offset}`).getTime();
+}
 
 /** Tips go live at this hour, Sydney time, on the racing date. */
 export const RELEASE_HOUR = Number(process.env.OVERLAY_RELEASE_HOUR ?? 8);
@@ -183,7 +217,11 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
   const wanted = index.filter((lite) => lite.tabMeeting !== false);
   const loaded = await Promise.all(
     wanted.map((lite) =>
-      Promise.all((lite.races ?? []).filter((r) => !r.raceType || r.raceType === "Flat").map((r) => getRace(lite.id, r.raceId))),
+      Promise.all(
+        (lite.races ?? [])
+          .filter((r) => !r.raceType || r.raceType === "Flat")
+          .map((r) => getRace(lite.id, r.raceId, raceTtl(r, lite.date))),
+      ),
     ),
   );
   const out: FixtureMeeting[] = [];

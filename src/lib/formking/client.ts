@@ -35,8 +35,11 @@ export class FormKingError extends Error {
 }
 
 /**
- * Raw responses are kept on disk for a while so a dev-mode navigation, a
- * cache miss or a restart never re-buys a card. Off with FORMKING_CACHE=0.
+ * Raw responses are cached so a refresh only re-buys what is due: on disk in
+ * development, in the fk_cache table on Vercel (its disk is read-only). Each
+ * call names its own time to live; a validator can reject a stale shape, for
+ * instance a resulted race cached before the result landed. Off with
+ * FORMKING_CACHE=0.
  */
 const CACHE_DIR = path.join(process.cwd(), ".formking-cache");
 const CACHE_TTL_MS: Record<string, number> = {
@@ -45,23 +48,64 @@ const CACHE_TTL_MS: Record<string, number> = {
   speedmap: 30 * 60_000,
 };
 const cacheOn = () => process.env.FORMKING_CACHE !== "0";
+const dbCache = () => Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.VERCEL);
 
-async function cached<T>(kind: string, key: string, load: () => Promise<T>): Promise<T> {
-  if (!cacheOn()) return load();
-  const file = path.join(CACHE_DIR, `${kind}-${createHash("sha1").update(key).digest("hex")}.json`);
-  try {
-    const raw = JSON.parse(await readFile(file, "utf8")) as { at: number; data: T };
-    if (Date.now() - raw.at < (CACHE_TTL_MS[kind] ?? 600_000)) return raw.data;
-  } catch {
-    // no cache yet
+interface Entry<T> {
+  at: number;
+  data: T;
+}
+
+async function readEntry<T>(kind: string, key: string): Promise<Entry<T> | undefined> {
+  if (dbCache()) {
+    const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache?select=data,at&key=eq.${encodeURIComponent(`${kind}:${key}`)}`, {
+      headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!, authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+      cache: "no-store",
+    });
+    if (!res.ok) return undefined;
+    const rows = (await res.json()) as { data: T; at: string }[];
+    return rows[0] ? { at: new Date(rows[0].at).getTime(), data: rows[0].data } : undefined;
   }
-  const data = await load();
   try {
+    return JSON.parse(await readFile(path.join(CACHE_DIR, `${kind}-${createHash("sha1").update(key).digest("hex")}.json`), "utf8")) as Entry<T>;
+  } catch {
+    return undefined;
+  }
+}
+
+async function writeEntry<T>(kind: string, key: string, data: T): Promise<void> {
+  try {
+    if (dbCache()) {
+      await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache`, {
+        method: "POST",
+        headers: {
+          apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+          authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+          "content-type": "application/json",
+          prefer: "resolution=merge-duplicates",
+        },
+        body: JSON.stringify({ key: `${kind}:${key}`, kind, data, at: new Date().toISOString() }),
+      });
+      return;
+    }
     await mkdir(CACHE_DIR, { recursive: true });
-    await writeFile(file, JSON.stringify({ at: Date.now(), data }));
+    await writeFile(path.join(CACHE_DIR, `${kind}-${createHash("sha1").update(key).digest("hex")}.json`), JSON.stringify({ at: Date.now(), data }));
   } catch {
-    // a read-only filesystem just means no cache
+    // no cache is only a cost, never an error
   }
+}
+
+async function cached<T>(
+  kind: string,
+  key: string,
+  load: () => Promise<T>,
+  opts: { ttlMs?: number; accept?: (data: T) => boolean } = {},
+): Promise<T> {
+  if (!cacheOn()) return load();
+  const ttl = opts.ttlMs ?? CACHE_TTL_MS[kind] ?? 600_000;
+  const hit = await readEntry<T>(kind, key);
+  if (hit && Date.now() - hit.at < ttl && (!opts.accept || opts.accept(hit.data))) return hit.data;
+  const data = await load();
+  await writeEntry(kind, key, data);
   return data;
 }
 
@@ -169,15 +213,19 @@ export function getMeeting(meetingId: string) {
 export function getRace(
   meetingId: string,
   raceId: string,
-  opts: { numBenchmarks?: number; numPastRaces?: number; includeScratchings?: boolean } = {},
+  opts: { numBenchmarks?: number; numPastRaces?: number; includeScratchings?: boolean; ttlMs?: number; accept?: (r: RaceSummary) => boolean } = {},
 ) {
-  return cached("race", `${meetingId}/${raceId}`, () =>
-    request<RaceSummary>(`/b2c/meetings/${meetingId}/races/${raceId}`, {
-      racesOnly: true,
-      numBenchmarks: opts.numBenchmarks ?? 5,
-      numPastRaces: opts.numPastRaces ?? 8,
-      includeScratchings: opts.includeScratchings ?? false,
-    }),
+  return cached(
+    "race",
+    `${meetingId}/${raceId}`,
+    () =>
+      request<RaceSummary>(`/b2c/meetings/${meetingId}/races/${raceId}`, {
+        racesOnly: true,
+        numBenchmarks: opts.numBenchmarks ?? 5,
+        numPastRaces: opts.numPastRaces ?? 8,
+        includeScratchings: opts.includeScratchings ?? false,
+      }),
+    { ttlMs: opts.ttlMs, accept: opts.accept },
   );
 }
 

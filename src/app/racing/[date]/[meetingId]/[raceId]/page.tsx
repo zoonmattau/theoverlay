@@ -18,6 +18,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { NextToGo } from "@/components/NextToGo";
 import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { ReleaseNotice } from "@/components/SelectionCard";
@@ -111,6 +112,7 @@ async function Race({ params }: { params: Props["params"] }) {
   return (
     <div className="page space-y-4">
       <JsonLd data={schema} />
+      <LiveRefresh />
       {viewer.admin && !card.card.released && (
         <p className="border border-lime bg-lime-soft px-3 py-2 text-xs rounded-md font-semibold">
           Admin preview. Members cannot see the calls for this race until {RELEASE_HOUR}am on the day.

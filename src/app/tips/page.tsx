@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { LiveRefresh } from "@/components/LiveRefresh";
 import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
 import { Section } from "@/components/Section";
@@ -22,6 +23,7 @@ export const metadata: Metadata = {
 export default function Page({ searchParams }: PageProps<"/tips">) {
   return (
     <div className="page max-w-5xl">
+      <LiveRefresh />
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
         <Tips searchParams={searchParams} />
       </Suspense>

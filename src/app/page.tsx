@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { FaqList, JsonLd, ORGANIZATION, WEBSITE, faqSchema, type Faq } from "@/components/JsonLd";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 import { NextToGo } from "@/components/NextToGo";
 import { RaceMatrix } from "@/components/RaceMatrix";
@@ -29,6 +30,7 @@ export default function Page({ searchParams }: PageProps<"/">) {
   return (
     <div className="page">
       <JsonLd data={[ORGANIZATION, WEBSITE, faqSchema(FAQ)]} />
+      <LiveRefresh />
       <Suspense fallback={<HeroSkeleton />}>
         <Hero searchParams={searchParams} />
       </Suspense>
