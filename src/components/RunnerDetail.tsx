@@ -42,9 +42,41 @@ function opinion(r: PublishedRunner): string {
   return `No bet. We make it ${rated} and the market has ${live}, so there is no edge.`;
 }
 
+/** Field averages for the sectional bars, so a number reads as above or below the race. */
+function fieldAverage(race: PublishedRace) {
+  const live = race.runners.filter((x) => !x.scratched);
+  const avg = (pick: (x: PublishedRunner) => number) => live.reduce((a, x) => a + pick(x), 0) / Math.max(1, live.length);
+  return { early: avg((x) => x.ratings.early), mid: avg((x) => x.ratings.mid), late: avg((x) => x.ratings.late), today: avg((x) => x.ratings.today) };
+}
+
+function SectionalBar({ label, value, avg }: { label: string; value: number; avg: number }) {
+  const diff = value - avg;
+  const pct = Math.min(100, Math.max(0, 50 + diff * 5));
+  return (
+    <div className="sec-row">
+      <span className="sec-label">{label}</span>
+      <span className="sec-track">
+        <span className="sec-mid" />
+        <span className={`sec-fill ${diff >= 0 ? "is-up" : "is-down"}`} style={diff >= 0 ? { left: "50%", width: `${pct - 50}%` } : { left: `${pct}%`, width: `${50 - pct}%` }} />
+      </span>
+      <span className={`sec-value nums ${diff > 0.5 ? "text-accent" : diff < -0.5 ? "text-red" : "text-ink-soft"}`}>
+        {value.toFixed(1)} <small>{diff >= 0 ? "+" : ""}{diff.toFixed(1)}</small>
+      </span>
+    </div>
+  );
+}
+
 export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedRace }) {
   const h = r.horse;
   const runs = r.runs ?? [];
+  const avg = fieldAverage(race);
+  const g = r.ratings;
+  const tile = (label: string, value: number) => (
+    <div className={`cond-tile ${value - g.class > 1 ? "is-up" : value - g.class < -1 ? "is-down" : ""}`}>
+      <span className="nums">{value.toFixed(1)}</span>
+      <small>{label}</small>
+    </div>
+  );
   return (
     <div className="runner-detail">
       <div className="runner-detail-col">
@@ -93,7 +125,19 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
       </div>
 
       <div className="runner-detail-col">
-        <h4>What to expect</h4>
+        <h4>Sectionals against the field</h4>
+        <div className="sec-bars">
+          <SectionalBar label="Early" value={g.early} avg={avg.early} />
+          <SectionalBar label="Mid" value={g.mid} avg={avg.mid} />
+          <SectionalBar label="Late" value={g.late} avg={avg.late} />
+        </div>
+        <div className="cond-tiles">
+          {tile(`${race.going} track`, g.going[race.going])}
+          {tile(`${race.distance}m`, g.distance)}
+          {tile("this track", g.track)}
+          {tile(race.pace.tempo === "fast" ? "fast tempo" : "slow tempo", race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow)}
+        </div>
+        <h4 className="mt-4">What to expect</h4>
         <ul className="detail-lines">
           {expectations(r, race).map((line) => <li key={line}>{line}</li>)}
         </ul>

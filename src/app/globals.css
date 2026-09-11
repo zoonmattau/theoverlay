@@ -1734,3 +1734,87 @@ body {
     display: none;
   }
 }
+
+/* Runner panel: sectional bars and condition tiles. */
+.sec-bars {
+  display: grid;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+.sec-row {
+  display: grid;
+  grid-template-columns: 40px 1fr 74px;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.75rem;
+}
+.sec-label {
+  color: var(--color-ink-soft);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.62rem;
+  letter-spacing: 0.06em;
+}
+.sec-track {
+  position: relative;
+  height: 10px;
+  background: var(--color-surface);
+  border-radius: 5px;
+  overflow: hidden;
+}
+.sec-mid {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-ink-soft);
+}
+.sec-fill {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 5px;
+}
+.sec-fill.is-up {
+  background: var(--color-lime);
+}
+.sec-fill.is-down {
+  background: var(--color-red);
+  opacity: 0.7;
+}
+.sec-value {
+  text-align: right;
+  font-weight: 600;
+}
+.sec-value small {
+  font-weight: 400;
+  opacity: 0.8;
+}
+.cond-tiles {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+}
+.cond-tile {
+  text-align: center;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.cond-tile small {
+  display: block;
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-soft);
+}
+.cond-tile.is-up {
+  background: var(--color-lime-soft);
+}
+.cond-tile.is-down {
+  background: var(--color-red-soft);
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 
 import { SignalBadge } from "./Ratings";
 import { RunnerDetail } from "./RunnerDetail";
@@ -18,6 +18,21 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
   const cols = locked ? 8 : 11;
+
+  // A shared link like #runner-7 opens that runner on arrival.
+  useEffect(() => {
+    const m = window.location.hash.match(/^#runner-(\d+)$/);
+    if (!m || locked) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setOpen(Number(m[1]));
+    document.getElementById(`runner-${m[1]}`)?.scrollIntoView({ block: "center" });
+  }, [locked]);
+
+  function toggle(tab: number) {
+    const next = open === tab ? null : tab;
+    setOpen(next);
+    history.replaceState(null, "", next ? `#runner-${next}` : window.location.pathname + window.location.search);
+  }
 
   return (
     <Section id="market" letter="M" title="Market" aside={<span className="nums">{runners.length} runners</span>}>
@@ -45,7 +60,8 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                 <Fragment key={r.tabNumber}>
                   <tr
                     className={`runner-row ${isOpen ? "is-open" : ""}`}
-                    onClick={() => !locked && setOpen(isOpen ? null : r.tabNumber)}
+                    id={`runner-${r.tabNumber}`}
+                    onClick={() => !locked && toggle(r.tabNumber)}
                     aria-expanded={locked ? undefined : isOpen}
                   >
                     <td className="nums text-ink-soft">{r.tabNumber}</td>
