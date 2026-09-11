@@ -277,7 +277,7 @@ export const isJumps = (raceName?: string) => /\b(stpl|steeple|steeplechase|hdle
  * time performance in lengths vs the class benchmark moves it up or down.
  * The result itself never adds points.
  */
-function runPoints(r: PastEvent, todayPar: number): number {
+export function runPoints(r: PastEvent, todayPar: number): number {
   // Today's race is the prior for the level a horse races at: an official
   // rating is trusted only within reach of it, an unparsed race name means par.
   // A jumper's BM120 or a horse dropping from a much stronger grade says
@@ -345,7 +345,7 @@ function paceOf(earlyProxy: number[], expected?: string): RacePace {
   return { tempo, pressure };
 }
 
-function mapOf(ppir: number, n: number, leaders = 1): MapPosition {
+export function mapOf(ppir: number, n: number, leaders = 1): MapPosition {
   if (ppir <= leaders) return "leader";
   if (ppir <= Math.ceil(n * 0.35)) return "on pace";
   if (ppir <= Math.ceil(n * 0.75)) return "midfield";

@@ -11,16 +11,18 @@
  * deliberately, and check it against api-terms first.
  */
 
-import type { MeetingSummary, RaceSummary, Speedmap } from "@/lib/formking/types";
+import type { MeetingSummary, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import type {
+  HorseProfile,
   PublishedMeeting,
   PublishedRace,
+  PublishedRun,
   PublishedRunner,
   Selection,
   SelectionTag,
   Signal,
 } from "./types";
-import { classPoints, explain, goingBand, goingLabel, rateEntries, verdict } from "./ratings";
+import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, runPoints, verdict } from "./ratings";
 import { rateRace } from "./rate";
 
 /** A long overlay has to actually pay something. */
@@ -113,6 +115,8 @@ export function publishRace(
       signal,
       why: rank >= 0 ? explain(ratings, rank + 1, { going, tempo: pace.tempo }, signal) : undefined,
       finishPosition: e.horseResult ? e.horseResult.finishPosition : undefined,
+      horse: profileOf(e),
+      runs: runsOf(e, points),
     };
   });
 
@@ -222,6 +226,52 @@ function signalFor(
   if (edge >= MIN_EDGE && probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE) return "back";
   if (edge <= LAY_EDGE && marketPrice <= LAY_MAX_PRICE) return "lay";
   return undefined;
+}
+
+/** Public form-guide facts about the horse, nothing of Form King's own. */
+function profileOf(e: RaceEntry): HorseProfile {
+  return {
+    age: e.horse.age,
+    sex: e.horse.type,
+    sire: e.horse.sire,
+    dam: e.horse.dam,
+    daysSinceLastRun: e.daysSinceLastRace,
+    firstStarter: Boolean(e.firstStarter),
+    career: e.form?.careerForm,
+    distanceForm: e.form?.distanceForm,
+    trackForm: e.form?.trackForm,
+  };
+}
+
+/** The last six starts as a form guide prints them, plus our points for each. */
+function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
+  return (e.pastEvents ?? [])
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
+    .sort((a, b) => b.date - a.date)
+    .slice(0, 6)
+    .map((p) => ({
+      date: new Date(p.date).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }),
+      track: p.track,
+      distance: p.distance,
+      going: goingLabel(p.going),
+      className: classOf(p.raceName),
+      finish: p.finishPosition || undefined,
+      runners: p.numRunners,
+      margin: p.margin,
+      weight: p.weight,
+      sp: p.startingPrice,
+      map: p.posSettling && p.numRunners ? mapOf(p.posSettling, p.numRunners) : undefined,
+      points: Math.round(runPoints(p, todayPar) * 10) / 10,
+    }));
+}
+
+/** "Midway (Bm72)" → "Bm72", "3yo+ Mdn Plate" → "Mdn", else the name trimmed. */
+function classOf(name?: string): string | undefined {
+  if (!name) return undefined;
+  const bm = name.match(/\((bm\s?\d+|[^)]*)\)/i);
+  if (bm) return bm[1].replace(/\s+/g, "");
+  const m = name.match(/\b(mdn|maiden|cl\s?\d|class\s?\d|open|hcp|rs\d\w*|listed|group\s?\d|g\d|bm\s?\d+|benchmark\s?\d+)\b/i);
+  return m ? m[1].replace(/\s+/g, "") : name.slice(0, 18);
 }
 
 export function publishMeeting(

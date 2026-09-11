@@ -1,15 +1,23 @@
+"use client";
+
+import { Fragment, useState } from "react";
+
 import { SignalBadge } from "./Ratings";
+import { RunnerDetail } from "./RunnerDetail";
 import { Section } from "./Section";
 import { percent, price, signedPercent } from "@/lib/format";
 import type { PublishedRace } from "@/lib/model/types";
 
 /**
  * The full field: our rated price against the market for every runner, with a
- * back or lay alert where the gap is big enough to act on.
+ * back or lay alert where the gap is big enough to act on. Click a runner for
+ * the horse, its last runs, what to expect and our call.
  */
 export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: boolean }) {
   const runners = race.runners.filter((r) => !r.scratched);
   const scratched = race.runners.filter((r) => r.scratched);
+  const [open, setOpen] = useState<number | null>(null);
+  const cols = locked ? 8 : 11;
 
   return (
     <Section id="market" letter="M" title="Market" aside={<span className="nums">{runners.length} runners</span>}>
@@ -31,42 +39,55 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
             </tr>
           </thead>
           <tbody>
-            {runners.map((r) => (
-              <tr key={r.tabNumber}>
-                <td className="nums text-ink-soft">{r.tabNumber}</td>
-                <td>
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{r.horseName}</div>
-                    <div className="text-[11px] text-muted truncate">{r.trainer ?? ""}</div>
-                  </div>
-                </td>
-                <td className="text-right nums text-ink-secondary">{r.barrier}</td>
-                {!locked && <td><SignalBadge signal={r.signal} /></td>}
-                <td className="text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
-                <td className="text-ink-secondary truncate">{r.jockey ?? "—"}</td>
-                <td className="nums text-ink-secondary">{r.form ?? "—"}</td>
-                <td className="text-right">
-                  <span className={`price-chip ${!locked && r.signal === "back" ? "is-back" : !locked && r.signal === "lay" ? "is-lay" : ""}`}>
-                    {price(r.marketPrice)}
-                  </span>
-                </td>
-                {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
-                {!locked && <td className="text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
-                {!locked && <td className="text-right nums">
-                  <span
-                    className={
-                      r.signal === "back"
-                        ? "text-blue font-semibold"
-                        : r.signal === "lay"
-                          ? "text-red font-semibold"
-                          : "text-muted"
-                    }
+            {runners.map((r) => {
+              const isOpen = open === r.tabNumber;
+              return (
+                <Fragment key={r.tabNumber}>
+                  <tr
+                    className={`runner-row ${isOpen ? "is-open" : ""}`}
+                    onClick={() => !locked && setOpen(isOpen ? null : r.tabNumber)}
+                    aria-expanded={locked ? undefined : isOpen}
                   >
-                    {signedPercent(r.edge)}
-                  </span>
-                </td>}
-              </tr>
-            ))}
+                    <td className="nums text-ink-soft">{r.tabNumber}</td>
+                    <td>
+                      <div className="min-w-0 flex items-center gap-2">
+                        <div>
+                          <div className="font-medium truncate">{r.horseName}</div>
+                          <div className="text-[11px] text-muted truncate">{r.trainer ?? ""}</div>
+                        </div>
+                        {!locked && <span className={`runner-caret ${isOpen ? "is-open" : ""}`} aria-hidden="true" />}
+                      </div>
+                    </td>
+                    <td className="text-right nums text-ink-secondary">{r.barrier}</td>
+                    {!locked && <td><SignalBadge signal={r.signal} /></td>}
+                    <td className="text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
+                    <td className="text-ink-secondary truncate">{r.jockey ?? "—"}</td>
+                    <td className="nums text-ink-secondary">{r.form ?? "—"}</td>
+                    <td className="text-right">
+                      <span className={`price-chip ${!locked && r.signal === "back" ? "is-back" : !locked && r.signal === "lay" ? "is-lay" : ""}`}>
+                        {price(r.marketPrice)}
+                      </span>
+                    </td>
+                    {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
+                    {!locked && <td className="text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
+                    {!locked && (
+                      <td className="text-right nums">
+                        <span className={r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
+                          {signedPercent(r.edge)}
+                        </span>
+                      </td>
+                    )}
+                  </tr>
+                  {isOpen && !locked && (
+                    <tr className="runner-detail-row">
+                      <td colSpan={cols}>
+                        <RunnerDetail r={r} race={race} />
+                      </td>
+                    </tr>
+                  )}
+                </Fragment>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -80,7 +101,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
         {locked ? (
           <p>Rated prices, edges and our bet or lay calls open with a pass.</p>
         ) : (
-          <p>Edge is our win chance minus the market&apos;s, in points, and a bet or lay shows where it is big enough to act on.</p>
+          <p>Click a runner for the horse, its last runs, what to expect and our call. Edge is our win chance minus the market&apos;s, in points.</p>
         )}
       </div>
     </Section>

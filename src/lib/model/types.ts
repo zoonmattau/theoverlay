@@ -75,6 +75,39 @@ export interface RunnerRatings {
   map: MapPosition;
 }
 
+/** One past start, public form-guide facts plus what our model made of it. */
+export interface PublishedRun {
+  /** yyyy-mm-dd */
+  date: string;
+  track?: string;
+  distance: number;
+  going?: string;
+  /** Race class as printed, e.g. "Bm64" or "Mdn". */
+  className?: string;
+  finish?: number;
+  runners?: number;
+  /** Lengths beaten, 0 for the winner. */
+  margin?: number;
+  weight?: number;
+  sp?: number;
+  map?: MapPosition;
+  /** What the run was worth on our scale. */
+  points: number;
+}
+
+export interface HorseProfile {
+  age?: number;
+  sex?: string;
+  sire?: string;
+  dam?: string;
+  daysSinceLastRun?: number;
+  firstStarter: boolean;
+  /** Starts-wins-seconds-thirds strings as printed in a form guide. */
+  career?: string;
+  distanceForm?: string;
+  trackForm?: string;
+}
+
 export interface PublishedRunner {
   tabNumber: number;
   horseName: string;
@@ -104,6 +137,9 @@ export interface PublishedRunner {
   why?: string;
   /** Official finishing position once the race is resulted. */
   finishPosition?: number;
+  horse?: HorseProfile;
+  /** Most recent first, up to six. */
+  runs?: PublishedRun[];
 }
 
 export interface Placing {
