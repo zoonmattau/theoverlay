@@ -1818,3 +1818,14 @@ body {
 .cond-tile.is-down {
   background: var(--color-red-soft);
 }
+
+/* A secondary button that sits on the dark bar. */
+.btn-onbar {
+  background: transparent;
+  color: var(--color-bar-ink);
+  border-color: rgba(255, 255, 255, 0.35);
+}
+.btn-onbar:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--color-bar-ink);
+}
