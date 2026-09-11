@@ -44,9 +44,9 @@ export function SelectionCards({ race }: { race: PublishedRace }) {
             </div>
           </div>
 
-          {r.why && <p className="pick-why">{r.why}</p>}
+          <p className="pick-why flex-1">{r.why ?? ""}</p>
 
-          <div className="flex items-center gap-3 pt-2 border-t border-line-soft">
+          <div className="flex items-center gap-3 pt-2 border-t border-line-soft mt-auto">
             <div className="today-tile py-2 px-3 min-w-[96px]">
               <div className="today-label">Today</div>
               <div className="today-value nums text-2xl">{r.ratings.today.toFixed(1)}</div>
