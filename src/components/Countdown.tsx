@@ -16,6 +16,7 @@ export function MatrixCell({
   backs,
   lays,
   prime,
+  group,
 }: {
   href: string;
   raceNumber: number;
@@ -25,7 +26,10 @@ export function MatrixCell({
   backs: number;
   lays: number;
   prime?: boolean;
+  /** 1, 2 or 3 for a Group race, shown as gold, silver or bronze. */
+  group?: 1 | 2 | 3;
 }) {
+  const medal = group ? <span className={`medal medal-${group}`} title={`Group ${group}`}>G{group}</span> : null;
   const [state, setState] = useState<{ label: string; status: string }>({
     label: clock,
     status: "",
@@ -50,6 +54,7 @@ export function MatrixCell({
   if (result) {
     return (
       <Link href={href} className={`matrix-btn race-resulted ${tip ? `had-${tip}` : ""}`}>
+        {medal}
         <span className="matrix-race">R{raceNumber}</span>
         <span className="matrix-result nums">{result.join(",")}</span>
       </Link>
@@ -60,6 +65,7 @@ export function MatrixCell({
 
   return (
     <Link href={href} className={`matrix-btn ${tip ? `tip-${tip}` : ""} ${state.status}`}>
+      {medal}
       <span className="matrix-race">R{raceNumber}</span>
       <span className="matrix-time nums">{state.label}</span>
       {tag && <span className={`matrix-count nums is-${tip}`}>{tag}</span>}

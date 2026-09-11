@@ -1905,3 +1905,30 @@ body {
     margin-left: 0 !important;
   }
 }
+
+/* Group race medals on the matrix. */
+.matrix-btn {
+  position: relative;
+}
+.medal {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  font-family: var(--font-plex), monospace;
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 2px 3px;
+  border-radius: 3px;
+  color: #14161a;
+}
+.medal-1 {
+  background: linear-gradient(135deg, #f6d365, #c9a227);
+}
+.medal-2 {
+  background: linear-gradient(135deg, #e6e9ee, #a8b0bb);
+}
+.medal-3 {
+  background: linear-gradient(135deg, #e0a672, #a5673f);
+  color: #fff;
+}

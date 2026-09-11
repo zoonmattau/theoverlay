@@ -76,6 +76,7 @@ export function RaceMatrix({
                       backs={backs}
                       lays={lays}
                       prime={prime.has(race.raceId)}
+                      group={groupOf(race.className, race.name)}
                     />
                   </td>
                 );
@@ -93,4 +94,11 @@ export function RaceMatrix({
       </div>
     </div>
   );
+}
+
+/** Group 1, 2 or 3 from the class or race name. */
+export function groupOf(className?: string, name?: string): 1 | 2 | 3 | undefined {
+  const m = `${className ?? ""} ${name ?? ""}`.match(/group\s?([123])|\bg([123])\b/i);
+  if (!m) return undefined;
+  return Number(m[1] ?? m[2]) as 1 | 2 | 3;
 }
