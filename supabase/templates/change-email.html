@@ -26,11 +26,11 @@
             <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:22px 0 6px">
   <tr>
     <td bgcolor="#c6f24e" style="background-color:#c6f24e;border-radius:8px">
-      <a href="{{ .ConfirmationURL }}" style="display:inline-block;padding:12px 22px;font:700 15px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#14161a;text-decoration:none">Confirm new email</a>
+      <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change" style="display:inline-block;padding:12px 22px;font:700 15px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#14161a;text-decoration:none">Confirm new email</a>
     </td>
   </tr>
 </table>
-<p style="margin:10px 0 0;font:400 12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#8b918a;line-height:1.5">If the button does not work, paste this into your browser:<br><a href="{{ .ConfirmationURL }}" style="color:#1f6fd6;word-break:break-all">{{ .ConfirmationURL }}</a></p>
+<p style="margin:10px 0 0;font:400 12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#8b918a;line-height:1.5">If the button does not work, paste this into your browser:<br><a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change" style="color:#1f6fd6;word-break:break-all">{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=email_change</a></p>
             <p style="margin:18px 0 0;font:400 12px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#8b918a;line-height:1.5">If it was not you, ignore this email and nothing changes.</p>
           </td>
         </tr>

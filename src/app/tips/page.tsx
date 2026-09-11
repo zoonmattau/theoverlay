@@ -71,7 +71,10 @@ async function Tips() {
     <>
       <section className="py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Today&apos;s tips</h1>
-        <p className="mt-2 text-ink-secondary">{longDate(date)}. Every bet and lay on the card, with the result once the race has run.</p>
+        <p className="mt-2 text-ink-secondary">
+          {longDate(date)}. Every bet and lay on the card, with the result once the race has run.
+        </p>
+        <p className="mt-1 text-xs text-ink-soft">Tips are released at 8:00am AEST each race day, and prices refresh through the day.</p>
         <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard n={calls.length} label="tips today" sub={`${toRun} still to run`} />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />
