@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { logEvent } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { passBundle, planById, TRIAL_DAYS } from "@/lib/billing/plans";
 import { integrationId, siteUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
@@ -23,6 +24,8 @@ export async function POST(request: NextRequest) {
   if ((!plan || !plan.priceId) && (!bundle || !bundle.priceId)) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }
+  const chosen = plan ? plan.id : `passes_${bundle!.qty}`;
+  await logEvent({ user_id: viewer.id, kind: "plan_click", plan: chosen, amount_cents: null, meta: null });
 
   // One Stripe customer per user, created on first checkout.
   let customer = viewer.stripeCustomerId;
@@ -48,6 +51,7 @@ export async function POST(request: NextRequest) {
       metadata: { userId: viewer.id, passes: String(bundle.qty) },
       integration_identifier: integrationId("overlay_passes"),
     });
+    await logEvent({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: bundle.price * 100, meta: { session: session.id } });
     return NextResponse.json({ url: session.url });
   }
 
@@ -72,6 +76,7 @@ export async function POST(request: NextRequest) {
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),
   });
+  await logEvent({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled } });
 
   return NextResponse.json({ url: session.url });
 }

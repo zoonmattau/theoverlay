@@ -1,7 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 
-import { creditPasses, emailForUser, grantAccess, userIdForCustomer } from "@/lib/billing/access";
+import { logEvent, recordPayment } from "@/lib/admin";
+import { creditPasses, emailForUser, grantAccess, supabaseAdmin, userIdForCustomer } from "@/lib/billing/access";
 import { planById } from "@/lib/billing/plans";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { EMAILS } from "@/lib/email/messages";
@@ -41,6 +42,10 @@ export async function POST(request: NextRequest) {
       const userId = session.metadata?.userId;
       if (passes > 0 && userId && session.payment_status === "paid") {
         const total = await creditPasses({ sessionId: session.id, userId, quantity: passes });
+        if (total !== undefined) {
+          await recordPayment(userId, session.amount_total ?? 0, `passes_${passes}`, { session: session.id });
+          await logEvent({ user_id: userId, kind: "checkout_completed", plan: `passes_${passes}`, amount_cents: session.amount_total ?? null, meta: null });
+        }
         const to = await emailForUser(userId);
         if (to && total !== undefined) await sendEmail(to, EMAILS.passesAdded(passes, total));
       }
@@ -67,6 +72,20 @@ export async function POST(request: NextRequest) {
         stripeCustomerId: customerId,
         stripeSubscriptionId: sub.status === "canceled" ? null : sub.id,
       });
+      await supabaseAdmin()
+        .from("profiles")
+        .update({
+          subscription_status: sub.status,
+          ...(event.type === "customer.subscription.created" ? { subscribed_since: new Date(sub.created * 1000).toISOString() } : {}),
+        })
+        .eq("id", userId);
+      await logEvent({
+        user_id: userId,
+        kind: "subscription",
+        plan: planId,
+        amount_cents: null,
+        meta: { status: sub.status, event: event.type, cancelAtPeriodEnd: sub.cancel_at_period_end, until: until.toISOString() },
+      });
 
       // One email per state change, never one per Stripe retry.
       const planName = planById(planId)?.name ?? "Overlay";
@@ -91,9 +110,17 @@ export async function POST(request: NextRequest) {
       break;
     }
 
-    case "invoice.paid":
-      // The subscription events carry the state change; nothing extra to do.
+    case "invoice.paid": {
+      // The subscription events carry the state change; this one carries the money.
+      const invoice = event.data.object;
+      const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
+      const userId = customerId ? await userIdForCustomer(customerId) : undefined;
+      if (userId && invoice.amount_paid > 0) {
+        const { data } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
+        await recordPayment(userId, invoice.amount_paid, data?.plan ?? null, { invoice: invoice.id });
+      }
       break;
+    }
   }
 
   return NextResponse.json({ received: true });

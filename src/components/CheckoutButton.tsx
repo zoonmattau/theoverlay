@@ -23,6 +23,12 @@ export function CheckoutButton({
 
   async function go() {
     if (!signedIn) {
+      fetch("/api/track", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ kind: "plan_click", plan: plan ?? `passes_${passes}` }),
+        keepalive: true,
+      }).catch(() => {});
       router.push(`/signup?next=${encodeURIComponent("/pricing")}`);
       return;
     }

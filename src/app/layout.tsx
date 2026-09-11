@@ -85,6 +85,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 Responsible gambling
               </Link>
               <Link href="/terms" className="hover:text-ink-secondary">Terms</Link>
+              <Link href="/privacy" className="hover:text-ink-secondary">Privacy</Link>
             </div>
 
             <p>

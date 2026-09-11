@@ -12,6 +12,8 @@ export interface Viewer {
   plan?: string;
   /** ISO, when the subscription's paid period ends. */
   accessUntil?: string;
+  /** Access is paused by an admin, so the board stays closed. */
+  paused: boolean;
   stripeCustomerId?: string;
   /** Unused day passes. */
   passCredits: number;
@@ -25,10 +27,11 @@ export interface Viewer {
   referralCode?: string;
 }
 
-export const ANON: Viewer = { pro: false, passCredits: 0, passDates: [], bonusLive: false };
+export const ANON: Viewer = { pro: false, paused: false, passCredits: 0, passDates: [], bonusLive: false };
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
+  if (viewer.paused) return false;
   if (viewer.pro && planCovers(viewer.plan, date)) return true;
   if (viewer.bonusLive) return true;
   return viewer.passDates.includes(date);
@@ -52,7 +55,7 @@ export async function getViewer(): Promise<Viewer> {
   const [{ data: profile }, { data: passes }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code")
+      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
@@ -67,6 +70,7 @@ export async function getViewer(): Promise<Viewer> {
     pro,
     plan: pro ? (profile?.plan ?? undefined) : undefined,
     accessUntil: until?.toISOString(),
+    paused: Boolean(profile?.paused_at),
     stripeCustomerId: profile?.stripe_customer_id ?? undefined,
     passCredits: profile?.pass_credits ?? 0,
     passDates: (passes ?? []).map((p) => String(p.date)),
