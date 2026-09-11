@@ -6,6 +6,8 @@ import { isAdmin, logEvent } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
+import { EMAILS } from "@/lib/email/messages";
+import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
 import { buildCard, racingToday } from "@/lib/model/source";
 
@@ -108,5 +110,41 @@ export async function setAdmin(userId: string, on: boolean): Promise<void> {
   await supabaseAdmin().from("profiles").update({ is_admin: on }).eq("id", userId);
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: on ? "make_admin" : "remove_admin", by: admin.email } });
   revalidatePath(`/admin/${userId}`);
+  revalidatePath("/admin");
+}
+
+/**
+ * Creates an account for someone and emails them a one-time link that sets
+ * their password, on our domain through Resend. Optional gift days and admin.
+ */
+export async function inviteMember(form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const email = String(form.get("email") ?? "").trim().toLowerCase();
+  const days = Math.max(0, Number(form.get("days") ?? 0) || 0);
+  const makeAdmin = form.get("admin") === "on";
+  if (!email.includes("@")) return;
+  const db = supabaseAdmin();
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
+
+  const { data, error } = await db.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: { data: { accepted_terms: "true", marketing_opt_in: true }, redirectTo: `${site}/auth/confirm` },
+  });
+  if (error || !data.user) {
+    await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "invite_failed", email, error: error?.message, by: admin.email } });
+    revalidatePath("/admin");
+    return;
+  }
+  const userId = data.user.id;
+  const link = `${site}/auth/confirm?token_hash=${data.properties.hashed_token}&type=invite&next=${encodeURIComponent("/reset?welcome=1")}`;
+
+  const patch: Record<string, unknown> = { email, marketing_opt_in: true };
+  if (makeAdmin) patch.is_admin = true;
+  if (days > 0) patch.bonus_until = new Date(Date.now() + days * 86400_000).toISOString();
+  await db.from("profiles").upsert({ id: userId, ...patch });
+
+  const ok = await sendEmail(email, EMAILS.invited(link, days, makeAdmin));
+  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "invite", email, days, admin: makeAdmin, emailed: ok, by: admin.email } });
   revalidatePath("/admin");
 }

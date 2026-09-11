@@ -77,6 +77,23 @@ export const EMAILS = {
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),
 
+  invited: (link: string, days: number, admin: boolean): EmailSpec => ({
+    subject: "Your invite to The Overlay",
+    preheader: "Set a password and the board is yours.",
+    heading: "You have been invited.",
+    paragraphs: [
+      "Someone at The Overlay has set up an account for you.",
+      admin
+        ? "It has admin access, so every race day is open and you can see the admin panel."
+        : days > 0
+          ? `It comes with <strong>${days} days</strong> of the full board, every race day.`
+          : "Press the button, choose a password, and you are in.",
+      "The link works once and sets your password.",
+    ],
+    cta: { label: "Set your password", url: link },
+    note: "If you were not expecting this, ignore it and nothing happens.",
+  }),
+
   cronFailed: (date: string, message: string): EmailSpec => ({
     subject: `Card build failed for ${date}`,
     preheader: "The morning run did not finish.",

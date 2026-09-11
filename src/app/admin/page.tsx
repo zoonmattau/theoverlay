@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { rebuildCard, resendTips } from "@/app/admin/actions";
+import { inviteMember, rebuildCard, resendTips } from "@/app/admin/actions";
 import { isAdmin, listMembers, now as clock, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
@@ -70,6 +70,17 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
         <Tile n={stats.signupsWeek} label="sign-ups, 7 days" />
         <Tile n={money(stats.revenue)} label="revenue, all time" tone="bet" />
         <Tile n={Object.values(stats.clicksByPlan).reduce((a, b) => a + b, 0)} label="plan clicks, 7 days" />
+      </div>
+
+      <div className="card mb-6">
+        <h2 className="font-display font-extrabold">Invite someone</h2>
+        <p className="mt-1 text-sm text-ink-secondary">Creates the account and emails them a one-time link to set a password.</p>
+        <form action={inviteMember} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
+          <label className="field"><span>Email</span><input name="email" type="email" required className="field-input w-64" placeholder="name@example.com" /></label>
+          <label className="field"><span>Gift days</span><input name="days" type="number" defaultValue={14} min={0} className="field-input w-24" /></label>
+          <label className="flex items-center gap-2 pb-2"><input name="admin" type="checkbox" /> Make admin</label>
+          <button className="btn btn-primary btn-sm" type="submit">Send invite</button>
+        </form>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 mb-6">
