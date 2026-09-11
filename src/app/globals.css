@@ -1567,6 +1567,12 @@ body {
 .runner-detail-runs {
   overflow-x: auto;
 }
+/* Wide screens fit the table, so nothing clips the tooltips. */
+@media (min-width: 1024px) {
+  .runner-detail-runs {
+    overflow: visible;
+  }
+}
 .runs-table {
   width: 100%;
   border-collapse: collapse;

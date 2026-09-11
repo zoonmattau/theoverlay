@@ -36,7 +36,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
 
   return (
     <Section id="market" letter="M" title="Market" aside={<span className="nums">{runners.length} runners</span>}>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto lg:overflow-visible">
         <table className="data-table sm:min-w-[760px] text-sm">
           <thead>
             <tr>
