@@ -87,7 +87,7 @@ export function rateRace(
 
   const runners: RateOutput[] = live.map((r, i) => {
     const probability = normalised[i];
-    const ratedPrice = round2(1 / probability);
+    const ratedPrice = roundPrice(1 / probability);
     // Edge is our win chance minus the market's: a $4 rating against a $5
     // market is 25% less 20%, an edge of five points.
     const edge =
@@ -182,5 +182,9 @@ function median(xs: number[]): number {
 const clamp = (n: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, n));
 const logit = (p: number) => Math.log(clamp(p, 1e-4, 1 - 1e-4) / (1 - clamp(p, 1e-4, 1 - 1e-4)));
 const sigmoid = (x: number) => 1 / (1 + Math.exp(-x));
-const round2 = (n: number) => Math.round(n * 100) / 100;
+/** Bookmaker-style rounding: 5 cent steps under $3, 10 cent steps above. */
+export function roundPrice(p: number): number {
+  const step = p < 3 ? 0.05 : 0.1;
+  return Math.round(Math.round(p / step) * step * 100) / 100;
+}
 const round4 = (n: number) => Math.round(n * 10000) / 10000;

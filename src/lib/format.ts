@@ -6,6 +6,12 @@ export function price(n: number | undefined): string {
   return `$${n.toFixed(2)}`;
 }
 
+/** A rated price with its win chance, e.g. "$4.50 · 22%". */
+export function priceWithChance(p: number | undefined, prob: number | undefined): string {
+  if (p === undefined || !prob) return price(p);
+  return `${price(p)} · ${percent(prob)}`;
+}
+
 export function percent(n: number | undefined, dp = 0): string {
   if (n === undefined || !Number.isFinite(n)) return "—";
   return `${(n * 100).toFixed(dp)}%`;

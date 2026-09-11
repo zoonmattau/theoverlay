@@ -1,6 +1,6 @@
 import { Badge } from "./Badge";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
-import { percent, price, signedPercent } from "@/lib/format";
+import { percent, price, priceWithChance, signedPercent } from "@/lib/format";
 import type { PublishedRace } from "@/lib/model/types";
 
 /** Three quick reads: the pace, where we see value, and who rates best. */
@@ -52,8 +52,8 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
               </span>
             </span>
             <span className="nums whitespace-nowrap">
-              <span className="text-ink-soft">{price(r.ratedPrice)}</span>
-              <span className="text-muted"> · </span>
+              <span className="text-ink-soft">{priceWithChance(r.ratedPrice, r.ratedProbability)}</span>
+              <span className="text-muted"> v </span>
               <span className={r.signal === "back" ? "text-blue font-bold" : "text-red font-bold"}>
                 {price(r.marketPrice)}
               </span>

@@ -9,7 +9,7 @@ import { Section } from "@/components/Section";
 import { Outcome } from "@/components/SelectionCard";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { jumpTime, longDate, price, signedPercent } from "@/lib/format";
+import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
 
@@ -174,7 +174,7 @@ function CallTable({
                       {c.prime && <span className="badge badge-prime">Prime</span>}
                     </span>
                   </td>
-                  <td className="text-right nums font-semibold">{price(c.runner.ratedPrice)}</td>
+                  <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
                   <td className="text-right">
                     <span className={`price-chip ${side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
                   </td>

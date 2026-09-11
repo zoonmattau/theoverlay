@@ -278,6 +278,7 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
       tabNumber: pick.runner.tabNumber,
       horseName: pick.runner.horseName,
       ratedPrice: pick.runner.ratedPrice,
+      ratedProbability: pick.runner.ratedProbability,
       marketPrice: pick.runner.marketPrice,
       edge: pick.runner.edge,
       finishPosition: pick.race.result ? pick.runner.finishPosition : undefined,

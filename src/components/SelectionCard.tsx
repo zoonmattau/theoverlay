@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
-import { price, signedPercent, TAG_BLURB, TAG_LABEL } from "@/lib/format";
+import { price, priceWithChance, signedPercent, TAG_BLURB, TAG_LABEL } from "@/lib/format";
 import type { Selection } from "@/lib/model/types";
 
 /** The same card with the horse and prices held back, for visitors. */
@@ -72,7 +72,7 @@ export function SelectionCard({ s, date }: { s: Selection; date: string }) {
       <p className="mt-1 text-xs text-muted">{TAG_BLURB[s.tag]}</p>
 
       <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-3">
-        <Stat label="Rated" value={price(s.ratedPrice)} />
+        <Stat label="Rated" value={priceWithChance(s.ratedPrice, s.ratedProbability)} />
         <Stat label="Market" value={price(s.marketPrice)} muted />
         <Stat label="Edge" value={signedPercent(s.edge)} accent={prime} blue={!prime} />
       </dl>

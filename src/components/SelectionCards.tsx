@@ -1,6 +1,6 @@
 import { Factors } from "./Factors";
 import { SignalBadge, MAP_LABEL } from "./Ratings";
-import { price } from "@/lib/format";
+import { percent, price } from "@/lib/format";
 import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
 
 /**
@@ -34,7 +34,9 @@ export function SelectionCards({ race }: { race: PublishedRace }) {
           <div className="flex gap-2">
             <div className="price-box">
               <div className="label">Rated</div>
-              <div className="value nums">{price(r.ratedPrice)}</div>
+              <div className="value nums">
+                {price(r.ratedPrice)} <span className="text-xs text-ink-soft font-semibold">{percent(r.ratedProbability)}</span>
+              </div>
             </div>
             <div className={`price-box ${r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
               <div className="label">Live</div>

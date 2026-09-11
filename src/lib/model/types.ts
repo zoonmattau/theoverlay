@@ -173,6 +173,7 @@ export interface Selection {
   tabNumber: number;
   horseName: string;
   ratedPrice: number;
+  ratedProbability?: number;
   marketPrice?: number;
   edge?: number;
   comment?: string;
