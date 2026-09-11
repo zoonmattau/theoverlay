@@ -41,9 +41,9 @@ export default function Page() {
       <Clause n="04" title="Prices and data">
         Market prices shown are the best prices we saw at the time a card was published.
         They move, and we do not update them in real time. We make no promise that any
-        price shown is still available. Form and field data is provided under licence
-        from third-party suppliers and may contain errors; check the official race
-        card before you bet.
+        price shown is still available. Form and field data is supplied under licence
+        from Form King and may contain errors; check the official race card before you
+        bet.
       </Clause>
 
       <Clause n="05" title="Your use of our content">

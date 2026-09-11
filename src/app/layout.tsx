@@ -86,9 +86,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/terms" className="hover:text-ink-secondary">Terms</Link>
             </div>
 
-            {/* Attribution is a condition of the Form King API licence. */}
             <p>
-              Powered by Form King. Contact{" "}
+              Contact{" "}
               <a href="mailto:hello@theoverlay.com.au" className="text-ink hover:text-blue">
                 hello@theoverlay.com.au
               </a>
