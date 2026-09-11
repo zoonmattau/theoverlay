@@ -30,8 +30,10 @@ async function Hero() {
   const { meetings } = await getTodayCard();
   const races = meetings.flatMap((m) => m.races);
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
-  // Only races still to run count as bets on the board.
-  const bets = races.filter((r) => !r.result).flatMap((r) => r.runners).filter((r) => r.signal === "back").length;
+  // Calls for the whole day, run or not, so the number never reads as empty late on.
+  const all = races.flatMap((r) => r.runners);
+  const bets = all.filter((r) => r.signal === "back").length;
+  const lays = all.filter((r) => r.signal === "lay").length;
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
@@ -56,7 +58,7 @@ async function Hero() {
       <div className="grid grid-cols-3 gap-3">
         <Tile n={races.length} label="races rated today" />
         <Tile n={runners} label="runners priced" />
-        <Tile n={bets} label="bets still to run" accent />
+        <Tile n={bets + lays} label={`calls today: ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}`} accent />
       </div>
     </section>
   );
