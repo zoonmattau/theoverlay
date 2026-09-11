@@ -287,13 +287,20 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number): numb
   // Listed race says nothing about open benchmark company, so a run as a
   // two-year-old is worth today's par at best, plus a little for the clock.
   const juvenile = wasJuvenile(r, ageNow);
-  const reach = juvenile ? 0 : todayPar <= 55 ? 12 : 25;
+  // "Open Hcp" at a bush track is not open company: without an explicit
+  // benchmark, class, group or listed tag the run can only sit a little
+  // above today's par.
+  const explicit = EXPLICIT_CLASS.test(r.raceName ?? "");
+  const reach = juvenile ? 0 : !explicit ? 8 : todayPar <= 55 ? 12 : 25;
   const par = clamp(parseClass(r.raceName) ?? ohr ?? todayPar, todayPar - 15, todayPar + reach);
   const raw = r.benchmark
     ? par + r.benchmark.vsClass * POINTS_PER_LENGTH
     : par - Math.min(15, (r.margin ?? ((r.finishPosition ?? 6) - 1) * 1.2) * POINTS_PER_LENGTH * MARGIN_WEIGHT);
   return clamp(raw, par - 25, par + (juvenile ? 8 : 15));
 }
+
+/** Race names that pin the grade down, as opposed to "Open Hcp" or "Plate". */
+const EXPLICIT_CLASS = /bm\s?\d|benchmark|class\s?\d|\bcl\s?\d|group\s?\d|\bg[123]\b|listed|mdn|maiden|\brs\d|\d{2,3}[BR+]|stakes|cup\b|guineas|derby|oaks/i;
 
 /**
  * Whether the horse was two when it ran: the race name says so, or its age
