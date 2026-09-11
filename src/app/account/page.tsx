@@ -76,6 +76,18 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         />
       </div>
 
+      {viewer.admin && (
+        <div className="card mt-6 border-lime bg-lime-soft">
+          <h2 className="font-display font-extrabold">Preview a date</h2>
+          <p className="mt-1 text-sm text-ink-secondary">Open the board or the tips for any date, including tomorrow once the 9pm build has run. Members only ever see today, from 8am.</p>
+          <form action="/" method="get" className="mt-3 flex flex-wrap items-end gap-3 text-sm">
+            <label className="field"><span>Date</span><input name="date" type="date" defaultValue={card.date} className="field-input" /></label>
+            <button type="submit" className="btn btn-primary btn-sm">Open board</button>
+            <button type="submit" formAction="/tips" className="btn btn-secondary btn-sm">Open tips</button>
+          </form>
+        </div>
+      )}
+
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Card title="Subscription">
           {viewer.admin ? (

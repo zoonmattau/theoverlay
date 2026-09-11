@@ -10,7 +10,7 @@ import { RaceMatrix } from "@/components/RaceMatrix";
 import { LockedSelectionCard, NoBetNotice, ReleaseNotice, SelectionCard } from "@/components/SelectionCard";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { UsePassButton } from "@/components/UsePassButton";
-import { getTodayCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
+import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { longDate } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -25,16 +25,16 @@ const FAQ: Faq[] = [
   { q: "How much does it cost?", a: "Saturday tips are $19 a month, Saturday plus Wednesday $29, every day $49, all with a 7-day free trial, or day passes from $10 each." },
 ];
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/">) {
   return (
     <div className="page">
       <JsonLd data={[ORGANIZATION, WEBSITE, faqSchema(FAQ)]} />
       <Suspense fallback={<HeroSkeleton />}>
-        <Hero />
+        <Hero searchParams={searchParams} />
       </Suspense>
 
       <Suspense fallback={<CardSkeleton />}>
-        <TodayCard />
+        <TodayCard searchParams={searchParams} />
       </Suspense>
 
       <WhyUs />
@@ -44,12 +44,19 @@ export default function Page() {
 }
 
 /** The pitch, with today's numbers behind it so it never reads as empty. */
-async function Hero() {
-  // The live card is fetched at request time and cached for an hour, never
-  // during the build: a full card is dozens of throttled Form King calls.
+/** ?date=yyyy-mm-dd, honoured for admins only. */
+async function wantedDate(searchParams: PageProps<"/">["searchParams"]): Promise<string | undefined> {
+  const sp = await searchParams;
+  return typeof sp.date === "string" ? sp.date : undefined;
+}
+
+async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
+  // The card is read at request time, never during the build.
   await connection();
-  const viewer = await getViewer();
-  const { meetings, released } = await getTodayCard(viewer.admin);
+  const [viewer, wanted] = await Promise.all([getViewer(), wantedDate(searchParams)]);
+  const card = await getCardFor(wanted, viewer.admin);
+  const { meetings } = card;
+  const released = card.released || viewer.admin;
   const races = meetings.flatMap((m) => m.races);
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
   // Calls for the whole day, run or not, so the number never reads as empty late on.
@@ -99,11 +106,13 @@ function Tile({ n, label, accent }: { n: number | string; label: string; accent?
   );
 }
 
-async function TodayCard() {
+async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searchParams"] }) {
   await connection();
-  const viewer = await getViewer();
-  const card = await getTodayCard(viewer.admin);
-  const { date, meetings, selections, live, released } = card;
+  const [viewer, wanted] = await Promise.all([getViewer(), wantedDate(searchParams)]);
+  const card = await getCardFor(wanted, viewer.admin);
+  const { date, meetings, selections, live } = card;
+  const previewing = viewer.admin && !card.released;
+  const released = card.released || viewer.admin;
   keepFresh(date, card);
   const open = hasAccess(viewer, date);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
@@ -115,8 +124,13 @@ async function TodayCard() {
       <NextToGo meetings={meetings} selections={selections} date={date} />
 
       <section className="mt-6" id="board">
+        {previewing && (
+          <p className="mb-3 border border-lime bg-lime-soft px-3 py-2 text-xs rounded-md font-semibold">
+            Admin preview of {longDate(date)}. Members cannot see this card until {RELEASE_HOUR}am on the day.
+          </p>
+        )}
         <div className="panel-head">
-          <h2>Today&apos;s meetings</h2>
+          <h2>{wanted === date && viewer.admin ? `Meetings, ${longDate(date)}` : "Today's meetings"}</h2>
           <div className="flex items-center gap-4 text-xs text-ink-soft nums">
             <span>{longDate(date)}</span>
             <span>

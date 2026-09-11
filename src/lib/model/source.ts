@@ -74,6 +74,15 @@ export async function getTodayCard(preview = false): Promise<Awaited<ReturnType<
   return { date, ...(await getCard(date, preview)) };
 }
 
+/**
+ * A page's card: today's, or for an admin previewing another date, that
+ * date's. Non-admins always get today, whatever the query string says.
+ */
+export async function getCardFor(date: string | undefined, preview: boolean): Promise<Card & { date: string }> {
+  if (preview && date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return { date, ...(await getCard(date, true)) };
+  return getTodayCard(preview);
+}
+
 export interface Card extends StoredCard {
   /** ISO, when the card was last built. */
   builtAt: string;
@@ -91,7 +100,8 @@ export async function getCard(date: string, preview = false): Promise<Card> {
   cacheLife({ stale: 30, revalidate: 60, expire: 300 });
   cacheTag(`card-${date}`);
 
-  const gate = (card: Card) => (preview || released(date) ? card : withheld(card));
+  // Admins preview everything, but still learn whether members can see it.
+  const gate = (card: Card) => (preview ? { ...card, released: released(date) } : released(date) ? card : withheld(card));
   if (storeConfigured()) {
     const stored = await readStoredCard(date);
     if (stored) return gate({ ...stored.card, builtAt: stored.builtAt, released: true });

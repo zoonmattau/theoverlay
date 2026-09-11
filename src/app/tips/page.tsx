@@ -10,7 +10,7 @@ import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
-import { getTodayCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
+import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
 
 export const metadata: Metadata = {
@@ -19,11 +19,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tips" },
 };
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/tips">) {
   return (
     <div className="page max-w-5xl">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Tips />
+        <Tips searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -56,10 +56,10 @@ interface Call {
   profit?: number;
 }
 
-async function Tips() {
+async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["searchParams"] }) {
   await connection();
-  const viewer = await getViewer();
-  const card = await getTodayCard(viewer.admin);
+  const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
+  const card = await getCardFor(typeof sp.date === "string" ? sp.date : undefined, viewer.admin);
   const { date, meetings, selections, released } = card;
   keepFresh(date, card);
   const open = hasAccess(viewer, date);
@@ -115,10 +115,15 @@ async function Tips() {
         </div>
       </section>
 
-      {!released && (
+      {!released && !viewer.admin && (
         <div className="mb-4">
           <ReleaseNotice hour={RELEASE_HOUR} />
         </div>
+      )}
+      {viewer.admin && !released && (
+        <p className="mb-4 border border-lime bg-lime-soft px-3 py-2 text-xs rounded-md font-semibold">
+          Admin preview of {longDate(date)}. Members cannot see these until {RELEASE_HOUR}am on the day.
+        </p>
       )}
 
       {!open && viewer.passCredits > 0 && (

@@ -18,6 +18,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
+import { NextToGo } from "@/components/NextToGo";
 import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
@@ -67,7 +68,7 @@ async function Race({ params }: { params: Props["params"] }) {
   if (!card) notFound();
   const { meeting, race, meetings, selections, free } = card;
   keepFresh(date, card.card);
-  const released = card.card.released;
+  const released = card.card.released || viewer.admin;
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
 
@@ -110,6 +111,12 @@ async function Race({ params }: { params: Props["params"] }) {
   return (
     <div className="page space-y-4">
       <JsonLd data={schema} />
+      {viewer.admin && !card.card.released && (
+        <p className="border border-lime bg-lime-soft px-3 py-2 text-xs rounded-md font-semibold">
+          Admin preview. Members cannot see the calls for this race until {RELEASE_HOUR}am on the day.
+        </p>
+      )}
+      <NextToGo meetings={meetings} selections={selections} date={date} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}
       <header className="section !overflow-visible">
         <div className="section-body flex flex-wrap items-center gap-x-4 gap-y-3">

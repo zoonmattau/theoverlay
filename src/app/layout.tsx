@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import Image from "next/image";
+import { HorseSearch } from "@/components/HorseSearch";
 import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
 import "./globals.css";
@@ -70,6 +71,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               className="h-10 w-auto"
             />
           </Link>
+          <HorseSearch />
           <div className="topbar-links">
             {NAV.map((item) => (
               <Link key={item.href} href={item.href} className="topbar-link">
