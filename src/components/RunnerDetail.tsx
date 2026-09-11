@@ -1,3 +1,5 @@
+import { Fragment } from "react";
+
 import { Factors } from "./Factors";
 import { price } from "@/lib/format";
 import { callLine, finishFit, observations, settles, tempoFit } from "@/lib/model/narrative";
@@ -101,12 +103,25 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         ) : (
           <table className="runs-table nums">
             <thead>
-              <tr><th>Date</th><th>Track</th><th>Dist</th><th>Going</th><th>Class</th><th>Fin</th><th>Mgn</th><th>Wgt</th><th>SP</th><th>Map</th><th className="text-right">Pts</th></tr>
+              <tr>
+                <th>Date</th>
+                <th>Track</th>
+                <th>Dist</th>
+                <th>Going</th>
+                <th>Class</th>
+                <th title="Finishing position and field size">Fin</th>
+                <th title="Lengths beaten">Mgn</th>
+                <th>Wgt</th>
+                <th title="Starting price">SP</th>
+                <th title="Where it settled in the run: leader, on pace, midfield or back">Settled</th>
+                <th className="text-right" title="What we scored the run, in benchmark points">Pts</th>
+              </tr>
             </thead>
             <tbody>
               {runs.map((x) => (
-                <tr key={`${x.date}-${x.track}`} className={x.met?.length ? "has-met" : ""}>
-                  <td>{day(x.date)}<Met run={x} race={race} /></td>
+                <Fragment key={`${x.date}-${x.track}`}>
+                <tr>
+                  <td>{day(x.date)}</td>
                   <td className="truncate max-w-[110px]">{x.track ?? "—"}</td>
                   <td>{x.distance}</td>
                   <td>{x.going ?? "—"}</td>
@@ -118,6 +133,12 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                   <td>{x.map ?? "—"}</td>
                   <td className="text-right font-semibold">{x.points.toFixed(1)}</td>
                 </tr>
+                {x.met?.length && x.finish ? (
+                  <tr className="met-row">
+                    <td colSpan={11}><Met run={x} race={race} /></td>
+                  </tr>
+                ) : null}
+                </Fragment>
               ))}
             </tbody>
           </table>

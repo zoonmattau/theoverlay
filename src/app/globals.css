@@ -1852,7 +1852,11 @@ body {
 .met {
   display: block;
   white-space: normal;
-  margin-top: 2px;
+}
+.runs-table tr.met-row td {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: 6px;
 }
 .met-chip {
   display: inline-block;
@@ -1871,9 +1875,6 @@ body {
 .met-chip.is-behind {
   background: var(--color-red-soft);
   color: var(--color-red);
-}
-.runs-table tr.has-met td {
-  vertical-align: top;
 }
 
 /* Phones: the market fits the screen, the map is saddlecloths only. */
