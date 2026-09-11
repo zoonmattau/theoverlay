@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { addDays, addPasses, cancelMember, pauseMember, resendInvite, resumeMember, saveNote, setAdmin } from "@/app/admin/actions";
+import { addDays, addPasses, cancelMember, deleteMember, pauseMember, resendInvite, resumeMember, saveNote, setAdmin } from "@/app/admin/actions";
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
@@ -138,6 +138,12 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             <label className="field"><span>Note</span><textarea name="note" defaultValue={m.admin_note ?? ""} rows={3} className="field-input w-full" /></label>
             <button className="btn btn-secondary btn-sm mt-2" type="submit">Save note</button>
           </form>
+          {m.id !== viewer.id && (
+            <form action={deleteMember.bind(null, m.id)} className="pt-2 border-t border-line-soft flex items-center gap-2">
+              <button className="btn btn-secondary btn-sm text-red" type="submit">Delete account</button>
+              <span className="text-ink-soft">removes the login and profile for good</span>
+            </form>
+          )}
         </div>
       </div>
 

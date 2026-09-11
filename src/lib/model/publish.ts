@@ -42,7 +42,7 @@ const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /** Market shorter than our price by this much, on a runner we can lay. */
-const LAY_EDGE = -0.08;
+const LAY_EDGE = -0.1;
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 
@@ -115,6 +115,13 @@ export function publishRace(
       finishPosition: e.horseResult ? e.horseResult.finishPosition : undefined,
     };
   });
+
+  // One lay a race at most: the one the market has most wrong.
+  const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.edge ?? 0) - (b.edge ?? 0));
+  for (const extra of lays.slice(1)) {
+    extra.signal = undefined;
+    if (extra.rank) extra.why = explain(extra.ratings, extra.rank, { going, tempo: pace.tempo }, undefined);
+  }
 
   const top = ranked
     .map((k) => runners.find((x) => String(x.tabNumber) === k)!)

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { isAdmin, logEvent } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
@@ -166,4 +167,21 @@ export async function resendInvite(userId: string): Promise<void> {
   const ok = await sendEmail(prof.email, EMAILS.invited(link, days, Boolean(prof.is_admin)));
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "resend_invite", emailed: ok, by: admin.email } });
   revalidatePath(`/admin/${userId}`);
+}
+
+/** Removes the account entirely, auth and profile; Stripe is left alone. */
+export async function deleteMember(userId: string): Promise<void> {
+  const admin = await requireAdmin();
+  if (admin.id === userId) return;
+  const db = supabaseAdmin();
+  const { data } = await db.from("profiles").select("email").eq("id", userId).maybeSingle();
+  const { error } = await db.auth.admin.deleteUser(userId);
+  if (error) {
+    await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "delete_failed", error: error.message, by: admin.email } });
+    return;
+  }
+  await db.from("profiles").delete().eq("id", userId);
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "delete", email: data?.email, by: admin.email } });
+  revalidatePath("/admin");
+  redirect("/admin");
 }
