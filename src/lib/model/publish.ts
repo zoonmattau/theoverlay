@@ -48,10 +48,14 @@ const LAY_EDGE = -0.12;
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 
+/** Signals from the last publish, keyed raceId:tab, so a call does not flicker off as prices move. */
+export type KeptSignals = Map<string, Signal>;
+
 export function publishRace(
   race: RaceSummary,
   meeting: MeetingSummary,
   speedmap?: Speedmap,
+  kept: KeptSignals = new Map(),
 ): PublishedRace {
   const points = classPoints(race.restrictions, race.name);
   const going = goingBand(race.going);
@@ -95,7 +99,7 @@ export function publishRace(
     const r = ratedByTab.get(key);
     const rank = ranked.indexOf(key);
     const ratings = r?.ratings ?? fallback;
-    const signal = signalFor(p?.edge, p?.marketPrice, p?.probability, e.scratched);
+    const signal = signalFor(p?.edge, p?.marketPrice, p?.probability, e.scratched, kept.get(`${race.raceId}:${e.number}`));
     return {
       tabNumber: e.number,
       horseName: e.horse.name,
@@ -223,10 +227,15 @@ function signalFor(
   marketPrice: number | undefined,
   probability: number | undefined,
   scratched?: boolean,
+  kept?: Signal,
 ): Signal | undefined {
   if (scratched || edge === undefined || !marketPrice || probability === undefined) return undefined;
   if (edge >= MIN_EDGE && probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE) return "back";
   if (edge <= LAY_EDGE && marketPrice <= LAY_MAX_PRICE) return "lay";
+  // A call already published stays while it still has half its edge, so a
+  // ten-cent move in the market does not make a tip vanish between refreshes.
+  if (kept === "back" && edge >= MIN_EDGE / 2 && marketPrice <= BET_MAX_PRICE * 1.5) return "back";
+  if (kept === "lay" && edge <= LAY_EDGE / 2 && marketPrice <= LAY_MAX_PRICE * 1.5) return "lay";
   return undefined;
 }
 
@@ -301,6 +310,7 @@ export function publishMeeting(
   meeting: MeetingSummary,
   races: RaceSummary[],
   speedmaps: Record<string, Speedmap> = {},
+  kept: KeptSignals = new Map(),
 ): PublishedMeeting {
   const first = races[0];
   return {
@@ -314,7 +324,7 @@ export function publishMeeting(
     trackCondition: first ? goingLabel(first.going, first.goingNumber) : undefined,
     railPosition: meeting.railPosition ?? first?.railPosition,
     races: races
-      .map((r) => publishRace(r, meeting, speedmaps[r.raceId]))
+      .map((r) => publishRace(r, meeting, speedmaps[r.raceId], kept))
       .sort((a, b) => a.raceNumber - b.raceNumber),
   };
 }

@@ -9,7 +9,8 @@ import {
   getRace,
 } from "@/lib/formking/client";
 import type { MeetingSummary, RaceSummary, Speedmap } from "@/lib/formking/types";
-import { pickFreeRace, publishMeeting, selectBestBets } from "./publish";
+import { pickFreeRace, publishMeeting, selectBestBets, type KeptSignals } from "./publish";
+import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import type { PublishedMeeting } from "./types";
 
@@ -148,14 +149,36 @@ export async function getCard(date: string, preview = false): Promise<Card> {
 /** Builds the card from Form King (or fixtures) and, with a store, saves it. */
 export async function buildCard(date: string, opts: { revalidate?: boolean } = {}): Promise<{ card: StoredCard; seconds: number }> {
   const started = Date.now();
+  // Calls already on the stored card carry over while they keep half their edge.
+  const kept: KeptSignals = new Map();
+  if (storeConfigured()) {
+    const previous = await readStoredCard(date);
+    for (const m of previous?.card.meetings ?? []) for (const r of m.races) for (const x of r.runners) if (x.signal) kept.set(`${r.raceId}:${x.tabNumber}`, x.signal);
+  }
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
   const meetings = raw
-    .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps))
+    .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
     .sort((a, b) => a.track.localeCompare(b.track));
   const selections = selectBestBets(meetings);
   // Prime Overlays are chosen across the card, so the runner learns it here.
   const primes = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
-  for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (primes.has(`${r.raceId}:${x.tabNumber}`)) x.prime = true;
+  for (const m of meetings) {
+    for (const r of m.races) {
+      for (const x of r.runners) if (primes.has(`${r.raceId}:${x.tabNumber}`)) x.prime = true;
+      // A Prime always sits in the top four: it takes the fourth spot if the
+      // ratings alone left it out.
+      for (const x of r.runners) {
+        if (!x.prime || x.rank) continue;
+        const fourth = r.runners.find((y) => y.rank === 4);
+        if (fourth) {
+          fourth.rank = null;
+          fourth.why = undefined;
+        }
+        x.rank = 4;
+        x.why = explain(x.ratings, 4, { going: r.going, tempo: r.pace.tempo }, x.signal);
+      }
+    }
+  }
   const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings), live: usingLiveData() };
   const seconds = Math.round((Date.now() - started) / 1000);
   if (storeConfigured()) {
