@@ -1,34 +1,22 @@
 import { Factors } from "./Factors";
 import { price } from "@/lib/format";
-import { callLine, finishFit, settles, tempoFit } from "@/lib/model/narrative";
+import { callLine, finishFit, observations, settles, tempoFit } from "@/lib/model/narrative";
 import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
 const SEX: Record<string, string> = { M: "mare", G: "gelding", H: "horse", C: "colt", F: "filly", R: "rig" };
 
-/** What to expect today, three or four short lines read straight off the ratings. */
+/** What to expect today: position, tempo, finish, then the strongest facts from the form. */
 function expectations(r: PublishedRunner, race: PublishedRace): string[] {
-  const g = r.ratings;
-  const out: string[] = [];
-  out.push(`${settles(r)}.`);
+  const out: string[] = [`${settles(r)}.`];
   const t = tempoFit(r, race);
   if (t.tone !== 0) out.push(`${t.text}.`);
   const f = finishFit(r);
   if (f.tone !== 0) out.push(`${f.text}.`);
-  const goingGap = g.going[race.going] - g.class;
-  if (goingGap > 1) out.push(`Better on ${race.going} ground than its class rating says.`);
-  else if (goingGap < -1) out.push(`Rates below its class on ${race.going} ground.`);
-  const distGap = g.distance - g.class;
-  if (distGap > 1) out.push("Has run above its class at this trip.");
-  else if (distGap < -1) out.push("Yet to run to its class at this trip.");
-  const days = r.horse?.daysSinceLastRun;
-  if (r.horse?.firstStarter) out.push("First starter, so the numbers lean on the market and the stable.");
-  else if (days && days > 90) out.push(`First up after ${days} days.`);
-  else if (days && days <= 10) out.push(`Backing up after ${days} days.`);
-  return out.slice(0, 4);
+  for (const o of observations(r, race).slice(0, 4)) out.push(`${o.text[0].toUpperCase()}${o.text.slice(1)}.`);
+  return out.slice(0, 6);
 }
-
 
 /** Field averages for the sectional bars, so a number reads as above or below the race. */
 function fieldAverage(race: PublishedRace) {
