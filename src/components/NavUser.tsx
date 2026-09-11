@@ -13,7 +13,8 @@ export async function NavUser() {
           Log in
         </Link>
         <Link href="/pricing" className="btn btn-primary btn-sm ml-1">
-          Start free trial
+          <span className="sm:hidden">Try free</span>
+          <span className="hidden sm:inline">Start free trial</span>
         </Link>
       </>
     );
