@@ -56,10 +56,10 @@ function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
         if (!other || other.scratched) return null;
         const beat = m.finish !== undefined && run.finish! < m.finish;
         return (
-          <span key={m.tab} className={`met-chip ${beat ? "is-beat" : "is-behind"}`} title={`${beat ? "Finished ahead of" : "Finished behind"} ${other.horseName} in this race`}>
-            {beat ? "beat" : "behind"} {m.tab}. {other.horseName}
-            {m.finish ? ` (${ord(m.finish)})` : ""}
-            {m.tab === fav ? " · fav today" : ""}
+          <span key={m.tab} className={`met-chip ${beat ? "is-beat" : "is-behind"}`} title={`${other.horseName} is in today's race and finished ${m.finish ? ord(m.finish) : "unplaced"} in this one`}>
+            {beat ? "beat" : "behind"} {other.horseName}
+            {m.finish ? ` (${ord(m.finish)} home)` : ""}
+            {m.tab === fav ? " · today's fav" : ""}
           </span>
         );
       })}

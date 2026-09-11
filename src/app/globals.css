@@ -1938,6 +1938,11 @@ body {
   position: relative;
 }
 .race-tab .medal {
-  top: -5px;
-  right: -5px;
+  top: 2px;
+  right: 2px;
+  font-size: 8px;
+  padding: 1px 2px;
+}
+.race-tab:has(.medal) {
+  padding-right: 22px;
 }
