@@ -1,6 +1,7 @@
 
 import { NtgCountdown } from "./Countdown";
 import { jumpTime } from "@/lib/format";
+import { now as clock } from "@/lib/admin";
 import type { PublishedMeeting, Selection } from "@/lib/model/types";
 
 export type NtgTip = "prime" | "back" | "lay";
@@ -21,9 +22,12 @@ export function NextToGo({
   const prime = new Map(
     selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => [s.raceId, s]),
   );
+  // Run races drop off once the result is in, or ten minutes after the jump
+  // if the result is slow, and the strip goes away with the last of them.
+  const cutoff = clock() - 10 * 60_000;
   const races = meetings
     .flatMap((m) => m.races.map((r) => ({ m, r })))
-    .filter((x) => x.r.jumpTime && !x.r.result)
+    .filter((x) => x.r.jumpTime && !x.r.result && new Date(x.r.jumpTime).getTime() > cutoff)
     .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!));
 
   if (races.length === 0) return null;
