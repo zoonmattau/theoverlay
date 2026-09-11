@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 
 import { supabaseAdmin } from "./billing/access";
 import { supabaseConfigured, supabaseServer } from "./supabase/server";
@@ -69,7 +70,7 @@ export function hasAccess(viewer: Viewer, date: string): boolean {
  * it behind a Suspense boundary. With no Supabase keys everyone is anonymous,
  * unless OVERLAY_OPEN=1 unlocks the site for local development.
  */
-export async function getViewer(): Promise<Viewer> {
+export const getViewer = cache(async function getViewer(): Promise<Viewer> {
   // Local escape hatch: everything unlocked, no account needed.
   if (process.env.OVERLAY_OPEN === "1") return { ...ANON, pro: true, plan: "open" };
   if (!supabaseConfigured()) return ANON;
@@ -127,4 +128,4 @@ export async function getViewer(): Promise<Viewer> {
       dob: profile?.dob ? String(profile.dob) : "",
     },
   };
-}
+});

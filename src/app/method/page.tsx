@@ -119,24 +119,24 @@ export default function Page() {
               <SignalBadge signal="back" />
             </div>
             <div className="flex gap-2">
-              <div className="price-box">
-                <div className="label">Rated</div>
-                <div className="value nums">$4.00</div>
-              </div>
               <div className="price-box is-back">
                 <div className="label">Live</div>
                 <div className="value nums">$5.50</div>
+              </div>
+              <div className="price-box">
+                <div className="label">Rated</div>
+                <div className="value nums">$4.00</div>
               </div>
             </div>
             <p className="pick-why">Rates top of the field at 74.2 with the best closing sectionals, and the market is longer than our price.</p>
           </div>
           <div className="space-y-3 text-sm text-ink-secondary">
             <p>
-              <span className="font-bold text-ink">Rated</span> is our price, the number we think the horse is
-              worth backing at.
+              <span className="font-bold text-ink">Live</span> is the best price the market is offering right now.
             </p>
             <p>
-              <span className="font-bold text-ink">Live</span> is the best price the market is offering right now.
+              <span className="font-bold text-ink">Rated</span> is our price, the number we think the horse is
+              worth backing at.
             </p>
             <p>
               <span className="font-bold text-ink">Edge</span> is the gap between the two, shown next to every

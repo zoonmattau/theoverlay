@@ -4,7 +4,7 @@ import { percent, price } from "@/lib/format";
 import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
 
 /**
- * Our top four, side by side. Rated price against the live price, one
+ * Our top four, side by side. Live price against the rated price, one
  * sentence on why, and the four numbers that matter for that runner.
  */
 export function SelectionCards({ race }: { race: PublishedRace }) {
@@ -32,15 +32,15 @@ export function SelectionCards({ race }: { race: PublishedRace }) {
           </div>
 
           <div className="flex gap-2">
+            <div className={`price-box ${r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
+              <div className="label">Live</div>
+              <div className="value nums">{price(r.marketPrice)}</div>
+            </div>
             <div className="price-box">
               <div className="label">Rated</div>
               <div className="value nums">
                 {price(r.ratedPrice)} <span className="text-xs text-ink-soft font-semibold">{percent(r.ratedProbability)}</span>
               </div>
-            </div>
-            <div className={`price-box ${r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
-              <div className="label">Live</div>
-              <div className="value nums">{price(r.marketPrice)}</div>
             </div>
           </div>
 

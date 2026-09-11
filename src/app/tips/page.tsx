@@ -189,8 +189,8 @@ function CallTable({
                 <th>Race</th>
                 <th>Jump</th>
                 <th>Runner</th>
-                <th className="text-right">Rated</th>
                 <th className="text-right">Live</th>
+                <th className="text-right">Rated</th>
                 <th className="text-right">Edge</th>
                 <th>Result</th>
                 <th className="text-right">P/L</th>
@@ -219,10 +219,10 @@ function CallTable({
                       {c.prime && <span className="badge badge-prime">Prime</span>}
                     </span>
                   </td>
-                  <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
                   <td className="text-right">
                     <span className={`price-chip ${side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
                   </td>
+                  <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
                   <td className={`text-right nums font-bold ${side === "back" ? "text-blue" : "text-red"}`}>
                     {signedPercent(c.runner.edge)}
                   </td>

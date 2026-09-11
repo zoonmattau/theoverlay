@@ -24,9 +24,9 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
               <th className="text-right">Wgt</th>
               <th>Jockey</th>
               <th>Form</th>
-              {!locked && <th className="text-right">Win</th>}
-              {!locked && <th className="text-right">Rated</th>}
               <th className="text-right">Live</th>
+              {!locked && <th className="text-right">Rated</th>}
+              {!locked && <th className="text-right">Win</th>}
               {!locked && <th className="text-right">Edge</th>}
             </tr>
           </thead>
@@ -45,13 +45,13 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                 <td className="text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
                 <td className="text-ink-secondary truncate">{r.jockey ?? "—"}</td>
                 <td className="nums text-ink-secondary">{r.form ?? "—"}</td>
-                {!locked && <td className="text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
-                {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
                 <td className="text-right">
                   <span className={`price-chip ${!locked && r.signal === "back" ? "is-back" : !locked && r.signal === "lay" ? "is-lay" : ""}`}>
                     {price(r.marketPrice)}
                   </span>
                 </td>
+                {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
+                {!locked && <td className="text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
                 {!locked && <td className="text-right nums">
                   <span
                     className={

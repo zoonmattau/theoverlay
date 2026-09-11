@@ -199,7 +199,7 @@ async function Race({ params }: { params: Props["params"] }) {
       {!released ? (
         <ReleaseNotice hour={RELEASE_HOUR} />
       ) : open ? (
-        <Section id="selections" letter="O" title="Our selections" aside="Rated price against the live price, top four">
+        <Section id="selections" letter="O" title="Our selections" aside="Live price against our rated price, top four">
           <div className="section-body">
             <SelectionCards race={race} />
           </div>

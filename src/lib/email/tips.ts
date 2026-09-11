@@ -85,11 +85,11 @@ function table(rows: Call[]): string {
       const colour = c.side === "bet" ? "#1f6fd6" : "#d93636";
       const badge = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${colour};color:#fff;font:700 11px ${FONT};text-transform:uppercase">${c.side}</span>`;
       const primeTag = c.prime ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#c6f24e;color:#14161a;font:700 11px ${FONT}">Prime</span>` : "";
-      return `<tr>${cell(`<a href="${c.url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(c.track)} R${c.raceNumber}</a>`)}${cell(esc(c.runner) + primeTag)}${cell(c.rated, "text-align:right;white-space:nowrap")}${cell(`<strong style="color:${colour}">${c.live}</strong>`, "text-align:right")}${cell(badge, "text-align:right")}</tr>`;
+      return `<tr>${cell(`<a href="${c.url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(c.track)} R${c.raceNumber}</a>`)}${cell(esc(c.runner) + primeTag)}${cell(`<strong style="color:${colour}">${c.live}</strong>`, "text-align:right")}${cell(c.rated, "text-align:right;white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
     })
     .join("");
   const head = (s: string, extra = "") => `<th style="padding:0 6px 6px;text-align:left;font:700 11px ${FONT};color:#8b918a;text-transform:uppercase;letter-spacing:.06em;${extra}">${s}</th>`;
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;border-collapse:collapse"><tr>${head("Race")}${head("Runner")}${head("Rated", "text-align:right")}${head("Live", "text-align:right")}${head("")}</tr>${body}</table>`;
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;border-collapse:collapse"><tr>${head("Race")}${head("Runner")}${head("Live", "text-align:right")}${head("Rated", "text-align:right")}${head("")}</tr>${body}</table>`;
 }
 
 export function morningTipsEmail(date: string, card: StoredCard, userId: string): EmailSpec {
