@@ -75,13 +75,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           </Link>
           <HorseSearch />
           <div className="topbar-links">
-            {NAV.map((item) => (
-              <Link key={item.href} href={item.href} className="topbar-link">
-                {item.label}
-              </Link>
-            ))}
-            <Suspense fallback={<span className="topbar-link opacity-0">Log in</span>}>
-              <NavUser />
+            <Suspense
+              fallback={NAV.map((item) => (
+                <Link key={item.href} href={item.href} className="topbar-link">
+                  {item.label}
+                </Link>
+              ))}
+            >
+              <NavUser links={NAV} />
             </Suspense>
           </div>
         </nav>

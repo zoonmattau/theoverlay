@@ -10,11 +10,20 @@ import { getTodayCard } from "@/lib/model/source";
  * anyone without today's card open, a day pass button so the way in is
  * always one tap away.
  */
-export async function NavUser() {
+export async function NavUser({ links }: { links: { href: string; label: string }[] }) {
   const viewer = await getViewer();
   const signedOut = !viewer.id && viewer.plan !== "open";
   const { date } = await getTodayCard(viewer.admin);
   const open = hasAccess(viewer, date);
+  // Pricing goes away for subscribers and admins; a pass holder still needs it.
+  const subscribed = viewer.pro || viewer.admin;
+  const nav = links
+    .filter((l) => !(subscribed && l.href === "/pricing"))
+    .map((l) => (
+      <Link key={l.href} href={l.href} className="topbar-link">
+        {l.label}
+      </Link>
+    ));
 
   const passButton = open ? null : viewer.passCredits > 0 ? (
     <Link href="/tips" className="btn btn-primary btn-sm ml-1">
@@ -30,6 +39,7 @@ export async function NavUser() {
   if (signedOut) {
     return (
       <>
+        {nav}
         <Link href="/login" className="topbar-link">
           Log in
         </Link>
@@ -43,6 +53,7 @@ export async function NavUser() {
   }
   return (
     <>
+      {nav}
       {isAdmin(viewer) && (
         <Link href="/admin" className="topbar-link">
           Admin
