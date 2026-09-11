@@ -71,7 +71,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const { date, meetings, selections, released } = card;
   keepFresh(date, card);
   const open = hasAccess(viewer, date);
-  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
+  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   const mine = await myBets(viewer.id, date);
 
   const calls: Call[] = meetings

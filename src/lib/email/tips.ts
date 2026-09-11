@@ -53,7 +53,7 @@ interface Call {
 }
 
 function calls(date: string, card: StoredCard): Call[] {
-  const prime = new Set(card.selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
+  const prime = new Set(card.selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   return card.meetings
     .flatMap((m) =>
       m.races.flatMap((r) =>

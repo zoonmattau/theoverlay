@@ -80,7 +80,7 @@ async function Race({ params }: { params: Props["params"] }) {
 
   // The mini matrix behind the track name: every race on the day, coloured
   // like the board.
-  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => s.raceId));
+  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => s.raceId));
   const mini: MiniMeeting[] = meetings.map((m) => ({
     meetingId: m.meetingId,
     track: m.track,

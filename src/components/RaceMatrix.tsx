@@ -25,7 +25,7 @@ export function RaceMatrix({
   date: string;
 }) {
   const cols = Math.max(0, ...meetings.map((m) => m.races.length));
-  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => s.raceId));
+  const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => s.raceId));
 
   return (
     <div className="matrix-wrap">

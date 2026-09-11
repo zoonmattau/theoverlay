@@ -1,5 +1,6 @@
 import { Factors } from "./Factors";
-import { price, signedPercent } from "@/lib/format";
+import { price } from "@/lib/format";
+import { callLine, finishFit, settles, tempoFit } from "@/lib/model/narrative";
 import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
@@ -10,13 +11,11 @@ const SEX: Record<string, string> = { M: "mare", G: "gelding", H: "horse", C: "c
 function expectations(r: PublishedRunner, race: PublishedRace): string[] {
   const g = r.ratings;
   const out: string[] = [];
-  out.push(`Should settle ${g.map === "leader" ? "in front" : g.map === "on pace" ? "on the pace" : g.map}.`);
-  const tempo = race.pace.tempo;
-  const tempoGap = g.tempo.fast - g.tempo.slow;
-  if (tempo === "fast" && tempoGap > 1) out.push("Suited by the fast tempo expected here.");
-  else if (tempo === "fast" && tempoGap < -1) out.push("Would rather a softer tempo than this race looks like running.");
-  else if (tempo === "slow" && tempoGap < -1) out.push("Suited by the slow tempo expected here.");
-  else if (tempo === "slow" && tempoGap > 1) out.push("Wants more pace on than this race looks like having.");
+  out.push(`${settles(r)}.`);
+  const t = tempoFit(r, race);
+  if (t.tone !== 0) out.push(`${t.text}.`);
+  const f = finishFit(r);
+  if (f.tone !== 0) out.push(`${f.text}.`);
   const goingGap = g.going[race.going] - g.class;
   if (goingGap > 1) out.push(`Better on ${race.going} ground than its class rating says.`);
   else if (goingGap < -1) out.push(`Rates below its class on ${race.going} ground.`);
@@ -30,17 +29,6 @@ function expectations(r: PublishedRunner, race: PublishedRace): string[] {
   return out.slice(0, 4);
 }
 
-/** Our call on the runner in one or two sentences. */
-function opinion(r: PublishedRunner): string {
-  const rated = price(r.ratedPrice);
-  const live = price(r.marketPrice);
-  if (!r.marketPrice) return `Rated ${rated}, no market price yet.`;
-  if (r.signal === "back") return `Bet. The market has ${live} and we make it ${rated}, an edge of ${signedPercent(r.edge)}.`;
-  if (r.signal === "lay") return `Lay. The market has ${live} and we make it ${rated}, so it is under the odds.`;
-  if (r.rank && r.rank <= 4) return `No bet. In our top four, but at ${live} against our ${rated} the market has it about right.`;
-  if ((r.edge ?? 0) > 0) return `No bet. A touch of value at ${live} against our ${rated}, not enough to act on.`;
-  return `No bet. We make it ${rated} and the market has ${live}, so there is no edge.`;
-}
 
 /** Field averages for the sectional bars, so a number reads as above or below the race. */
 function fieldAverage(race: PublishedRace) {
@@ -143,7 +131,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         </ul>
         <div className="mt-2"><Factors r={r.ratings} compact /></div>
         <h4 className="mt-4">Our call</h4>
-        <p className={`detail-call ${r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>{opinion(r)}</p>
+        <p className={`detail-call ${r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>{callLine(r)}</p>
         {r.why && <p className="text-xs text-ink-secondary mt-1">{r.why}</p>}
       </div>
     </div>

@@ -19,7 +19,7 @@ export function NextToGo({
   date: string;
 }) {
   const prime = new Map(
-    selections.filter((s) => s.tag === "prime_overlay").map((s) => [s.raceId, s]),
+    selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => [s.raceId, s]),
   );
   const races = meetings
     .flatMap((m) => m.races.map((r) => ({ m, r })))
