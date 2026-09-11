@@ -154,7 +154,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     .sort((a, b) => a.track.localeCompare(b.track));
   const selections = selectBestBets(meetings);
   // Prime Overlays are chosen across the card, so the runner learns it here.
-  const primes = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
+  const primes = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (primes.has(`${r.raceId}:${x.tabNumber}`)) x.prime = true;
   const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings), live: usingLiveData() };
   const seconds = Math.round((Date.now() - started) / 1000);
