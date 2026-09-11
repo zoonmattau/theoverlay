@@ -1992,3 +1992,11 @@ body {
 .runs-table th.tip {
   cursor: help;
 }
+.sec-row.tip,
+.cond-tile.tip {
+  cursor: help;
+}
+.sec-row.tip::after,
+.cond-tile.tip::after {
+  max-width: 320px;
+}

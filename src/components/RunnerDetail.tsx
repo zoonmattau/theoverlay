@@ -27,11 +27,20 @@ function fieldAverage(race: PublishedRace) {
   return { early: avg((x) => x.ratings.early), mid: avg((x) => x.ratings.mid), late: avg((x) => x.ratings.late), today: avg((x) => x.ratings.today) };
 }
 
+const SECTION_WHAT: Record<string, string> = {
+  Early: "the first part of its races, how quickly it gets going and where that puts it",
+  Mid: "the middle of its races, the cruising speed it holds through the run",
+  Late: "the last 600m, what it has left when the race is on",
+};
+
 function SectionalBar({ label, value, avg }: { label: string; value: number; avg: number }) {
   const diff = value - avg;
   const pct = Math.min(100, Math.max(0, 50 + diff * 5));
+  const verdict =
+    diff >= 2 ? "well above this field" : diff >= 0.5 ? "a little above this field" : diff <= -2 ? "well below this field" : diff <= -0.5 ? "a little below this field" : "about the field average";
+  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${value.toFixed(1)} against a field average of ${avg.toFixed(1)}, so ${verdict}. Benchmark points, from the clock in its past runs.`;
   return (
-    <div className="sec-row">
+    <div className="sec-row tip" data-tip={tip}>
       <span className="sec-label">{label}</span>
       <span className="sec-track">
         <span className="sec-mid" />
@@ -74,12 +83,16 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   const metAny = runs.some((x) => x.met?.length);
   const avg = fieldAverage(race);
   const g = r.ratings;
-  const tile = (label: string, value: number) => (
-    <div className={`cond-tile ${value - g.class > 1 ? "is-up" : value - g.class < -1 ? "is-down" : ""}`}>
-      <span className="nums">{value.toFixed(1)}</span>
-      <small>{label}</small>
-    </div>
-  );
+  const tile = (label: string, value: number, what: string) => {
+    const gap = value - g.class;
+    const verdict = gap > 1 ? `above its class rating of ${g.class.toFixed(1)}, a plus today` : gap < -1 ? `below its class rating of ${g.class.toFixed(1)}, a query today` : `in line with its class rating of ${g.class.toFixed(1)}`;
+    return (
+      <div className={`cond-tile tip ${gap > 1 ? "is-up" : gap < -1 ? "is-down" : ""}`} data-tip={`${what}: rated ${value.toFixed(1)}, ${verdict}.`}>
+        <span className="nums">{value.toFixed(1)}</span>
+        <small>{label}</small>
+      </div>
+    );
+  };
   return (
     <div className="runner-detail">
       <div className="runner-detail-col">
@@ -169,10 +182,10 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <SectionalBar label="Late" value={g.late} avg={avg.late} />
         </div>
         <div className="cond-tiles">
-          {tile(`${race.going} track`, g.going[race.going])}
-          {tile(`${race.distance}m`, g.distance)}
-          {tile("this track", g.track)}
-          {tile(race.pace.tempo === "fast" ? "fast tempo" : "slow tempo", race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow)}
+          {tile(`${race.going} track`, g.going[race.going], `Its record on ${race.going} ground`)}
+          {tile(`${race.distance}m`, g.distance, `Its record within 200m of today's ${race.distance}m`)}
+          {tile("this track", g.track, "Its record at this track")}
+          {tile(race.pace.tempo === "fast" ? "fast tempo" : "slow tempo", race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow, `Its record in ${race.pace.tempo}-run races, which is what we expect today`)}
         </div>
         <h4 className="mt-4">What to expect</h4>
         <ul className="detail-lines">
