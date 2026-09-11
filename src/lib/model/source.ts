@@ -9,7 +9,7 @@ import {
   getRace,
 } from "@/lib/formking/client";
 import type { MeetingSummary, RaceSummary, Speedmap } from "@/lib/formking/types";
-import { pickFreeRace, publishMeeting, selectBestBets, type KeptSignals } from "./publish";
+import { pickFreeRace, publishMeeting, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import type { PublishedMeeting } from "./types";
@@ -30,6 +30,17 @@ const STATES = (process.env.OVERLAY_STATES ?? "NSW,VIC,QLD").split(",");
 /** Speed maps cost five credits a meeting, so they are opt-in. */
 const WANT_SPEEDMAPS = process.env.OVERLAY_SPEEDMAPS === "1";
 
+/** Meetings with the best black-type racing come first: a Group 1 outweighs anything. */
+function meetingWeight(m: PublishedMeeting): number {
+  return m.races.reduce((w, r) => {
+    const g = `${r.className ?? ""} ${r.name}`.match(/group\s?([123])|\bg([123])\b/i);
+    const n = g ? Number(g[1] ?? g[2]) : 0;
+    return w + (n === 1 ? 100 : n === 2 ? 10 : n === 3 ? 1 : 0);
+  }, 0);
+}
+
+const firstJump = (m: PublishedMeeting) => m.races.map((r) => r.jumpTime ?? "9").sort()[0] ?? "9";
+
 /** How old a stored card can be before a page view asks for a rebuild. */
 const STALE_MS = Number(process.env.OVERLAY_STALE_MIN ?? 10) * 60_000;
 
@@ -45,26 +56,24 @@ const DONE_TTL_MS = 24 * 60 * 60_000;
 
 const hasResult = (r: RaceSummary) => r.entries.some((e) => e.horseResult && e.horseResult.finishPosition > 0);
 
-function raceTtl(lite: { status?: string; startTime?: string }, meetingDate: number | undefined): { ttlMs: number; accept?: (r: RaceSummary) => boolean } {
+function raceTtl(lite: { status?: string; startTime?: string }, meetingDate: number | undefined, state?: string): { ttlMs: number; accept?: (r: RaceSummary) => boolean } {
   const resulted = /result|final|paid|abandon/i.test(lite.status ?? "");
   if (resulted) return { ttlMs: DONE_TTL_MS, accept: hasResult };
-  const jump = jumpMillis(meetingDate, lite.startTime);
+  const jump = jumpMillis(meetingDate, lite.startTime, state);
   if (jump === undefined) return { ttlMs: NEAR_TTL_MS };
   const until = jump - Date.now();
   return { ttlMs: until > NEAR_WINDOW_MS ? FAR_TTL_MS : NEAR_TTL_MS };
 }
 
-/** "12:35pm" on the meeting date, Sydney time, as epoch millis. */
-function jumpMillis(meetingDate: number | undefined, startTime?: string): number | undefined {
+/** "12:35pm" on the meeting date, in the track's own time zone, as epoch millis. */
+function jumpMillis(meetingDate: number | undefined, startTime?: string, state?: string): number | undefined {
   const m = startTime?.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
   if (!m || !meetingDate) return undefined;
   let h = Number(m[1]) % 12;
   if (m[3].toLowerCase() === "pm") h += 12;
-  const day = new Date(meetingDate).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
-  const offset = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", timeZoneName: "longOffset" })
-    .formatToParts(new Date(meetingDate))
-    .find((p) => p.type === "timeZoneName")?.value.match(/GMT([+-]\d{2}:\d{2})/)?.[1] ?? "+10:00";
-  return new Date(`${day}T${String(h).padStart(2, "0")}:${m[2]}:00${offset}`).getTime();
+  const zone = zoneFor(state);
+  const day = new Date(meetingDate).toLocaleDateString("en-CA", { timeZone: zone });
+  return new Date(`${day}T${String(h).padStart(2, "0")}:${m[2]}:00${zoneOffset(new Date(meetingDate), zone)}`).getTime();
 }
 
 /** Tips go live at this hour, Sydney time, on the racing date. */
@@ -158,7 +167,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
-    .sort((a, b) => a.track.localeCompare(b.track));
+    .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
   const selections = selectBestBets(meetings);
   // Prime Overlays are chosen across the card, so the runner learns it here.
   const primes = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
@@ -243,7 +252,7 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
       Promise.all(
         (lite.races ?? [])
           .filter((r) => !r.raceType || r.raceType === "Flat")
-          .map((r) => getRace(lite.id, r.raceId, raceTtl(r, lite.date))),
+          .map((r) => getRace(lite.id, r.raceId, raceTtl(r, lite.date, lite.state))),
       ),
     ),
   );

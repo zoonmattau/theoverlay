@@ -169,7 +169,7 @@ export function publishRace(
     classPoints: points,
     going,
     goingText: goingLabel(race.going, race.goingNumber),
-    jumpTime: jumpIso(meeting.date ?? race.date, race.startTime, race.date),
+    jumpTime: jumpIso(meeting.date ?? race.date, race.startTime, race.date, meeting.state),
     prizeMoney: race.totalPrizeMoney,
     runners: runners.sort((a, b) => a.tabNumber - b.tabNumber),
     pace,
@@ -197,24 +197,44 @@ function classLabel(restrictions: string | undefined, points: number): string {
  * Jump time as ISO. Form King gives the meeting date and a local start time
  * like "12:20pm"; the sample card gives the jump as a timestamp directly.
  */
-function jumpIso(meetingDate?: number, startTime?: string, raceDate?: number): string | undefined {
+/**
+ * The jump as an instant. The feed's race date is the real start time, so it
+ * wins; the printed start time is local to the track and only a fallback.
+ */
+function jumpIso(meetingDate?: number, startTime?: string, raceDate?: number, state?: string): string | undefined {
+  if (raceDate && raceDate > 1e12) return new Date(raceDate).toISOString();
   const m = startTime?.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
   if (m && meetingDate) {
     let h = Number(m[1]) % 12;
     if (m[3].toLowerCase() === "pm") h += 12;
-    const day = new Date(meetingDate).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
-    const offset = sydneyOffset(new Date(meetingDate));
-    return `${day}T${String(h).padStart(2, "0")}:${m[2]}:00${offset}`;
+    const zone = zoneFor(state);
+    const day = new Date(meetingDate).toLocaleDateString("en-CA", { timeZone: zone });
+    return `${day}T${String(h).padStart(2, "0")}:${m[2]}:00${zoneOffset(new Date(meetingDate), zone)}`;
   }
-  return raceDate ? new Date(raceDate).toISOString() : undefined;
+  return undefined;
 }
 
-/** "+10:00" or "+11:00" depending on daylight saving on that date. */
-function sydneyOffset(d: Date): string {
-  const part = new Intl.DateTimeFormat("en-AU", {
-    timeZone: "Australia/Sydney",
-    timeZoneName: "longOffset",
-  })
+/** The track's time zone from its state. */
+export function zoneFor(state?: string): string {
+  switch ((state ?? "").toUpperCase()) {
+    case "QLD":
+      return "Australia/Brisbane";
+    case "SA":
+      return "Australia/Adelaide";
+    case "NT":
+      return "Australia/Darwin";
+    case "WA":
+      return "Australia/Perth";
+    case "TAS":
+      return "Australia/Hobart";
+    default:
+      return "Australia/Sydney";
+  }
+}
+
+/** "+10:00", "+09:30", "+08:00" and so on for a zone on a date. */
+export function zoneOffset(d: Date, zone: string): string {
+  const part = new Intl.DateTimeFormat("en-AU", { timeZone: zone, timeZoneName: "longOffset" })
     .formatToParts(d)
     .find((p) => p.type === "timeZoneName")?.value;
   const m = part?.match(/GMT([+-]\d{2}:\d{2})/);
