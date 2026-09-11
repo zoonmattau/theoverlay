@@ -142,6 +142,26 @@ h1, h2, h3 {
   color: var(--color-bar-ink);
   background: rgba(255, 255, 255, 0.08);
 }
+/* Phones: brand on its own row, links in a scrolling strip beneath. */
+@media (max-width: 640px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3);
+  }
+  .topbar-links {
+    flex-basis: 100%;
+    margin-left: 0;
+    overflow-x: auto;
+    white-space: nowrap;
+    scrollbar-width: none;
+  }
+  .topbar-link {
+    padding: var(--sp-2) var(--sp-2);
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+}
 
 /* --- Next to go: one card per race, filled by what we have on --- */
 .ntg {
@@ -253,6 +273,16 @@ h1, h2, h3 {
   padding: var(--sp-5);
   max-width: 1400px;
   margin: 0 auto;
+  min-width: 0;
+}
+/* Nothing but a table or a strip may be wider than the phone. */
+body {
+  overflow-x: hidden;
+}
+@media (max-width: 640px) {
+  .page {
+    padding: var(--sp-3);
+  }
 }
 
 .card {

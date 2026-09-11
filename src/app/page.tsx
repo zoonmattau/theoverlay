@@ -77,7 +77,7 @@ async function Hero() {
           </a>
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         <Tile n={races.length} label="races rated today" />
         <Tile n={runners} label="runners priced" />
         {released ? (
