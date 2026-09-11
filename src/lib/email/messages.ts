@@ -77,6 +77,17 @@ export const EMAILS = {
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),
 
+  cronFailed: (date: string, message: string): EmailSpec => ({
+    subject: `Card build failed for ${date}`,
+    preheader: "The morning run did not finish.",
+    heading: "The card did not build.",
+    paragraphs: [
+      `The run for <strong>${date}</strong> stopped with: <code>${message.replace(/</g, "&lt;")}</code>.`,
+      "Nothing went out to members. Check Form King credits and the Vercel logs, then rebuild from the admin page.",
+    ],
+    cta: { label: "Open admin", url: `${SITE}/admin` },
+  }),
+
   passesAdded: (qty: number, total: number): EmailSpec => ({
     subject: `${qty} day ${qty === 1 ? "pass" : "passes"} added`,
     preheader: "Use them on any race day you like.",

@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { rebuildCard, resendTips } from "@/app/admin/actions";
 import { isAdmin, listMembers, now as clock, overview, recentEvents } from "@/lib/admin";
+import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 
@@ -28,8 +30,11 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
-  const [stats, members, events] = await Promise.all([overview(), listMembers(q || undefined), recentEvents(undefined, 40)]);
+  const [stats, members, events, card] = await Promise.all([overview(), listMembers(q || undefined), recentEvents(undefined, 40), getTodayCard()]);
   const now = clock();
+  const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
+  const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
+  const lastMail = events.find((e) => e.kind === "tips_email");
 
   return (
     <>
@@ -43,6 +48,20 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
           <button className="btn btn-secondary" type="submit">Search</button>
         </form>
       </section>
+
+      <div className="card mb-6 flex flex-wrap items-center gap-3 text-sm">
+        <div>
+          <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Today&apos;s card</div>
+          <div className="mt-0.5 nums">
+            {card.date}: {card.meetings.length} meetings, {races} races, {calls.filter((x) => x.signal === "back").length} bets, {calls.filter((x) => x.signal === "lay").length} lays. Built {when(card.builtAt)}.
+            {lastMail ? ` Tips email sent ${when(lastMail.created_at)} to ${String((lastMail.meta as { sent?: number })?.sent ?? 0)}.` : " No tips email sent yet."}
+          </div>
+        </div>
+        <div className="ml-auto flex gap-2">
+          <form action={rebuildCard}><button className="btn btn-secondary btn-sm" type="submit">Rebuild today</button></form>
+          <form action={resendTips}><button className="btn btn-secondary btn-sm" type="submit">Resend tips email</button></form>
+        </div>
+      </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
         <Tile n={stats.members} label="members" />

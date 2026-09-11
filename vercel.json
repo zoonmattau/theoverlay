@@ -1,11 +1,7 @@
 {
-  "regions": [
-    "syd1"
-  ],
+  "regions": ["syd1"],
   "crons": [
-    {
-      "path": "/api/cron/card",
-      "schedule": "0 22 * * *"
-    }
+    { "path": "/api/cron/card", "schedule": "0 22 * * *" },
+    { "path": "/api/cron/tomorrow", "schedule": "0 11 * * *" }
   ]
 }

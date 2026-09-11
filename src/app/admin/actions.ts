@@ -6,6 +6,8 @@ import { isAdmin, logEvent } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
+import { sendMorningTips } from "@/lib/email/tips";
+import { buildCard, racingToday } from "@/lib/model/source";
 
 async function requireAdmin() {
   const viewer = await getViewer();
@@ -77,4 +79,24 @@ export async function saveNote(userId: string, note: string): Promise<void> {
   await requireAdmin();
   await supabaseAdmin().from("profiles").update({ admin_note: note.slice(0, 2000) }).eq("id", userId);
   revalidatePath(`/admin/${userId}`);
+}
+
+/** Rebuild today's card from Form King right now. */
+export async function rebuildCard(): Promise<void> {
+  const admin = await requireAdmin();
+  const date = racingToday();
+  const { card, seconds } = await buildCard(date);
+  const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "rebuild_card", date, races, seconds, by: admin.email } });
+  revalidatePath("/admin");
+}
+
+/** Send the morning tips email again, to everyone who qualifies today. */
+export async function resendTips(): Promise<void> {
+  const admin = await requireAdmin();
+  const date = racingToday();
+  const { card } = await buildCard(date);
+  const { sent } = await sendMorningTips(date, card, true);
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "resend_tips", date, sent, by: admin.email } });
+  revalidatePath("/admin");
 }
