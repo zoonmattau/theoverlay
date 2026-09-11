@@ -7,13 +7,10 @@ import { signOut } from "@/app/(auth)/actions";
 import { saveDetails, setTipsEmails } from "@/app/account/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
-import { SignalBadge } from "@/components/Ratings";
-import { Outcome } from "@/components/SelectionCard";
-import { UsePassButton } from "@/components/UsePassButton";
-import { getViewer, hasAccess, type Viewer } from "@/lib/auth";
-import { planById, planCovers } from "@/lib/billing/plans";
-import { jumpTime, longDate, price, priceWithChance } from "@/lib/format";
-import { getTodayCard, RELEASE_HOUR } from "@/lib/model/source";
+import { getViewer } from "@/lib/auth";
+import { planById } from "@/lib/billing/plans";
+import { longDate } from "@/lib/format";
+import { getTodayCard } from "@/lib/model/source";
 import { BONUS_DAYS, ensureReferralCode, referralCount } from "@/lib/referrals";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false } };
@@ -41,7 +38,6 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
   ]);
   const plan = planById(viewer.plan);
   const now = new Date(card.builtAt).getTime() || 0;
-  const open = hasAccess(viewer, card.date);
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
   const status = viewer.admin
     ? { label: "Admin", cls: "badge-prime" }
@@ -79,8 +75,6 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
           label={viewer.bonusLive ? `gift until ${longDate(viewer.bonusUntil!.slice(0, 10))}` : "gifted access"}
         />
       </div>
-
-      <TodayForYou viewer={viewer} card={card} open={open} />
 
       <div className="mt-6 grid gap-4 md:grid-cols-2">
         <Card title="Subscription">
@@ -173,95 +167,6 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         </Card>
       </div>
     </>
-  );
-}
-
-/** Today's calls on the member's days, so the account page is worth opening on a race day. */
-function TodayForYou({ viewer, card, open }: { viewer: Viewer; card: Awaited<ReturnType<typeof getTodayCard>>; open: boolean }) {
-  const { date, meetings } = card;
-  const calls = meetings
-    .flatMap((m) =>
-      m.races.flatMap((r) =>
-        r.runners
-          .filter((x) => x.signal && !x.scratched)
-          .map((x) => ({ meeting: m, race: r, runner: x })),
-      ),
-    )
-    .sort((a, b) => (a.race.jumpTime ?? "").localeCompare(b.race.jumpTime ?? ""));
-  const bets = calls.filter((c) => c.runner.signal === "back");
-  const lays = calls.filter((c) => c.runner.signal === "lay");
-  const covered = viewer.admin || (viewer.pro && planCovers(viewer.plan, date)) || viewer.bonusLive;
-
-  return (
-    <section className="section mt-6">
-      <div className="section-bar">
-        <span className="section-letter">T</span>
-        <h2>Today, {longDate(date)}</h2>
-        <span className="aside nums">
-          {bets.length} {bets.length === 1 ? "bet" : "bets"} · {lays.length} {lays.length === 1 ? "lay" : "lays"}
-        </span>
-      </div>
-      {open ? (
-        !card.released ? (
-          <p className="section-body text-sm text-ink-soft">Today&apos;s calls release at {RELEASE_HOUR}:00am AEST.</p>
-        ) : calls.length === 0 ? (
-          <p className="section-body text-sm text-ink-soft">No calls on today&apos;s card.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table text-sm min-w-[640px]">
-              <thead>
-                <tr>
-                  <th>Race</th>
-                  <th>Jump</th>
-                  <th>Runner</th>
-                  <th className="text-right">Rated</th>
-                  <th className="text-right">Live</th>
-                  <th>Call</th>
-                </tr>
-              </thead>
-              <tbody>
-                {calls.map((c) => (
-                  <tr key={`${c.race.raceId}-${c.runner.tabNumber}`}>
-                    <td className="whitespace-nowrap">
-                      <Link href={`/racing/${date}/${c.meeting.meetingId}/${c.race.raceId}`} className="font-semibold hover:text-blue">
-                        {c.meeting.track} R{c.race.raceNumber}
-                      </Link>
-                    </td>
-                    <td className="nums text-ink-soft whitespace-nowrap">{c.race.result ? "Run" : jumpTime(c.race.jumpTime)}</td>
-                    <td className="font-semibold">
-                      {c.runner.tabNumber}. {c.runner.horseName}
-                    </td>
-                    <td className="text-right nums whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
-                    <td className="text-right">
-                      <span className={`price-chip ${c.runner.signal === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
-                    </td>
-                    <td>
-                      <span className="flex items-center gap-2">
-                        <SignalBadge signal={c.runner.signal!} />
-                        {c.race.result && <Outcome position={c.runner.finishPosition} />}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )
-      ) : (
-        <div className="section-body flex flex-wrap items-center gap-3">
-          <p className="text-sm text-ink-secondary">
-            {covered ? "Today is closed on your account." : viewer.pro ? `Your ${planById(viewer.plan)?.name} plan does not cover today.` : "Today's tips are closed to you."}
-            {" "}
-            {bets.length + lays.length} {bets.length + lays.length === 1 ? "call is" : "calls are"} on the card.
-          </p>
-          {viewer.passCredits > 0 ? (
-            <UsePassButton date={date} credits={viewer.passCredits} />
-          ) : (
-            <Link href="/pricing" className="btn btn-primary btn-sm">{viewer.pro ? "Upgrade or buy a pass" : "Start free trial"}</Link>
-          )}
-        </div>
-      )}
-    </section>
   );
 }
 
