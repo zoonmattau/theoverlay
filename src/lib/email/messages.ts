@@ -54,11 +54,11 @@ export const EMAILS = {
   }),
 
   friendJoined: (until: string): EmailSpec => ({
-    subject: "Your friend joined, two weeks on us",
+    subject: "Your friend started a plan, two weeks on us",
     preheader: "The full board is yours for a fortnight.",
     heading: "Your friend is in.",
     paragraphs: [
-      "Someone signed up with your invite link, so you both get two weeks of the full board, every race day.",
+      "Someone you invited has started a plan, so you both get two weeks of the full board, every race day.",
       until ? `Your fortnight runs until <strong>${fmt(until)}</strong>, on top of anything you already have.` : "It starts now, on top of anything you already have.",
       "Invite as many friends as you like, every one adds another fortnight.",
     ],
@@ -70,7 +70,7 @@ export const EMAILS = {
     preheader: "Every race day is open for a fortnight.",
     heading: "Welcome, and thank your friend.",
     paragraphs: [
-      "You joined on an invite, so the full board is open to you for two weeks, every race day.",
+      "You joined on an invite and started a plan, so the full board is open to you for two weeks, every race day, on top of your trial.",
       until ? `It runs until <strong>${fmt(until)}</strong>.` : "It starts now.",
       "Your own invite link is on your account page, and every friend who joins adds a fortnight for you both.",
     ],

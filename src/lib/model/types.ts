@@ -97,6 +97,8 @@ export interface PublishedRun {
   raceKey?: string;
   /** Runners in today's race that were in this one too, with where they finished and their lengths beaten. */
   met?: { tab: number; finish?: number; margin?: number }[];
+  /** The first four home in that race, public results. */
+  placings?: { pos: number; horse: string; margin?: number; weight?: number }[];
 }
 
 export interface HorseProfile {
@@ -110,6 +112,10 @@ export interface HorseProfile {
   career?: string;
   distanceForm?: string;
   trackForm?: string;
+  /** Gear on today, e.g. "Blinkers". */
+  gear?: string[];
+  /** Gear changes today, e.g. "Blinkers on first time", "Winkers off". */
+  gearChanges?: string[];
 }
 
 export interface PublishedRunner {

@@ -46,7 +46,7 @@ async function Join({ params }: { params: PageProps<"/join/[code]">["params"] })
   return (
     <AuthShell
       title={`A friend has invited you`}
-      intro={`Create an account and you both get ${BONUS_DAYS} days of the full board, every race day, on us.`}
+      intro={`Create an account, start a plan, and you both get ${BONUS_DAYS} days of the full board on top of your free trial.`}
     >
       <AuthForm mode="signup" refCode={clean} />
       {remembered && remembered !== clean && (

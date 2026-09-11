@@ -29,16 +29,24 @@ export async function referrerForCode(code: string): Promise<{ id: string; email
 }
 
 /**
- * Give both sides their fortnight. Safe to call more than once: the
- * database applies a referral only the first time for a given new member.
+ * Records who invited a new member. Nothing is paid yet: the fortnight for
+ * both sides lands when the friend starts a plan, see rewardReferral().
  */
 export async function applyReferral(referredId: string, code: string): Promise<boolean> {
-  const admin = supabaseAdmin();
-  const { data, error } = await admin.rpc("apply_referral", { p_referred: referredId, p_code: code });
-  if (error || !data) return false;
+  const { data, error } = await supabaseAdmin().rpc("apply_referral", { p_referred: referredId, p_code: code });
+  return !error && Boolean(data);
+}
 
+/**
+ * The friend has started a plan: both sides get their fortnight, once, and
+ * hear about it. Called from the Stripe webhook.
+ */
+export async function rewardReferral(referredId: string): Promise<boolean> {
+  const admin = supabaseAdmin();
+  const { data: referrerId, error } = await admin.rpc("reward_referral", { p_referred: referredId });
+  if (error || !referrerId) return false;
   const [{ data: referrer }, { data: referred }] = await Promise.all([
-    admin.from("profiles").select("email, bonus_until").eq("referral_code", code).maybeSingle(),
+    admin.from("profiles").select("email, bonus_until").eq("id", referrerId as string).maybeSingle(),
     admin.from("profiles").select("email, bonus_until").eq("id", referredId).maybeSingle(),
   ]);
   if (referrer?.email) await sendEmail(referrer.email, EMAILS.friendJoined(referrer.bonus_until ?? ""));

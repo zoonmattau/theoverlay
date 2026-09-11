@@ -271,6 +271,10 @@ function profileOf(e: RaceEntry): HorseProfile {
     career: e.form?.careerForm,
     distanceForm: e.form?.distanceForm,
     trackForm: e.form?.trackForm,
+    gear: (e.gear ?? []).filter((g) => g.on !== false).map((g) => g.gear),
+    gearChanges: (e.gear ?? [])
+      .filter((g) => g.change && g.change !== "STAYING_ON")
+      .map((g) => `${g.gear} ${g.change === "ON_FIRST_TIME" ? "on first time" : g.change === "ON_AGAIN" ? "back on" : g.change === "OFF_FIRST_TIME" ? "off first time" : "off again"}`),
   };
 }
 
@@ -294,6 +298,10 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
       map: p.posSettling && p.numRunners ? mapOf(p.posSettling, p.numRunners) : undefined,
       points: Math.round(runPoints(p, todayPar, e.horse.age) * 10) / 10,
       raceKey: p.raceId ?? `${new Date(p.date).toISOString().slice(0, 10)}:${p.track ?? ""}:${p.raceNumber}`,
+      placings: (p.placings ?? [])
+        .filter((x) => x.finishPosition >= 1 && x.finishPosition <= 4)
+        .sort((a, b) => a.finishPosition - b.finishPosition)
+        .map((x) => ({ pos: x.finishPosition, horse: x.horse, margin: x.margin, weight: x.weight })),
     }));
 }
 

@@ -98,6 +98,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               </Link>
               <Link href="/terms" className="hover:text-ink-secondary">Terms</Link>
               <Link href="/privacy" className="hover:text-ink-secondary">Privacy</Link>
+              <Link href="/invite" className="hover:text-ink-secondary">Invite a friend</Link>
             </div>
 
             <p>

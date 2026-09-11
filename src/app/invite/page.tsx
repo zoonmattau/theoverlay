@@ -36,7 +36,7 @@ async function Invite() {
           Invite a friend, <span className="bg-lime px-2 box-decoration-clone">you both get two weeks.</span>
         </h1>
         <p className="mt-3 text-ink-secondary">
-          Send your link, and when a friend creates an account with it you each get {BONUS_DAYS} days of the
+          Send your link, and when a friend signs up with it and starts a plan you each get {BONUS_DAYS} days of the
           full board, every race day, on top of anything you already have.
         </p>
       </section>
@@ -44,7 +44,7 @@ async function Invite() {
       <div className="card">
         <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Your invite link</div>
         <CopyLink link={link} />
-        <p className="mt-2 text-xs text-ink-soft">Every friend who joins adds another fortnight for both of you.</p>
+        <p className="mt-2 text-xs text-ink-soft">Every friend who starts a plan adds another fortnight for both of you.</p>
       </div>
 
       <div className="mt-4 grid grid-cols-2 gap-3">

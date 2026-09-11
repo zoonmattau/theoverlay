@@ -165,6 +165,11 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
     else if (move >= 1.3) out.push({ weight: 2, text: pick(r, ["is drifting in the market", "has eased in betting"]) });
   }
 
+  // Gear changes are worth a line, blinkers first time above all.
+  for (const g of h?.gearChanges ?? []) {
+    out.push({ weight: /blinkers on first/i.test(g) ? 3 : 2, text: `has ${g.charAt(0).toLowerCase()}${g.slice(1)}` });
+  }
+
   // Stable and rider.
   if ((g.factors.trainer ?? 0) >= 0.4) out.push({ weight: 1, text: "comes from an in-form stable" });
   if ((g.factors.jockey ?? 0) >= 0.4) out.push({ weight: 1, text: "has a top rider up" });

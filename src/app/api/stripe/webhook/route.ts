@@ -8,6 +8,7 @@ import { stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { longDate } from "@/lib/format";
+import { rewardReferral } from "@/lib/referrals";
 
 /**
  * Stripe is the source of truth for who has paid. Every event that changes
@@ -94,6 +95,8 @@ export async function POST(request: NextRequest) {
         const when = longDate(until.toISOString().slice(0, 10));
         if (event.type === "customer.subscription.created") {
           await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when) : EMAILS.planActive(planName, when));
+          // An invited friend starting a plan earns both sides their fortnight.
+          await rewardReferral(userId);
         } else if (event.type === "customer.subscription.updated" && sub.cancel_at_period_end && !previousCancel(event)) {
           await sendEmail(to, EMAILS.planCancelled(planName, when));
         }

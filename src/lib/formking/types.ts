@@ -115,6 +115,8 @@ export interface RaceEntry {
   ratings?: RaceEntryRatings;
   pastEvents?: PastEvent[];
   horseResult?: HorseResult;
+  /** Gear today: what is on, and whether it is a change. */
+  gear?: { gear: string; change?: "STAYING_ON" | "ON_FIRST_TIME" | "OFF_FIRST_TIME" | "ON_AGAIN" | "OFF_AGAIN"; on?: boolean }[];
 }
 
 export interface EntryForm {
@@ -204,6 +206,8 @@ export interface PastEvent {
   trackSpeed?: number;
   /** Sectional benchmarks. Pro tier only. NEVER publish. */
   benchmark?: BenchmarkedRun;
+  /** The placegetters in that race, public results. */
+  placings?: { finishPosition: number; horse: string; jockey?: string; margin?: number; weight?: number; barrier?: number; thisHorse?: boolean }[];
 }
 
 /** Section keys: "S-6" is start to the 600m, "6-F" is the last 600m. */

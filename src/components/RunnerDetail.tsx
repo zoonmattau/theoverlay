@@ -94,6 +94,10 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}</dd></div>
           <div><dt>This track</dt><dd className="nums">{h?.trackForm ?? "—"}</dd></div>
           <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}</dd></div>
+          <div><dt>Gear</dt><dd>{h?.gear?.length ? h.gear.join(", ") : "none"}</dd></div>
+          {h?.gearChanges?.length ? (
+            <div><dt>Gear change</dt><dd className="text-accent font-bold">{h.gearChanges.join(", ")}</dd></div>
+          ) : null}
         </dl>
       </div>
 
@@ -105,17 +109,17 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <table className="runs-table nums">
             <thead>
               <tr>
-                <th>Date</th>
-                <th>Track</th>
-                <th>Dist</th>
-                <th>Going</th>
-                <th>Class</th>
-                <th title="Finishing position and field size">Fin</th>
-                <th title="Lengths beaten">Mgn</th>
-                <th>Wgt</th>
-                <th title="Starting price">SP</th>
-                <th title="Where it settled in the run: leader, on pace, midfield or back">Settled</th>
-                <th className="text-right" title="What we scored the run, in benchmark points">Pts</th>
+                <th><span className="tip" data-tip="When the race was run, most recent first.">Date</span></th>
+                <th><span className="tip" data-tip="Where it ran.">Track</span></th>
+                <th><span className="tip" data-tip="Race distance in metres.">Dist</span></th>
+                <th><span className="tip" data-tip="Track condition that day: Firm 1-2, Good 3-4, Soft 5-7, Heavy 8-10.">Going</span></th>
+                <th><span className="tip" data-tip="The grade of the race: benchmark, class, maiden, listed or group.">Class</span></th>
+                <th><span className="tip" data-tip="Where it finished and the field size. Hover a result for the first four home.">Fin</span></th>
+                <th><span className="tip" data-tip="Lengths behind the winner.">Mgn</span></th>
+                <th><span className="tip" data-tip="Weight carried, in kilograms.">Wgt</span></th>
+                <th><span className="tip" data-tip="Starting price, the odds at the jump.">SP</span></th>
+                <th><span className="tip" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</span></th>
+                <th className="text-right"><span className="tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock, never the placing.">Pts</span></th>
               </tr>
             </thead>
             <tbody>
@@ -127,7 +131,18 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                   <td>{x.distance}</td>
                   <td>{x.going ?? "—"}</td>
                   <td>{x.className ?? "—"}</td>
-                  <td className={x.finish === 1 ? "font-bold text-accent" : ""}>{x.finish ? `${ord(x.finish)}${x.runners ? `/${x.runners}` : ""}` : "—"}</td>
+                  <td className={x.finish === 1 ? "font-bold text-accent" : ""}>
+                    {x.finish ? (
+                      <span
+                        className={x.placings?.length ? "tip cursor-help underline decoration-dotted underline-offset-2" : ""}
+                        data-tip={x.placings?.length ? x.placings.map((pl) => `${ord(pl.pos)} ${pl.horse}${pl.margin ? ` ${pl.margin.toFixed(1)}L` : ""}${pl.weight ? ` ${pl.weight}kg` : ""}`).join("  ·  ") : undefined}
+                      >
+                        {ord(x.finish)}{x.runners ? `/${x.runners}` : ""}
+                      </span>
+                    ) : (
+                      "—"
+                    )}
+                  </td>
                   <td>{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
                   <td>{x.weight ?? "—"}</td>
                   <td>{x.sp ? price(x.sp) : "—"}</td>

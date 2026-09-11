@@ -132,7 +132,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
 
         <Card title="Invite a friend">
           <p className="text-sm text-ink-secondary">
-            Send your link and you both get {BONUS_DAYS} days of the full board. <strong>{invited}</strong> {invited === 1 ? "friend has" : "friends have"} joined so far.
+            Send your link and when a friend starts a plan you both get {BONUS_DAYS} days of the full board. <strong>{invited}</strong> {invited === 1 ? "friend has" : "friends have"} joined so far.
           </p>
           {code && <CopyLink link={`${site}/join/${code}`} />}
         </Card>
