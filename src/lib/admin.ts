@@ -3,11 +3,7 @@ import "server-only";
 import { supabaseAdmin } from "./billing/access";
 import type { Viewer } from "./auth";
 
-/** Comma-separated in ADMIN_EMAILS. */
-export function isAdmin(viewer: Viewer): boolean {
-  const list = (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-  return Boolean(viewer.email && list.includes(viewer.email.toLowerCase()));
-}
+export const isAdmin = (viewer: Viewer): boolean => viewer.admin;
 
 export interface Member {
   id: string;

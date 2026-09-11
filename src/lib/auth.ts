@@ -14,6 +14,8 @@ export interface Viewer {
   accessUntil?: string;
   /** Access is paused by an admin, so the board stays closed. */
   paused: boolean;
+  /** Listed in ADMIN_EMAILS: runs the admin panel and sees every race free. */
+  admin: boolean;
   stripeCustomerId?: string;
   /** Unused day passes. */
   passCredits: number;
@@ -27,10 +29,17 @@ export interface Viewer {
   referralCode?: string;
 }
 
-export const ANON: Viewer = { pro: false, paused: false, passCredits: 0, passDates: [], bonusLive: false };
+/** Comma-separated in ADMIN_EMAILS. */
+export function isAdminEmail(email?: string | null): boolean {
+  const list = (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+  return Boolean(email && list.includes(email.toLowerCase()));
+}
+
+export const ANON: Viewer = { pro: false, paused: false, admin: false, passCredits: 0, passDates: [], bonusLive: false };
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
+  if (viewer.admin) return true;
   if (viewer.paused) return false;
   if (viewer.pro && planCovers(viewer.plan, date)) return true;
   if (viewer.bonusLive) return true;
@@ -71,6 +80,7 @@ export async function getViewer(): Promise<Viewer> {
     plan: pro ? (profile?.plan ?? undefined) : undefined,
     accessUntil: until?.toISOString(),
     paused: Boolean(profile?.paused_at),
+    admin: isAdminEmail(user.email),
     stripeCustomerId: profile?.stripe_customer_id ?? undefined,
     passCredits: profile?.pass_credits ?? 0,
     passDates: (passes ?? []).map((p) => String(p.date)),

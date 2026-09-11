@@ -47,7 +47,13 @@ async function Details({ searchParams }: { searchParams: PageProps<"/account">["
 
       <div className="card">
         <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Subscription</div>
-        {viewer.pro ? (
+        {viewer.admin ? (
+          <>
+            <div className="mt-1"><span className="badge badge-prime">Admin</span></div>
+            <p className="mt-2 text-sm text-ink-secondary">Every race day is open, nothing to pay.</p>
+            <Link href="/admin" className="btn btn-secondary mt-4">Open admin</Link>
+          </>
+        ) : viewer.pro ? (
           <>
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <span className="badge badge-prime">{plan?.name ?? viewer.plan ?? "Active"}</span>
