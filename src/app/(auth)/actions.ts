@@ -2,8 +2,20 @@
 
 import { redirect } from "next/navigation";
 
+import { supabaseAdmin } from "@/lib/billing/access";
+import { EMAILS } from "@/lib/email/messages";
+import { sendEmail } from "@/lib/email/send";
 import { applyReferral } from "@/lib/referrals";
 import { supabaseConfigured, supabaseServer } from "@/lib/supabase/server";
+
+/**
+ * Auth emails go out through Resend from our own domain: Supabase makes the
+ * one-time token, we build the /auth/confirm link and send the message, so
+ * nothing depends on Supabase's SMTP or its templates.
+ */
+const ownEmails = () => Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY && process.env.RESEND_API_KEY);
+const confirmLink = (site: string, token: string, type: string, next: string) =>
+  `${site}/auth/confirm?token_hash=${token}&type=${type}&next=${encodeURIComponent(next)}`;
 
 export interface AuthState {
   error?: string;
@@ -39,22 +51,38 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   const ref = String(form.get("ref") ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "") || undefined;
   const fullName = String(form.get("name") ?? "").trim().slice(0, 120);
 
-  const supabase = await supabaseServer();
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const next = safeNext(form.get("next"));
+  const meta = { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : "signup", ...(ref ? { ref } : {}) };
+
+  if (ownEmails()) {
+    const { data, error } = await supabaseAdmin().auth.admin.generateLink({
+      type: "signup",
+      email,
+      password,
+      options: { data: meta, redirectTo: `${site}/auth/confirm` },
+    });
+    if (error) {
+      return { error: /already|exists|registered/i.test(error.message) ? "That email already has an account, log in instead." : error.message };
+    }
+    const ok = await sendEmail(email, EMAILS.confirmSignup(confirmLink(site, data.properties.hashed_token, "signup", next)));
+    return ok ? { notice: "Check your email for a link to confirm your account." } : { error: "We could not send the confirmation email, try again in a minute." };
+  }
+
+  const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: `${site}/auth/callback?next=${encodeURIComponent(safeNext(form.get("next")))}`,
+      emailRedirectTo: `${site}/auth/callback?next=${encodeURIComponent(next)}`,
       // Copied onto the profile by the database trigger, and read back at confirmation.
-      data: { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : "signup", ...(ref ? { ref } : {}) },
+      data: meta,
     },
   });
   if (error) return { error: error.message };
   // Email confirmation off: signed in already. On: they need the link.
   if (data.session) {
     if (ref && data.user) await applyReferral(data.user.id, ref);
-    const next = safeNext(form.get("next"));
     redirect(`${next}${next.includes("?") ? "&" : "?"}registered=1`);
   }
   return { notice: "Check your email for a link to confirm your account." };
@@ -64,11 +92,16 @@ export async function requestReset(_prev: AuthState, form: FormData): Promise<Au
   if (!supabaseConfigured()) return { error: "Accounts are not set up yet." };
   const email = String(form.get("email") ?? "").trim();
   if (!email) return { error: "Your email, please." };
-  const supabase = await supabaseServer();
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${site}/auth/callback?next=${encodeURIComponent("/reset")}`,
-  });
+  if (ownEmails()) {
+    const { data, error } = await supabaseAdmin().auth.admin.generateLink({ type: "recovery", email, options: { redirectTo: `${site}/auth/confirm` } });
+    if (!error && data.properties) await sendEmail(email, EMAILS.resetPassword(confirmLink(site, data.properties.hashed_token, "recovery", "/reset")));
+  } else {
+    const supabase = await supabaseServer();
+    await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${site}/auth/callback?next=${encodeURIComponent("/reset")}`,
+    });
+  }
   // Same answer whether or not the address exists, so nobody can probe for accounts.
   return { notice: "If that email has an account, a reset link is on its way." };
 }

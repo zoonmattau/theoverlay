@@ -77,6 +77,24 @@ export const EMAILS = {
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),
 
+  confirmSignup: (link: string): EmailSpec => ({
+    subject: "Confirm your email for The Overlay",
+    preheader: "One click and you are in.",
+    heading: "Confirm your email.",
+    paragraphs: ["Press the button to confirm your address and open your account.", "The link works once and expires in 24 hours."],
+    cta: { label: "Confirm my email", url: link },
+    note: "If you did not sign up to The Overlay, ignore this and nothing happens.",
+  }),
+
+  resetPassword: (link: string): EmailSpec => ({
+    subject: "Reset your password",
+    preheader: "A one-time link to choose a new password.",
+    heading: "Reset your password.",
+    paragraphs: ["Press the button and choose a new password.", "The link works once and expires in an hour."],
+    cta: { label: "Choose a new password", url: link },
+    note: "If you did not ask for this, ignore it and your password stays as it is.",
+  }),
+
   invited: (link: string, days: number, admin: boolean): EmailSpec => ({
     subject: "Your invite to The Overlay",
     preheader: "Set a password and the board is yours.",
