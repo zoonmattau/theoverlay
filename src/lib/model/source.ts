@@ -4,11 +4,12 @@ import { after } from "next/server";
 
 import { fixtureMeetings, type FixtureMeeting } from "@/lib/formking/fixtures";
 import {
+  getMeeting,
   getMeetingsByDate,
   getMeetingSpeedmaps,
   getRace,
 } from "@/lib/formking/client";
-import type { MeetingSummary, RaceSummary, Speedmap } from "@/lib/formking/types";
+import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { pickFreeRace, publishMeeting, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
@@ -45,24 +46,66 @@ const firstJump = (m: PublishedMeeting) => m.races.map((r) => r.jumpTime ?? "9")
 const STALE_MS = Number(process.env.OVERLAY_STALE_MIN ?? 10) * 60_000;
 
 /**
- * What a race refresh costs is two credits, so each race is re-bought only
- * when it is due: every hour while it is a long way off, every ten minutes
- * from 45 minutes before the jump until the result is in, then never.
+ * Credits. Race form (two credits, the benchmarks and full career) is bought
+ * once per race per day and never again. What moves during the day, prices,
+ * scratchings, going, results, comes from the meeting summary (five credits
+ * for the whole meeting), polled every hour while the meeting is a long way
+ * off, every fifteen minutes from an hour before its first race until its
+ * last result, then never.
  */
+const RACE_FORM_TTL_MS = 30 * 60 * 60_000;
 const FAR_TTL_MS = 60 * 60_000;
-const NEAR_TTL_MS = Number(process.env.OVERLAY_NEAR_MIN ?? 10) * 60_000;
-const NEAR_WINDOW_MS = 45 * 60_000;
+const NEAR_TTL_MS = Number(process.env.OVERLAY_NEAR_MIN ?? 15) * 60_000;
+const NEAR_WINDOW_MS = 60 * 60_000;
 const DONE_TTL_MS = 24 * 60 * 60_000;
 
-const hasResult = (r: RaceSummary) => r.entries.some((e) => e.horseResult && e.horseResult.finishPosition > 0);
+function meetingTtl(lite: MeetingSummaryLite): number {
+  const races = (lite.races ?? []).filter((r) => !r.raceType || r.raceType === "Flat");
+  if (races.length === 0) return DONE_TTL_MS;
+  const allDone = races.every((r) => /result|abandon/i.test(r.status ?? ""));
+  if (allDone) return DONE_TTL_MS;
+  const jumps = races.map((r) => jumpMillis(lite.date, r.startTime, lite.state)).filter((j): j is number => j !== undefined);
+  if (jumps.length === 0) return NEAR_TTL_MS;
+  const first = Math.min(...jumps);
+  return first - Date.now() > NEAR_WINDOW_MS ? FAR_TTL_MS : NEAR_TTL_MS;
+}
 
-function raceTtl(lite: { status?: string; startTime?: string }, meetingDate: number | undefined, state?: string): { ttlMs: number; accept?: (r: RaceSummary) => boolean } {
-  const resulted = /result|final|paid|abandon/i.test(lite.status ?? "");
-  if (resulted) return { ttlMs: DONE_TTL_MS, accept: hasResult };
-  const jump = jumpMillis(meetingDate, lite.startTime, state);
-  if (jump === undefined) return { ttlMs: NEAR_TTL_MS };
-  const until = jump - Date.now();
-  return { ttlMs: until > NEAR_WINDOW_MS ? FAR_TTL_MS : NEAR_TTL_MS };
+/**
+ * The race form bought earlier, brought up to date from the meeting summary:
+ * prices, scratchings, weights, riders, going and results move; the form and
+ * benchmarks do not. A runner only in the summary (a late emergency) comes
+ * in as it is.
+ */
+function mergeLive(form: RaceSummary, live?: RaceSummary): RaceSummary {
+  if (!live) return form;
+  const fresh = new Map(live.entries.map((e) => [e.number, e]));
+  const entries: RaceEntry[] = form.entries.map((e) => {
+    const l = fresh.get(e.number);
+    if (!l) return e;
+    return {
+      ...e,
+      scratched: l.scratched,
+      emergency: l.emergency ?? e.emergency,
+      barrier: l.barrier ?? e.barrier,
+      jockey: l.jockey ?? e.jockey,
+      weight: l.weight ?? e.weight,
+      weightCarried: l.weightCarried ?? e.weightCarried,
+      apprenticeClaim: l.apprenticeClaim ?? e.apprenticeClaim,
+      gear: l.gear ?? e.gear,
+      odds: l.odds ?? e.odds,
+      horseResult: l.horseResult ?? e.horseResult,
+    };
+  });
+  for (const l of live.entries) if (!form.entries.some((e) => e.number === l.number)) entries.push(l);
+  return {
+    ...form,
+    going: live.going ?? form.going,
+    goingNumber: live.goingNumber ?? form.goingNumber,
+    status: live.status ?? form.status,
+    startTime: live.startTime ?? form.startTime,
+    railPosition: live.railPosition ?? form.railPosition,
+    entries,
+  };
 }
 
 /** "12:35pm" on the meeting date, in the track's own time zone, as epoch millis. */
@@ -248,13 +291,21 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
   // meeting call is skipped.
   const wanted = index.filter((lite) => lite.tabMeeting !== false);
   const loaded = await Promise.all(
-    wanted.map((lite) =>
-      Promise.all(
+    wanted.map(async (lite) => {
+      const forms = await Promise.all(
         (lite.races ?? [])
           .filter((r) => !r.raceType || r.raceType === "Flat")
-          .map((r) => getRace(lite.id, r.raceId, raceTtl(r, lite.date, lite.state))),
-      ),
-    ),
+          .map((r) => getRace(lite.id, r.raceId, { ttlMs: RACE_FORM_TTL_MS })),
+      );
+      if (forms.length === 0) return forms;
+      let live: MeetingSummary | undefined;
+      try {
+        live = await getMeeting(lite.id, { ttlMs: meetingTtl(lite) });
+      } catch (err) {
+        console.error("[card] meeting summary failed", lite.id, err);
+      }
+      return forms.map((f) => mergeLive(f, live?.races?.find((x) => x.raceId === f.raceId)));
+    }),
   );
   const out: FixtureMeeting[] = [];
   for (const [i, lite] of wanted.entries()) {

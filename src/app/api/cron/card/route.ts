@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
+import { supabaseAdmin } from "@/lib/billing/access";
 import { buildCard, racingToday } from "@/lib/model/source";
 
 export const maxDuration = 300;
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ date, error: message }, { status: 500 });
   }
   const { card, seconds } = built;
+  // Raw feed responses older than three days are no use to anyone.
+  await supabaseAdmin().from("fk_cache").delete().lt("at", new Date(Date.now() - 3 * 86400_000).toISOString());
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   if (races === 0 && date === today) {
     for (const to of admins) await sendEmail(to, EMAILS.cronFailed(date, "The build finished but found no races."));
