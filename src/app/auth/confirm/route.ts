@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const ref = data.user?.user_metadata?.ref;
       if (data.user && type === "signup" && typeof ref === "string" && ref) await applyReferral(data.user.id, ref);
-      return NextResponse.redirect(`${origin}${type === "recovery" ? "/reset" : next}`);
+      if (type === "recovery") return NextResponse.redirect(`${origin}/reset`);
+      return NextResponse.redirect(`${origin}${type === "signup" ? withRegistered(next) : next}`);
     }
   }
   return NextResponse.redirect(`${origin}/login?error=link`);
@@ -39,4 +40,9 @@ function nextFromRedirect(redirectTo: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+/** Flags a fresh sign-up on the landing URL so the pixel can count it. */
+function withRegistered(path: string): string {
+  return `${path}${path.includes("?") ? "&" : "?"}registered=1`;
 }

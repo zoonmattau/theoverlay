@@ -34,7 +34,7 @@ export default function Page() {
       </Clause>
 
       <Clause n="05" title="Cookies">
-        A session cookie keeps you logged in and a small local setting remembers which sections you collapsed. We do not run third-party advertising cookies without telling you first.
+        A session cookie keeps you logged in and a small local setting remembers which sections you collapsed. We also use the Meta Pixel to measure our ads, which sets a Meta cookie you can block in your browser or through your Facebook ad settings.
       </Clause>
 
       <Clause n="06" title="Your rights">

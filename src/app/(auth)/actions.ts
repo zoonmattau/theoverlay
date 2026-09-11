@@ -53,7 +53,8 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   // Email confirmation off: signed in already. On: they need the link.
   if (data.session) {
     if (ref && data.user) await applyReferral(data.user.id, ref);
-    redirect(safeNext(form.get("next")));
+    const next = safeNext(form.get("next"));
+    redirect(`${next}${next.includes("?") ? "&" : "?"}registered=1`);
   }
   return { notice: "Check your email for a link to confirm your account." };
 }

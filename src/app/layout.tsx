@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import Image from "next/image";
+import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
 import "./globals.css";
 
@@ -52,6 +53,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${archivo.variable} ${plex.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
+        <Suspense fallback={null}>
+          <MetaPixel />
+        </Suspense>
         <nav className="topbar" aria-label="Main navigation">
           <Link href="/" className="topbar-brand">
             <Image

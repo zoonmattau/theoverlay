@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
+import { track } from "@/components/MetaPixel";
+
 /** Starts Stripe Checkout for a plan, or sends a signed-out visitor to sign up. */
 export function CheckoutButton({
   plan,
@@ -34,6 +36,7 @@ export function CheckoutButton({
     }
     setBusy(true);
     setError(null);
+    track("InitiateCheckout", { content_name: plan ?? `passes_${passes}` });
     const res = await fetch("/api/stripe/checkout", {
       method: "POST",
       headers: { "content-type": "application/json" },
