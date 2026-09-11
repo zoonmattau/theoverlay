@@ -28,7 +28,7 @@ export default function Page() {
         <Plans />
       </Suspense>
 
-      <section className="mt-10 grid gap-3 sm:grid-cols-3 text-sm">
+      <section className="mt-10 grid gap-3 sm:grid-cols-2 text-sm">
         <div className="card">
           <h2 className="font-display font-extrabold">What you unlock</h2>
           <p className="mt-1 text-ink-secondary">Our top four in every race with the reasons, the bet and lay calls, rankings across eight categories, and the pressure grid.</p>
@@ -36,10 +36,6 @@ export default function Page() {
         <div className="card">
           <h2 className="font-display font-extrabold">What stays free</h2>
           <p className="mt-1 text-ink-secondary">The board, jump times, results, the live market and one free race every day.</p>
-        </div>
-        <div className="card">
-          <h2 className="font-display font-extrabold">No promises</h2>
-          <p className="mt-1 text-ink-secondary">We rate horses and price them, the market moves and horses lose, and every bet is your own call.</p>
         </div>
       </section>
 

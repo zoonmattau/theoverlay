@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { applyReferral } from "@/lib/referrals";
 import { supabaseConfigured, supabaseServer } from "@/lib/supabase/server";
 
 export interface AuthState {
@@ -33,17 +34,27 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   const password = String(form.get("password") ?? "");
   if (!email || password.length < 8) return { error: "A valid email and a password of at least 8 characters." };
   if (form.get("age") !== "on") return { error: "You need to be 18 or over." };
+  if (form.get("privacy") !== "on") return { error: "Please accept the terms and privacy policy." };
+  const marketing = form.get("marketing") === "on";
+  const ref = String(form.get("ref") ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "") || undefined;
 
   const supabase = await supabaseServer();
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
-    options: { emailRedirectTo: `${site}/auth/callback?next=${encodeURIComponent(safeNext(form.get("next")))}` },
+    options: {
+      emailRedirectTo: `${site}/auth/callback?next=${encodeURIComponent(safeNext(form.get("next")))}`,
+      // Copied onto the profile by the database trigger, and read back at confirmation.
+      data: { accepted_terms: "true", marketing_opt_in: marketing, ...(ref ? { ref } : {}) },
+    },
   });
   if (error) return { error: error.message };
   // Email confirmation off: signed in already. On: they need the link.
-  if (data.session) redirect(safeNext(form.get("next")));
+  if (data.session) {
+    if (ref && data.user) await applyReferral(data.user.id, ref);
+    redirect(safeNext(form.get("next")));
+  }
   return { notice: "Check your email for a link to confirm your account." };
 }
 

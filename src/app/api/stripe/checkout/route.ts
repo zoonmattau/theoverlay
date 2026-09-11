@@ -20,12 +20,13 @@ export async function POST(request: NextRequest) {
   const body = (await request.json().catch(() => ({}))) as { plan?: string; passes?: number };
   const plan = body.plan ? planById(body.plan) : undefined;
   const bundle = body.passes ? passBundle(Number(body.passes)) : undefined;
-  if ((!plan || !plan.priceId) && (!bundle || !process.env.STRIPE_PRICE_PASS)) {
+  if ((!plan || !plan.priceId) && (!bundle || !bundle.priceId)) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }
 
   // One Stripe customer per user, created on first checkout.
   let customer = viewer.stripeCustomerId;
+  const newCustomer = !customer;
   if (!customer) {
     const created = await stripe().customers.create({
       email: viewer.email,
@@ -36,11 +37,11 @@ export async function POST(request: NextRequest) {
   }
 
   if (bundle) {
-    // A pass bundle: one Price with volume tiers, quantity picks the tier.
+    // A pass bundle: one one-off Price per bundle size.
     const session = await stripe().checkout.sessions.create({
       mode: "payment",
       customer,
-      line_items: [{ price: process.env.STRIPE_PRICE_PASS!, quantity: bundle.qty }],
+      line_items: [{ price: bundle.priceId!, quantity: 1 }],
       success_url: `${siteUrl()}/account?checkout=passes`,
       cancel_url: `${siteUrl()}/pricing`,
       allow_promotion_codes: true,
@@ -51,9 +52,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Every plan is a monthly subscription with a free trial, one trial per
-  // customer, so a second subscription starts paid.
-  const prior = await stripe().subscriptions.list({ customer, status: "all", limit: 1 });
-  const trialled = prior.data.length > 0;
+  // customer, so a second subscription starts paid. A customer made just now
+  // cannot have one, which saves a round trip on the common path.
+  const trialled = newCustomer
+    ? false
+    : (await stripe().subscriptions.list({ customer, status: "all", limit: 1 })).data.length > 0;
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",

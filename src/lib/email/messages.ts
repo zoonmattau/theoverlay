@@ -2,6 +2,9 @@ import type { EmailSpec } from "./template";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
 
+const fmt = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Sydney" });
+
 /** Every email we send, in one place, so the voice stays consistent. */
 export const EMAILS = {
   trialStarted: (plan: string, trialEnds: string): EmailSpec => ({
@@ -48,6 +51,30 @@ export const EMAILS = {
       "Updating your card from your account fixes it straight away.",
     ],
     cta: { label: "Update payment details", url: `${SITE}/account` },
+  }),
+
+  friendJoined: (until: string): EmailSpec => ({
+    subject: "Your friend joined, two weeks on us",
+    preheader: "The full board is yours for a fortnight.",
+    heading: "Your friend is in.",
+    paragraphs: [
+      "Someone signed up with your invite link, so you both get two weeks of the full board, every race day.",
+      until ? `Your fortnight runs until <strong>${fmt(until)}</strong>, on top of anything you already have.` : "It starts now, on top of anything you already have.",
+      "Invite as many friends as you like, every one adds another fortnight.",
+    ],
+    cta: { label: "Open today's board", url: `${SITE}/` },
+  }),
+
+  giftReceived: (until: string): EmailSpec => ({
+    subject: "Two weeks of The Overlay, on your friend",
+    preheader: "Every race day is open for a fortnight.",
+    heading: "Welcome, and thank your friend.",
+    paragraphs: [
+      "You joined on an invite, so the full board is open to you for two weeks, every race day.",
+      until ? `It runs until <strong>${fmt(until)}</strong>.` : "It starts now.",
+      "Your own invite link is on your account page, and every friend who joins adds a fortnight for you both.",
+    ],
+    cta: { label: "Open today's board", url: `${SITE}/` },
   }),
 
   passesAdded: (qty: number, total: number): EmailSpec => ({

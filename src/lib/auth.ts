@@ -17,13 +17,20 @@ export interface Viewer {
   passCredits: number;
   /** Racing dates already opened with a day pass. */
   passDates: string[];
+  /** ISO, while a gifted fortnight of the full board is running. */
+  bonusUntil?: string;
+  /** True while that gift is still running. */
+  bonusLive: boolean;
+  /** Invite code, once one has been made. */
+  referralCode?: string;
 }
 
-export const ANON: Viewer = { pro: false, passCredits: 0, passDates: [] };
+export const ANON: Viewer = { pro: false, passCredits: 0, passDates: [], bonusLive: false };
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
   if (viewer.pro && planCovers(viewer.plan, date)) return true;
+  if (viewer.bonusLive) return true;
   return viewer.passDates.includes(date);
 }
 
@@ -45,7 +52,7 @@ export async function getViewer(): Promise<Viewer> {
   const [{ data: profile }, { data: passes }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("plan, access_until, stripe_customer_id, pass_credits")
+      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
@@ -63,5 +70,8 @@ export async function getViewer(): Promise<Viewer> {
     stripeCustomerId: profile?.stripe_customer_id ?? undefined,
     passCredits: profile?.pass_credits ?? 0,
     passDates: (passes ?? []).map((p) => String(p.date)),
+    bonusUntil: profile?.bonus_until ?? undefined,
+    bonusLive: Boolean(profile?.bonus_until && new Date(profile.bonus_until).getTime() > Date.now()),
+    referralCode: profile?.referral_code ?? undefined,
   };
 }

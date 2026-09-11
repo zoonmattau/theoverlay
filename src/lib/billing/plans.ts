@@ -73,20 +73,21 @@ export function planFor(date: string): Plan | undefined {
 }
 
 /**
- * Day pass bundles. One Stripe Price (STRIPE_PRICE_PASS) with volume tiers
- * that match this table; quantity picks the tier.
+ * Day pass bundles. One one-off Stripe Price per bundle on the Day Pass
+ * product (STRIPE_PRICE_PASS_1, _3, _5, _10).
  */
 export interface PassBundle {
   qty: number;
   /** AUD total, excluding GST. */
   price: number;
+  priceId?: string;
 }
 
 export const PASS_PRICE = 10;
 export const PASS_BUNDLES: PassBundle[] = [
-  { qty: 1, price: 10 },
-  { qty: 3, price: 27 },
-  { qty: 5, price: 40 },
-  { qty: 10, price: 70 },
+  { qty: 1, price: 10, priceId: process.env.STRIPE_PRICE_PASS_1 },
+  { qty: 3, price: 27, priceId: process.env.STRIPE_PRICE_PASS_3 },
+  { qty: 5, price: 40, priceId: process.env.STRIPE_PRICE_PASS_5 },
+  { qty: 10, price: 70, priceId: process.env.STRIPE_PRICE_PASS_10 },
 ];
 export const passBundle = (qty: number) => PASS_BUNDLES.find((b) => b.qty === qty);
