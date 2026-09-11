@@ -58,8 +58,11 @@ export function callLine(r: PublishedRunner): string {
   if (!r.marketPrice) return `Rated ${rated}, no market price yet.`;
   if (r.signal === "back") return `${r.prime ? "Prime Overlay" : "Bet"}: ${live} in the market against our ${rated}, an edge of ${signedPercent(r.edge)}.`;
   if (r.signal === "lay") return `Lay: ${live} in the market is under our ${rated}.`;
-  if (r.rank && r.rank <= 4) return `No bet: in our top four, but ${live} against our ${rated} is about right.`;
-  return `No bet: ${live} against our ${rated}, no edge.`;
+  const ratio = r.marketPrice / r.ratedPrice;
+  const top = r.rank && r.rank <= 4 ? "in our top four, but " : "";
+  if (ratio < 0.85) return `No bet: ${top}${live} is shorter than our ${rated}.`;
+  if (ratio > 1.15) return `No bet: ${top}${live} against our ${rated} is close, not enough to act on.`;
+  return `No bet: ${top}${live} against our ${rated} is about right.`;
 }
 
 /** The what-to-watch sentence: position, tempo, finish, then the call. */
@@ -149,14 +152,24 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   else if (front && field >= 10 && r.barrier >= field - 2) out.push({ weight: 2, text: "has to work early from the wide gate" });
   else if (!front && r.barrier >= field - 2) out.push({ weight: 1, text: "goes back from the wide draw" });
 
-  // Conditions from the ratings.
-  const goingGap = g.going[race.going] - g.class;
-  if (goingGap >= 1.5) out.push({ weight: 2, text: pick(r, [`is better on ${race.going} ground than its class says`, `handles the ${race.going} track`]) });
-  else if (goingGap <= -1.5) out.push({ weight: 2, text: `has not run to its class on ${race.going} ground` });
-  const distGap = g.distance - g.class;
-  if (distGap >= 1.5) out.push({ weight: 2, text: "is at its best at this trip" });
-  else if (distGap <= -1.5) out.push({ weight: 2, text: "is a query at the trip" });
-  if (g.track - g.class >= 1.5) out.push({ weight: 1, text: "goes well here" });
+  // The factors that moved Today away from Class: anything worth a point and
+  // a half gets said, the biggest movers loudest.
+  const pts = (v: number) => `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "point" : "points"}`;
+  const factorLines: Partial<Record<keyof typeof g.factors, [string, string]>> = {
+    distance: [`the trip is a real query, ${"%"} off its class`, `is at its best at this trip, ${"%"} up`],
+    going: [`the ${race.going} ground costs it ${"%"}`, `the ${race.going} ground adds ${"%"}`],
+    track: [`this track costs it ${"%"}`, `goes well here, ${"%"} up`],
+    tempo: [`the likely tempo costs it ${"%"}`, `the likely tempo adds ${"%"}`],
+    weight: [`the weight costs it ${"%"}`, `the weight helps, ${"%"} up`],
+    fresh: [`its fresh record costs it ${"%"}`, `goes well fresh, ${"%"} up`],
+    jockey: [`the rider costs it ${"%"}`, `the rider adds ${"%"}`],
+    trainer: [`the stable's form costs it ${"%"}`, `the stable's form adds ${"%"}`],
+  };
+  for (const [key, v] of Object.entries(g.factors) as [keyof typeof g.factors, number][]) {
+    const tpl = factorLines[key];
+    if (!tpl || Math.abs(v) < 1.5) continue;
+    out.push({ weight: Math.abs(v) >= 3 ? 5 : 3, text: tpl[v < 0 ? 0 : 1].replace("%", pts(v)) });
+  }
 
   // Market move since opening.
   if (r.marketOpen && r.marketPrice) {
@@ -167,7 +180,7 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
 
   // Gear changes are worth a line, blinkers first time above all.
   for (const g of h?.gearChanges ?? []) {
-    out.push({ weight: /blinkers on first/i.test(g) ? 3 : 2, text: `has ${g.charAt(0).toLowerCase()}${g.slice(1)}` });
+    out.push({ weight: /blinkers on first/i.test(g) ? 3 : 2, text: `has ${g.toLowerCase()}` });
   }
 
   // Stable and rider.
