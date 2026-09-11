@@ -95,8 +95,8 @@ export interface PublishedRun {
   points: number;
   /** Identifies the race, so runs can be matched across today's field. */
   raceKey?: string;
-  /** Runners in today's race that were in this one too, with where they finished. */
-  met?: { tab: number; finish?: number }[];
+  /** Runners in today's race that were in this one too, with where they finished and their lengths beaten. */
+  met?: { tab: number; finish?: number; margin?: number }[];
 }
 
 export interface HorseProfile {

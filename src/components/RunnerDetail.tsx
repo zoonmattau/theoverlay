@@ -55,10 +55,11 @@ function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
         const other = race.runners.find((x) => x.tabNumber === m.tab);
         if (!other || other.scratched) return null;
         const beat = m.finish !== undefined && run.finish! < m.finish;
+        const gap = m.margin !== undefined && run.margin !== undefined ? Math.abs(m.margin - run.margin) : undefined;
         return (
           <span key={m.tab} className={`met-chip ${beat ? "is-beat" : "is-behind"}`} title={`${other.horseName} is in today's race and finished ${m.finish ? ord(m.finish) : "unplaced"} in this one`}>
             {beat ? "beat" : "behind"} {other.horseName}
-            {m.finish ? ` (${ord(m.finish)})` : ""}
+            {gap !== undefined ? ` by ${gap < 0.05 ? "a nose" : `${gap.toFixed(1)}L`}` : m.finish ? ` (${ord(m.finish)})` : ""}
             {m.tab === fav ? " · today's fav" : ""}
           </span>
         );

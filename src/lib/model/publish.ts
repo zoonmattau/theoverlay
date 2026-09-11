@@ -273,11 +273,11 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
  * so a run shows who in this race it beat or finished behind.
  */
 function linkMeetings(runners: PublishedRunner[]): void {
-  const seen = new Map<string, { tab: number; finish?: number }[]>();
+  const seen = new Map<string, { tab: number; finish?: number; margin?: number }[]>();
   for (const r of runners) {
     for (const run of r.runs ?? []) {
       if (!run.raceKey) continue;
-      seen.set(run.raceKey, [...(seen.get(run.raceKey) ?? []), { tab: r.tabNumber, finish: run.finish }]);
+      seen.set(run.raceKey, [...(seen.get(run.raceKey) ?? []), { tab: r.tabNumber, finish: run.finish, margin: run.margin }]);
     }
   }
   for (const r of runners) {
