@@ -37,9 +37,6 @@ export function AuthShell({
           <p className="text-xs text-bar-soft">18+ only. Gamble responsibly. Gambling Help Online 1800 858 858.</p>
         </aside>
         <div className="p-6 sm:p-8">
-          <Link href="/" className="md:hidden inline-block mb-5">
-            <Image src="/brand/lockup-light-stacked.png" alt="The Overlay" width={1240} height={984} className="h-14 w-auto" priority />
-          </Link>
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {intro && <p className="mt-1 mb-5 text-sm text-ink-soft">{intro}</p>}
           {!intro && <div className="mb-5" />}
