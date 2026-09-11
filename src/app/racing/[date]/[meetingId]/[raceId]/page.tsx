@@ -160,16 +160,19 @@ async function Race({ params }: { params: Props["params"] }) {
         </div>
         <div className="flex flex-wrap items-center gap-3 border-t border-line-soft px-4 py-3">
           <nav className="race-tabs" aria-label="Races at this meeting">
-            {meeting.races.map((r) => (
+            {meeting.races.map((r) => {
+              const tabTip = prime.has(r.raceId) ? "prime" : r.runners.some((x) => x.signal === "back") ? "back" : r.runners.some((x) => x.signal === "lay") ? "lay" : "";
+              return (
               <Link
                 key={r.raceId}
                 href={`/racing/${date}/${meetingId}/${r.raceId}`}
-                className={`race-tab ${r.raceId === raceId ? "is-current" : ""} ${r.result ? "is-resulted" : ""}`}
+                className={`race-tab ${r.raceId === raceId ? "is-current" : ""} ${r.result ? "is-resulted" : ""} ${tabTip ? `tip-${tabTip}` : ""}`}
               >
                 {groupOf(r.className, r.name) && <span className={`medal medal-${groupOf(r.className, r.name)}`} title={`Group ${groupOf(r.className, r.name)}`}>G{groupOf(r.className, r.name)}</span>}
                 R{r.raceNumber}
               </Link>
-            ))}
+              );
+            })}
           </nav>
           <div className="ml-auto">
             {race.result ? (

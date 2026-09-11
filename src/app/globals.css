@@ -832,14 +832,44 @@ body {
   border-color: var(--color-ink-soft);
   color: var(--color-ink);
 }
-.race-tab.is-current {
+/* Coloured like the board: lime Prime, blue bet, red lay; the current race is outlined in ink. */
+.race-tab.tip-prime {
   background: var(--color-lime);
   border-color: var(--color-lime);
   color: var(--color-ink);
 }
+.race-tab.tip-back {
+  background: var(--color-blue);
+  border-color: var(--color-blue);
+  color: #fff;
+}
+.race-tab.tip-lay {
+  background: var(--color-red);
+  border-color: var(--color-red);
+  color: #fff;
+}
 .race-tab.is-resulted {
   background: var(--color-surface);
   color: var(--color-ink-soft);
+}
+.race-tab.is-resulted.tip-prime,
+.race-tab.is-resulted.tip-back,
+.race-tab.is-resulted.tip-lay {
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  border-width: 2px;
+}
+.race-tab.is-resulted.tip-prime { border-color: var(--color-lime); }
+.race-tab.is-resulted.tip-back { border-color: var(--color-blue); }
+.race-tab.is-resulted.tip-lay { border-color: var(--color-red); }
+.race-tab.is-current {
+  box-shadow: 0 0 0 2px var(--color-ink);
+  font-weight: 800;
+}
+.race-tab.is-current:not(.tip-prime):not(.tip-back):not(.tip-lay) {
+  background: var(--color-bar);
+  border-color: var(--color-bar);
+  color: #fff;
 }
 
 /* --- Selection cards --- */

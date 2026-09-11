@@ -58,7 +58,7 @@ function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
         return (
           <span key={m.tab} className={`met-chip ${beat ? "is-beat" : "is-behind"}`} title={`${other.horseName} is in today's race and finished ${m.finish ? ord(m.finish) : "unplaced"} in this one`}>
             {beat ? "beat" : "behind"} {other.horseName}
-            {m.finish ? ` (${ord(m.finish)} home)` : ""}
+            {m.finish ? ` (${ord(m.finish)})` : ""}
             {m.tab === fav ? " · today's fav" : ""}
           </span>
         );
