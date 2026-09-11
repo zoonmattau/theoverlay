@@ -27,7 +27,7 @@ const DEFAULT_TEMPERATURE = 8;
  * are wrong and loud. Fit this on the historical extract rather than guessing ,
  * see scripts/backtest.ts.
  */
-const DEFAULT_MARKET_WEIGHT = 0.8;
+const DEFAULT_MARKET_WEIGHT = Number(process.env.OVERLAY_MARKET_WEIGHT ?? 0.8);
 
 export interface RateInput {
   key: string;

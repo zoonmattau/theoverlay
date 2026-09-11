@@ -261,7 +261,7 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
       weight: p.weight,
       sp: p.startingPrice,
       map: p.posSettling && p.numRunners ? mapOf(p.posSettling, p.numRunners) : undefined,
-      points: Math.round(runPoints(p, todayPar) * 10) / 10,
+      points: Math.round(runPoints(p, todayPar, e.horse.age) * 10) / 10,
     }));
 }
 
@@ -359,6 +359,11 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
     qualifying.filter((c) => (c.runner.marketPrice ?? 0) >= LONG_MIN_PRICE),
     (a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0),
   );
+
+  // Then every other bet, biggest edge first, and every lay, shortest first,
+  // so the home page shows the whole day's calls and not just the headliners.
+  for (const c of [...qualifying].filter((c) => !used.has(key(c))).sort((a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0))) take("bet", [c], () => 0);
+  for (const c of pool.filter((x) => x.runner.signal === "lay").sort((a, b) => (a.runner.edge ?? 0) - (b.runner.edge ?? 0))) take("lay", [c], () => 0);
 
   return out;
 }

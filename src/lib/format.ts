@@ -53,10 +53,14 @@ export const TAG_LABEL = {
   top_overlay: "Overlay of the Day",
   prime_overlay: "Prime Overlay",
   long_overlay: "Long Overlay",
+  bet: "Bet",
+  lay: "Lay",
 } as const;
 
 export const TAG_BLURB = {
   top_overlay: "Biggest edge on the card",
   prime_overlay: "A bet with an edge of five points or more",
   long_overlay: "Best edge at an each-way price",
+  bet: "Market longer than our price",
+  lay: "Market shorter than our price",
 } as const;

@@ -7,7 +7,7 @@
  * boundary the licence draws.
  */
 
-export type SelectionTag = "top_overlay" | "prime_overlay" | "long_overlay";
+export type SelectionTag = "top_overlay" | "prime_overlay" | "long_overlay" | "bet" | "lay";
 
 /** Back when the market is longer than our price, lay when it is shorter. */
 export type Signal = "back" | "lay";

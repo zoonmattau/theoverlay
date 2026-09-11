@@ -6,13 +6,14 @@ import type { Selection } from "@/lib/model/types";
 /** The same card with the horse and prices held back, for visitors. */
 export function LockedSelectionCard({ s }: { s: Selection }) {
   const prime = s.tag === "prime_overlay";
+  const lay = s.tag === "lay";
   return (
     <Link
       href="/pricing"
-      className={`group card card-hover block border-t-4 ${prime ? "border-t-lime" : "border-t-blue"}`}
+      className={`group card card-hover block border-t-4 ${prime ? "border-t-lime" : lay ? "border-t-red" : "border-t-blue"}`}
     >
       <div className="flex items-center justify-between gap-3">
-        <Badge tone={prime ? "prime" : "back"}>{TAG_LABEL[s.tag]}</Badge>
+        <Badge tone={prime ? "prime" : lay ? "lay" : "back"}>{TAG_LABEL[s.tag]}</Badge>
         <span className="text-[11px] text-ink-soft uppercase tracking-wider">
           {s.track} R{s.raceNumber}
         </span>
@@ -27,7 +28,7 @@ export function LockedSelectionCard({ s }: { s: Selection }) {
       <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-3">
         <Stat label="Live" value={price(s.marketPrice)} muted />
         <Stat label="Rated" value="$—" muted />
-        <Stat label="Edge" value="+—%" accent={prime} blue={!prime} />
+        <Stat label="Edge" value={lay ? "-—%" : "+—%"} accent={prime} blue={!prime && !lay} red={lay} />
       </dl>
       <span className="btn btn-primary w-full mt-4">Try free for 7 days</span>
     </Link>
@@ -44,16 +45,17 @@ export function Outcome({ position }: { position?: number }) {
 
 export function SelectionCard({ s, date }: { s: Selection; date: string }) {
   const prime = s.tag === "prime_overlay";
+  const lay = s.tag === "lay";
   const run = s.finishPosition !== undefined;
   return (
     <Link
       href={`/racing/${date}/${s.meetingId}/${s.raceId}`}
       className={`group card card-hover block border-t-4 ${
-        prime ? "border-t-lime" : "border-t-blue"
+        prime ? "border-t-lime" : lay ? "border-t-red" : "border-t-blue"
       }`}
     >
       <div className="flex items-center justify-between gap-3">
-        <Badge tone={prime ? "prime" : "back"}>{TAG_LABEL[s.tag]}</Badge>
+        <Badge tone={prime ? "prime" : lay ? "lay" : "back"}>{TAG_LABEL[s.tag]}</Badge>
         <span className="text-[11px] text-muted uppercase tracking-wider">
           {s.track} R{s.raceNumber}
         </span>
@@ -65,7 +67,11 @@ export function SelectionCard({ s, date }: { s: Selection; date: string }) {
           {s.horseName}
         </h3>
         <span className="ml-auto shrink-0">
-          <Outcome position={s.finishPosition} />
+          {lay && run ? (
+            <span className={`badge ${s.finishPosition === 1 ? "badge-lay" : "badge-prime"}`}>{s.finishPosition === 1 ? "Lay lost" : "Lay held"}</span>
+          ) : (
+            <Outcome position={s.finishPosition} />
+          )}
         </span>
       </div>
 
@@ -74,7 +80,7 @@ export function SelectionCard({ s, date }: { s: Selection; date: string }) {
       <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-3">
         <Stat label="Live" value={price(s.marketPrice)} muted />
         <Stat label="Rated" value={priceWithChance(s.ratedPrice, s.ratedProbability)} />
-        <Stat label="Edge" value={signedPercent(s.edge)} accent={prime} blue={!prime} />
+        <Stat label="Edge" value={signedPercent(s.edge)} accent={prime} blue={!prime && !lay} red={lay} />
       </dl>
     </Link>
   );
@@ -86,19 +92,21 @@ function Stat({
   muted,
   accent,
   blue,
+  red,
 }: {
   label: string;
   value: string;
   muted?: boolean;
   accent?: boolean;
   blue?: boolean;
+  red?: boolean;
 }) {
   return (
     <div>
       <dt className="text-[10px] uppercase tracking-[0.1em] text-muted">{label}</dt>
       <dd
         className={`nums font-semibold mt-1 ${
-          accent ? "text-accent" : blue ? "text-blue" : muted ? "text-ink-secondary" : "text-ink"
+          accent ? "text-accent" : blue ? "text-blue" : red ? "text-red" : muted ? "text-ink-secondary" : "text-ink"
         }`}
       >
         {value}
