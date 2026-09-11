@@ -1,4 +1,4 @@
-import { RankChip } from "./Badge";
+import { TipChip } from "./Badge";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
 import { Section } from "./Section";
 import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
@@ -40,7 +40,7 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
                   <tr key={r.tabNumber}>
                     <td>
                       <div className="flex items-center gap-2">
-                        {r.rank ? <RankChip rank={r.rank} /> : <span className="w-5" />}
+                        <TipChip r={r} />
                         <span className="font-semibold">
                           {r.tabNumber}. {r.horseName}
                         </span>

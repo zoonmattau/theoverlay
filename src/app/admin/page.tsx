@@ -44,6 +44,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
           <p className="mt-1 text-sm text-ink-soft">Members, money and what people click.</p>
         </div>
         <form className="flex gap-2">
+          <Link href="/admin/affiliates" className="btn btn-secondary">Affiliates</Link>
           <input name="q" defaultValue={q} placeholder="Search name, email, phone, suburb" className="field-input w-72" />
           <button className="btn btn-secondary" type="submit">Search</button>
         </form>

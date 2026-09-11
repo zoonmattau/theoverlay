@@ -133,6 +133,8 @@ export interface PublishedRunner {
   rank: number | null;
   /** Set when the gap to the market is big enough to act on. */
   signal?: Signal;
+  /** A Prime Overlay: a bet with the biggest edges on the card. */
+  prime?: boolean;
   /** One sentence on why it is in the top four. Only set for ranked runners. */
   why?: string;
   /** Official finishing position once the race is resulted. */

@@ -1590,3 +1590,28 @@ body {
   border-left-color: var(--color-red);
   background: var(--color-red-soft);
 }
+
+/* B, L and O chips beside runner names. */
+.tip-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  border-radius: 3px;
+  font-family: var(--font-plex), monospace;
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+.tip-chip.is-back {
+  background: var(--color-blue);
+}
+.tip-chip.is-lay {
+  background: var(--color-red);
+}
+.tip-chip.is-prime {
+  background: var(--color-lime);
+  color: var(--color-ink);
+}

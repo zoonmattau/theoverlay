@@ -1,6 +1,9 @@
 "use server";
 
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { AFF_COOKIE, attributeSignup } from "@/lib/affiliates";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { EMAILS } from "@/lib/email/messages";
@@ -53,7 +56,8 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const next = safeNext(form.get("next"));
-  const meta = { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : "signup", ...(ref ? { ref } : {}) };
+  const aff = (await cookies()).get(AFF_COOKIE)?.value;
+  const meta = { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : aff ? `affiliate:${aff}` : "signup", ...(ref ? { ref } : {}) };
 
   if (ownEmails()) {
     const { data, error } = await supabaseAdmin().auth.admin.generateLink({
@@ -65,6 +69,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
     if (error) {
       return { error: /already|exists|registered/i.test(error.message) ? "That email already has an account, log in instead." : error.message };
     }
+    if (data.user) await attributeSignup(data.user.id, aff);
     const ok = await sendEmail(email, EMAILS.confirmSignup(confirmLink(site, data.properties.hashed_token, "signup", next)));
     return ok ? { notice: "Check your email for a link to confirm your account." } : { error: "We could not send the confirmation email, try again in a minute." };
   }
@@ -80,6 +85,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
     },
   });
   if (error) return { error: error.message };
+  if (data.user) await attributeSignup(data.user.id, aff);
   // Email confirmation off: signed in already. On: they need the link.
   if (data.session) {
     if (ref && data.user) await applyReferral(data.user.id, ref);

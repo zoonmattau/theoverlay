@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { RankChip } from "./Badge";
+import { TipChip } from "./Badge";
 import { RatingsTable } from "./RatingsTable";
 import { Section } from "./Section";
 import { price } from "@/lib/format";
@@ -117,7 +117,7 @@ function Bar({
   return (
     <div className="bar-row">
       <div className="bar-name">
-        {r.rank ? <RankChip rank={r.rank} /> : <span className="w-5 shrink-0" />}
+        <TipChip r={r} />
         <span className="truncate">
           {r.tabNumber}. {r.horseName}
         </span>
