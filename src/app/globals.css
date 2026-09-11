@@ -1932,3 +1932,11 @@ body {
   background: linear-gradient(135deg, #e0a672, #a5673f);
   color: #fff;
 }
+.mini-cell,
+.race-tab {
+  position: relative;
+}
+.race-tab .medal {
+  top: -5px;
+  right: -5px;
+}

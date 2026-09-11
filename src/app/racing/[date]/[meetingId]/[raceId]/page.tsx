@@ -21,6 +21,7 @@ import { JsonLd, SITE_URL } from "@/components/JsonLd";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { NextToGo } from "@/components/NextToGo";
 import { RaceNav } from "@/components/RaceNav";
+import { groupOf } from "@/components/RaceMatrix";
 import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
@@ -94,6 +95,7 @@ async function Race({ params }: { params: Props["params"] }) {
         clock: jumpTime(r.jumpTime),
         resulted: Boolean(r.result),
         tip: prime.has(r.raceId) ? "prime" : backs ? "back" : lays ? "lay" : undefined,
+        group: groupOf(r.className, r.name),
       };
     }),
   }));
@@ -164,6 +166,7 @@ async function Race({ params }: { params: Props["params"] }) {
                 href={`/racing/${date}/${meetingId}/${r.raceId}`}
                 className={`race-tab ${r.raceId === raceId ? "is-current" : ""} ${r.result ? "is-resulted" : ""}`}
               >
+                {groupOf(r.className, r.name) && <span className={`medal medal-${groupOf(r.className, r.name)}`} title={`Group ${groupOf(r.className, r.name)}`}>G{groupOf(r.className, r.name)}</span>}
                 R{r.raceNumber}
               </Link>
             ))}

@@ -9,6 +9,7 @@ export interface MiniRace {
   clock: string;
   resulted: boolean;
   tip?: "prime" | "back" | "lay";
+  group?: 1 | 2 | 3;
 }
 
 export interface MiniMeeting {
@@ -100,6 +101,7 @@ export function TrackMenu({
                           onClick={() => setOpen(false)}
                           role="menuitem"
                         >
+                          {r.group && <span className={`medal medal-${r.group}`} title={`Group ${r.group}`}>G{r.group}</span>}
                           <span className="mini-r">R{r.raceNumber}</span>
                           <span className="mini-t nums">{r.resulted ? "Run" : r.clock}</span>
                         </Link>
