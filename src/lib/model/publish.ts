@@ -271,10 +271,15 @@ function profileOf(e: RaceEntry): HorseProfile {
     career: e.form?.careerForm,
     distanceForm: e.form?.distanceForm,
     trackForm: e.form?.trackForm,
-    gear: (e.gear ?? []).filter((g) => g.on !== false).map((g) => g.gear),
+    gear: (e.gear ?? []).filter((g) => g.on !== false && !/gelded/i.test(g.gear)).map((g) => g.gear),
+    // The feed lists gelding as a gear change; it is a one-way operation.
     gearChanges: (e.gear ?? [])
       .filter((g) => g.change && g.change !== "STAYING_ON")
-      .map((g) => `${g.gear} ${g.change === "ON_FIRST_TIME" ? "on first time" : g.change === "ON_AGAIN" ? "back on" : g.change === "OFF_FIRST_TIME" ? "off first time" : "off again"}`),
+      .map((g) =>
+        /gelded/i.test(g.gear)
+          ? "Gelded since last start"
+          : `${g.gear} ${g.change === "ON_FIRST_TIME" ? "on first time" : g.change === "ON_AGAIN" ? "back on" : g.change === "OFF_FIRST_TIME" ? "off first time" : "off again"}`,
+      ),
   };
 }
 
