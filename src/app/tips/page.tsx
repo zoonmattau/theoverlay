@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { Locked } from "@/components/Locked";
@@ -38,6 +39,7 @@ interface Call {
 }
 
 async function Tips() {
+  await connection();
   const [{ date, meetings, selections }, viewer] = await Promise.all([getTodayCard(), getViewer()]);
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));

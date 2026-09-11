@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { NextToGo } from "@/components/NextToGo";
@@ -27,6 +28,9 @@ export default function Page() {
 
 /** The pitch, with today's numbers behind it so it never reads as empty. */
 async function Hero() {
+  // The live card is fetched at request time and cached for an hour, never
+  // during the build: a full card is dozens of throttled Form King calls.
+  await connection();
   const { meetings } = await getTodayCard();
   const races = meetings.flatMap((m) => m.races);
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
@@ -74,6 +78,7 @@ function Tile({ n, label, accent }: { n: number; label: string; accent?: boolean
 }
 
 async function TodayCard() {
+  await connection();
   const [{ date, meetings, selections, live }, viewer] = await Promise.all([getTodayCard(), getViewer()]);
   const open = hasAccess(viewer, date);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
