@@ -1,0 +1,42 @@
+{
+  "projectId": "ef6903a3-e0f3-4b67-8b3b-6cd58ec4b3e7",
+  "shape": "package",
+  "pkg": "overlay",
+  "globalName": "Overlay",
+  "buildCmd": "node .design-sync/build.mjs",
+  "srcDir": "../../src/components",
+  "tsconfig": "../tsconfig.json",
+  "cssEntry": "overlay.css",
+  "extraFonts": [
+    "../fonts/fonts.css"
+  ],
+  "overrides": {
+    "RunnerTable": {
+      "cardMode": "column"
+    },
+    "RatingsTable": {
+      "cardMode": "column"
+    },
+    "RaceMatrix": {
+      "cardMode": "column"
+    },
+    "RacePanel": {
+      "cardMode": "column"
+    },
+    "PaceGrid": {
+      "cardMode": "column"
+    },
+    "SelectionCard": {
+      "cardMode": "column"
+    },
+    "NextToGo": {
+      "cardMode": "column"
+    }
+  },
+  "dtsPropsFor": {
+    "NoBetNotice": "/* no props */",
+    "Wordmark": "/* no props */"
+  },
+  "guidelinesGlob": "docs/*.md",
+  "readmeHeader": ".design-sync/conventions.md"
+}
