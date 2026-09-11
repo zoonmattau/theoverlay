@@ -1345,7 +1345,7 @@ body {
 /* --- The rail under the pressure grid --- */
 .rail {
   position: relative;
-  margin: 0 var(--sp-4) var(--sp-3);
+  margin: 0 0 var(--sp-1);
   border-top: 3px solid var(--color-ink);
   padding-top: 4px;
 }
@@ -1614,4 +1614,123 @@ body {
 .tip-chip.is-prime {
   background: var(--color-lime);
   color: var(--color-ink);
+}
+
+/* Speed map: a field of saddlecloths in front of the rail. */
+.map-axis {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-soft);
+  margin-bottom: 6px;
+}
+.map-axis span:nth-child(2),
+.map-axis span:nth-child(3) {
+  text-align: center;
+}
+.map-axis span:last-child {
+  text-align: right;
+}
+.map-field {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  padding: 8px 6px 6px;
+  gap: 0 4px;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), var(--color-line-soft) calc(25% - 1px) 25%),
+    linear-gradient(180deg, #f7f9f2, #eef3e4);
+  border: 1px solid var(--color-line);
+  border-bottom: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  overflow: visible;
+}
+.map-col {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  min-width: 0;
+}
+.map-chip {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 8px 0 0;
+  max-width: 170px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-line);
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  cursor: help;
+}
+.map-chip:hover {
+  z-index: 3;
+  border-color: var(--color-ink);
+}
+.map-cloth {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  background: var(--color-bar);
+  color: #fff;
+  font-family: var(--font-plex), monospace;
+  font-weight: 700;
+  font-size: 0.75rem;
+  flex-shrink: 0;
+}
+.map-chip.is-back .map-cloth {
+  background: var(--color-blue);
+}
+.map-chip.is-lay .map-cloth {
+  background: var(--color-red);
+}
+.map-chip.is-prime .map-cloth {
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+.map-chip.is-back {
+  border-color: var(--color-blue);
+}
+.map-chip.is-lay {
+  border-color: var(--color-red);
+}
+.map-chip.is-prime {
+  border-color: var(--color-accent);
+}
+.map-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 600;
+}
+.map-price {
+  color: var(--color-ink-soft);
+  font-size: 0.7rem;
+}
+.rail {
+  display: flex;
+  justify-content: space-between;
+}
+.rail-arrow {
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-soft);
+}
+@media (max-width: 640px) {
+  .map-chip {
+    max-width: 120px;
+  }
+  .map-price {
+    display: none;
+  }
 }

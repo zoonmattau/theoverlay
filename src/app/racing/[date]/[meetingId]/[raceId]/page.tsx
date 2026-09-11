@@ -20,6 +20,7 @@ import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { NextToGo } from "@/components/NextToGo";
+import { RaceNav } from "@/components/RaceNav";
 import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
@@ -70,6 +71,10 @@ async function Race({ params }: { params: Props["params"] }) {
   const { meeting, race, meetings, selections, free } = card;
   keepFresh(date, card.card);
   const released = card.card.released || viewer.admin;
+  const idx = meeting.races.findIndex((r) => r.raceId === raceId);
+  const raceHref = (r: { raceId: string } | undefined) => (r ? `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(r.raceId)}` : undefined);
+  const prevHref = raceHref(meeting.races[idx - 1]);
+  const nextHref = raceHref(meeting.races[idx + 1]);
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
 
@@ -113,6 +118,7 @@ async function Race({ params }: { params: Props["params"] }) {
     <div className="page space-y-4">
       <JsonLd data={schema} />
       <LiveRefresh />
+      <RaceNav prev={prevHref} next={nextHref} />
       {viewer.admin && !card.card.released && (
         <p className="border border-lime bg-lime-soft px-3 py-2 text-xs rounded-md font-semibold">
           Admin preview. Members cannot see the calls for this race until {RELEASE_HOUR}am on the day.
