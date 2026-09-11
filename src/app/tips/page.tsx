@@ -16,6 +16,7 @@ import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/type
 export const metadata: Metadata = {
   title: "Today's tips",
   description: "Every bet and lay on today's card in one place, with the result once each race has run.",
+  alternates: { canonical: "/tips" },
 };
 
 export default function Page() {

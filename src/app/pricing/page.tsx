@@ -3,17 +3,49 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import { CheckoutButton } from "@/components/CheckoutButton";
+import { FaqList, JsonLd, SITE_URL, faqSchema, type Faq } from "@/components/JsonLd";
 import { getViewer } from "@/lib/auth";
 import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
   description: "Saturday, Saturday plus Wednesday, or every day, all with a 7-day free trial. Or buy day passes and use them when you like.",
+  alternates: { canonical: "/pricing" },
+};
+
+const FAQ: Faq[] = [
+  { q: "Is there a free trial?", a: "Yes, every subscription starts with a 7-day free trial and nothing is charged if you cancel before it ends." },
+  { q: "What does a day pass do?", a: "A day pass opens every race on one racing date of your choice, costs $10, never expires, and gets cheaper in bundles of 3, 5 or 10." },
+  { q: "Can I cancel any time?", a: "Yes, cancel from your account and the board stays open until the end of the period you have paid for." },
+  { q: "Do prices include GST?", a: "Prices are in Australian dollars excluding GST, which is added at checkout." },
+  { q: "What is free without a plan?", a: "The race board, jump times, results, the live market and one free race every day." },
+];
+
+const PRODUCT = {
+  "@context": "https://schema.org",
+  "@type": "Product",
+  name: "The Overlay membership",
+  description: "Ratings, rated prices and bet or lay calls for every runner in Australian racing.",
+  brand: { "@type": "Brand", name: "The Overlay" },
+  url: `${SITE_URL}/pricing`,
+  offers: [
+    ...PLANS.map((p) => ({
+      "@type": "Offer",
+      name: `${p.name} plan`,
+      price: p.price,
+      priceCurrency: "AUD",
+      priceSpecification: { "@type": "UnitPriceSpecification", price: p.price, priceCurrency: "AUD", billingDuration: 1, unitCode: "MON" },
+      availability: "https://schema.org/InStock",
+      url: `${SITE_URL}/pricing`,
+    })),
+    { "@type": "Offer", name: "Day pass", price: PASS_PRICE, priceCurrency: "AUD", availability: "https://schema.org/InStock", url: `${SITE_URL}/pricing` },
+  ],
 };
 
 export default function Page() {
   return (
     <div className="page max-w-5xl">
+      <JsonLd data={[PRODUCT, faqSchema(FAQ)]} />
       <section className="text-center max-w-2xl mx-auto py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
           Know the price <span className="bg-lime px-2 box-decoration-clone">before you bet.</span>
@@ -38,6 +70,8 @@ export default function Page() {
           <p className="mt-1 text-ink-secondary">The board, jump times, results, the live market and one free race every day.</p>
         </div>
       </section>
+
+      <FaqList items={FAQ} />
 
       <p className="mt-8 text-xs text-ink-soft text-center">
         Prices in AUD excluding GST, which is added at checkout. Subscriptions renew monthly until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
@@ -91,7 +125,7 @@ async function Plans() {
         ))}
       </div>
 
-      <div className="mt-10 flex items-center gap-3 mb-3">
+      <div id="passes" className="mt-10 flex items-center gap-3 mb-3 scroll-mt-24">
         <h2 className="font-display text-lg font-extrabold">Day passes</h2>
         <span className="text-sm text-ink-soft">${PASS_PRICE} a day, cheaper in a bundle, use them whenever you like</span>
       </div>

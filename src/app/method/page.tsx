@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { Badge, RankChip } from "@/components/Badge";
+import { FaqList, JsonLd, faqSchema, type Faq } from "@/components/JsonLd";
 import { Factors } from "@/components/Factors";
 import { RatingTiles, SignalBadge } from "@/components/Ratings";
 import type { RunnerRatings } from "@/lib/model/types";
@@ -10,7 +11,17 @@ export const metadata: Metadata = {
   title: "How it works",
   description:
     "What you see on The Overlay: a rating for every runner, a price for every horse, and a clear call on where the market has it wrong.",
+  alternates: { canonical: "/method" },
 };
+
+const FAQ: Faq[] = [
+  { q: "What scale are the ratings on?", a: "Australian benchmark points, the same scale as the race classes, so a horse rated 64 belongs in a Benchmark 64 race and the best horses in the world sit around 130." },
+  { q: "What is the Today rating?", a: "The one number everything adds up to: the horse's class rating plus or minus the factors that matter today, such as going, tempo, distance, track, weight, freshness, jockey and trainer." },
+  { q: "What is a rated price?", a: "Our price for the horse, worked out from the Today ratings of the whole field, shown next to its win chance so you can compare it with the market." },
+  { q: "What is a bet and what is a lay?", a: "A bet is a horse whose market price is bigger than our rated price, a lay is a horse whose market price is shorter than our rated price and worth opposing on the exchange." },
+  { q: "What is a Prime Overlay?", a: "The bets where the gap between the market and our price is widest, the strongest calls on the day." },
+  { q: "Do results change the ratings?", a: "No, the clock does: a run is scored on time against the class benchmark, so winning slowly does not lift a rating and running fast in defeat does." },
+];
 
 /** A sample horse, so the page shows the real components rather than describing them. */
 const SAMPLE: RunnerRatings = {
@@ -44,6 +55,7 @@ const RATINGS = [
 export default function Page() {
   return (
     <div className="page max-w-4xl">
+      <JsonLd data={faqSchema(FAQ)} />
       <section className="py-6 max-w-2xl">
         <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight leading-[1.02]">
           Every runner rated.{" "}
@@ -181,6 +193,7 @@ export default function Page() {
         </div>
       </section>
 
+      <FaqList items={FAQ} />
     </div>
   );
 }

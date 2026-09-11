@@ -17,6 +17,7 @@ import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
+import { JsonLd, SITE_URL } from "@/components/JsonLd";
 import { getRaceCard, keepFresh } from "@/lib/model/source";
 import { jumpTime, longDate, money } from "@/lib/format";
 
@@ -35,10 +36,18 @@ async function ids(params: Props["params"]) {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { date, meetingId, raceId } = await ids(params);
   const card = await getRaceCard(date, meetingId, raceId);
-  if (!card) return { title: "Race not found" };
+  if (!card) return { title: "Race not found", robots: { index: false } };
+  const { meeting, race } = card;
+  const calls = race.runners.filter((r) => r.signal && !r.scratched);
+  const bets = calls.filter((r) => r.signal === "back").length;
+  const lays = calls.filter((r) => r.signal === "lay").length;
+  const title = `${meeting.track} Race ${race.raceNumber} tips, ratings and rated prices, ${longDate(date)}`;
+  const path = `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(raceId)}`;
   return {
-    title: `${card.meeting.track} Race ${card.race.raceNumber} ratings and rated prices`,
-    description: `Benchmark ratings, pace map and a rated price for every runner in ${card.meeting.track} Race ${card.race.raceNumber} (${card.race.distance}m) on ${longDate(date)}.`,
+    title,
+    description: `${race.name}, ${race.distance}m at ${meeting.track}${race.goingText ? ` on a ${race.goingText} track` : ""}. Benchmark ratings, a pace map and a rated price for every runner, with ${bets} ${bets === 1 ? "bet" : "bets"} and ${lays} ${lays === 1 ? "lay" : "lays"} called.`,
+    alternates: { canonical: path },
+    openGraph: { title, url: path, type: "article" },
   };
 }
 
@@ -80,8 +89,25 @@ async function Race({ params }: { params: Props["params"] }) {
     }),
   }));
 
+  const schema = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    name: `${meeting.track} Race ${race.raceNumber}: ${race.name}`,
+    sport: "Horse racing",
+    startDate: race.jumpTime,
+    eventStatus: "https://schema.org/EventScheduled",
+    location: { "@type": "Place", name: `${meeting.track} Racecourse`, address: { "@type": "PostalAddress", addressRegion: meeting.state, addressCountry: "AU" } },
+    organizer: { "@id": `${SITE_URL}/#org` },
+    url: `${SITE_URL}/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(raceId)}`,
+    description: `${race.distance}m ${race.className ?? ""} with ${field} runners. Ratings, rated prices and tips by The Overlay.`,
+    competitor: race.runners
+      .filter((r) => !r.scratched)
+      .map((r) => ({ "@type": "SportsTeam", name: r.horseName, identifier: String(r.tabNumber) })),
+  };
+
   return (
     <div className="page space-y-4">
+      <JsonLd data={schema} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}
       <header className="section !overflow-visible">
         <div className="section-body flex flex-wrap items-center gap-x-4 gap-y-3">

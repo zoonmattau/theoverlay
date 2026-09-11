@@ -37,6 +37,9 @@ export const metadata: Metadata = {
     locale: "en_AU",
     type: "website",
   },
+  twitter: { card: "summary_large_image", title: "The Overlay", description: "The market has an opinion. We have the data." },
+  keywords: ["horse racing tips", "Australian racing ratings", "rated prices", "overlay betting", "Saturday racing tips", "benchmark ratings"],
+  robots: { index: true, follow: true, googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1 } },
 };
 
 const NAV = [
