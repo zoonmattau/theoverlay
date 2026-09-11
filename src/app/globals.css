@@ -862,14 +862,15 @@ body {
 .race-tab.is-resulted.tip-prime { border-color: var(--color-lime); }
 .race-tab.is-resulted.tip-back { border-color: var(--color-blue); }
 .race-tab.is-resulted.tip-lay { border-color: var(--color-red); }
-.race-tab.is-current {
-  box-shadow: 0 0 0 2px var(--color-ink);
-  font-weight: 800;
-}
-.race-tab.is-current:not(.tip-prime):not(.tip-back):not(.tip-lay) {
+.race-tab.is-current,
+.race-tab.is-current.tip-prime,
+.race-tab.is-current.tip-back,
+.race-tab.is-current.tip-lay,
+.race-tab.is-current.is-resulted {
   background: var(--color-bar);
   border-color: var(--color-bar);
   color: #fff;
+  font-weight: 800;
 }
 
 /* --- Selection cards --- */
@@ -884,8 +885,7 @@ body {
   box-shadow: var(--shadow-card);
 }
 .pick-card.is-top {
-  border-color: var(--color-lime);
-  box-shadow: 0 0 0 2px var(--color-lime), var(--shadow-card);
+  border-color: var(--color-line);
 }
 .pick-rank {
   font-family: var(--font-display);

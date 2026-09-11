@@ -38,9 +38,7 @@ export function RankChip({ rank }: { rank: number }) {
   return (
     <span
       className={`inline-flex h-5 w-5 items-center justify-center rounded-sm text-[11px] font-semibold nums ${
-        top
-          ? "bg-lime text-ink"
-          : "bg-surface text-ink-secondary border border-line"
+        top ? "bg-bar text-white" : "bg-surface text-ink-secondary border border-line"
       }`}
     >
       {rank}
