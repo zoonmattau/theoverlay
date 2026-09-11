@@ -17,7 +17,7 @@ import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
-import { getRaceCard } from "@/lib/model/source";
+import { getRaceCard, keepFresh } from "@/lib/model/source";
 import { jumpTime, longDate, money } from "@/lib/format";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
@@ -55,6 +55,7 @@ async function Race({ params }: { params: Props["params"] }) {
   const card = await getRaceCard(date, meetingId, raceId);
   if (!card) notFound();
   const { meeting, race, meetings, selections, free } = card;
+  keepFresh(date, card.card);
   const viewer = await getViewer();
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;

@@ -65,14 +65,30 @@ async function cached<T>(kind: string, key: string, load: () => Promise<T>): Pro
   return data;
 }
 
-/** Minimum gap between calls, keeping us well inside 300 req / 300 s. */
-const MIN_REQUEST_GAP_MS = 1_100;
+/**
+ * A few calls in flight at once with a short gap between starts. A full day
+ * is about 40 requests, well inside 300 req / 300 s, so the limiter is there
+ * to stop a burst, not to pace the whole crawl.
+ */
+const MAX_IN_FLIGHT = 4;
+const MIN_REQUEST_GAP_MS = 250;
 let lastRequestAt = 0;
+let inFlight = 0;
+const waiting: (() => void)[] = [];
+
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 async function throttle() {
+  while (inFlight >= MAX_IN_FLIGHT) await new Promise<void>((r) => waiting.push(r));
+  inFlight++;
   const wait = lastRequestAt + MIN_REQUEST_GAP_MS - Date.now();
-  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+  if (wait > 0) await sleep(wait);
   lastRequestAt = Date.now();
+}
+
+function release() {
+  inFlight--;
+  waiting.shift()?.();
 }
 
 async function request<T>(
@@ -93,13 +109,19 @@ async function request<T>(
   }
 
   await throttle();
-
-  // Large responses come back as a 307 to a pre-signed S3 URL, which fetch
-  // follows on its own.
-  const res = await fetch(url, {
-    headers: { "x-api-key": apiKey },
-    next: { revalidate: 300 },
-  });
+  let res: Response;
+  try {
+    // Large responses come back as a 307 to a pre-signed S3 URL, which fetch
+    // follows on its own.
+    res = await fetch(url, { headers: { "x-api-key": apiKey }, cache: "no-store" });
+    if (res.status === 429) {
+      // One polite retry after the window eases.
+      await sleep(5_000);
+      res = await fetch(url, { headers: { "x-api-key": apiKey }, cache: "no-store" });
+    }
+  } finally {
+    release();
+  }
 
   if (res.status === 402) {
     throw new FormKingError("Form King credits exhausted for this period.", 402);

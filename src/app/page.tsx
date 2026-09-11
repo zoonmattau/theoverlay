@@ -7,7 +7,7 @@ import { RaceMatrix } from "@/components/RaceMatrix";
 import { LockedSelectionCard, NoBetNotice, SelectionCard } from "@/components/SelectionCard";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { UsePassButton } from "@/components/UsePassButton";
-import { getTodayCard } from "@/lib/model/source";
+import { getTodayCard, keepFresh } from "@/lib/model/source";
 import { longDate } from "@/lib/format";
 
 export default function Page() {
@@ -79,7 +79,9 @@ function Tile({ n, label, accent }: { n: number; label: string; accent?: boolean
 
 async function TodayCard() {
   await connection();
-  const [{ date, meetings, selections, live }, viewer] = await Promise.all([getTodayCard(), getViewer()]);
+  const [card, viewer] = await Promise.all([getTodayCard(), getViewer()]);
+  const { date, meetings, selections, live } = card;
+  keepFresh(date, card);
   const open = hasAccess(viewer, date);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
   const backs = upcoming.flatMap((r) => r.runners).filter((r) => r.signal === "back").length;

@@ -197,14 +197,15 @@ function rateOne(
   fkZ: number,
 ): Omit<RunnerRatings, "today" | "factors" | "ppir" | "map"> {
   const runs = (e.pastEvents ?? [])
-    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched)
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
     .sort((a, b) => b.date - a.date)
     .slice(0, RUN_WEIGHTS.length);
 
   // No form to go on: the official rating if there is one, else just under
   // today's par, and let Form King's view separate it from the others.
   if (runs.length === 0) {
-    const c = round1((e.benchmarkRating || race.classPoints - 2) + fkZ * FK_NUDGE);
+    const ohr = e.benchmarkRating ? clamp(e.benchmarkRating, race.classPoints - 15, race.classPoints + 25) : undefined;
+    const c = round1((ohr ?? race.classPoints - 2) + fkZ * FK_NUDGE);
     return {
       class: c, early: c, mid: c, late: c, pressure: c,
       tempo: { fast: c, slow: c },
@@ -267,6 +268,9 @@ function rateOne(
 const sameTrack = (a?: string, b?: string) =>
   Boolean(a && b) && a!.trim().toLowerCase() === b!.trim().toLowerCase();
 
+/** Hurdles and steeplechases are rated on their own scale and never count. */
+export const isJumps = (raceName?: string) => /\b(stpl|steeple|steeplechase|hdle|hurdle|jumps?)\b/i.test(raceName ?? "");
+
 /**
  * What one run was worth. The race's benchmark comes from its name, falling
  * back to the horse's official rating at the time, then Form King's overall
@@ -276,8 +280,10 @@ const sameTrack = (a?: string, b?: string) =>
 function runPoints(r: PastEvent, todayPar: number): number {
   // Today's race is the prior for the level a horse races at: an official
   // rating is trusted only within reach of it, an unparsed race name means par.
-  const ohr = r.benchmarkRating && r.benchmarkRating > 0 ? clamp(r.benchmarkRating, todayPar - 15, todayPar + 25) : undefined;
-  const par = parseClass(r.raceName) ?? ohr ?? todayPar;
+  // A jumper's BM120 or a horse dropping from a much stronger grade says
+  // little about a flat maiden, so the run's par stays within reach too.
+  const ohr = r.benchmarkRating && r.benchmarkRating > 0 ? r.benchmarkRating : undefined;
+  const par = clamp(parseClass(r.raceName) ?? ohr ?? todayPar, todayPar - 15, todayPar + 25);
   const raw = r.benchmark
     ? par + r.benchmark.vsClass * POINTS_PER_LENGTH
     : par - Math.min(15, (r.margin ?? ((r.finishPosition ?? 6) - 1) * 1.2) * POINTS_PER_LENGTH * MARGIN_WEIGHT);

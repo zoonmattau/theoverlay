@@ -1,6 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 
-import { getTodayCard } from "@/lib/model/source";
+import { buildCard, racingToday } from "@/lib/model/source";
+
+export const maxDuration = 300;
 
 /**
  * The morning run. Vercel calls this on the schedule in vercel.json; it
@@ -13,14 +15,8 @@ export async function GET(request: NextRequest) {
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
   }
-  const started = Date.now();
-  const { date, meetings, selections } = await getTodayCard();
-  const races = meetings.reduce((a, m) => a + m.races.length, 0);
-  return NextResponse.json({
-    date,
-    meetings: meetings.length,
-    races,
-    selections: selections.length,
-    seconds: Math.round((Date.now() - started) / 1000),
-  });
+  const date = request.nextUrl.searchParams.get("date") ?? racingToday();
+  const { card, seconds } = await buildCard(date);
+  const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
+  return NextResponse.json({ date, meetings: card.meetings.length, races, selections: card.selections.length, seconds });
 }

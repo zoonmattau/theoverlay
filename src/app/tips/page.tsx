@@ -10,7 +10,7 @@ import { Outcome } from "@/components/SelectionCard";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
-import { getTodayCard } from "@/lib/model/source";
+import { getTodayCard, keepFresh } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
 
 export const metadata: Metadata = {
@@ -40,7 +40,9 @@ interface Call {
 
 async function Tips() {
   await connection();
-  const [{ date, meetings, selections }, viewer] = await Promise.all([getTodayCard(), getViewer()]);
+  const [card, viewer] = await Promise.all([getTodayCard(), getViewer()]);
+  const { date, meetings, selections } = card;
+  keepFresh(date, card);
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
 
