@@ -12,12 +12,14 @@ export function Locked({
   letter,
   lines = 8,
   raceId,
+  heading = "Unlock this race",
 }: {
   id: string;
   title: string;
   letter: string;
   lines?: number;
   raceId?: string;
+  heading?: string;
 }) {
   return (
     <Section id={id} letter={letter} title={title} aside="Pass holders only">
@@ -35,7 +37,7 @@ export function Locked({
         </div>
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="card text-center max-w-xs shadow-lift py-3">
-            <div className="font-display font-extrabold">Unlock this race</div>
+            <div className="font-display font-extrabold">{heading}</div>
             <p className="mt-1 text-xs text-ink-secondary">
               A plan or a day pass opens every tip, rating and rated price on today&apos;s board.
             </p>
