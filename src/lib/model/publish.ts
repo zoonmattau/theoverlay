@@ -120,6 +120,8 @@ export function publishRace(
     };
   });
 
+  linkMeetings(runners);
+
   // One lay a race at most: the one the market has most wrong.
   const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.edge ?? 0) - (b.edge ?? 0));
   for (const extra of lays.slice(1)) {
@@ -262,7 +264,28 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
       sp: p.startingPrice,
       map: p.posSettling && p.numRunners ? mapOf(p.posSettling, p.numRunners) : undefined,
       points: Math.round(runPoints(p, todayPar, e.horse.age) * 10) / 10,
+      raceKey: p.raceId ?? `${new Date(p.date).toISOString().slice(0, 10)}:${p.track ?? ""}:${p.raceNumber}`,
     }));
+}
+
+/**
+ * Cross-references every runner's past runs with the rest of today's field,
+ * so a run shows who in this race it beat or finished behind.
+ */
+function linkMeetings(runners: PublishedRunner[]): void {
+  const seen = new Map<string, { tab: number; finish?: number }[]>();
+  for (const r of runners) {
+    for (const run of r.runs ?? []) {
+      if (!run.raceKey) continue;
+      seen.set(run.raceKey, [...(seen.get(run.raceKey) ?? []), { tab: r.tabNumber, finish: run.finish }]);
+    }
+  }
+  for (const r of runners) {
+    for (const run of r.runs ?? []) {
+      const others = run.raceKey ? (seen.get(run.raceKey) ?? []).filter((x) => x.tab !== r.tabNumber) : [];
+      if (others.length) run.met = others;
+    }
+  }
 }
 
 /** "Midway (Bm72)" → "Bm72", "3yo+ Mdn Plate" → "Mdn", else the name trimmed. */

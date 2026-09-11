@@ -37,19 +37,19 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
   return (
     <Section id="market" letter="M" title="Market" aside={<span className="nums">{runners.length} runners</span>}>
       <div className="overflow-x-auto">
-        <table className="data-table min-w-[760px] text-sm">
+        <table className="data-table sm:min-w-[760px] text-sm">
           <thead>
             <tr>
               <th className="w-8">#</th>
               <th>Runner</th>
-              <th className="text-right">Bar</th>
+              <th className="hide-sm text-right">Bar</th>
               {!locked && <th>Signal</th>}
-              <th className="text-right">Wgt</th>
-              <th>Jockey</th>
-              <th>Form</th>
+              <th className="hide-sm text-right">Wgt</th>
+              <th className="hide-sm">Jockey</th>
+              <th className="hide-sm">Form</th>
               <th className="text-right">Live</th>
               {!locked && <th className="text-right">Rated</th>}
-              {!locked && <th className="text-right">Win</th>}
+              {!locked && <th className="hide-sm text-right">Win</th>}
               {!locked && <th className="text-right">Edge</th>}
             </tr>
           </thead>
@@ -74,18 +74,18 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                         {!locked && <span className={`runner-caret ${isOpen ? "is-open" : ""}`} aria-hidden="true" />}
                       </div>
                     </td>
-                    <td className="text-right nums text-ink-secondary">{r.barrier}</td>
+                    <td className="hide-sm text-right nums text-ink-secondary">{r.barrier}</td>
                     {!locked && <td><SignalBadge signal={r.signal} prime={r.prime} /></td>}
-                    <td className="text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
-                    <td className="text-ink-secondary truncate">{r.jockey ?? "—"}</td>
-                    <td className="nums text-ink-secondary">{r.form ?? "—"}</td>
+                    <td className="hide-sm text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
+                    <td className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
+                    <td className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
                     <td className="text-right">
                       <span className={`price-chip ${!locked && r.signal === "back" ? "is-back" : !locked && r.signal === "lay" ? "is-lay" : ""}`}>
                         {price(r.marketPrice)}
                       </span>
                     </td>
                     {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
-                    {!locked && <td className="text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
+                    {!locked && <td className="hide-sm text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
                     {!locked && (
                       <td className="text-right nums">
                         <span className={r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>

@@ -1,7 +1,7 @@
 import { Factors } from "./Factors";
 import { price } from "@/lib/format";
 import { callLine, finishFit, settles, tempoFit } from "@/lib/model/narrative";
-import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
+import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
@@ -54,9 +54,33 @@ function SectionalBar({ label, value, avg }: { label: string; value: number; avg
   );
 }
 
+/** Who else in today's race was in that run, and how it went. */
+function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
+  if (!run.met?.length || !run.finish) return null;
+  const live = race.runners.filter((x) => !x.scratched && x.marketPrice);
+  const fav = live.length ? live.reduce((a, b) => ((a.marketPrice ?? 999) <= (b.marketPrice ?? 999) ? a : b)).tabNumber : undefined;
+  return (
+    <span className="met">
+      {run.met.map((m) => {
+        const other = race.runners.find((x) => x.tabNumber === m.tab);
+        if (!other || other.scratched) return null;
+        const beat = m.finish !== undefined && run.finish! < m.finish;
+        return (
+          <span key={m.tab} className={`met-chip ${beat ? "is-beat" : "is-behind"}`} title={`${beat ? "Finished ahead of" : "Finished behind"} ${other.horseName} in this race`}>
+            {beat ? "beat" : "behind"} {m.tab}. {other.horseName}
+            {m.finish ? ` (${ord(m.finish)})` : ""}
+            {m.tab === fav ? " · fav today" : ""}
+          </span>
+        );
+      })}
+    </span>
+  );
+}
+
 export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedRace }) {
   const h = r.horse;
   const runs = r.runs ?? [];
+  const metAny = runs.some((x) => x.met?.length);
   const avg = fieldAverage(race);
   const g = r.ratings;
   const tile = (label: string, value: number) => (
@@ -83,7 +107,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
       </div>
 
       <div className="runner-detail-col runner-detail-runs">
-        <h4>Last {runs.length || ""} runs</h4>
+        <h4>Last {runs.length || ""} runs{metAny ? ", with today's rivals marked" : ""}</h4>
         {runs.length === 0 ? (
           <p className="text-xs text-ink-soft">No starts yet.</p>
         ) : (
@@ -93,8 +117,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
             </thead>
             <tbody>
               {runs.map((x) => (
-                <tr key={`${x.date}-${x.track}`}>
-                  <td>{day(x.date)}</td>
+                <tr key={`${x.date}-${x.track}`} className={x.met?.length ? "has-met" : ""}>
+                  <td>{day(x.date)}<Met run={x} race={race} /></td>
                   <td className="truncate max-w-[110px]">{x.track ?? "—"}</td>
                   <td>{x.distance}</td>
                   <td>{x.going ?? "—"}</td>

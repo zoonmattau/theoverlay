@@ -8,6 +8,7 @@ import Image from "next/image";
 import { HorseSearch } from "@/components/HorseSearch";
 import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
+import { TopbarOffset } from "@/components/TopbarOffset";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -60,6 +61,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <MetaPixel />
         </Suspense>
+        <TopbarOffset />
         <nav className="topbar" aria-label="Main navigation">
           <Link href="/" className="topbar-brand">
             <Image

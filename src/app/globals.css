@@ -1830,25 +1830,78 @@ body {
   color: var(--color-bar-ink);
 }
 
-/* The next-to-go strip rides along the bottom of the screen everywhere. */
+/* The next-to-go strip sticks under the top bar as the page scrolls. */
 .ntg {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: sticky;
+  top: var(--topbar-h, 64px);
   z-index: 90;
-  margin: 0;
-  padding: 8px 20px calc(8px + env(safe-area-inset-bottom));
+  margin: 0 calc(-1 * var(--sp-5));
+  padding: 8px var(--sp-5);
   background: var(--color-bg);
-  border-top: 1px solid var(--color-line);
-  box-shadow: 0 -6px 18px rgba(0, 0, 0, 0.08);
-}
-body:has(.ntg) main {
-  padding-bottom: 84px;
+  border-bottom: 1px solid var(--color-line);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.06);
 }
 @media (max-width: 640px) {
   .ntg {
-    padding-left: 12px;
-    padding-right: 12px;
+    margin: 0 calc(-1 * var(--sp-3));
+    padding: 8px var(--sp-3);
+  }
+}
+
+/* A past run shared with a rival in today's race. */
+.met {
+  display: block;
+  white-space: normal;
+  margin-top: 2px;
+}
+.met-chip {
+  display: inline-block;
+  margin: 1px 4px 1px 0;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.66rem;
+  font-weight: 700;
+  font-family: var(--font-archivo), sans-serif;
+  white-space: nowrap;
+}
+.met-chip.is-beat {
+  background: var(--color-lime-soft);
+  color: var(--color-accent);
+}
+.met-chip.is-behind {
+  background: var(--color-red-soft);
+  color: var(--color-red);
+}
+.runs-table tr.has-met td {
+  vertical-align: top;
+}
+
+/* Phones: the market fits the screen, the map is saddlecloths only. */
+@media (max-width: 640px) {
+  .hide-sm {
+    display: none;
+  }
+  .map-chip {
+    padding: 0;
+    border-radius: 50%;
+    max-width: none;
+  }
+  .map-name,
+  .map-price {
+    display: none;
+  }
+  .map-cloth {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+  }
+  .map-col {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-content: flex-end;
+    gap: 4px;
+  }
+  .map-chip {
+    margin-left: 0 !important;
   }
 }

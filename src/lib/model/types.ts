@@ -93,6 +93,10 @@ export interface PublishedRun {
   map?: MapPosition;
   /** What the run was worth on our scale. */
   points: number;
+  /** Identifies the race, so runs can be matched across today's field. */
+  raceKey?: string;
+  /** Runners in today's race that were in this one too, with where they finished. */
+  met?: { tab: number; finish?: number }[];
 }
 
 export interface HorseProfile {
