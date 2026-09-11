@@ -6,11 +6,11 @@ import { Suspense } from "react";
 import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
 import { Section } from "@/components/Section";
-import { Outcome } from "@/components/SelectionCard";
+import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
-import { getTodayCard, keepFresh } from "@/lib/model/source";
+import { getTodayCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
 
 export const metadata: Metadata = {
@@ -58,8 +58,9 @@ interface Call {
 
 async function Tips() {
   await connection();
-  const [card, viewer] = await Promise.all([getTodayCard(), getViewer()]);
-  const { date, meetings, selections } = card;
+  const viewer = await getViewer();
+  const card = await getTodayCard(viewer.admin);
+  const { date, meetings, selections, released } = card;
   keepFresh(date, card);
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
@@ -97,7 +98,7 @@ async function Tips() {
         <p className="mt-2 text-ink-secondary">
           {longDate(date)}. Every bet and lay on the card, with the result once the race has run.
         </p>
-        <p className="mt-1 text-xs text-ink-soft">Tips are released at 8:00am AEST each race day, and prices refresh through the day.</p>
+        <p className="mt-1 text-xs text-ink-soft">Tips are released at {RELEASE_HOUR}:00am AEST each race day, and prices refresh through the day.</p>
         <div className="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard n={calls.length} label="tips today" sub={`${toRun} still to run`} />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />
@@ -113,6 +114,12 @@ async function Tips() {
           )}
         </div>
       </section>
+
+      {!released && (
+        <div className="mb-4">
+          <ReleaseNotice hour={RELEASE_HOUR} />
+        </div>
+      )}
 
       {!open && viewer.passCredits > 0 && (
         <div className="card border-blue bg-blue-soft flex flex-wrap items-center gap-3 mb-4">

@@ -108,6 +108,18 @@ function Stat({
 }
 
 /** Shown when nothing clears the edge threshold. */
+/** Shown in place of the calls before the morning release. */
+export function ReleaseNotice({ hour = 8 }: { hour?: number }) {
+  return (
+    <div className="card border-lime bg-lime-soft">
+      <h3 className="font-display text-lg font-bold">Today&apos;s calls release at {hour}:00am AEST</h3>
+      <p className="mt-2 text-sm text-ink-secondary max-w-prose">
+        The board, fields and ratings are up now, and the bets and lays land at {hour}am with fresh prices.
+      </p>
+    </div>
+  );
+}
+
 export function NoBetNotice() {
   return (
     <div className="card">

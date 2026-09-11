@@ -32,23 +32,53 @@ const WANT_SPEEDMAPS = process.env.OVERLAY_SPEEDMAPS === "1";
 /** How old a stored card can be before a page view asks for a rebuild. */
 const STALE_MS = 20 * 60_000;
 
+/** Tips go live at this hour, Sydney time, on the racing date. */
+export const RELEASE_HOUR = Number(process.env.OVERLAY_RELEASE_HOUR ?? 8);
+
+/** Whether the calls for a date are public yet. */
+export function released(date: string): boolean {
+  const today = racingToday();
+  if (date < today) return true;
+  if (date > today) return false;
+  return sydneyHour() >= RELEASE_HOUR;
+}
+
+/** The card with every call removed, for the hours before release. */
+function withheld(card: Card): Card {
+  return {
+    ...card,
+    released: false,
+    selections: [],
+    meetings: card.meetings.map((m) => ({
+      ...m,
+      races: m.races.map((r) => ({
+        ...r,
+        verdict: "",
+        runners: r.runners.map((x) => ({ ...x, signal: undefined, rank: null, why: undefined })),
+      })),
+    })),
+  };
+}
+
 /**
  * Today's card.
  *
  * Cached briefly so the date rolls over promptly after midnight and every
  * page in a burst shares one store read.
  */
-export async function getTodayCard(): Promise<Awaited<ReturnType<typeof getCard>> & { date: string }> {
+export async function getTodayCard(preview = false): Promise<Awaited<ReturnType<typeof getCard>> & { date: string }> {
   "use cache";
   cacheLife({ stale: 30, revalidate: 60, expire: 300 });
 
   const date = racingToday();
-  return { date, ...(await getCard(date)) };
+  return { date, ...(await getCard(date, preview)) };
 }
 
 export interface Card extends StoredCard {
   /** ISO, when the card was last built. */
   builtAt: string;
+  /** False before RELEASE_HOUR on the racing date: the board is up, the calls are not. */
+  released: boolean;
 }
 
 /**
@@ -56,18 +86,19 @@ export interface Card extends StoredCard {
  * page view once a card exists; the morning run and keepFresh() do that.
  * Without a store (local dev, no keys) it builds in place.
  */
-export async function getCard(date: string): Promise<Card> {
+export async function getCard(date: string, preview = false): Promise<Card> {
   "use cache";
   cacheLife({ stale: 30, revalidate: 60, expire: 300 });
   cacheTag(`card-${date}`);
 
+  const gate = (card: Card) => (preview || released(date) ? card : withheld(card));
   if (storeConfigured()) {
     const stored = await readStoredCard(date);
-    if (stored) return { ...stored.card, builtAt: stored.builtAt };
+    if (stored) return gate({ ...stored.card, builtAt: stored.builtAt, released: true });
   }
   // No card yet: build it here, once, and let the cache hold it.
   const built = await buildCard(date, { revalidate: false });
-  return { ...built.card, builtAt: new Date().toISOString() };
+  return gate({ ...built.card, builtAt: new Date().toISOString(), released: true });
 }
 
 /** Builds the card from Form King (or fixtures) and, with a store, saves it. */
@@ -114,8 +145,8 @@ export async function getMeetingCard(
   return meetings.find((m) => m.meetingId === meetingId);
 }
 
-export async function getRaceCard(date: string, meetingId: string, raceId: string) {
-  const card = await getCard(date);
+export async function getRaceCard(date: string, meetingId: string, raceId: string, preview = false) {
+  const card = await getCard(date, preview);
   const { meetings, selections, freeRaceId } = card;
   const meeting = meetings.find((m) => m.meetingId === meetingId);
   const race = meeting?.races.find((r) => r.raceId === raceId);
@@ -176,9 +207,11 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
  * Called inside a cache scope or a request; never during prerender.
  */
 export function racingToday(): string {
-  const now = new Date();
-  const syd = new Date(now.toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
+  const syd = sydneyNow();
   return `${syd.getFullYear()}-${pad(syd.getMonth() + 1)}-${pad(syd.getDate())}`;
 }
+
+const sydneyNow = () => new Date(new Date().toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
+const sydneyHour = () => sydneyNow().getHours() + sydneyNow().getMinutes() / 60;
 
 const pad = (n: number) => String(n).padStart(2, "0");

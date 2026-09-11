@@ -18,7 +18,8 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
-import { getRaceCard, keepFresh } from "@/lib/model/source";
+import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
+import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
@@ -61,11 +62,12 @@ export default function Page({ params }: Props) {
 
 async function Race({ params }: { params: Props["params"] }) {
   const { date, meetingId, raceId } = await ids(params);
-  const card = await getRaceCard(date, meetingId, raceId);
+  const viewer = await getViewer();
+  const card = await getRaceCard(date, meetingId, raceId, viewer.admin);
   if (!card) notFound();
   const { meeting, race, meetings, selections, free } = card;
   keepFresh(date, card.card);
-  const viewer = await getViewer();
+  const released = card.card.released;
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
 
@@ -194,7 +196,9 @@ async function Race({ params }: { params: Props["params"] }) {
         </div>
       )}
 
-      {open ? (
+      {!released ? (
+        <ReleaseNotice hour={RELEASE_HOUR} />
+      ) : open ? (
         <Section id="selections" letter="O" title="Our selections" aside="Rated price against the live price, top four">
           <div className="section-body">
             <SelectionCards race={race} />
@@ -204,7 +208,7 @@ async function Race({ params }: { params: Props["params"] }) {
         <Locked id="selections" title="Our selections" letter="O" raceId={raceId} />
       )}
 
-      {open ? <AnalysisRow race={race} /> : null}
+      {open && released ? <AnalysisRow race={race} /> : null}
 
       {open ? <Rankings race={race} /> : <Locked id="rankings" title="Rankings" letter="R" lines={10} raceId={raceId} />}
 

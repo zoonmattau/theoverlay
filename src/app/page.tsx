@@ -7,10 +7,10 @@ import { FaqList, JsonLd, ORGANIZATION, WEBSITE, faqSchema, type Faq } from "@/c
 
 import { NextToGo } from "@/components/NextToGo";
 import { RaceMatrix } from "@/components/RaceMatrix";
-import { LockedSelectionCard, NoBetNotice, SelectionCard } from "@/components/SelectionCard";
+import { LockedSelectionCard, NoBetNotice, ReleaseNotice, SelectionCard } from "@/components/SelectionCard";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { UsePassButton } from "@/components/UsePassButton";
-import { getTodayCard, keepFresh } from "@/lib/model/source";
+import { getTodayCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { longDate } from "@/lib/format";
 
 export const metadata: Metadata = {
@@ -48,7 +48,8 @@ async function Hero() {
   // The live card is fetched at request time and cached for an hour, never
   // during the build: a full card is dozens of throttled Form King calls.
   await connection();
-  const { meetings } = await getTodayCard();
+  const viewer = await getViewer();
+  const { meetings, released } = await getTodayCard(viewer.admin);
   const races = meetings.flatMap((m) => m.races);
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
   // Calls for the whole day, run or not, so the number never reads as empty late on.
@@ -79,13 +80,17 @@ async function Hero() {
       <div className="grid grid-cols-3 gap-3">
         <Tile n={races.length} label="races rated today" />
         <Tile n={runners} label="runners priced" />
-        <Tile n={bets + lays} label={`calls today: ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}`} accent />
+        {released ? (
+          <Tile n={bets + lays} label={`calls today: ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}`} accent />
+        ) : (
+          <Tile n={`${RELEASE_HOUR}am`} label="today's calls release" accent />
+        )}
       </div>
     </section>
   );
 }
 
-function Tile({ n, label, accent }: { n: number; label: string; accent?: boolean }) {
+function Tile({ n, label, accent }: { n: number | string; label: string; accent?: boolean }) {
   return (
     <div className={`card text-center ${accent ? "border-lime bg-lime-soft" : ""}`}>
       <div className="font-display text-3xl font-extrabold tracking-tight nums">{n}</div>
@@ -96,8 +101,9 @@ function Tile({ n, label, accent }: { n: number; label: string; accent?: boolean
 
 async function TodayCard() {
   await connection();
-  const [card, viewer] = await Promise.all([getTodayCard(), getViewer()]);
-  const { date, meetings, selections, live } = card;
+  const viewer = await getViewer();
+  const card = await getTodayCard(viewer.admin);
+  const { date, meetings, selections, live, released } = card;
   keepFresh(date, card);
   const open = hasAccess(viewer, date);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
@@ -114,7 +120,7 @@ async function TodayCard() {
           <div className="flex items-center gap-4 text-xs text-ink-soft nums">
             <span>{longDate(date)}</span>
             <span>
-              {backs} {backs === 1 ? "bet" : "bets"} · {lays} {lays === 1 ? "lay" : "lays"} still to run
+              {released ? `${backs} ${backs === 1 ? "bet" : "bets"} · ${lays} ${lays === 1 ? "lay" : "lays"} still to run` : `calls release at ${RELEASE_HOUR}am`}
             </span>
           </div>
         </div>
@@ -160,7 +166,7 @@ async function TodayCard() {
             )
           ) : (
             <div className="sm:col-span-2 lg:col-span-3">
-              <NoBetNotice />
+              {released ? <NoBetNotice /> : <ReleaseNotice hour={RELEASE_HOUR} />}
             </div>
           )}
         </div>

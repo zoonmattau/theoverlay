@@ -13,7 +13,7 @@ import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess, type Viewer } from "@/lib/auth";
 import { planById, planCovers } from "@/lib/billing/plans";
 import { jumpTime, longDate, price, priceWithChance } from "@/lib/format";
-import { getTodayCard } from "@/lib/model/source";
+import { getTodayCard, RELEASE_HOUR } from "@/lib/model/source";
 import { BONUS_DAYS, ensureReferralCode, referralCount } from "@/lib/referrals";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false } };
@@ -35,7 +35,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   if (!viewer.id && viewer.plan !== "open") redirect("/login?next=/account");
   const [card, code, invited] = await Promise.all([
-    getTodayCard(),
+    getTodayCard(viewer.admin),
     viewer.id ? (viewer.referralCode ?? ensureReferralCode(viewer.id)) : Promise.resolve(""),
     viewer.id ? referralCount(viewer.id) : Promise.resolve(0),
   ]);
@@ -202,7 +202,9 @@ function TodayForYou({ viewer, card, open }: { viewer: Viewer; card: Awaited<Ret
         </span>
       </div>
       {open ? (
-        calls.length === 0 ? (
+        !card.released ? (
+          <p className="section-body text-sm text-ink-soft">Today&apos;s calls release at {RELEASE_HOUR}:00am AEST.</p>
+        ) : calls.length === 0 ? (
           <p className="section-body text-sm text-ink-soft">No calls on today&apos;s card.</p>
         ) : (
           <div className="overflow-x-auto">
