@@ -38,7 +38,7 @@ function SectionalBar({ label, value, avg }: { label: string; value: number; avg
   const pct = Math.min(100, Math.max(0, 50 + diff * 5));
   const verdict =
     diff >= 2 ? "well above this field" : diff >= 0.5 ? "a little above this field" : diff <= -2 ? "well below this field" : diff <= -0.5 ? "a little below this field" : "about the field average";
-  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${value.toFixed(1)} against a field average of ${avg.toFixed(1)}, so ${verdict}. Benchmark points, from the clock in its past runs.`;
+  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${value.toFixed(1)} against a field average of ${avg.toFixed(1)}, so ${verdict}.`;
   return (
     <div className="sec-row tip" data-tip={tip}>
       <span className="sec-label">{label}</span>
