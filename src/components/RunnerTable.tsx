@@ -75,7 +75,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                       </div>
                     </td>
                     <td className="text-right nums text-ink-secondary">{r.barrier}</td>
-                    {!locked && <td><SignalBadge signal={r.signal} /></td>}
+                    {!locked && <td><SignalBadge signal={r.signal} prime={r.prime} /></td>}
                     <td className="text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
                     <td className="text-ink-secondary truncate">{r.jockey ?? "—"}</td>
                     <td className="nums text-ink-secondary">{r.form ?? "—"}</td>

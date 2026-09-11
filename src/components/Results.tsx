@@ -30,7 +30,7 @@ export function Results({ race }: { race: PublishedRace }) {
                     </span>
                     {r?.barrier ? <span className="text-ink-soft text-xs">(B{r.barrier})</span> : null}
                     {r?.rank ? <RankChip rank={r.rank} /> : null}
-                    <SignalBadge signal={r?.signal} />
+                    <SignalBadge signal={r?.signal} prime={r?.prime} />
                   </div>
                   <div className="text-xs text-ink-soft mt-0.5">
                     {r?.jockey ? `J: ${r.jockey}` : ""}

@@ -8,9 +8,7 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 
 import { NextToGo } from "@/components/NextToGo";
 import { RaceMatrix } from "@/components/RaceMatrix";
-import { LockedSelectionCard, NoBetNotice, ReleaseNotice, SelectionCard } from "@/components/SelectionCard";
-import { getViewer, hasAccess } from "@/lib/auth";
-import { UsePassButton } from "@/components/UsePassButton";
+import { getViewer } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { longDate } from "@/lib/format";
 
@@ -116,7 +114,6 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
   const previewing = viewer.admin && !card.released;
   const released = card.released || viewer.admin;
   keepFresh(date, card);
-  const open = hasAccess(viewer, date);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
   const backs = upcoming.flatMap((r) => r.runners).filter((r) => r.signal === "back").length;
   const lays = upcoming.flatMap((r) => r.runners).filter((r) => r.signal === "lay").length;
@@ -150,43 +147,6 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
         <RaceMatrix meetings={meetings} selections={selections} date={date} />
       </section>
 
-      <section className="mt-8">
-        <div className="panel-head">
-          <h2>Today&apos;s overlays</h2>
-          {open ? (
-            <span className="text-xs text-ink-soft nums">
-              {selections.filter((s) => s.finishPosition === undefined).length} still to run
-            </span>
-          ) : (
-            <Link href="/pricing" className="text-xs font-bold text-blue">
-              Unlock them all
-            </Link>
-          )}
-        </div>
-
-        {!open && viewer.passCredits > 0 && (
-          <div className="card border-blue bg-blue-soft flex flex-wrap items-center gap-3 mb-4">
-            <span className="text-sm font-semibold">You have day passes.</span>
-            <UsePassButton date={date} credits={viewer.passCredits} />
-          </div>
-        )}
-
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {selections.length > 0 ? (
-            selections.map((s) =>
-              open ? (
-                <SelectionCard key={`${s.tag}-${s.raceId}-${s.tabNumber}`} s={s} date={date} />
-              ) : (
-                <LockedSelectionCard key={`${s.tag}-${s.raceId}-${s.tabNumber}`} s={s} />
-              ),
-            )
-          ) : (
-            <div className="sm:col-span-2 lg:col-span-3">
-              {released ? <NoBetNotice /> : <ReleaseNotice hour={RELEASE_HOUR} />}
-            </div>
-          )}
-        </div>
-      </section>
     </>
   );
 }

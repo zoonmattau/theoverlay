@@ -28,7 +28,7 @@ export function SelectionCards({ race }: { race: PublishedRace }) {
                 {r.jockey ? ` · ${r.jockey}` : ""}
               </div>
             </div>
-            <SignalBadge signal={r.signal} />
+            <SignalBadge signal={r.signal} prime={r.prime} />
           </div>
 
           <div className="flex gap-2">

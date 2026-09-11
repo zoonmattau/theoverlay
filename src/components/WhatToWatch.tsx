@@ -45,7 +45,7 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
                           {r.tabNumber}. {r.horseName}
                         </span>
                         <span className="text-ink-soft text-xs">(B{r.barrier})</span>
-                        <SignalBadge signal={r.signal} />
+                        <SignalBadge signal={r.signal} prime={r.prime} />
                       </div>
                     </td>
                     <td className="whitespace-nowrap">

@@ -14,8 +14,9 @@ export const TEMPO_LABEL: Record<Tempo, string> = {
 };
 
 /** Back or lay alert. Renders nothing when there is no signal. */
-export function SignalBadge({ signal }: { signal?: Signal }) {
+export function SignalBadge({ signal, prime }: { signal?: Signal; prime?: boolean }) {
   if (!signal) return null;
+  if (prime && signal === "back") return <span className="badge badge-prime">Prime Overlay</span>;
   return (
     <span className={`badge ${signal === "back" ? "badge-back" : "badge-lay"}`}>
       {signal === "back" ? "bet" : "lay"}

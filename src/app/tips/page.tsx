@@ -275,7 +275,7 @@ function CallTable({
                       </span>
                     ) : (
                       <span className="flex items-center gap-2">
-                        <SignalBadge signal={side} />
+                        <SignalBadge signal={side} prime={c.prime} />
                         <span className="text-xs text-ink-soft">to run</span>
                       </span>
                     )}

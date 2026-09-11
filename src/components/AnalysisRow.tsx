@@ -46,7 +46,7 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
         {overlays.map((r) => (
           <div key={r.tabNumber} className="panel-row">
             <span className="flex items-center gap-2 min-w-0">
-              <SignalBadge signal={r.signal} />
+              <SignalBadge signal={r.signal} prime={r.prime} />
               <span className="truncate">
                 {r.tabNumber}. {r.horseName}
               </span>
