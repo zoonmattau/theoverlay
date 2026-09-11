@@ -148,3 +148,22 @@ export async function inviteMember(form: FormData): Promise<void> {
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "invite", email, days, admin: makeAdmin, emailed: ok, by: admin.email } });
   revalidatePath("/admin");
 }
+
+/** A fresh set-password link for someone who has not got in yet. */
+export async function resendInvite(userId: string): Promise<void> {
+  const admin = await requireAdmin();
+  const db = supabaseAdmin();
+  const { data: prof } = await db.from("profiles").select("email, is_admin, bonus_until").eq("id", userId).maybeSingle();
+  if (!prof?.email) return;
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
+  const { data, error } = await db.auth.admin.generateLink({ type: "recovery", email: prof.email, options: { redirectTo: `${site}/auth/confirm` } });
+  if (error || !data.properties) {
+    await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "resend_invite_failed", error: error?.message, by: admin.email } });
+    return;
+  }
+  const link = `${site}/auth/confirm?token_hash=${data.properties.hashed_token}&type=recovery&next=${encodeURIComponent("/reset?welcome=1")}`;
+  const days = prof.bonus_until ? Math.max(0, Math.round((new Date(prof.bonus_until).getTime() - Date.now()) / 86400_000)) : 0;
+  const ok = await sendEmail(prof.email, EMAILS.invited(link, days, Boolean(prof.is_admin)));
+  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "resend_invite", emailed: ok, by: admin.email } });
+  revalidatePath(`/admin/${userId}`);
+}

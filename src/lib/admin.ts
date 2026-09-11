@@ -22,7 +22,49 @@ export interface Member {
   referral_code: string | null;
   admin_note: string | null;
   is_admin: boolean;
+  last_seen_at: string | null;
+  full_name: string | null;
+  phone: string | null;
+  address1: string | null;
+  address2: string | null;
+  suburb: string | null;
+  state: string | null;
+  postcode: string | null;
+  dob: string | null;
+  source: string | null;
   created_at: string;
+  /** From auth: when the invite went out, when the address was confirmed, last log in. */
+  invited_at?: string | null;
+  confirmed_at?: string | null;
+  last_sign_in_at?: string | null;
+}
+
+/** Invited and never logged in, signed up but never confirmed, or in. */
+export function accountState(m: Member): "invited" | "unconfirmed" | "active" {
+  if (m.last_sign_in_at) return "active";
+  if (m.invited_at) return "invited";
+  return m.confirmed_at ? "active" : "unconfirmed";
+}
+
+/** The auth side of every account, keyed by id. */
+async function authUsers(): Promise<Map<string, Pick<Member, "invited_at" | "confirmed_at" | "last_sign_in_at">>> {
+  const out = new Map<string, Pick<Member, "invited_at" | "confirmed_at" | "last_sign_in_at">>();
+  for (let page = 1; page <= 10; page++) {
+    const { data, error } = await supabaseAdmin().auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) {
+      console.error("[admin] listUsers", error.message);
+      break;
+    }
+    for (const u of data.users) {
+      out.set(u.id, {
+        invited_at: u.invited_at ?? null,
+        confirmed_at: u.email_confirmed_at ?? u.confirmed_at ?? null,
+        last_sign_in_at: u.last_sign_in_at ?? null,
+      });
+    }
+    if (data.users.length < 1000) break;
+  }
+  return out;
 }
 
 export interface Event {
@@ -36,18 +78,28 @@ export interface Event {
 }
 
 const MEMBER_COLS =
-  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, created_at";
+  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, created_at";
 
 export async function listMembers(search?: string): Promise<Member[]> {
   let q = supabaseAdmin().from("profiles").select(MEMBER_COLS).order("created_at", { ascending: false }).limit(500);
-  if (search) q = q.ilike("email", `%${search}%`);
-  const { data } = await q;
-  return (data ?? []) as Member[];
+  if (search) q = q.or(`email.ilike.%${search}%,full_name.ilike.%${search}%,phone.ilike.%${search}%,suburb.ilike.%${search}%`);
+  const [{ data }, auth] = await Promise.all([q, authUsers()]);
+  return ((data ?? []) as Member[]).map((m) => ({ ...m, ...auth.get(m.id) }));
 }
 
 export async function getMember(id: string): Promise<Member | undefined> {
-  const { data } = await supabaseAdmin().from("profiles").select(MEMBER_COLS).eq("id", id).maybeSingle();
-  return (data as Member | null) ?? undefined;
+  const [{ data }, { data: auth }] = await Promise.all([
+    supabaseAdmin().from("profiles").select(MEMBER_COLS).eq("id", id).maybeSingle(),
+    supabaseAdmin().auth.admin.getUserById(id),
+  ]);
+  if (!data) return undefined;
+  const u = auth?.user;
+  return {
+    ...(data as Member),
+    invited_at: u?.invited_at ?? null,
+    confirmed_at: u?.email_confirmed_at ?? u?.confirmed_at ?? null,
+    last_sign_in_at: u?.last_sign_in_at ?? null,
+  };
 }
 
 export async function memberEvents(id: string, limit = 50): Promise<Event[]> {

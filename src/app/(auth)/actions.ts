@@ -37,6 +37,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   if (form.get("privacy") !== "on") return { error: "Please accept the terms and privacy policy." };
   const marketing = form.get("marketing") === "on";
   const ref = String(form.get("ref") ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "") || undefined;
+  const fullName = String(form.get("name") ?? "").trim().slice(0, 120);
 
   const supabase = await supabaseServer();
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
@@ -46,7 +47,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
     options: {
       emailRedirectTo: `${site}/auth/callback?next=${encodeURIComponent(safeNext(form.get("next")))}`,
       // Copied onto the profile by the database trigger, and read back at confirmation.
-      data: { accepted_terms: "true", marketing_opt_in: marketing, ...(ref ? { ref } : {}) },
+      data: { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : "signup", ...(ref ? { ref } : {}) },
     },
   });
   if (error) return { error: error.message };

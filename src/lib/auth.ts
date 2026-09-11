@@ -1,5 +1,6 @@
 import "server-only";
 
+import { supabaseAdmin } from "./billing/access";
 import { supabaseConfigured, supabaseServer } from "./supabase/server";
 
 import { planCovers } from "./billing/plans";
@@ -29,7 +30,22 @@ export interface Viewer {
   referralCode?: string;
   /** Wants the morning tips email. */
   tipsEmails: boolean;
+  details: Details;
 }
+
+export interface Details {
+  fullName: string;
+  phone: string;
+  address1: string;
+  address2: string;
+  suburb: string;
+  state: string;
+  postcode: string;
+  /** yyyy-mm-dd */
+  dob: string;
+}
+
+export const NO_DETAILS: Details = { fullName: "", phone: "", address1: "", address2: "", suburb: "", state: "", postcode: "", dob: "" };
 
 /** Comma-separated in ADMIN_EMAILS. */
 export function isAdminEmail(email?: string | null): boolean {
@@ -37,7 +53,7 @@ export function isAdminEmail(email?: string | null): boolean {
   return Boolean(email && list.includes(email.toLowerCase()));
 }
 
-export const ANON: Viewer = { pro: false, paused: false, admin: false, tipsEmails: false, passCredits: 0, passDates: [], bonusLive: false };
+export const ANON: Viewer = { pro: false, paused: false, admin: false, tipsEmails: false, details: NO_DETAILS, passCredits: 0, passDates: [], bonusLive: false };
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
@@ -66,7 +82,7 @@ export async function getViewer(): Promise<Viewer> {
   const [{ data: profile }, { data: passes }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin")
+      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
@@ -74,6 +90,16 @@ export async function getViewer(): Promise<Viewer> {
 
   const until = profile?.access_until ? new Date(profile.access_until) : undefined;
   const pro = Boolean(until && until.getTime() > Date.now());
+
+  // Last seen, for the admin panel, written at most every 15 minutes.
+  const seen = profile?.last_seen_at ? new Date(profile.last_seen_at).getTime() : 0;
+  if (profile && Date.now() - seen > 15 * 60_000 && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    supabaseAdmin()
+      .from("profiles")
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq("id", user.id)
+      .then(({ error }) => error && console.error("[seen]", error.message));
+  }
 
   return {
     id: user.id,
@@ -90,5 +116,15 @@ export async function getViewer(): Promise<Viewer> {
     bonusLive: Boolean(profile?.bonus_until && new Date(profile.bonus_until).getTime() > Date.now()),
     referralCode: profile?.referral_code ?? undefined,
     tipsEmails: Boolean(profile?.marketing_opt_in),
+    details: {
+      fullName: profile?.full_name ?? "",
+      phone: profile?.phone ?? "",
+      address1: profile?.address1 ?? "",
+      address2: profile?.address2 ?? "",
+      suburb: profile?.suburb ?? "",
+      state: profile?.state ?? "",
+      postcode: profile?.postcode ?? "",
+      dob: profile?.dob ? String(profile.dob) : "",
+    },
   };
 }

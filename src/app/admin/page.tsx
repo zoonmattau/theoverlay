@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { inviteMember, rebuildCard, resendTips } from "@/app/admin/actions";
-import { isAdmin, listMembers, now as clock, overview, recentEvents } from "@/lib/admin";
+import { accountState, isAdmin, listMembers, now as clock, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
@@ -44,7 +44,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
           <p className="mt-1 text-sm text-ink-soft">Members, money and what people click.</p>
         </div>
         <form className="flex gap-2">
-          <input name="q" defaultValue={q} placeholder="Search email" className="field-input" />
+          <input name="q" defaultValue={q} placeholder="Search name, email, phone, suburb" className="field-input w-72" />
           <button className="btn btn-secondary" type="submit">Search</button>
         </form>
       </section>
@@ -113,10 +113,11 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
           <span className="aside nums">{members.length}</span>
         </div>
         <div className="overflow-x-auto">
-          <table className="data-table text-sm min-w-[980px]">
+          <table className="data-table text-sm min-w-[1100px]">
             <thead>
               <tr>
-                <th>Email</th>
+                <th>Member</th>
+                <th>Account</th>
                 <th>Plan</th>
                 <th>Status</th>
                 <th>Access until</th>
@@ -124,7 +125,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
                 <th className="text-right">Spent</th>
                 <th className="text-right">Passes</th>
                 <th>Gift until</th>
-                <th>Joined</th>
+                <th>Last seen</th>
               </tr>
             </thead>
             <tbody>
@@ -134,9 +135,19 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
                   <tr key={m.id}>
                     <td>
                       <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">
-                        {m.email ?? m.id}
+                        {m.full_name || m.email || m.id}
                       </Link>
+                      {m.full_name && <span className="block text-xs text-ink-soft">{m.email}</span>}
                       {m.is_admin && <span className="badge badge-prime ml-2">Admin</span>}
+                    </td>
+                    <td>
+                      {accountState(m) === "active" ? (
+                        <span className="badge badge-muted">Active</span>
+                      ) : accountState(m) === "invited" ? (
+                        <span className="badge badge-warn">Invited</span>
+                      ) : (
+                        <span className="badge badge-warn">Unconfirmed</span>
+                      )}
                     </td>
                     <td>{m.plan ? (planById(m.plan)?.name ?? m.plan) : "—"}</td>
                     <td>
@@ -153,7 +164,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
                     <td className="text-right nums">{money(m.total_spent_cents ?? 0)}</td>
                     <td className="text-right nums">{m.pass_credits}</td>
                     <td className="nums">{m.bonus_until && new Date(m.bonus_until).getTime() > now ? day(m.bonus_until) : "—"}</td>
-                    <td className="nums">{day(m.created_at)}</td>
+                    <td className="nums">{m.last_seen_at ? when(m.last_seen_at) : m.last_sign_in_at ? when(m.last_sign_in_at) : "never"}</td>
                   </tr>
                 );
               })}

@@ -20,6 +20,13 @@ export function AuthForm({ mode, next, refCode }: { mode: Mode; next?: string; r
       <input type="hidden" name="next" value={next ?? "/"} />
       {refCode && <input type="hidden" name="ref" value={refCode} />}
 
+      {mode === "signup" && (
+        <label className="field">
+          <span>Name</span>
+          <input name="name" type="text" autoComplete="name" required placeholder="Your name" />
+        </label>
+      )}
+
       {mode !== "reset" && (
         <label className="field">
           <span>Email</span>

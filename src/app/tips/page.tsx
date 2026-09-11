@@ -29,6 +29,21 @@ export default function Page() {
   );
 }
 
+/**
+ * Level stakes, one unit a call, settled at the last price we saw. A bet
+ * returns price minus one when it wins and loses the unit otherwise; a lay
+ * keeps the unit when the horse loses and pays price minus one when it wins.
+ * Undefined until the race has run or when there is no price to settle at.
+ */
+function profit(side: Signal, price: number | undefined, position: number | undefined): number | undefined {
+  if (position === undefined || !price) return undefined;
+  const won = position === 1;
+  if (side === "back") return won ? price - 1 : -1;
+  return won ? -(price - 1) : 1;
+}
+
+const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(2)}`;
+
 interface Call {
   meeting: PublishedMeeting;
   raceId: string;
@@ -37,6 +52,8 @@ interface Call {
   resulted: boolean;
   runner: PublishedRunner;
   prime: boolean;
+  /** Units won or lost once the race has run. */
+  profit?: number;
 }
 
 async function Tips() {
@@ -60,6 +77,7 @@ async function Tips() {
             resulted: Boolean(r.result),
             runner: x,
             prime: prime.has(`${r.raceId}:${x.tabNumber}`),
+            profit: profit(x.signal!, x.marketPrice, r.result ? x.finishPosition : undefined),
           })),
       ),
     )
@@ -69,6 +87,8 @@ async function Tips() {
   const lays = calls.filter((c) => c.runner.signal === "lay");
   const primes = bets.filter((c) => c.prime);
   const toRun = calls.filter((c) => !c.resulted).length;
+  const settled = calls.filter((c) => c.profit !== undefined);
+  const total = settled.reduce((a, c) => a + (c.profit ?? 0), 0);
 
   return (
     <>
@@ -78,11 +98,19 @@ async function Tips() {
           {longDate(date)}. Every bet and lay on the card, with the result once the race has run.
         </p>
         <p className="mt-1 text-xs text-ink-soft">Tips are released at 8:00am AEST each race day, and prices refresh through the day.</p>
-        <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3">
           <StatCard n={calls.length} label="tips today" sub={`${toRun} still to run`} />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />
           <StatCard n={lays.length} label={lays.length === 1 ? "lay" : "lays"} tone="lay" />
           <StatCard n={primes.length} label={primes.length === 1 ? "Prime Overlay" : "Prime Overlays"} tone="prime" />
+          {open && (
+            <StatCard
+              n={settled.length ? units(total) : "—"}
+              label="units today"
+              sub={settled.length ? `${settled.length} of ${calls.length} settled, level stakes` : "nothing settled yet"}
+              tone={total > 0 ? "prime" : total < 0 ? "lay" : undefined}
+            />
+          )}
         </div>
       </section>
 
@@ -108,7 +136,7 @@ async function Tips() {
   );
 }
 
-function StatCard({ n, label, sub, tone }: { n: number; label: string; sub?: string; tone?: "bet" | "lay" | "prime" }) {
+function StatCard({ n, label, sub, tone }: { n: number | string; label: string; sub?: string; tone?: "bet" | "lay" | "prime" }) {
   const cls =
     tone === "bet"
       ? "border-blue bg-blue-soft"
@@ -141,13 +169,14 @@ function CallTable({
   calls: Call[];
   date: string;
 }) {
+  const total = calls.reduce((a, x) => a + (x.profit ?? 0), 0);
   return (
     <Section id={id} letter={letter} title={title} aside={<span className="nums">{calls.length}</span>}>
       {calls.length === 0 ? (
         <p className="section-body text-sm text-ink-soft">None on today&apos;s card.</p>
       ) : (
         <div className="overflow-x-auto">
-          <table className="data-table text-sm min-w-[760px]">
+          <table className="data-table text-sm min-w-[900px]">
             <thead>
               <tr>
                 <th>Race</th>
@@ -157,10 +186,16 @@ function CallTable({
                 <th className="text-right">Live</th>
                 <th className="text-right">Edge</th>
                 <th>Result</th>
+                <th className="text-right">P/L</th>
+                <th className="text-right">Sum</th>
               </tr>
             </thead>
             <tbody>
-              {calls.map((c) => (
+              {calls.map((c, i) => {
+                const sofar = calls.slice(0, i + 1);
+                const running = sofar.reduce((a, x) => a + (x.profit ?? 0), 0);
+                const anySettled = sofar.some((x) => x.profit !== undefined);
+                return (
                 <tr key={`${c.raceId}-${c.runner.tabNumber}`}>
                   <td className="whitespace-nowrap">
                     <Link href={`/racing/${date}/${c.meeting.meetingId}/${c.raceId}`} className="font-semibold hover:text-blue">
@@ -201,9 +236,22 @@ function CallTable({
                       </span>
                     )}
                   </td>
+                  <td className={`text-right nums font-semibold ${c.profit === undefined ? "text-ink-soft" : c.profit > 0 ? "text-accent" : c.profit < 0 ? "text-red" : ""}`}>
+                    {c.profit === undefined ? "—" : units(c.profit)}
+                  </td>
+                  <td className={`text-right nums ${running > 0 ? "text-accent" : running < 0 ? "text-red" : "text-ink-soft"}`}>
+                    {anySettled ? units(running) : "—"}
+                  </td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
+            <tfoot>
+              <tr>
+                <td colSpan={7} className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Total, one unit a call</td>
+                <td className={`text-right nums font-extrabold ${total > 0 ? "text-accent" : total < 0 ? "text-red" : ""}`}>{units(total)}</td>
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}

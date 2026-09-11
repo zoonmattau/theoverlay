@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
-import { setTipsEmails } from "@/app/account/actions";
+import { saveDetails, setTipsEmails } from "@/app/account/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
 import { SignalBadge } from "@/components/Ratings";
@@ -129,6 +129,27 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
             Send your link and you both get {BONUS_DAYS} days of the full board. <strong>{invited}</strong> {invited === 1 ? "friend has" : "friends have"} joined so far.
           </p>
           {code && <CopyLink link={`${site}/join/${code}`} />}
+        </Card>
+
+        <Card title="Your details">
+          <form action={saveDetails} className="grid grid-cols-2 gap-3 text-sm">
+            <label className="field col-span-2"><span>Full name</span><input name="fullName" defaultValue={viewer.details.fullName} autoComplete="name" className="field-input" /></label>
+            <label className="field"><span>Mobile</span><input name="phone" defaultValue={viewer.details.phone} autoComplete="tel" className="field-input" /></label>
+            <label className="field"><span>Date of birth</span><input name="dob" type="date" defaultValue={viewer.details.dob} autoComplete="bday" className="field-input" /></label>
+            <label className="field col-span-2"><span>Address</span><input name="address1" defaultValue={viewer.details.address1} autoComplete="address-line1" className="field-input" /></label>
+            <label className="field col-span-2"><span>Address line 2</span><input name="address2" defaultValue={viewer.details.address2} autoComplete="address-line2" className="field-input" /></label>
+            <label className="field"><span>Suburb</span><input name="suburb" defaultValue={viewer.details.suburb} autoComplete="address-level2" className="field-input" /></label>
+            <div className="grid grid-cols-2 gap-3">
+              <label className="field"><span>State</span>
+                <select name="state" defaultValue={viewer.details.state} className="field-input">
+                  <option value="">—</option>
+                  {["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"].map((st) => <option key={st} value={st}>{st}</option>)}
+                </select>
+              </label>
+              <label className="field"><span>Postcode</span><input name="postcode" defaultValue={viewer.details.postcode} inputMode="numeric" maxLength={4} autoComplete="postal-code" className="field-input" /></label>
+            </div>
+            <div className="col-span-2"><button type="submit" className="btn btn-secondary btn-sm">Save details</button></div>
+          </form>
         </Card>
 
         <Card title="Settings">

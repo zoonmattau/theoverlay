@@ -3,8 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { addDays, addPasses, cancelMember, pauseMember, resumeMember, saveNote, setAdmin } from "@/app/admin/actions";
-import { getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
+import { addDays, addPasses, cancelMember, pauseMember, resendInvite, resumeMember, saveNote, setAdmin } from "@/app/admin/actions";
+import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 
@@ -35,18 +35,23 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
   const live = m.access_until && new Date(m.access_until).getTime() > now;
   const giftLive = m.bonus_until && new Date(m.bonus_until).getTime() > now;
   const plan = planById(m.plan ?? undefined);
+  const state = accountState(m);
+  const address = [m.address1, m.address2, [m.suburb, m.state, m.postcode].filter(Boolean).join(" ")].filter(Boolean).join(", ");
 
   return (
     <>
       <div className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <Link href="/admin" className="text-xs text-ink-soft hover:text-ink">← All members</Link>
-          <h1 className="font-display text-3xl font-extrabold tracking-tight mt-1">{m.email ?? m.id}</h1>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight mt-1">{m.full_name || m.email || m.id}</h1>
+          {m.full_name && <p className="text-sm text-ink-secondary">{m.email}</p>}
           <p className="mt-1 text-sm text-ink-soft nums">
             Joined {stamp(m.created_at)} · {m.marketing_opt_in ? "emails on" : "emails off"} · invite code {m.referral_code ?? "none"} · {invites} {invites === 1 ? "friend" : "friends"} joined
           </p>
         </div>
         <div className="flex gap-2">
+          {state === "invited" && <span className="badge badge-warn">Invited, not accepted</span>}
+          {state === "unconfirmed" && <span className="badge badge-warn">Email not confirmed</span>}
           {m.is_admin && <span className="badge badge-prime">Admin</span>}
           {m.paused_at ? <span className="badge badge-warn">Paused</span> : live ? <span className="badge badge-prime">{m.subscription_status ?? "active"}</span> : <span className="badge badge-muted">no access</span>}
         </div>
@@ -60,6 +65,31 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 mb-6">
+        <div className="card space-y-2 text-sm">
+          <h2 className="font-display font-extrabold">Account</h2>
+          <Row k="State" v={state === "active" ? "Active" : state === "invited" ? "Invited, not accepted" : "Signed up, email not confirmed"} />
+          <Row k="Created" v={stamp(m.created_at)} />
+          <Row k="Invited" v={stamp(m.invited_at)} />
+          <Row k="Confirmed" v={stamp(m.confirmed_at)} />
+          <Row k="Last log in" v={stamp(m.last_sign_in_at)} />
+          <Row k="Last seen" v={stamp(m.last_seen_at)} />
+          <Row k="Source" v={m.source ?? "—"} />
+          <Row k="Tips email" v={m.marketing_opt_in ? "on" : "off"} />
+          {state !== "active" && (
+            <form action={resendInvite.bind(null, m.id)} className="pt-2">
+              <button className="btn btn-secondary btn-sm" type="submit">Resend invite link</button>
+            </form>
+          )}
+        </div>
+
+        <div className="card space-y-2 text-sm">
+          <h2 className="font-display font-extrabold">Details</h2>
+          <Row k="Name" v={m.full_name ?? "—"} />
+          <Row k="Mobile" v={m.phone ? <a className="text-blue" href={`tel:${m.phone}`}>{m.phone}</a> : "—"} />
+          <Row k="Date of birth" v={m.dob ? `${m.dob} (${Math.floor((now - new Date(m.dob).getTime()) / (365.25 * 86400_000))})` : "—"} />
+          <Row k="Address" v={address || "—"} />
+        </div>
+
         <div className="card space-y-2 text-sm">
           <h2 className="font-display font-extrabold">Subscription</h2>
           <Row k="Plan" v={plan?.name ?? m.plan ?? "—"} />
