@@ -96,7 +96,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}</dd></div>
           <div><dt>Gear</dt><dd>{h?.gear?.length ? h.gear.join(", ") : "none"}</dd></div>
           {h?.gearChanges?.length ? (
-            <div><dt>Gear change</dt><dd className="text-accent font-bold">{h.gearChanges.join(", ")}</dd></div>
+            <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
           ) : null}
         </dl>
       </div>
@@ -109,17 +109,17 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <table className="runs-table nums">
             <thead>
               <tr>
-                <th><span className="tip" data-tip="When the race was run, most recent first.">Date</span></th>
-                <th><span className="tip" data-tip="Where it ran.">Track</span></th>
-                <th><span className="tip" data-tip="Race distance in metres.">Dist</span></th>
-                <th><span className="tip" data-tip="Track condition that day: Firm 1-2, Good 3-4, Soft 5-7, Heavy 8-10.">Going</span></th>
-                <th><span className="tip" data-tip="The grade of the race: benchmark, class, maiden, listed or group.">Class</span></th>
-                <th><span className="tip" data-tip="Where it finished and the field size. Hover a result for the first four home.">Fin</span></th>
-                <th><span className="tip" data-tip="Lengths behind the winner.">Mgn</span></th>
-                <th><span className="tip" data-tip="Weight carried, in kilograms.">Wgt</span></th>
-                <th><span className="tip" data-tip="Starting price, the odds at the jump.">SP</span></th>
-                <th><span className="tip" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</span></th>
-                <th className="text-right"><span className="tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock, never the placing.">Pts</span></th>
+                <th className="tip" data-tip="When the race was run, most recent first.">Date</th>
+                <th className="tip" data-tip="Where it ran.">Track</th>
+                <th className="tip" data-tip="Race distance in metres.">Dist</th>
+                <th className="tip" data-tip="Track condition that day: Firm 1-2, Good 3-4, Soft 5-7, Heavy 8-10.">Going</th>
+                <th className="tip" data-tip="The grade of the race: benchmark, class, maiden, listed or group.">Class</th>
+                <th className="tip" data-tip="Where it finished and the field size. Hover a result for the first four home.">Fin</th>
+                <th className="tip" data-tip="Lengths behind the winner.">Mgn</th>
+                <th className="tip" data-tip="Weight carried, in kilograms.">Wgt</th>
+                <th className="tip" data-tip="Starting price, the odds at the jump.">SP</th>
+                <th className="tip" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
+                <th className="text-right tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock, never the placing.">Pts</th>
               </tr>
             </thead>
             <tbody>

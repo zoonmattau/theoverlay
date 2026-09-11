@@ -1989,3 +1989,6 @@ body {
 .race-tab {
   overflow: hidden;
 }
+.runs-table th.tip {
+  cursor: help;
+}
