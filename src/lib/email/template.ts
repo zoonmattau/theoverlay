@@ -19,7 +19,7 @@ export interface EmailSpec {
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
-const LOGO = "https://theoverlay.com.au/brand/logo-horizontal-dark.png";
+const LOGO = "https://theoverlay.com.au/brand/lockup-dark.png";
 
 const esc = (s: string) =>
   s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");

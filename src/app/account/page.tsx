@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
+import { setTipsEmails } from "@/app/account/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
 import { SignalBadge } from "@/components/Ratings";
@@ -131,7 +132,14 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         </Card>
 
         <Card title="Settings">
-          <p className="text-sm text-ink-secondary">Change your password, or sign out of this browser.</p>
+          <form action={setTipsEmails} className="flex flex-wrap items-center gap-3 text-sm">
+            <input type="hidden" name="on" value={viewer.tipsEmails ? "0" : "1"} />
+            <span className="text-ink-secondary">
+              Morning tips email is <strong>{viewer.tipsEmails ? "on" : "off"}</strong>, sent at 8am on your race days.
+            </span>
+            <button type="submit" className="btn btn-secondary btn-sm">{viewer.tipsEmails ? "Turn off" : "Turn on"}</button>
+          </form>
+          <p className="mt-3 text-sm text-ink-secondary">Change your password, or sign out of this browser.</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/reset" className="btn btn-secondary btn-sm">Change password</Link>
             <form action={signOut}>

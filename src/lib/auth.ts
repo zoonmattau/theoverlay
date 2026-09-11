@@ -27,6 +27,8 @@ export interface Viewer {
   bonusLive: boolean;
   /** Invite code, once one has been made. */
   referralCode?: string;
+  /** Wants the morning tips email. */
+  tipsEmails: boolean;
 }
 
 /** Comma-separated in ADMIN_EMAILS. */
@@ -35,7 +37,7 @@ export function isAdminEmail(email?: string | null): boolean {
   return Boolean(email && list.includes(email.toLowerCase()));
 }
 
-export const ANON: Viewer = { pro: false, paused: false, admin: false, passCredits: 0, passDates: [], bonusLive: false };
+export const ANON: Viewer = { pro: false, paused: false, admin: false, tipsEmails: false, passCredits: 0, passDates: [], bonusLive: false };
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
@@ -64,7 +66,7 @@ export async function getViewer(): Promise<Viewer> {
   const [{ data: profile }, { data: passes }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at")
+      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
@@ -87,5 +89,6 @@ export async function getViewer(): Promise<Viewer> {
     bonusUntil: profile?.bonus_until ?? undefined,
     bonusLive: Boolean(profile?.bonus_until && new Date(profile.bonus_until).getTime() > Date.now()),
     referralCode: profile?.referral_code ?? undefined,
+    tipsEmails: Boolean(profile?.marketing_opt_in),
   };
 }

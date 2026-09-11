@@ -8,7 +8,7 @@ import { renderEmail, type EmailSpec } from "./template";
  * email (granting access after a payment), so a provider outage is logged
  * and swallowed.
  */
-export async function sendEmail(to: string, spec: EmailSpec): Promise<boolean> {
+export async function sendEmail(to: string, spec: EmailSpec, headers?: Record<string, string>): Promise<boolean> {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.EMAIL_FROM ?? "The Overlay <hello@theoverlay.com.au>";
   if (!key) {
@@ -20,7 +20,7 @@ export async function sendEmail(to: string, spec: EmailSpec): Promise<boolean> {
     const res = await fetch("https://api.resend.com/emails", {
       method: "POST",
       headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ from, to, subject: spec.subject, html, text }),
+      body: JSON.stringify({ from, to, subject: spec.subject, html, text, ...(headers ? { headers } : {}) }),
     });
     if (!res.ok) console.error("[email] resend", res.status, await res.text());
     return res.ok;
