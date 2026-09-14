@@ -95,6 +95,20 @@ export const EMAILS = {
     note: "If you did not ask for this, ignore it and your password stays as it is.",
   }),
 
+  invitedAffiliate: (link: string, name: string, code: string): EmailSpec => ({
+    subject: "You are a partner on The Overlay",
+    preheader: "Set a password, post your tips, share your link.",
+    heading: `Welcome aboard, ${name}.`,
+    paragraphs: [
+      "The Overlay has set you up as a partner. Press the button, choose a password, and you are in.",
+      `Your link is <strong>${SITE}/go/${code}</strong>. Anyone who signs up through it is yours, and you earn a share of what they pay for as long as they stay.`,
+      "Your tips page is where you post your calls for the day. Your followers see them next to the model, and every call settles at the price you post, wins and losses.",
+      "The link works once and sets your password.",
+    ],
+    cta: { label: "Set your password", url: link },
+    note: "If you were not expecting this, ignore it and nothing happens.",
+  }),
+
   invited: (link: string, days: number, admin: boolean): EmailSpec => ({
     subject: "Your invite to The Overlay",
     preheader: "Set a password and the board is yours.",

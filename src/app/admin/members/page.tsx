@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { inviteMember } from "@/app/admin/actions";
+import { deleteMember, inviteMember } from "@/app/admin/actions";
 import { accountState, isAdmin, listMembers, now as clock } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById, PLANS } from "@/lib/billing/plans";
@@ -19,6 +19,11 @@ export default function Page() {
       </Suspense>
     </div>
   );
+}
+
+async function removeFromList(id: string) {
+  "use server";
+  await deleteMember(id, true);
 }
 
 async function Members() {
@@ -70,7 +75,7 @@ async function Members() {
         </form>
       </div>
 
-      <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} />
+      <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} remove={removeFromList} self={viewer.id} />
     </>
   );
 }

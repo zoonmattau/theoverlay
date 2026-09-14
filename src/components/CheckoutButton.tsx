@@ -31,7 +31,8 @@ export function CheckoutButton({
         body: JSON.stringify({ kind: "plan_click", plan: plan ?? `passes_${passes}` }),
         keepalive: true,
       }).catch(() => {});
-      router.push(`/signup?next=${encodeURIComponent("/pricing")}`);
+      // Come back to pricing with the choice remembered, so checkout opens on its own.
+      router.push(`/signup?next=${encodeURIComponent(`/pricing?buy=${plan ?? `passes_${passes}`}`)}`);
       return;
     }
     setBusy(true);

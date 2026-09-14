@@ -6,6 +6,8 @@ import { isAdmin, logEvent } from "@/lib/admin";
 import { cleanCode } from "@/lib/affiliates";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { EMAILS } from "@/lib/email/messages";
+import { sendEmail } from "@/lib/email/send";
 
 async function requireAdmin() {
   const viewer = await getViewer();
@@ -13,23 +15,47 @@ async function requireAdmin() {
   return viewer;
 }
 
+/**
+ * A new affiliate from scratch: the code and rate, and an account on the
+ * same email, invited if it does not exist yet, so they can post tips and
+ * see their sign-ups the moment they set a password.
+ */
 export async function createAffiliate(form: FormData): Promise<void> {
   const admin = await requireAdmin();
   const name = String(form.get("name") ?? "").trim().slice(0, 80);
-  const code = cleanCode(String(form.get("code") ?? "")) || cleanCode(name.replace(/\s+/g, ""));
-  const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 120) || null;
-  const pct = Math.min(100, Math.max(0, Number(form.get("pct") ?? 20) || 0));
-  if (!name || !code) return;
-  // A login email makes them a tipster straight away.
-  const login = String(form.get("login") ?? "").trim().toLowerCase();
+  const code = cleanCode(String(form.get("code") ?? "")) || cleanCode(name.replace(/s+/g, ""));
+  const email = String(form.get("email") ?? "").trim().toLowerCase().slice(0, 120);
+  const pct = Math.min(100, Math.max(0, Number(form.get("pct") ?? 40) || 0));
+  if (!name || !code || !email.includes("@")) return;
+  const db = supabaseAdmin();
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
+
+  // Their account: the one they already have, or a fresh invite.
   let userId: string | null = null;
-  if (login) {
-    const { data } = await supabaseAdmin().from("profiles").select("id").eq("email", login).maybeSingle();
-    userId = data?.id ?? null;
+  let invited = false;
+  const { data: existing } = await db.from("profiles").select("id").eq("email", email).maybeSingle();
+  if (existing) userId = existing.id;
+  else {
+    const { data, error } = await db.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: { data: { accepted_terms: "true", marketing_opt_in: true, full_name: name }, redirectTo: `${site}/auth/confirm` },
+    });
+    if (error || !data.user) {
+      await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "affiliate_invite_failed", email, error: error?.message, by: admin.email } });
+      revalidatePath("/admin/affiliates");
+      return;
+    }
+    userId = data.user.id;
+    await db.from("profiles").upsert({ id: userId, email, marketing_opt_in: true, full_name: name });
+    const link = `${site}/auth/confirm?token_hash=${data.properties.hashed_token}&type=invite&next=${encodeURIComponent("/reset?welcome=1")}`;
+    invited = await sendEmail(email, EMAILS.invitedAffiliate(link, name, code));
   }
-  const { error } = await supabaseAdmin().from("affiliates").insert({ code, name, email, commission_pct: pct, user_id: userId });
-  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "affiliate_create", code, name, error: error?.message, by: admin.email } });
+
+  const { error } = await db.from("affiliates").insert({ code, name, email, commission_pct: pct, user_id: userId });
+  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "affiliate_create", code, name, email, invited, error: error?.message, by: admin.email } });
   revalidatePath("/admin/affiliates");
+  revalidatePath("/admin/members");
 }
 
 export async function toggleAffiliate(id: string, active: boolean): Promise<void> {
@@ -43,22 +69,6 @@ export async function updateAffiliate(id: string, form: FormData): Promise<void>
   const pct = Math.min(100, Math.max(0, Number(form.get("pct") ?? 20) || 0));
   const notes = String(form.get("notes") ?? "").trim().slice(0, 1000) || null;
   await supabaseAdmin().from("affiliates").update({ commission_pct: pct, notes }).eq("id", id);
-  revalidatePath("/admin/affiliates");
-}
-
-/** Links a login to an affiliate so they can post tips at /tipster. Empty unlinks. */
-export async function linkTipster(id: string, form: FormData): Promise<void> {
-  const admin = await requireAdmin();
-  const email = String(form.get("email") ?? "").trim().toLowerCase();
-  const db = supabaseAdmin();
-  let userId: string | null = null;
-  if (email) {
-    const { data } = await db.from("profiles").select("id").eq("email", email).maybeSingle();
-    if (!data) return;
-    userId = data.id;
-  }
-  const { error } = await db.from("affiliates").update({ user_id: userId }).eq("id", id);
-  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "tipster_link", affiliate: id, email, error: error?.message, by: admin.email } });
   revalidatePath("/admin/affiliates");
 }
 

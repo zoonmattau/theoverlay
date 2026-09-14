@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, unmakeTipster } from "@/app/admin/actions";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
@@ -132,14 +133,14 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <h2 className="font-display font-extrabold">Actions</h2>
           {tipster ? (
             <form action={unmakeTipster.bind(null, m.id)} className="flex items-center gap-2">
-              <button className="btn btn-secondary btn-sm" type="submit">Remove tipster</button>
-              <span className="text-ink-soft">posts as {tipster.name}, code {tipster.code}; their record stays</span>
+              <button className="btn btn-secondary btn-sm" type="submit">Remove affiliate</button>
+              <span className="text-ink-soft">code {tipster.code}; their record and link stay, they just cannot post</span>
             </form>
           ) : (
             <form action={makeTipster.bind(null, m.id)} className="flex flex-wrap items-center gap-2">
               <input name="name" placeholder={m.full_name || "Name shown"} className="field-input w-36" />
               <input name="code" placeholder="CODE" className="field-input w-28 uppercase" />
-              <button className="btn btn-primary btn-sm" type="submit">Make tipster</button>
+              <button className="btn btn-primary btn-sm" type="submit">Make affiliate</button>
               <span className="text-ink-soft">40% commission, their link is /go/CODE</span>
             </form>
           )}
@@ -179,8 +180,8 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             <button className="btn btn-secondary btn-sm mt-2" type="submit">Save note</button>
           </form>
           {m.id !== viewer.id && (
-            <form action={deleteMember.bind(null, m.id)} className="pt-2 border-t border-line-soft flex items-center gap-2">
-              <button className="btn btn-secondary btn-sm text-red" type="submit">Delete account</button>
+            <form action={async () => { "use server"; await deleteMember(m.id); }} className="pt-2 border-t border-line-soft flex items-center gap-2">
+              <ConfirmButton message={`Delete ${m.email ?? "this account"} for good? Their login, profile and passes go with it.`} className="btn btn-secondary btn-sm text-red">Delete account</ConfirmButton>
               <span className="text-ink-soft">removes the login and profile for good</span>
             </form>
           )}

@@ -149,6 +149,7 @@ export async function inviteMember(form: FormData): Promise<void> {
   const ok = await sendEmail(email, EMAILS.invited(link, days, makeAdmin));
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "invite", email, days, admin: makeAdmin, emailed: ok, by: admin.email } });
   revalidatePath("/admin");
+  revalidatePath("/admin/members");
 }
 
 /** A fresh set-password link for someone who has not got in yet. */
@@ -171,7 +172,8 @@ export async function resendInvite(userId: string): Promise<void> {
 }
 
 /** Removes the account entirely, auth and profile; Stripe is left alone. */
-export async function deleteMember(userId: string): Promise<void> {
+/** Removes the login and the profile for good. `stay` keeps you on the list instead of bouncing to it. */
+export async function deleteMember(userId: string, stay = false): Promise<void> {
   const admin = await requireAdmin();
   if (admin.id === userId) return;
   const db = supabaseAdmin();
@@ -184,7 +186,8 @@ export async function deleteMember(userId: string): Promise<void> {
   await db.from("profiles").delete().eq("id", userId);
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "delete", email: data?.email, by: admin.email } });
   revalidatePath("/admin");
-  redirect("/admin");
+  revalidatePath("/admin/members");
+  if (!stay) redirect("/admin/members");
 }
 
 /** Makes a member a tipster: a new affiliate with their login linked, or links them to an existing code. */

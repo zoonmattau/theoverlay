@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
+import { AutoCheckout } from "@/components/AutoCheckout";
 import { CheckoutButton } from "@/components/CheckoutButton";
 import { FaqList, JsonLd, SITE_URL, faqSchema, type Faq } from "@/components/JsonLd";
 import { getViewer } from "@/lib/auth";
@@ -42,7 +43,7 @@ const PRODUCT = {
   ],
 };
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/pricing">) {
   return (
     <div className="page max-w-5xl">
       <JsonLd data={[PRODUCT, faqSchema(FAQ)]} />
@@ -57,7 +58,7 @@ export default function Page() {
       </section>
 
       <Suspense fallback={<div className="skeleton h-96" />}>
-        <Plans />
+        <Plans searchParams={searchParams} />
       </Suspense>
 
       <section className="mt-10 grid gap-3 sm:grid-cols-2 text-sm">
@@ -81,12 +82,15 @@ export default function Page() {
   );
 }
 
-async function Plans() {
-  const viewer = await getViewer();
+async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["searchParams"] }) {
+  const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   const signedIn = Boolean(viewer.id);
+  // A choice made before signing up: passes_N or a plan id.
+  const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+)$/.test(sp.buy) ? sp.buy : undefined;
 
   return (
     <>
+      {buy && signedIn && !viewer.admin && <AutoCheckout buy={buy} />}
       <div className="flex items-center gap-3 mb-3">
         <h2 className="font-display text-lg font-extrabold">Subscriptions</h2>
         <span className="badge badge-prime">{TRIAL_DAYS}-day free trial</span>

@@ -9,10 +9,13 @@ import type { ReactNode } from "react";
 export function AuthShell({
   title,
   intro,
+  pitch,
   children,
 }: {
   title: string;
   intro?: string;
+  /** Live line under the brand on the left, and above the form on a phone. */
+  pitch?: { aside: ReactNode; inline: ReactNode };
   children: ReactNode;
 }) {
   return (
@@ -33,6 +36,7 @@ export function AuthShell({
               <li>A price for every horse, next to the live price.</li>
               <li>Clear calls: bet, lay, or leave it alone.</li>
             </ul>
+            {pitch && <div className="mt-6">{pitch.aside}</div>}
           </div>
           <p className="text-xs text-bar-soft">18+ only. Gamble responsibly. Gambling Help Online 1800 858 858.</p>
         </aside>
@@ -40,6 +44,7 @@ export function AuthShell({
           <h1 className="font-display text-2xl font-extrabold tracking-tight">{title}</h1>
           {intro && <p className="mt-1 mb-5 text-sm text-ink-soft">{intro}</p>}
           {!intro && <div className="mb-5" />}
+          {pitch && <div className="md:hidden mb-5">{pitch.inline}</div>}
           {children}
         </div>
       </div>

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { createAffiliate, linkTipster, markPaid, toggleAffiliate, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { createAffiliate, markPaid, toggleAffiliate, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { isAdmin } from "@/lib/admin";
 import { affiliateStats, commissionByMonth } from "@/lib/affiliates";
@@ -70,12 +70,11 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
         <form action={createAffiliate} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
           <label className="field"><span>Name</span><input name="name" required className="field-input w-48" placeholder="Punters Podcast" /></label>
           <label className="field"><span>Code</span><input name="code" className="field-input w-36" placeholder="PODCAST" /></label>
-          <label className="field"><span>Email</span><input name="email" type="email" className="field-input w-56" placeholder="optional" /></label>
-          <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={20} className="field-input w-24" /></label>
-          <label className="field"><span>Tipster login</span><input name="login" type="email" className="field-input w-56" placeholder="their account email, optional" /></label>
+          <label className="field"><span>Email</span><input name="email" type="email" required className="field-input w-56" placeholder="the email they log in with" /></label>
+          <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={40} className="field-input w-24" /></label>
           <button className="btn btn-primary btn-sm" type="submit">Create</button>
         </form>
-        <p className="mt-2 text-xs text-ink-soft">Their link becomes {site}/go/CODE, and ?to=/pricing on the end lands them on a page. A tipster login makes them a tipster: they post at /tipster and their link lands on /t/CODE.</p>
+        <p className="mt-2 text-xs text-ink-soft">One step. If the email has no account yet they get an invite to set a password. Their link is {site}/go/CODE, which lands on their page at /t/CODE, and they post tips from Your tips once they are in.</p>
       </div>
 
       <div className="space-y-4">
@@ -87,6 +86,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 <h3 className="font-display font-extrabold text-lg">
                   {a.name} <span className="badge badge-muted ml-1 nums">{a.code}</span>
                   {!a.active && <span className="badge badge-warn ml-1">Off</span>}
+                  {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
                 </h3>
                 <p className="text-xs text-ink-soft">
                   {a.email ?? "no email"} · {Number(a.commission_pct)}% commission · since{" "}
@@ -116,10 +116,6 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 <button className="btn btn-secondary btn-sm" type="submit">Save</button>
               </form>
             </div>
-            <form action={linkTipster.bind(null, a.id)} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
-              <label className="field flex-1 min-w-[220px]"><span>Tipster login {(a as { user_id?: string | null }).user_id ? "(linked)" : "(not linked)"}</span><input name="email" type="email" className="field-input w-full" placeholder="The email they log in with, blank to unlink" /></label>
-              <button className="btn btn-secondary btn-sm" type="submit">Link</button>
-            </form>
           </div>
         ))}
       </div>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { Section } from "@/components/Section";
 
 /** One member as the table needs it: display strings plus raw values to sort on. */
@@ -48,7 +49,7 @@ const day = (t: number) => (t ? new Date(t).toLocaleDateString("en-AU", { day: "
 const when = (t: number) => (t ? new Date(t).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }) : "never");
 
 /** The member list: search as you type, filter by status, plan, account and emails, sort on any column, collapse the lot. */
-export function MembersTable({ rows, plans }: { rows: MemberRow[]; plans: string[] }) {
+export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[]; plans: string[]; remove: (id: string) => Promise<void>; self?: string }) {
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "live" | "paused" | "none">("all");
   const [plan, setPlan] = useState("all");
@@ -112,11 +113,12 @@ export function MembersTable({ rows, plans }: { rows: MemberRow[]; plans: string
                   </button>
                 </th>
               ))}
+              <th></th>
             </tr>
           </thead>
           <tbody>
             {shown.length === 0 && (
-              <tr><td colSpan={COLS.length} className="text-ink-soft">Nobody matches.</td></tr>
+              <tr><td colSpan={COLS.length + 1} className="text-ink-soft">Nobody matches.</td></tr>
             )}
             {shown.map((m) => (
               <tr key={m.id}>
@@ -135,6 +137,13 @@ export function MembersTable({ rows, plans }: { rows: MemberRow[]; plans: string
                 <td className="nums">{day(m.gift)}</td>
                 <td>{m.emails ? <span className="badge badge-prime">On</span> : <span className="badge badge-muted">Off</span>}</td>
                 <td className="nums">{when(m.lastSeen)}</td>
+                <td>
+                  {m.id !== self && !m.admin && (
+                    <form action={remove.bind(null, m.id)}>
+                      <ConfirmButton message={`Delete ${m.email || m.name} for good? Their login, profile and passes go with it.`} className="text-xs text-red hover:underline">Delete</ConfirmButton>
+                    </form>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
