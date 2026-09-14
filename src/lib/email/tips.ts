@@ -5,9 +5,11 @@ import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { planCovers } from "@/lib/billing/plans";
 import { longDate, price, priceWithChance } from "@/lib/format";
+import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import type { StoredCard } from "@/lib/model/store";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
+import { tipsterTable } from "./tipster";
 import { unsubscribeUrl } from "./unsubscribe";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
@@ -22,13 +24,14 @@ interface Row {
   paused_at: string | null;
   marketing_opt_in: boolean;
   is_admin: boolean;
+  tipster_id: string | null;
 }
 
 /** Members whose access covers the date and who ticked tips emails. */
 async function recipients(date: string): Promise<Row[]> {
   const { data } = await supabaseAdmin()
     .from("profiles")
-    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin")
+    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin, tipster_id")
     .eq("marketing_opt_in", true)
     .not("email", "is", null);
   const now = Date.now();
@@ -92,7 +95,13 @@ function table(rows: Call[]): string {
   return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;border-collapse:collapse"><tr>${head("Race")}${head("Runner")}${head("Live", "text-align:right")}${head("Rated", "text-align:right")}${head("")}</tr>${body}</table>`;
 }
 
-export function morningTipsEmail(date: string, card: StoredCard, userId: string): EmailSpec {
+/** The tipster a member follows and what they have posted for the day so far. */
+export interface Followed {
+  tipster: Tipster;
+  tips: CreatorTip[];
+}
+
+export function morningTipsEmail(date: string, card: StoredCard, userId: string, followed?: Followed): EmailSpec {
   const all = calls(date, card);
   const bets = all.filter((c) => c.side === "bet");
   const lays = all.filter((c) => c.side === "lay");
@@ -107,6 +116,9 @@ export function morningTipsEmail(date: string, card: StoredCard, userId: string)
       `${races} races rated across ${card.meetings.length} meetings, with <strong>${bets.length} ${bets.length === 1 ? "bet" : "bets"}</strong> and <strong>${lays.length} ${lays.length === 1 ? "lay" : "lays"}</strong> called at 8am prices.`,
       `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#1f6fd6">Bets</strong>${table(bets)}`,
       `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#d93636">Lays</strong>${table(lays)}`,
+      ...(followed && followed.tips.length > 0
+        ? [`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6f9a12">${esc(followed.tipster.name)}'s tips</strong>${tipsterTable(followed.tips)}`]
+        : []),
       "Prices move, so check the live price on the race page before you bet.",
     ],
     cta: { label: "Open today's tips", url: `${SITE}/tips` },
@@ -125,9 +137,15 @@ export async function sendMorningTips(date: string, card: StoredCard, force = fa
     if (data && data.length > 0) return { sent: 0, skipped: "already sent" };
   }
   const to = await recipients(date);
+  // Tipster calls already posted for the day, once per tipster.
+  const followed = new Map<string, Followed>();
+  for (const id of new Set(to.map((r) => r.tipster_id).filter((x): x is string => Boolean(x)))) {
+    const tipster = await tipsterById(id);
+    if (tipster?.user_id) followed.set(id, { tipster, tips: await creatorTips(id, date) });
+  }
   let sent = 0;
   for (const r of to) {
-    const ok = await sendEmail(r.email!, morningTipsEmail(date, card, r.id), {
+    const ok = await sendEmail(r.email!, morningTipsEmail(date, card, r.id, r.tipster_id ? followed.get(r.tipster_id) : undefined), {
       "List-Unsubscribe": `<${unsubscribeUrl(r.id)}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     });

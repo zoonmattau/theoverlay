@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isAdmin, logEvent } from "@/lib/admin";
+import { cleanCode } from "@/lib/affiliates";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
@@ -184,4 +185,35 @@ export async function deleteMember(userId: string): Promise<void> {
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "delete", email: data?.email, by: admin.email } });
   revalidatePath("/admin");
   redirect("/admin");
+}
+
+/** Makes a member a tipster: a new affiliate with their login linked, or links them to an existing code. */
+export async function makeTipster(userId: string, form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const db = supabaseAdmin();
+  const { data: m } = await db.from("profiles").select("email, full_name").eq("id", userId).maybeSingle();
+  if (!m) return;
+  const name = String(form.get("name") ?? "").trim().slice(0, 80) || m.full_name || (m.email ?? "").split("@")[0];
+  const code = cleanCode(String(form.get("code") ?? "")) || cleanCode(name.replace(/\s+/g, ""));
+  if (!name || !code) return;
+  const { data: existing } = await db.from("affiliates").select("id, user_id").eq("code", code).maybeSingle();
+  let error: string | undefined;
+  if (existing) {
+    if (existing.user_id && existing.user_id !== userId) return;
+    error = (await db.from("affiliates").update({ user_id: userId, active: true }).eq("id", existing.id)).error?.message;
+  } else {
+    error = (await db.from("affiliates").insert({ code, name, email: m.email, commission_pct: 40, user_id: userId })).error?.message;
+  }
+  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "make_tipster", code, name, error, by: admin.email } });
+  revalidatePath(`/admin/${userId}`);
+  revalidatePath("/admin");
+  revalidatePath("/admin/affiliates");
+}
+
+/** Takes the tipster role away; the affiliate row and its record stay. */
+export async function unmakeTipster(userId: string): Promise<void> {
+  await requireAdmin();
+  await supabaseAdmin().from("affiliates").update({ user_id: null }).eq("user_id", userId);
+  revalidatePath(`/admin/${userId}`);
+  revalidatePath("/admin");
 }

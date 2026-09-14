@@ -8,17 +8,20 @@ import { CopyLink } from "@/components/CopyLink";
 import { TipsterMatrix, type MatrixMeeting } from "@/components/TipsterMatrix";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
-import { creatorTips, tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
+import { creatorTips, priceFlagged, tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price } from "@/lib/format";
-import { getTodayCard } from "@/lib/model/source";
+import { getCard, getTodayCard, racingToday } from "@/lib/model/source";
 
 export const metadata: Metadata = { title: "Your tips", robots: { index: false } };
 
-export default function Page() {
+/** Posting waits 90 seconds before emailing followers, so the function has to live that long. */
+export const maxDuration = 150;
+
+export default function Page({ searchParams }: PageProps<"/tipster">) {
   return (
     <div className="page max-w-5xl">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Portal />
+        <Portal searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -26,9 +29,12 @@ export default function Page() {
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
 
-async function Portal() {
+/** yyyy-mm-dd plus one day. */
+const nextDay = (date: string) => new Date(new Date(`${date}T12:00:00Z`).getTime() + 86400_000).toISOString().slice(0, 10);
+
+async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["searchParams"] }) {
   await connection();
-  const viewer = await getViewer();
+  const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   const tipster = await tipsterForUser(viewer.id);
   if (!tipster) {
     return (
@@ -42,8 +48,13 @@ async function Portal() {
       </section>
     );
   }
-  const card = await getTodayCard(true);
-  const { date, meetings } = card;
+  // Today, or tomorrow once the evening build has put its card up.
+  const today = racingToday();
+  const tomorrow = nextDay(today);
+  const wantTomorrow = sp.day === "tomorrow";
+  const card = wantTomorrow ? await getCard(tomorrow, true) : await getTodayCard(true);
+  const date = wantTomorrow ? tomorrow : today;
+  const { meetings } = card;
   const [mine, record, { members, clicks30 }] = await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id), tipsterMembers(tipster.id)]);
   const paying = members.filter((m) => m.paying);
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
@@ -61,11 +72,12 @@ async function Portal() {
       className: r.className,
       clock: jumpTime(r.jumpTime),
       resulted: Boolean(r.result?.length),
+      jumped: Boolean(r.jumpTime && new Date(r.jumpTime).getTime() < Date.now()),
       runners: r.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName, price: x.marketPrice })),
       posted: Object.fromEntries(mine.filter((t) => t.race_id === r.raceId).map((t) => [t.tab_number, t.side])),
     })),
   }));
-  const toRun = grid.flatMap((m) => m.races).filter((r) => !r.resulted).length;
+  const toRun = grid.flatMap((m) => m.races).filter((r) => !r.resulted && (viewer.admin || !r.jumped)).length;
 
   return (
     <>
@@ -76,6 +88,13 @@ async function Portal() {
         <p className="mt-2 text-ink-secondary">
           Post your calls for {longDate(date)}. Your followers see them next to the model&apos;s, and every call settles at the price you post.
         </p>
+        <div className="mt-3 flex gap-2">
+          <Link href="/tipster" className={`btn btn-sm ${wantTomorrow ? "btn-secondary" : "btn-primary"}`}>Today, {longDate(today)}</Link>
+          <Link href="/tipster?day=tomorrow" className={`btn btn-sm ${wantTomorrow ? "btn-primary" : "btn-secondary"}`}>Tomorrow, {longDate(tomorrow)}</Link>
+        </div>
+        {wantTomorrow && meetings.length === 0 && (
+          <p className="mt-2 text-sm text-ink-soft">Tomorrow&apos;s card is built at 9pm. Until then there is nothing to post on.</p>
+        )}
         <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
           <Stat n={mine.length} label="posted today" />
           <Stat n={record.month.n ? units(record.month.units) : "—"} label="last 30 days" sub={record.month.n ? `${record.month.n} calls, ${record.month.hit} landed` : "nothing settled yet"} tone={record.month.units > 0 ? "prime" : record.month.units < 0 ? "lay" : undefined} />
@@ -127,7 +146,10 @@ async function Portal() {
                     <td className="py-2 nums">{t.track} R{t.race_number}</td>
                     <td className="font-semibold">{t.tab_number}. {t.horse_name}</td>
                     <td><span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}</span></td>
-                    <td className="text-right nums">{price(Number(t.price))}</td>
+                    <td className="text-right nums">
+                      {price(Number(t.price))}{t.bookie ? <span className="block text-xs text-ink-soft">{t.bookie}</span> : null}
+                      {priceFlagged(t) && <span className="block badge badge-warn mt-1" title={`Best price we saw when you posted was ${price(Number(t.market_at_post))}`}>over market</span>}
+                    </td>
                     <td className="pl-3 text-ink-secondary text-xs max-w-xs">{t.comment}</td>
                     <td className="text-right">{t.settled_at ? <span className="nums">{units(Number(t.units))}</span> : <span className="text-xs text-ink-soft">to run</span>}</td>
                     <td className="text-right">
@@ -149,7 +171,7 @@ async function Portal() {
           {toRun === 0 ? (
             <p className="text-sm text-ink-soft">Nothing left to run today. Tomorrow&apos;s card opens in the morning.</p>
           ) : (
-            <TipsterMatrix meetings={grid} date={date} action={postTip} />
+            <TipsterMatrix meetings={grid} date={date} action={postTip} late={viewer.admin} />
           )}
         </div>
       </div>

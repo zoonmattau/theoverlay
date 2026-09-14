@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Outcome } from "./SelectionCard";
-import type { CreatorTip, Tipster, TipsterRecord } from "@/lib/creators";
+import { priceFlagged, type CreatorTip, type Tipster, type TipsterRecord } from "@/lib/creators";
 import { price } from "@/lib/format";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
@@ -37,7 +37,8 @@ export function TipsterTips({ tipster, tips, record, date, compact }: { tipster:
                   {t.tab_number}. {t.horse_name}
                 </Link>
                 <span className="text-xs text-ink-soft uppercase tracking-wider">{t.track} R{t.race_number}</span>
-                <span className="nums text-sm">{price(Number(t.price))}</span>
+                <span className="nums text-sm">{price(Number(t.price))}{t.bookie ? <span className="text-ink-soft"> at {t.bookie}</span> : null}</span>
+                {priceFlagged(t) && <span className="badge badge-warn" title={`Best price we saw when posted was ${price(Number(t.market_at_post))}`}>over market</span>}
                 <span className="ml-auto flex items-center gap-2">
                   {t.settled_at && <span className="nums text-sm font-semibold">{units(Number(t.units))}</span>}
                   <Outcome position={t.settled_at ? (t.finish_position ?? 0) : undefined} />

@@ -32,6 +32,9 @@ export interface CreatorTip {
   side: Signal;
   price: number;
   comment: string | null;
+  bookie: string | null;
+  /** Best market price we saw when it was posted. */
+  market_at_post: number | null;
   created_at: string;
   finish_position: number | null;
   sp: number | null;
@@ -86,6 +89,10 @@ export async function tipsterCallCounts(date: string): Promise<Map<string, numbe
   for (const r of (data ?? []) as { affiliate_id: string }[]) out.set(r.affiliate_id, (out.get(r.affiliate_id) ?? 0) + 1);
   return out;
 }
+
+/** More than a fifth above the best price we could see when posted. */
+export const OVER_MARKET = 0.2;
+export const priceFlagged = (t: { price: number; market_at_post: number | null }) => Boolean(t.market_at_post && Number(t.price) > Number(t.market_at_post) * (1 + OVER_MARKET));
 
 export async function creatorTips(affiliateId: string, date: string): Promise<CreatorTip[]> {
   const { data } = await supabaseAdmin().from("creator_tips").select("*").eq("affiliate_id", affiliateId).eq("date", date).order("race_number");

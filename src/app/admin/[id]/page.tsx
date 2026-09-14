@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { addDays, addPasses, cancelMember, deleteMember, pauseMember, resendInvite, resumeMember, saveNote, setAdmin } from "@/app/admin/actions";
+import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, unmakeTipster } from "@/app/admin/actions";
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
@@ -130,6 +130,19 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
 
         <div className="card space-y-3 text-sm">
           <h2 className="font-display font-extrabold">Actions</h2>
+          {tipster ? (
+            <form action={unmakeTipster.bind(null, m.id)} className="flex items-center gap-2">
+              <button className="btn btn-secondary btn-sm" type="submit">Remove tipster</button>
+              <span className="text-ink-soft">posts as {tipster.name}, code {tipster.code}; their record stays</span>
+            </form>
+          ) : (
+            <form action={makeTipster.bind(null, m.id)} className="flex flex-wrap items-center gap-2">
+              <input name="name" placeholder={m.full_name || "Name shown"} className="field-input w-36" />
+              <input name="code" placeholder="CODE" className="field-input w-28 uppercase" />
+              <button className="btn btn-primary btn-sm" type="submit">Make tipster</button>
+              <span className="text-ink-soft">40% commission, their link is /go/CODE</span>
+            </form>
+          )}
           <form action={addDays.bind(null, m.id, 14)} className="flex items-center gap-2">
             <button className="btn btn-primary btn-sm" type="submit">Add 14 days</button>
             <span className="text-ink-soft">full board, on top of anything running</span>
