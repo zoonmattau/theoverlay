@@ -8,7 +8,7 @@ import type { PublishedMeeting, Selection } from "@/lib/model/types";
  * countdown and how many tips it carries.
  */
 /** Colour the going chip by band so a wet track stands out down the column. */
-function goingClass(condition: string): string {
+export function goingClass(condition: string): string {
   const c = condition.toLowerCase();
   if (c.startsWith("heavy")) return "is-heavy";
   if (c.startsWith("soft")) return "is-soft";

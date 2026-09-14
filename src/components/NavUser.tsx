@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { isAdmin } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
+import { creatorTips, followedTipster } from "@/lib/creators";
 import { PASS_PRICE } from "@/lib/billing/plans";
 import { getTodayCard } from "@/lib/model/source";
 
@@ -16,12 +17,18 @@ export async function NavUser({ links }: { links: { href: string; label: string 
   const { date } = await getTodayCard(viewer.admin);
   const open = hasAccess(viewer, date);
   // Pricing goes away for subscribers and admins; a pass holder still needs it.
-  const subscribed = viewer.pro || viewer.admin;
+  const subscribed = viewer.pro || viewer.admin || viewer.tipster;
+  // Calls from the tipster you follow that are still to run today.
+  const followed = await followedTipster(viewer);
+  const live = followed ? (await creatorTips(followed.id, date)).filter((t) => !t.settled_at).length : 0;
   const nav = links
     .filter((l) => !(subscribed && l.href === "/pricing"))
     .map((l) => (
       <Link key={l.href} href={l.href} className="topbar-link">
         {l.label}
+        {l.href === "/tipsters" && live > 0 && (
+          <span className="topbar-count" title={`${live} ${live === 1 ? "tip" : "tips"} from ${followed!.name} still to run`}>{live}</span>
+        )}
       </Link>
     ));
 
@@ -54,6 +61,11 @@ export async function NavUser({ links }: { links: { href: string; label: string 
   return (
     <>
       {nav}
+      {viewer.tipster && (
+        <Link href="/tipster" className="topbar-link">
+          Your tips
+        </Link>
+      )}
       {isAdmin(viewer) && (
         <Link href="/admin" className="topbar-link">
           Admin

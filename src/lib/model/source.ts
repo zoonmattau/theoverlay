@@ -13,6 +13,7 @@ import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedm
 import { pickFreeRace, publishMeeting, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { settleCreatorTips } from "@/lib/creators";
 import { recordTips } from "@/lib/tips";
 import type { PublishedMeeting } from "./types";
 
@@ -238,6 +239,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     await writeStoredCard(date, card, seconds);
     // New calls join the ledger at today's price; run races settle.
     await recordTips(date, card);
+    await settleCreatorTips(date, card);
     // Not allowed from inside a cache scope, so the in-cache build skips it.
     if (opts.revalidate !== false) revalidateTag(`card-${date}`, "max");
   }

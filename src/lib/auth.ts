@@ -31,6 +31,8 @@ export interface Viewer {
   referralCode?: string;
   /** Wants the morning tips email. */
   tipsEmails: boolean;
+  /** Runs a tipster account, so the board is open to them. */
+  tipster: boolean;
   details: Details;
 }
 
@@ -54,11 +56,11 @@ export function isAdminEmail(email?: string | null): boolean {
   return Boolean(email && list.includes(email.toLowerCase()));
 }
 
-export const ANON: Viewer = { pro: false, paused: false, admin: false, tipsEmails: false, details: NO_DETAILS, passCredits: 0, passDates: [], bonusLive: false };
+export const ANON: Viewer = { pro: false, paused: false, admin: false, tipsEmails: false, tipster: false, details: NO_DETAILS, passCredits: 0, passDates: [], bonusLive: false };
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
-  if (viewer.admin) return true;
+  if (viewer.admin || viewer.tipster) return true;
   if (viewer.paused) return false;
   if (viewer.pro && planCovers(viewer.plan, date)) return true;
   if (viewer.bonusLive) return true;
@@ -80,13 +82,14 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer> {
   } = await supabase.auth.getUser();
   if (!user) return ANON;
 
-  const [{ data: profile }, { data: passes }] = await Promise.all([
+  const [{ data: profile }, { data: passes }, { data: tipster }] = await Promise.all([
     supabase
       .from("profiles")
       .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
+    supabaseAdmin().from("affiliates").select("id").eq("user_id", user.id).eq("active", true).maybeSingle(),
   ]);
 
   const until = profile?.access_until ? new Date(profile.access_until) : undefined;
@@ -117,6 +120,7 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer> {
     bonusLive: Boolean(profile?.bonus_until && new Date(profile.bonus_until).getTime() > Date.now()),
     referralCode: profile?.referral_code ?? undefined,
     tipsEmails: Boolean(profile?.marketing_opt_in),
+    tipster: Boolean(tipster),
     details: {
       fullName: profile?.full_name ?? "",
       phone: profile?.phone ?? "",

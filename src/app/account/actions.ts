@@ -37,3 +37,13 @@ export async function saveDetails(form: FormData): Promise<void> {
     .eq("id", viewer.id);
   revalidatePath("/account");
 }
+
+/** Which tipster's calls to show, from the account page. Empty clears it. */
+export async function setTipster(form: FormData): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer.id) return;
+  const id = String(form.get("tipster") ?? "");
+  await supabaseAdmin().from("profiles").update({ tipster_id: /^[0-9a-f-]{36}$/.test(id) ? id : null }).eq("id", viewer.id);
+  revalidatePath("/account");
+  revalidatePath("/tips");
+}

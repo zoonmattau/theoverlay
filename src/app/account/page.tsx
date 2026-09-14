@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
-import { saveDetails, setTipsEmails } from "@/app/account/actions";
+import { saveDetails, setTipsEmails, setTipster } from "@/app/account/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
+import { allTipsters, followedTipster, tipsterForUser } from "@/lib/creators";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
@@ -37,6 +38,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     viewer.id ? referralCount(viewer.id) : Promise.resolve(0),
   ]);
   const plan = planById(viewer.plan);
+  const [tipsters, following, runs] = await Promise.all([allTipsters(), followedTipster(viewer), tipsterForUser(viewer.id)]);
   const now = new Date(card.builtAt).getTime() || 0;
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
   const status = viewer.admin
@@ -157,6 +159,27 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
             <div className="col-span-2"><button type="submit" className="btn btn-secondary btn-sm">Save details</button></div>
           </form>
         </Card>
+
+        {(tipsters.length > 0 || runs) && (
+          <Card title="Tipster">
+            {runs && (
+              <p className="text-sm text-ink-secondary mb-3">
+                You post tips as <strong>{runs.name}</strong>. <Link href="/tipster" className="text-blue">Open Your tips</Link>.
+              </p>
+            )}
+            {tipsters.length > 0 && (
+              <form action={setTipster} className="flex flex-wrap items-end gap-2 text-sm">
+                <label className="field flex-1 min-w-[200px]"><span>Whose tips you see next to ours</span>
+                  <select name="tipster" defaultValue={following?.id ?? ""} className="field-input w-full">
+                    <option value="">Nobody, just the model</option>
+                    {tipsters.map((t) => <option key={t.id} value={t.id}>{t.name}</option>)}
+                  </select>
+                </label>
+                <button type="submit" className="btn btn-secondary btn-sm">Save</button>
+              </form>
+            )}
+          </Card>
+        )}
 
         <Card title="Settings">
           <form action={setTipsEmails} className="flex flex-wrap items-center gap-3 text-sm">

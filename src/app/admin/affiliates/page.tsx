@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { createAffiliate, toggleAffiliate, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { createAffiliate, linkTipster, toggleAffiliate, updateAffiliate } from "@/app/admin/affiliates/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { isAdmin } from "@/lib/admin";
 import { affiliateStats } from "@/lib/affiliates";
@@ -64,9 +64,10 @@ async function Affiliates() {
           <label className="field"><span>Code</span><input name="code" className="field-input w-36" placeholder="PODCAST" /></label>
           <label className="field"><span>Email</span><input name="email" type="email" className="field-input w-56" placeholder="optional" /></label>
           <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={20} className="field-input w-24" /></label>
+          <label className="field"><span>Tipster login</span><input name="login" type="email" className="field-input w-56" placeholder="their account email, optional" /></label>
           <button className="btn btn-primary btn-sm" type="submit">Create</button>
         </form>
-        <p className="mt-2 text-xs text-ink-soft">Their link becomes {site}/go/CODE, and ?to=/pricing on the end lands them on a page.</p>
+        <p className="mt-2 text-xs text-ink-soft">Their link becomes {site}/go/CODE, and ?to=/pricing on the end lands them on a page. A tipster login makes them a tipster: they post at /tipster and their link lands on /t/CODE.</p>
       </div>
 
       <div className="space-y-4">
@@ -107,6 +108,10 @@ async function Affiliates() {
                 <button className="btn btn-secondary btn-sm" type="submit">Save</button>
               </form>
             </div>
+            <form action={linkTipster.bind(null, a.id)} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
+              <label className="field flex-1 min-w-[220px]"><span>Tipster login {(a as { user_id?: string | null }).user_id ? "(linked)" : "(not linked)"}</span><input name="email" type="email" className="field-input w-full" placeholder="The email they log in with, blank to unlink" /></label>
+              <button className="btn btn-secondary btn-sm" type="submit">Link</button>
+            </form>
           </div>
         ))}
       </div>

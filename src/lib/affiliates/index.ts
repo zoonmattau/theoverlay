@@ -43,7 +43,7 @@ export async function attributeSignup(userId: string, code: string | undefined):
   if (!aff) return;
   await supabaseAdmin()
     .from("profiles")
-    .update({ affiliate_id: aff.id, affiliate_attributed_at: new Date().toISOString() })
+    .update({ affiliate_id: aff.id, affiliate_attributed_at: new Date().toISOString(), tipster_id: aff.id })
     .eq("id", userId)
     .is("affiliate_id", null);
 }

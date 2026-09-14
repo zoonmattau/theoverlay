@@ -9,9 +9,11 @@ import { SignalBadge } from "@/components/Ratings";
 import { Section } from "@/components/Section";
 import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
 import { TakeBet } from "@/components/TakeBet";
+import { TipsterTips } from "@/components/TipsterTips";
 import { myBets, type MyBet } from "@/lib/mybets";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
+import { creatorTips, followedTipster, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
@@ -73,6 +75,9 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   const mine = await myBets(viewer.id, date);
+  // A follower sees their tipster's calls above ours, whether or not they have paid.
+  const tipster = await followedTipster(viewer);
+  const [theirs, record] = tipster ? await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id)]) : [[], undefined];
 
   const calls: Call[] = meetings
     .flatMap((m) =>
@@ -156,6 +161,12 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
         <div className="card border-blue bg-blue-soft flex flex-wrap items-center gap-3 mb-4">
           <span className="text-sm font-semibold">You have day passes.</span>
           <UsePassButton date={date} credits={viewer.passCredits} />
+        </div>
+      )}
+
+      {tipster && (
+        <div className="mb-4">
+          <TipsterTips tipster={tipster} tips={theirs} record={record} date={date} />
         </div>
       )}
 

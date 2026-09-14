@@ -7,6 +7,7 @@ import { addDays, addPasses, cancelMember, deleteMember, pauseMember, resendInvi
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
+import { tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
 
 export const metadata: Metadata = { title: "Member", robots: { index: false } };
 
@@ -29,8 +30,9 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const { id } = await params;
-  const [m, events, invites] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id)]);
+  const [m, events, invites, tipster] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id)]);
   if (!m) notFound();
+  const [aff, record] = tipster ? await Promise.all([tipsterMembers(tipster.id), tipsterRecord(tipster.id)]) : [undefined, undefined];
   const now = clock();
   const live = m.access_until && new Date(m.access_until).getTime() > now;
   const giftLive = m.bonus_until && new Date(m.bonus_until).getTime() > now;
@@ -53,9 +55,34 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           {state === "invited" && <span className="badge badge-warn">Invited, not accepted</span>}
           {state === "unconfirmed" && <span className="badge badge-warn">Email not confirmed</span>}
           {m.is_admin && <span className="badge badge-prime">Admin</span>}
+          {tipster && <span className="badge badge-prime">Tipster</span>}
           {m.paused_at ? <span className="badge badge-warn">Paused</span> : live ? <span className="badge badge-prime">{m.subscription_status ?? "active"}</span> : <span className="badge badge-muted">no access</span>}
         </div>
       </div>
+
+      {tipster && aff && record && (
+        <div className="card mb-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-3">
+            <h2 className="font-display font-extrabold">
+              Tipster <span className="badge badge-muted ml-1 nums">{tipster.code}</span>
+            </h2>
+            <Link href="/admin/affiliates" className="text-xs text-blue">Affiliate settings</Link>
+          </div>
+          <div className="mt-3 grid grid-cols-2 md:grid-cols-6 gap-3">
+            <Tile n={aff.members.length} label="signed up" />
+            <Tile n={aff.members.filter((x) => x.paying).length} label="paying now" />
+            <Tile n={aff.clicks30} label="clicks, 30d" />
+            <Tile n={aff.members.length ? `${Math.round(aff.members.reduce((a, x) => a + x.days, 0) / aff.members.length)}d` : "—"} label="avg time on" />
+            <Tile n={record.n ? `${record.units > 0 ? "+" : record.units < 0 ? "−" : ""}${Math.abs(record.units).toFixed(1)}u` : "—"} label={`tips record, ${record.n} calls`} />
+            <Tile n={`${Number(tipster.commission_pct)}%`} label="commission" />
+          </div>
+          {aff.members.length > 0 && (
+            <p className="mt-3 text-xs text-ink-soft nums">
+              Sign-ups: {aff.members.map((x) => `${new Date(`${x.since}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })} (${x.days}d${x.paying ? ", paying" : ""})`).join(" · ")}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
         <Tile n={money(m.total_spent_cents ?? 0)} label="spent" />

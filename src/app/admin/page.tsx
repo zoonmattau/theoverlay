@@ -8,6 +8,7 @@ import { accountState, isAdmin, listMembers, now as clock, overview, recentEvent
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
+import { allTipsters } from "@/lib/creators";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
@@ -30,7 +31,8 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const q = typeof sp.q === "string" ? sp.q : "";
-  const [stats, members, events, card] = await Promise.all([overview(), listMembers(q || undefined), recentEvents(undefined, 40), getTodayCard()]);
+  const [stats, members, events, card, tipsters] = await Promise.all([overview(), listMembers(q || undefined), recentEvents(undefined, 40), getTodayCard(), allTipsters()]);
+  const tipsterIds = new Set(tipsters.map((t) => t.user_id));
   const now = clock();
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
@@ -150,7 +152,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
                         <span className="badge badge-warn">Unconfirmed</span>
                       )}
                     </td>
-                    <td>{m.plan ? (planById(m.plan)?.name ?? m.plan) : "—"}</td>
+                    <td>{tipsterIds.has(m.id) ? <span className="badge badge-prime">Tipster</span> : m.plan ? (planById(m.plan)?.name ?? m.plan) : "—"}</td>
                     <td>
                       {m.paused_at ? (
                         <span className="badge badge-warn">Paused</span>

@@ -2021,3 +2021,21 @@ body {
 .cond-tile.tip::after {
   max-width: 320px;
 }
+
+/* Live tips from the tipster you follow, on the Tipsters link. */
+.topbar-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  margin-left: 6px;
+  border-radius: 999px;
+  background: var(--color-lime);
+  color: var(--color-ink);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  vertical-align: 1px;
+}

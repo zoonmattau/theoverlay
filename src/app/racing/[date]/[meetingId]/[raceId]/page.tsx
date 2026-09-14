@@ -13,8 +13,10 @@ import { RunnerTable } from "@/components/RunnerTable";
 import { Section } from "@/components/Section";
 import { SelectionCards } from "@/components/SelectionCards";
 import { TrackMenu, type MiniMeeting } from "@/components/TrackMenu";
+import { TipsterTips } from "@/components/TipsterTips";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
+import { creatorTips, followedTipster } from "@/lib/creators";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
@@ -78,6 +80,8 @@ async function Race({ params }: { params: Props["params"] }) {
   const nextHref = raceHref(meeting.races[idx + 1]);
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
+  const tipster = await followedTipster(viewer);
+  const theirs = tipster ? (await creatorTips(tipster.id, date)).filter((t) => t.race_id === raceId) : [];
 
   // The mini matrix behind the track name: every race on the day, coloured
   // like the board.
@@ -216,6 +220,8 @@ async function Race({ params }: { params: Props["params"] }) {
           <Link href="/pricing" className="btn btn-primary ml-auto">Upgrade or buy a pass</Link>
         </div>
       )}
+
+      {tipster && theirs.length > 0 && <TipsterTips tipster={tipster} tips={theirs} date={date} compact />}
 
       {!released ? (
         <ReleaseNotice hour={RELEASE_HOUR} />
