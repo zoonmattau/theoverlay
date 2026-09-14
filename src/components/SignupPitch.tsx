@@ -1,3 +1,5 @@
+import { connection } from "next/server";
+
 import { NextTipTicker } from "./NextTipTicker";
 import { getTodayCard, RELEASE_HOUR } from "@/lib/model/source";
 
@@ -6,6 +8,8 @@ import { getTodayCard, RELEASE_HOUR } from "@/lib/model/source";
  * the next one jumping, so the page shows what is on offer right now.
  */
 export async function SignupPitch({ dark }: { dark?: boolean }) {
+  // Read at request time: the count and the clock are only right now.
+  await connection();
   const { meetings, released } = await getTodayCard();
   const calls = meetings.flatMap((m) =>
     m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched).map((x) => ({ track: m.track, raceNumber: r.raceNumber, jump: r.jumpTime, run: Boolean(r.result?.length), side: x.signal }))),
