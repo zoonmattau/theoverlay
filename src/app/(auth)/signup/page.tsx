@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { Suspense } from "react";
 
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/app/(auth)/AuthShell";
 import { SignupPitch } from "@/components/SignupPitch";
+import { AFF_COOKIE, cleanCode } from "@/lib/affiliates";
 
 export const metadata: Metadata = { title: "Create account" };
 
@@ -25,7 +27,9 @@ export default function Page({ searchParams }: PageProps<"/signup">) {
 }
 
 async function Form({ searchParams }: { searchParams: PageProps<"/signup">["searchParams"] }) {
-  const sp = await searchParams;
+  const [sp, jar] = await Promise.all([searchParams, cookies()]);
   const next = typeof sp.next === "string" ? sp.next : undefined;
-  return <AuthForm mode="signup" next={next} />;
+  // The affiliate link puts its code in the URL; a cookie remembers an earlier click.
+  const aff = cleanCode(typeof sp.aff === "string" ? sp.aff : jar.get(AFF_COOKIE)?.value ?? "") || undefined;
+  return <AuthForm mode="signup" next={next} affCode={aff} />;
 }

@@ -5,16 +5,15 @@ import { AFF_COOKIE, AFF_DAYS, affiliateByCode, logClick } from "@/lib/affiliate
 /**
  * An affiliate link: theoverlay.com.au/go/CODE, optionally ?to=/pricing.
  * Logs the click, remembers the code in a cookie for 90 days, sends the
- * visitor on. Unknown codes just land on the home page; a tipster's code
- * lands on their page.
+ * visitor to sign up with the code filled in. Unknown codes just land on
+ * the home page.
  */
 const BOT = /bot|crawl|spider|preview|facebookexternalhit|slackbot|twitterbot|whatsapp|telegram|discord|linkedin|skype|embedly|quora|pinterest|headlesschrome/i;
 
 export async function GET(request: NextRequest, ctx: RouteContext<"/go/[code]">) {
   const { code } = await ctx.params;
   const aff = await affiliateByCode(code);
-  // A tipster's link lands on their page unless it says otherwise.
-  const to = request.nextUrl.searchParams.get("to") ?? (aff && (aff as { user_id?: string | null }).user_id ? `/t/${aff.code}` : "/");
+  const to = request.nextUrl.searchParams.get("to") ?? (aff ? `/signup?aff=${aff.code}` : "/");
   const path = to.startsWith("/") && !to.startsWith("//") ? to : "/";
   const target = new URL(path, request.nextUrl.origin);
   const res = NextResponse.redirect(target, 302);

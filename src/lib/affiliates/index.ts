@@ -19,6 +19,9 @@ export interface Affiliate {
 
 export const cleanCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32);
 
+/** The code from whatever someone typed: a bare code or the whole /go/CODE link. */
+export const codeFromInput = (value: string) => cleanCode(value.trim().replace(/^.*\/go\//i, "").split(/[?#/]/)[0] ?? "");
+
 export async function affiliateByCode(code: string): Promise<Affiliate | undefined> {
   const clean = cleanCode(code);
   if (!clean) return undefined;

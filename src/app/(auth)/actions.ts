@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-import { AFF_COOKIE, attributeSignup } from "@/lib/affiliates";
+import { AFF_COOKIE, attributeSignup, codeFromInput } from "@/lib/affiliates";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { EMAILS } from "@/lib/email/messages";
@@ -55,8 +55,11 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   const fullName = String(form.get("name") ?? "").trim().slice(0, 120);
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-  const next = safeNext(form.get("next"));
-  const aff = (await cookies()).get(AFF_COOKIE)?.value;
+  // The affiliate field wins over the cookie an earlier click left behind.
+  const aff = codeFromInput(String(form.get("aff") ?? "")) || (await cookies()).get(AFF_COOKIE)?.value;
+  // Someone an affiliate sent lands on the plans once their email is confirmed.
+  const wanted = safeNext(form.get("next"));
+  const next = wanted === "/" && aff ? "/pricing" : wanted;
   const meta = { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : aff ? `affiliate:${aff}` : "signup", ...(ref ? { ref } : {}) };
 
   if (ownEmails()) {

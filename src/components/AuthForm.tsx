@@ -12,12 +12,12 @@ type Mode = "login" | "signup" | "forgot" | "reset";
 const ACTIONS = { login: signIn, signup: signUp, forgot: requestReset, reset: updatePassword };
 const SUBMIT = { login: "Log in", signup: "Create account", forgot: "Send reset link", reset: "Save new password" };
 
-export function AuthForm({ mode, next, refCode }: { mode: Mode; next?: string; refCode?: string }) {
+export function AuthForm({ mode, next, refCode, affCode }: { mode: Mode; next?: string; refCode?: string; affCode?: string }) {
   const [state, formAction, pending] = useActionState(ACTIONS[mode], EMPTY);
 
   return (
     <form action={formAction} className="space-y-4">
-      <input type="hidden" name="next" value={next ?? "/"} />
+      <input type="hidden" name="next" value={next ?? ""} />
       {refCode && <input type="hidden" name="ref" value={refCode} />}
 
       {mode === "signup" && (
@@ -54,6 +54,13 @@ export function AuthForm({ mode, next, refCode }: { mode: Mode; next?: string; r
             Forgot your password?
           </Link>
         </p>
+      )}
+
+      {mode === "signup" && !refCode && (
+        <label className="field">
+          <span>Affiliate link</span>
+          <input name="aff" type="text" autoComplete="off" defaultValue={affCode ?? ""} placeholder="The link or code someone sent you, if any" />
+        </label>
       )}
 
       {mode === "signup" && (
