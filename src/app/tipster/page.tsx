@@ -147,7 +147,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
                     <td className="font-semibold">{t.tab_number}. {t.horse_name}</td>
                     <td><span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}</span></td>
                     <td className="text-right nums">
-                      {price(Number(t.price))}{t.bookie ? <span className="block text-xs text-ink-soft">{t.bookie}</span> : null}
+                      {price(Number(t.price))}{t.bookie || t.bookie_price ? <span className="block text-xs text-ink-soft">{t.bookie_price ? price(Number(t.bookie_price)) : ""}{t.bookie ? ` at ${t.bookie}` : ""}</span> : null}
                       {priceFlagged(t) && <span className="block badge badge-warn mt-1" title={`Best price we saw when you posted was ${price(Number(t.market_at_post))}`}>over market</span>}
                     </td>
                     <td className="pl-3 text-ink-secondary text-xs max-w-xs">{t.comment}</td>

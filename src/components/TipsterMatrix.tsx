@@ -113,7 +113,7 @@ export function TipsterMatrix({ meetings, date, action, late }: { meetings: Matr
               await action(fd);
               setPicked(undefined);
             }}
-            className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] items-end text-sm"
+            className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto] items-end text-sm"
           >
             <input type="hidden" name="date" value={date} />
             <input type="hidden" name="raceId" value={race.r.raceId} />
@@ -130,8 +130,10 @@ export function TipsterMatrix({ meetings, date, action, late }: { meetings: Matr
               <select name="side" className="field-input" id={`side-${race.r.raceId}`}><option value="back">Bet</option><option value="lay">Lay</option></select>
             </label>
             <label className="field"><span>Your price</span><input name="price" id={`price-${race.r.raceId}`} type="number" step="0.01" min="1.01" required placeholder="4.50" className="field-input w-28" /></label>
+            <label className="field"><span>Bookie price</span><input name="bookiePrice" id={`bookieprice-${race.r.raceId}`} type="number" step="0.01" min="1.01" placeholder="4.20" className="field-input w-28" /></label>
+            <label className="field"><span>Bookie price</span><input name="bookiePrice" id={`bookieprice-${race.r.raceId}`} type="number" step="0.01" min="1.01" placeholder="4.20" className="field-input w-28" /></label>
             <label className="field"><span>Bookie</span><input name="bookie" id={`bookie-${race.r.raceId}`} maxLength={40} className="field-input w-36" placeholder="Sportsbet" /></label>
-            <label className="field sm:col-span-3"><span>Why, one or two sentences</span><input name="comment" id={`why-${race.r.raceId}`} maxLength={280} className="field-input w-full" placeholder="Maps to lead on a track that favours leaders, and drops back in class." /></label>
+            <label className="field sm:col-span-4"><span>Why, one or two sentences</span><input name="comment" id={`why-${race.r.raceId}`} maxLength={280} className="field-input w-full" placeholder="Maps to lead on a track that favours leaders, and drops back in class." /></label>
             <button className="btn btn-primary btn-sm" type="submit">Post</button>
           </form>
           <p className="mt-2 text-xs text-ink-soft">Runner prices in the list are the best we can see now. A price more than 20% above that gets a flag next to the call, so keep it to one you can actually get.</p>

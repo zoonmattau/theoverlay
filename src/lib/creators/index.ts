@@ -33,6 +33,8 @@ export interface CreatorTip {
   price: number;
   comment: string | null;
   bookie: string | null;
+  /** What the bookie named has it at. */
+  bookie_price: number | null;
   /** Best market price we saw when it was posted. */
   market_at_post: number | null;
   created_at: string;

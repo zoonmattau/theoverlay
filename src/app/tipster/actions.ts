@@ -26,6 +26,8 @@ export async function postTip(form: FormData): Promise<void> {
   const price = Math.round(Number(form.get("price")) * 100) / 100;
   const comment = String(form.get("comment") ?? "").trim().slice(0, 280) || null;
   const bookie = String(form.get("bookie") ?? "").trim().slice(0, 40) || null;
+  const bookiePrice = Number(form.get("bookiePrice"));
+  const bookie_price = bookiePrice > 1 ? Math.round(bookiePrice * 100) / 100 : null;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !raceId || !tab || !(price > 1)) return;
 
   // The runner has to be on the card, and the race not yet run.
@@ -40,7 +42,7 @@ export async function postTip(form: FormData): Promise<void> {
   await supabaseAdmin().from("creator_tips").upsert(
     {
       affiliate_id: tipster.id, date, meeting_id: meeting.meetingId, race_id: raceId, race_number: race.raceNumber, track: meeting.track,
-      tab_number: tab, horse_name: runner.horseName, side, price, comment, bookie,
+      tab_number: tab, horse_name: runner.horseName, side, price, comment, bookie, bookie_price,
       // The best price we could see at the time, so a price a long way above it can be flagged.
       market_at_post: runner.marketPrice ?? null,
     },

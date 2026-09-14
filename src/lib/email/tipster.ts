@@ -20,7 +20,7 @@ export function tipsterTable(tips: CreatorTip[]): string {
       const colour = t.side === "back" ? "#1f6fd6" : "#d93636";
       const badge = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${colour};color:#fff;font:700 11px ${FONT};text-transform:uppercase">${t.side === "back" ? "bet" : "lay"}</span>`;
       const url = `${SITE}/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`;
-      const where = t.bookie ? `<span style="color:#6b716a"> at ${esc(t.bookie)}</span>` : "";
+      const where = t.bookie || t.bookie_price ? `<span style="color:#6b716a"> ${t.bookie_price ? price(Number(t.bookie_price)) : ""}${t.bookie ? ` at ${esc(t.bookie)}` : ""}</span>` : "";
       const flag = priceFlagged(t) ? ` <span style="color:#c47d0a;font-size:12px">(over the market price we saw)</span>` : "";
       const why = t.comment ? `<div style="margin-top:3px;font:400 13px ${FONT};color:#454a44">${esc(t.comment)}</div>` : "";
       return `<tr>${cell(`<a href="${url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(t.track)} R${t.race_number}</a>`)}${cell(`<strong>${t.tab_number}. ${esc(t.horse_name)}</strong>${why}`)}${cell(`<strong style="color:${colour}">${price(Number(t.price))}</strong>${where}${flag}`, "white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
