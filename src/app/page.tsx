@@ -8,6 +8,7 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 
 import { NextToGo } from "@/components/NextToGo";
 import { RaceMatrix } from "@/components/RaceMatrix";
+import { Record } from "@/components/Record";
 import { getViewer } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { longDate } from "@/lib/format";
@@ -37,6 +38,10 @@ export default function Page({ searchParams }: PageProps<"/">) {
         <TodayCard searchParams={searchParams} />
       </Suspense>
 
+      <section className="mt-6">
+        <Record />
+      </section>
+
       <WhyUs />
       <FaqList items={FAQ} />
     </div>
@@ -59,10 +64,8 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const released = card.released || viewer.admin;
   const races = meetings.flatMap((m) => m.races);
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
-  // Calls for the whole day, run or not, so the number never reads as empty late on.
-  const all = races.flatMap((r) => r.runners);
-  const bets = all.filter((r) => r.signal === "back").length;
-  const lays = all.filter((r) => r.signal === "lay").length;
+  // Bets for the whole day, run or not, so the number never reads as empty late on.
+  const bets = races.flatMap((r) => r.runners).filter((r) => r.signal === "back").length;
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
@@ -88,7 +91,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
         <Tile n={races.length} label="races rated today" />
         <Tile n={runners} label="runners priced" />
         {released ? (
-          <Tile n={bets + lays} label={`calls today: ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}`} accent />
+          <Tile n={bets} label={bets === 1 ? "bet today" : "bets today"} accent />
         ) : (
           <Tile n={`${RELEASE_HOUR}am`} label="today's calls release" accent />
         )}

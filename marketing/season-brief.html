@@ -1,0 +1,1126 @@
+<title>Overlay Season Record</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{
+  --bg:#f3f4f0;--panel:#ffffff;--panel-alt:#f7f8f5;--surface:#eef0ea;
+  --ink:#14161a;--ink-2:#454a44;--ink-3:#6b716a;--muted:#8b918a;
+  --line:#dfe3db;--line-strong:#c9cec4;
+  --lime:#c6f24e;--lime-soft:#edf9c8;--accent:#6f9a12;
+  --blue:#1f6fd6;--blue-soft:#dcebff;--red:#d93636;--red-soft:#ffe1e1;
+  --bar:#14161a;--bar-ink:#f5f7f2;--bar-soft:#a9aea4;
+  --shadow:0 1px 2px rgba(20,22,26,.06),0 6px 20px -12px rgba(20,22,26,.18);
+  --sans:"Archivo",ui-sans-serif,system-ui,sans-serif;--mono:"IBM Plex Mono","SF Mono",Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#111316;--panel:#1b1e23;--panel-alt:#1f2328;--surface:#23272d;
+  --ink:#f5f7f2;--ink-2:#c9cec4;--ink-3:#a9aea4;--muted:#7d837c;
+  --line:#2c3138;--line-strong:#3a4048;
+  --lime-soft:#2a3a12;--accent:#c6f24e;--blue:#6ea8ff;--blue-soft:#1c2e4a;--red:#ff7a7a;--red-soft:#4a1c1c;
+  --bar:#0b0c0e;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px -12px rgba(0,0,0,.6);
+}}
+:root[data-theme="dark"]{
+  --bg:#111316;--panel:#1b1e23;--panel-alt:#1f2328;--surface:#23272d;
+  --ink:#f5f7f2;--ink-2:#c9cec4;--ink-3:#a9aea4;--muted:#7d837c;
+  --line:#2c3138;--line-strong:#3a4048;
+  --lime-soft:#2a3a12;--accent:#c6f24e;--blue:#6ea8ff;--blue-soft:#1c2e4a;--red:#ff7a7a;--red-soft:#4a1c1c;
+  --bar:#0b0c0e;--shadow:0 1px 2px rgba(0,0,0,.4),0 6px 20px -12px rgba(0,0,0,.6);
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--sans);font-size:15px;line-height:1.45;margin:0}
+.bar{background:var(--bar);color:var(--bar-ink);padding:14px 24px;display:flex;align-items:baseline;gap:16px;flex-wrap:wrap}
+.wordmark{font-weight:800;font-size:18px;letter-spacing:-.01em;color:var(--lime)}
+.bar span{color:var(--bar-soft);font-size:13px}
+.wrap{max-width:1040px;margin:0 auto;padding-block:28px 64px;padding-inline:20px;display:flex;flex-direction:column;gap:36px}
+h1{font-size:clamp(28px,4vw,40px);font-weight:800;letter-spacing:-.02em;line-height:1.05;margin:0;text-wrap:balance}
+.lede{max-width:64ch;color:var(--ink-2);margin:10px 0 0;font-size:16px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px}
+.tile{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px 18px;box-shadow:var(--shadow)}
+.tile.lead{background:var(--ink);color:var(--bar-ink);border-color:var(--ink)}
+.tile .n{font-family:var(--mono);font-size:32px;font-weight:600;letter-spacing:-.02em;line-height:1;font-variant-numeric:tabular-nums}
+.tile.lead .n{color:var(--lime)}
+.tile .l{font-size:12.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);margin-top:8px}
+.tile.lead .l{color:var(--bar-soft)}
+.tile .sub{font-size:13px;color:var(--ink-3);margin-top:4px}
+.tile.lead .sub{color:var(--bar-soft)}
+.note{background:var(--panel-alt);border-left:3px solid var(--accent);padding:12px 16px;border-radius:0 8px 8px 0;max-width:72ch;color:var(--ink-2);font-size:14px;margin:0}
+h2{font-size:22px;font-weight:700;letter-spacing:-.015em;margin:0}
+.prompt-box{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);overflow:hidden;margin-top:12px}
+.prompt-head{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--line);background:var(--panel-alt);flex-wrap:wrap}
+.prompt-head p{margin:0;font-size:13.5px;color:var(--ink-2)}
+button{font:inherit;font-weight:600;font-size:13px;background:var(--ink);color:var(--bar-ink);border:0;border-radius:6px;padding:8px 14px;cursor:pointer}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+pre{margin:0;padding:18px;white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;line-height:1.55;color:var(--ink-2);max-height:420px;overflow:auto}
+.jump{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.jump a{font-size:13px;color:var(--ink-2);background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px 12px;text-decoration:none}
+.jump a:hover{border-color:var(--line-strong);color:var(--ink)}
+.week{display:flex;flex-direction:column;gap:14px}
+.week-head{border-bottom:2px solid var(--ink);padding-bottom:8px;display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
+.week-line{margin:0;color:var(--ink-2);font-size:14px}
+.races{display:grid;grid-template-columns:repeat(auto-fill,minmax(440px,1fr));gap:14px}
+@media (max-width:520px){.races{grid-template-columns:1fr}}
+.race{background:var(--panel);border:1px solid var(--line);border-radius:8px;box-shadow:var(--shadow);padding:14px 16px 12px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.race.g1{border-color:var(--ink);border-width:2px}
+.race-head{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:baseline}
+.grade{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--accent)}
+.g1 .grade{background:var(--lime);color:#14161a;padding:2px 6px;border-radius:4px}
+.race-head h3{margin:0;font-size:17px;font-weight:700;letter-spacing:-.01em}
+.meta{grid-column:1/-1;font-size:12.5px;color:var(--ink-3)}
+.board-wrap{overflow-x:auto}
+.board{width:100%;border-collapse:collapse;font-size:14px}
+.board th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;text-align:left;padding:0 6px 6px;border-bottom:1px solid var(--line)}
+.board td{padding:6px 6px;border-bottom:1px solid var(--line);vertical-align:middle}
+.board tr:last-child td{border-bottom:0}
+.board .rk{width:22px;color:var(--muted);font-family:var(--mono);font-size:12px}
+.board .no{width:34px}
+.cloth{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:5px;background:var(--ink);color:var(--bar-ink);font-family:var(--mono);font-weight:600;font-size:13px}
+.board .name{display:block;font-weight:600}
+.board .jockey{display:block;font-size:12px;color:var(--ink-3)}
+.board .num{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+.board th.num{text-align:right}
+.board .call{width:62px;text-align:center}
+.chip{display:inline-block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;padding:3px 8px;border-radius:4px;line-height:1.2}
+.chip.prime{background:var(--lime);color:#14161a}
+.chip.bet{background:var(--blue);color:#fff}
+.chip.lay{background:var(--red);color:#fff}
+tr.won td{background:var(--blue-soft)}
+tr.won-top td{background:var(--lime-soft)}
+tr.also td{color:var(--ink-2)}
+.verdict{margin:0;font-size:13px;color:var(--ink-3);font-style:italic}
+.result{display:flex;flex-wrap:wrap;gap:6px 12px;align-items:center;background:var(--surface);border-radius:6px;padding:8px 10px;font-size:13px}
+.result-label{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.placing b{font-family:var(--mono);color:var(--ink-3);font-weight:600;margin-right:2px}
+.placing i{font-style:normal;font-family:var(--mono);color:var(--ink-3);font-size:12px}
+.ours{margin-left:auto;font-weight:700;font-size:12.5px;padding:2px 8px;border-radius:4px}
+.ours.hit-top{background:var(--lime);color:#14161a}
+.ours.hit{background:var(--blue);color:#fff}
+.ours.miss{color:var(--ink-3);border:1px solid var(--line-strong)}
+.settle{margin:0;display:flex;flex-wrap:wrap;gap:6px 14px;font-size:12.5px;font-family:var(--mono)}
+.settle .up{color:var(--accent)}
+.settle .down{color:var(--red)}
+.foot{color:var(--ink-3);font-size:13px;max-width:72ch}
+</style>
+<div class="bar"><span class="wordmark">The Overlay</span><span>Season record, 1 Aug to 12 Sep 2026, every black-type race in NSW, VIC and QLD</span></div>
+<div class="wrap">
+  <div>
+    <h1>What the board would have said</h1>
+    <p class="lede">Every Group and Listed race this season, run through the model on the form as it stood and the last best price before the jump. Nothing here is hand-picked.</p>
+  </div>
+  <div class="tiles">
+    <div class="tile lead"><div class="n">33 of 40</div><div class="l">Winners in our top four</div><div class="sub">83% of black-type races</div></div>
+    <div class="tile"><div class="n">10 of 40</div><div class="l">Rated #1 won</div><div class="sub">25% strike rate</div></div>
+    <div class="tile"><div class="n">4 of 4</div><div class="l">Group 1 winners in our four</div><div class="sub">Winx #1, Memsie #3, Moir #4, Makybe Diva #1</div></div>
+    <div class="tile"><div class="n">22 of 40</div><div class="l">Quinella inside our four</div><div class="sub">10 with the first three home</div></div>
+    <div class="tile"><div class="n">2 of 20</div><div class="l">Bets won</div><div class="sub">−7.2u at level stakes</div></div>
+    <div class="tile"><div class="n">4 of 6</div><div class="l">Lays held</div><div class="sub">+0.9u, one unit a lay</div></div>
+  </div>
+  <p class="note">The top four record is the story. The bet record is real and poor in this sample, so post it small and honest rather than leave it out. Market prices are the last best bookmaker price before the jump, not a Thursday price.</p>
+
+  <section>
+    <h2>Claude Design prompt</h2>
+    <div class="prompt-box">
+      <div class="prompt-head"><p>Paste this into Claude Design, then paste the season record (marketing/season-record.md) after it as the data.</p><button id="copy-prompt" type="button">Copy prompt</button></div>
+      <pre id="prompt-text">You are designing a set of Instagram graphics for The Overlay (theoverlay.com.au), an Australian horse racing ratings service. The model rates every runner in benchmark points and turns that into a price. When the market is longer than our price it is a bet, when the market is shorter it is a lay. The product is a race board: a dark graphite top bar with a lime wordmark, an off-white page, white panels, and a runner table with big saddlecloth style numbers, the horse name, our rated price against the market price, and a coloured chip when there is a call.
+
+Brand system, use it exactly.
+- Page #f3f4f0, panels #ffffff, ink #14161a, secondary ink #454a44, soft ink #6b716a, rules #dfe3db.
+- Graphite bar #14161a with paper text #f5f7f2. Lime #c6f24e is the wordmark and the Prime Overlay fill. Text on white uses the darker lime #6f9a12.
+- Call colours never change: lime = Prime Overlay, blue #1f6fd6 = bet, red #d93636 = lay. Use them as solid chips or cell fills, never as decoration.
+- Type: Archivo for everything, IBM Plex Mono for prices, ratings and numbers. Tabular numerals so prices line up.
+- Radius 8px, one soft shadow, no gradients, no emoji, no stock photos, no horse illustrations.
+- Copy is terse. One sentence explanations. Never an em dash. Prices are written $4.80 style, or $4.8 is fine. Positions are 1st, 2nd, 3rd. Rated #1 means our top pick.
+- Every graphic carries the wordmark top left and theoverlay.com.au bottom right, small.
+- Rated prices are ours. Never show anyone else's ratings or a benchmark figure, only our rated price, the market price and the edge in points.
+
+Formats. Make each template at 1080 x 1350 (feed) and 1080 x 1920 (story). Keep 80px safe margins.
+
+Templates to build, each as one artboard I can duplicate and fill from the data.
+
+1. Race preview, &quot;The board&quot;. Eyebrow: grade, race name, track, distance, going, prize, date. Body: our top four as a runner table. Columns: rank, saddlecloth number in a dark square, horse and jockey, Rated, Market, then a call chip (BET blue, PRIME lime, LAY red) or nothing. Any bet or lay outside the top four goes in one row under the table headed &quot;Also&quot;. Footer: the one line verdict. Story version is the same table stacked taller.
+
+2. Race review, &quot;How it ran&quot;. Same header. A result strip: 1st, 2nd, 3rd, 4th with SP. Under it the top four table again with a Finished column, the winner row filled lime when it was our #1, blue when it was in our top four, plain when it was not. One line: &quot;Winner was our #3 at $8.&quot; Calls settle with units: WON +4.00u, or 5th, minus 1u, lay held +1u.
+
+3. Saturday wrap. Big number tile: &quot;8 of 8&quot; winners in our top four, then a compact list of every race that day, one row each: race, our rank of the winner, its price. Bets and lays for the day with units.
+
+4. Group 1 spotlight. Square 1080 x 1080 too. The race name huge, then the winner, its rank and rated price against SP. Four of these: Winx Stakes, Memsie Stakes, Moir Stakes, Makybe Diva Stakes.
+
+5. Season scoreboard. Winner in our top four 33 of 40 (83%), rated #1 won 10 of 40, Group 1 winners in our top four 4 of 4, quinella inside our top four 22 of 40. Then the honest line: bets 2 from 20 at level stakes, minus 7.2 units, lays 4 from 6 held, plus 0.9 units. Put the top four record first and biggest, the bet record smaller but present.
+
+6. Story teaser, a countdown style card: &quot;Saturday's board is up&quot;, the race and jump time, blurred table, &quot;Free race every day&quot; as the call to action.
+
+Rules on the data. Use only the prices and results in the record. Do not invent a horse, a price or a finish. Where a race has no call, the preview shows the top four and nothing else. Dates run Sat 1 Aug 2026 to Sat 12 Sep 2026. A caption line for each post is welcome, one sentence, plain, no hashtags in the graphic.
+
+Start with the two P.B. Lawrence Stakes cards (preview and review, Caulfield, 15 Aug: our top three ran the trifecta in order) and the Makybe Diva Stakes pair (Flemington, 12 Sep: rated #1 Sheza Alibi won at $1.6), so I can check the look before the rest.</pre>
+    </div>
+  </section>
+
+  <section>
+    <h2>Week by week</h2>
+    <nav class="jump" aria-label="Jump to a Saturday"><a href="#w2026-08-01">1 Aug</a><a href="#w2026-08-08">8 Aug</a><a href="#w2026-08-15">15 Aug</a><a href="#w2026-08-22">22 Aug</a><a href="#w2026-08-29">29 Aug</a><a href="#w2026-09-05">5 Sept</a><a href="#w2026-09-12">12 Sept</a></nav>
+  </section>
+  <section class="week" id="w2026-08-01">
+  <header class="week-head">
+    <h2>Saturday 1 August</h2>
+    <p class="week-line"><strong>0 of 1</strong> winners in our top four. Bets 0 of 2, −2.0u. Lays 1 of 1 held, +1.0u.</p>
+  </header>
+  <div class="races"><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Aurie's Star Hcp</h3>
+        <span class="meta">Flemington R7 · 1200m · Good 3 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Arkansaw Kid</span><span class="jockey">Mark Zahra</span></td><td class="num">$3.9</td><td class="num">$4.8</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Ndola</span><span class="jockey">Jye McNeil</span></td><td class="num">$5.3</td><td class="num">$3.2</td><td class="call"><span class="chip lay">Lay</span></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Star Patrol</span><span class="jockey">Craig Newitt</span></td><td class="num">$5.5</td><td class="num">$5.5</td><td class="call"></td><td class="num">6th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Cote Atlantique</span><span class="jockey">Declan Bates</span></td><td class="num">$7.5</td><td class="num">$10</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">5th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Arkansaw Kid against Ndola at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Boomtown Boss <i>$13</i></span><span class="placing"><b>2</b> Royal Insignia <i>$8.5</i></span><span class="placing"><b>3</b> Arkansaw Kid <i>$4.8</i></span><span class="placing"><b>4</b> Ndola <i>$3</i></span>
+        <span class="ours miss">Not in our four, rated $14.6</span>
+      </div>
+      <p class="settle"><span class="down">Bet Arkansaw Kid $4.8: 3rd, −1u</span><span class="down">Bet Cote Atlantique $10: 5th, −1u</span><span class="up">Lay Ndola $3.2: held, +1u</span></p>
+    </article></div></section><section class="week" id="w2026-08-08">
+  <header class="week-head">
+    <h2>Saturday 8 August</h2>
+    <p class="week-line"><strong>1 of 1</strong> winners in our top four.</p>
+  </header>
+  <div class="races"><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Missile Stakes</h3>
+        <span class="meta">Randwick R8 · 1200m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Angel Capital</span><span class="jockey">James McDonald</span></td><td class="num">$2.3</td><td class="num">$2.25</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Gangsta Granny</span><span class="jockey">Tim Clark</span></td><td class="num">$4</td><td class="num">$3.8</td><td class="call"></td><td class="num">6th</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Ninja</span><span class="jockey">Tommy Berry</span></td><td class="num">$8</td><td class="num">$6.5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Napoleonic</span><span class="jockey">Chad Schofield</span></td><td class="num">$11</td><td class="num">$10</td><td class="call"></td><td class="num">2nd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Angel Capital against Gangsta Granny at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Ninja <i>$5</i></span><span class="placing"><b>2</b> Napoleonic <i>$9</i></span><span class="placing"><b>3</b> Angel Capital <i>$2.2</i></span><span class="placing"><b>4</b> Midnight Dynamite <i>$10</i></span>
+        <span class="ours hit">Our #3, rated $8</span>
+      </div>
+      
+    </article></div></section><section class="week" id="w2026-08-15">
+  <header class="week-head">
+    <h2>Saturday 15 August</h2>
+    <p class="week-line"><strong>5 of 5</strong> winners in our top four, <strong>2</strong> rated #1 won. Bets 0 of 4, −4.0u.</p>
+  </header>
+  <div class="races"><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>P.B. Lawrence Stakes</h3>
+        <span class="meta">Caulfield R7 · 1400m · Soft 6 · $300k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Cosmic Crusader</span><span class="jockey">William Pike</span></td><td class="num">$3.1</td><td class="num">$2.7</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Private Eye</span><span class="jockey">Nash Rawiller</span></td><td class="num">$3.8</td><td class="num">$3.6</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Evaporate</span><span class="jockey">Blake Shinn</span></td><td class="num">$6.4</td><td class="num">$5.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Feroce</span><span class="jockey">Billy Egan</span></td><td class="num">$13.9</td><td class="num">$15</td><td class="call"></td><td class="num">5th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Cosmic Crusader against Private Eye at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Cosmic Crusader <i>$2.5</i></span><span class="placing"><b>2</b> Private Eye <i>$3.4</i></span><span class="placing"><b>3</b> Evaporate <i>$5</i></span><span class="placing"><b>4</b> Pinstriped <i>$31</i></span>
+        <span class="ours hit-top">Our #1, rated $3.1</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Vain Stakes</h3>
+        <span class="meta">Caulfield R5 · 1100m · Soft 6 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Closer To Free</span><span class="jockey">Mark Zahra</span></td><td class="num">$3.3</td><td class="num">$2.35</td><td class="call"></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Big Wigs</span><span class="jockey">Lachlan Neindorf</span></td><td class="num">$7.7</td><td class="num">$6.5</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Hard Kick</span><span class="jockey">Damian Lane</span></td><td class="num">$8</td><td class="num">$8</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Tornado Valley</span><span class="jockey">Declan Bates</span></td><td class="num">$9.3</td><td class="num">$9.5</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class="also "><td class="rk">–</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Outspan</span><span class="jockey">Chad Schofield</span></td><td class="num">$9.9</td><td class="num">$15</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">6th</td></tr>
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Closer To Free settles close enough to hold off Hard Kick once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Hard Kick <i>$7</i></span><span class="placing"><b>2</b> Organised Crime <i>$26</i></span><span class="placing"><b>3</b> Confederation <i>$18</i></span><span class="placing"><b>4</b> Big Wigs <i>$6</i></span>
+        <span class="ours hit">Our #3, rated $8</span>
+      </div>
+      <p class="settle"><span class="down">Bet Outspan $15: 6th, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Quezette Stakes</h3>
+        <span class="meta">Caulfield R6 · 1100m · Soft 6 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Natural Fling</span><span class="jockey">Damian Lane</span></td><td class="num">$2.9</td><td class="num">$2.6</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Riverina Lulu</span><span class="jockey">Jordan Childs</span></td><td class="num">$6.8</td><td class="num">$7</td><td class="call"></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Lara Antipova</span><span class="jockey">Michael Dee</span></td><td class="num">$9.7</td><td class="num">$9.5</td><td class="call"></td><td class="num">9th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">14</span></td><td class="horse"><span class="name">Portinari</span><span class="jockey">Blake Shinn</span></td><td class="num">$14.3</td><td class="num">$9.5</td><td class="call"></td><td class="num">4th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Natural Fling settles close enough to hold off Riverina Lulu once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Natural Fling <i>$2.4</i></span><span class="placing"><b>2</b> Scintillation <i>$16</i></span><span class="placing"><b>3</b> Oh Yes She Did <i>$14</i></span><span class="placing"><b>4</b> Portinari <i>$9</i></span>
+        <span class="ours hit-top">Our #1, rated $2.9</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>Regal Roller Stakes</h3>
+        <span class="meta">Caulfield R8 · 1200m · Soft 6 · $175k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Arkansaw Kid</span><span class="jockey">Mark Zahra</span></td><td class="num">$6</td><td class="num">$7</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">11th</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Shadhavar</span><span class="jockey">Craig Williams</span></td><td class="num">$7.5</td><td class="num">$5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Warnie</span><span class="jockey">Ethan Brown</span></td><td class="num">$8</td><td class="num">$13</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Recommendation</span><span class="jockey">Blake Shinn</span></td><td class="num">$8.1</td><td class="num">$7</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class="also "><td class="rk">–</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Persian Spirit</span><span class="jockey">Harry Coffey</span></td><td class="num">$8.9</td><td class="num">$12</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">2nd</td></tr>
+        </tbody>
+      </table></div>
+      <p class="verdict">Arkansaw Kid against Shadhavar at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Shadhavar <i>$5</i></span><span class="placing"><b>2</b> Persian Spirit <i>$10</i></span><span class="placing"><b>3</b> Recommendation <i>$6</i></span><span class="placing"><b>4</b> Warnie <i>$12</i></span>
+        <span class="ours hit">Our #2, rated $7.5</span>
+      </div>
+      <p class="settle"><span class="down">Bet Arkansaw Kid $7: 11th, −1u</span><span class="down">Bet Warnie $13: 4th, −1u</span><span class="down">Bet Persian Spirit $12: 2nd, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>Rosebud</h3>
+        <span class="meta">Rosehill R8 · 1100m · Soft 5 · $195k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Blue Door</span><span class="jockey">Rachel King</span></td><td class="num">$4.8</td><td class="num">$3.9</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Central Europe</span><span class="jockey">James McDonald</span></td><td class="num">$6.9</td><td class="num">$6.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Chilly Girl</span><span class="jockey">Tim Clark</span></td><td class="num">$6.9</td><td class="num">$7</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Castillo King</span><span class="jockey">Tommy Berry</span></td><td class="num">$8.3</td><td class="num">$5.5</td><td class="call"></td><td class="num">4th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Blue Door settles close enough to hold off Central Europe once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Chilly Girl <i>$6.5</i></span><span class="placing"><b>2</b> Blue Door <i>$3.6</i></span><span class="placing"><b>3</b> Central Europe <i>$5.5</i></span><span class="placing"><b>4</b> Castillo King <i>$5</i></span>
+        <span class="ours hit">Our #3, rated $6.9</span>
+      </div>
+      
+    </article></div></section><section class="week" id="w2026-08-22">
+  <header class="week-head">
+    <h2>Saturday 22 August</h2>
+    <p class="week-line"><strong>6 of 6</strong> winners in our top four, <strong>3</strong> rated #1 won. Bets 0 of 1, −1.0u. Lays 0 of 1 held, −1.6u.</p>
+  </header>
+  <div class="races"><article class="race g1">
+      <div class="race-head">
+        <span class="grade">Group 1</span>
+        <h3>Winx Stakes</h3>
+        <span class="meta">Randwick R9 · 1400m · Soft 5 · $975k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">8</span></td><td class="horse"><span class="name">Autumn Glow</span><span class="jockey">James McDonald</span></td><td class="num">$2.2</td><td class="num">$1.8</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">14</span></td><td class="horse"><span class="name">Sheza Alibi</span><span class="jockey">Luke Nolen</span></td><td class="num">$4.5</td><td class="num">$3.7</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Aeliana</span><span class="jockey">Nash Rawiller</span></td><td class="num">$12.8</td><td class="num">$15</td><td class="call"></td><td class="num">11th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">12</span></td><td class="horse"><span class="name">Lady Shenandoah</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$16.7</td><td class="num">$23</td><td class="call"></td><td class="num">4th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Autumn Glow against Sheza Alibi at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Autumn Glow <i>$1.7</i></span><span class="placing"><b>2</b> Sheza Alibi <i>$3.5</i></span><span class="placing"><b>3</b> Gringotts <i>$21</i></span><span class="placing"><b>4</b> Lady Shenandoah <i>$19</i></span>
+        <span class="ours hit-top">Our #1, rated $2.2</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Silver Shadow Stakes</h3>
+        <span class="meta">Randwick R7 · 1200m · Soft 5 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Cherry Bomshell</span><span class="jockey">Ben E Thompson</span></td><td class="num">$4.9</td><td class="num">$3.9</td><td class="call"></td><td class="num">10th</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Pembrey</span><span class="jockey">James McDonald</span></td><td class="num">$5.7</td><td class="num">$5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Agrarian Girl</span><span class="jockey">Tim Clark</span></td><td class="num">$6</td><td class="num">$6.5</td><td class="call"></td><td class="num">8th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Bangkok Hottie</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$9.2</td><td class="num">$6</td><td class="call"></td><td class="num">2nd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Cherry Bomshell settles close enough to hold off Pembrey once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Pembrey <i>$4.4</i></span><span class="placing"><b>2</b> Bangkok Hottie <i>$6</i></span><span class="placing"><b>3</b> Global Goal <i>$14</i></span><span class="placing"><b>4</b> Coco Affair <i>$21</i></span>
+        <span class="ours hit">Our #2, rated $5.7</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Premier's Cup</h3>
+        <span class="meta">Randwick R5 · 2000m · Soft 6 · $244k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Boniface</span><span class="jockey">Tommy Berry</span></td><td class="num">$3.8</td><td class="num">$2.6</td><td class="call"><span class="chip lay">Lay</span></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">So You Are</span><span class="jockey">Rachel King</span></td><td class="num">$3.9</td><td class="num">$3.9</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Thebudgiesmugla</span><span class="jockey">Dylan Gibbons</span></td><td class="num">$6.4</td><td class="num">$6.5</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Matusalem</span><span class="jockey">Tyler Schiller</span></td><td class="num">$8.1</td><td class="num">$8.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Boniface against So You Are at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Boniface <i>$2.45</i></span><span class="placing"><b>2</b> So You Are <i>$3.6</i></span><span class="placing"><b>3</b> Matusalem <i>$8</i></span><span class="placing"><b>4</b> Thebudgiesmugla <i>$6</i></span>
+        <span class="ours hit-top">Our #1, rated $3.8</span>
+      </div>
+      <p class="settle"><span class="down">Lay Boniface $2.6: it won, −1.60u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Toy Show Qlty</h3>
+        <span class="meta">Randwick R6 · 1100m · Soft 5 · $244k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Apocalyptic</span><span class="jockey">Tommy Berry</span></td><td class="num">$3</td><td class="num">$2.75</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Savvy Hallie</span><span class="jockey">Nash Rawiller</span></td><td class="num">$3.7</td><td class="num">$3.6</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Prima Bella</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$7.6</td><td class="num">$5.5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Gatwick</span><span class="jockey">Dylan Gibbons</span></td><td class="num">$10.6</td><td class="num">$10</td><td class="call"></td><td class="num">6th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Apocalyptic settles close enough to hold off Savvy Hallie once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Prima Bella <i>$5.5</i></span><span class="placing"><b>2</b> Stardom <i>$16</i></span><span class="placing"><b>3</b> Apocalyptic <i>$2.5</i></span><span class="placing"><b>4</b> Catch The Glory <i>$17</i></span>
+        <span class="ours hit">Our #3, rated $7.6</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Show County Qlty</h3>
+        <span class="meta">Randwick R8 · 1200m · Soft 5 · $244k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Soothsayer</span><span class="jockey">Rachel King</span></td><td class="num">$4.7</td><td class="num">$3.5</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Midnight In Tokyo</span><span class="jockey">Ben E Thompson</span></td><td class="num">$5.9</td><td class="num">$6</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Enriched</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$6.3</td><td class="num">$5</td><td class="call"></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">8</span></td><td class="horse"><span class="name">Campione D'italia</span><span class="jockey">Tommy Berry</span></td><td class="num">$6.6</td><td class="num">$7</td><td class="call"></td><td class="num">7th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Soothsayer against Midnight In Tokyo at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Midnight In Tokyo <i>$5</i></span><span class="placing"><b>2</b> Soothsayer <i>$3.4</i></span><span class="placing"><b>3</b> Matcha Latte <i>$8.5</i></span><span class="placing"><b>4</b> Infancy <i>$15</i></span>
+        <span class="ours hit">Our #2, rated $5.9</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Carlyon Stakes</h3>
+        <span class="meta">Sandown Hillside R7 · 1000m · Heavy 8 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Cavalry Girl</span><span class="jockey">Craig Williams</span></td><td class="num">$3</td><td class="num">$2.5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Hedged</span><span class="jockey">Harry Coffey</span></td><td class="num">$3.8</td><td class="num">$5</td><td class="call"><span class="chip prime">Prime</span></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Beast Mode</span><span class="jockey">Blake Shinn</span></td><td class="num">$9.9</td><td class="num">$7</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Losesomewinmore</span><span class="jockey">Mark Zahra</span></td><td class="num">$10.9</td><td class="num">$8</td><td class="call"></td><td class="num">3rd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Cavalry Girl settles close enough to hold off Hedged once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Cavalry Girl <i>$2.3</i></span><span class="placing"><b>2</b> Bazaball Rewarded <i>$10</i></span><span class="placing"><b>3</b> Losesomewinmore <i>$7.5</i></span><span class="placing"><b>4</b> Beast Mode <i>$6</i></span>
+        <span class="ours hit-top">Our #1, rated $3</span>
+      </div>
+      <p class="settle"><span class="down">Bet Hedged $5: 5th, −1u</span></p>
+    </article></div></section><section class="week" id="w2026-08-29">
+  <header class="week-head">
+    <h2>Saturday 29 August</h2>
+    <p class="week-line"><strong>5 of 7</strong> winners in our top four, <strong>1</strong> rated #1 won. Bets 1 of 5, −1.7u. Lays 2 of 3 held, +0.5u.</p>
+  </header>
+  <div class="races"><article class="race g1">
+      <div class="race-head">
+        <span class="grade">Group 1</span>
+        <h3>Memsie Stakes</h3>
+        <span class="meta">Caulfield R8 · 1400m · Soft 6 · $750k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Jimmysstar</span><span class="jockey">Ethan Brown</span></td><td class="num">$4.1</td><td class="num">$4</td><td class="call"></td><td class="num">9th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Cosmic Crusader</span><span class="jockey">William Pike</span></td><td class="num">$4.8</td><td class="num">$3.4</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Beiwacht</span><span class="jockey">Nash Rawiller</span></td><td class="num">$9</td><td class="num">$7</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Angel Capital</span><span class="jockey">Ben Melham</span></td><td class="num">$10.1</td><td class="num">$10</td><td class="call"></td><td class="num">10th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Jimmysstar settles close enough to hold off Cosmic Crusader once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Beiwacht <i>$6</i></span><span class="placing"><b>2</b> Mr Brightside <i>$21</i></span><span class="placing"><b>3</b> Cosmic Crusader <i>$3.3</i></span><span class="placing"><b>4</b> Treasurethe Moment <i>$10</i></span>
+        <span class="ours hit">Our #3, rated $9</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Courtza Stakes</h3>
+        <span class="meta">Caulfield R5 · 1200m · Soft 6 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Shadhavar</span><span class="jockey">Damian Lane</span></td><td class="num">$2.8</td><td class="num">$2.1</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">11</span></td><td class="horse"><span class="name">Custom</span><span class="jockey">Ethan Brown</span></td><td class="num">$10.8</td><td class="num">$9</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Belle Cheval</span><span class="jockey">Craig Williams</span></td><td class="num">$11.8</td><td class="num">$19</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">12th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Gold Medallist</span><span class="jockey">Luke Nolen</span></td><td class="num">$13.5</td><td class="num">$15</td><td class="call"></td><td class="num">5th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Shadhavar settles close enough to hold off Belle Cheval once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Custom <i>$6</i></span><span class="placing"><b>2</b> Photograph <i>$10</i></span><span class="placing"><b>3</b> Salty Pearl <i>$15</i></span><span class="placing"><b>4</b> Shadhavar <i>$2.25</i></span>
+        <span class="ours hit">Our #2, rated $10.8</span>
+      </div>
+      <p class="settle"><span class="down">Bet Belle Cheval $19: 12th, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Heath</h3>
+        <span class="meta">Caulfield R6 · 1100m · Soft 6 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Bridal Waltz</span><span class="jockey">Ben Melham</span></td><td class="num">$3.8</td><td class="num">$3.9</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">War Machine</span><span class="jockey">Mark Zahra</span></td><td class="num">$4</td><td class="num">$7</td><td class="call"><span class="chip prime">Prime</span></td><td class="num">3rd</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Oliveanotherday</span><span class="jockey">Harry Coffey</span></td><td class="num">$4.4</td><td class="num">$2.5</td><td class="call"><span class="chip lay">Lay</span></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Recommendation</span><span class="jockey">Blake Shinn</span></td><td class="num">$10.1</td><td class="num">$8.5</td><td class="call"></td><td class="num">7th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Bridal Waltz settles close enough to hold off War Machine once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Oliveanotherday <i>$2.3</i></span><span class="placing"><b>2</b> Bridal Waltz <i>$3.7</i></span><span class="placing"><b>3</b> War Machine <i>$6</i></span><span class="placing"><b>4</b> Inkaruna <i>$19</i></span>
+        <span class="ours hit">Our #3, rated $4.4</span>
+      </div>
+      <p class="settle"><span class="down">Bet War Machine $7: 3rd, −1u</span><span class="down">Lay Oliveanotherday $2.5: it won, −1.50u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>McNeil Stakes</h3>
+        <span class="meta">Caulfield R7 · 1200m · Soft 6 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">American Eagle</span><span class="jockey">Mark Zahra</span></td><td class="num">$3.1</td><td class="num">$3.3</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Unit Five</span><span class="jockey">Thomas Stockdale</span></td><td class="num">$6.7</td><td class="num">$6</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Aethera</span><span class="jockey">Damian Lane</span></td><td class="num">$7.5</td><td class="num">$7</td><td class="call"></td><td class="num">9th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Seize The Day</span><span class="jockey">Blake Shinn</span></td><td class="num">$8.5</td><td class="num">$7.5</td><td class="call"></td><td class="num">10th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">American Eagle against Unit Five at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> American Eagle <i>$3.2</i></span><span class="placing"><b>2</b> Unit Five <i>$5.5</i></span><span class="placing"><b>3</b> Seraphox <i>$17</i></span><span class="placing"><b>4</b> Phillip Island <i>$20</i></span>
+        <span class="ours hit-top">Our #1, rated $3.1</span>
+      </div>
+      <p class="settle"><span class="up">Bet American Eagle $3.3: won, +2.30u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Up And Coming Stakes</h3>
+        <span class="meta">Rosehill R7 · 1300m · Good 4 · $244k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Savagram</span><span class="jockey">Tim Clark</span></td><td class="num">$4</td><td class="num">$2.6</td><td class="call"><span class="chip lay">Lay</span></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Outspan</span><span class="jockey">Chad Schofield</span></td><td class="num">$6.6</td><td class="num">$10</td><td class="call"><span class="chip prime">Prime</span></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Genesis Runner</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$7.1</td><td class="num">$4.8</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class="won"><td class="rk">4</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Plagiarism</span><span class="jockey">Regan Bayliss</span></td><td class="num">$7.4</td><td class="num">$8</td><td class="call"></td><td class="num">1st</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Savagram settles close enough to hold off Outspan once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Plagiarism <i>$8</i></span><span class="placing"><b>2</b> Genesis Runner <i>$4.4</i></span><span class="placing"><b>3</b> Hostwin King <i>$17</i></span><span class="placing"><b>4</b> Savagram <i>$2.3</i></span>
+        <span class="ours hit">Our #4, rated $7.4</span>
+      </div>
+      <p class="settle"><span class="down">Bet Outspan $10: 7th, −1u</span><span class="up">Lay Savagram $2.6: held, +1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>San Domenico Stakes</h3>
+        <span class="meta">Rosehill R8 · 1100m · Good 4 · $244k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Blue Door</span><span class="jockey">Tommy Berry</span></td><td class="num">$2.85</td><td class="num">$2.2</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">8</span></td><td class="horse"><span class="name">Wild Atlantic</span><span class="jockey">Tyler Schiller</span></td><td class="num">$6.7</td><td class="num">$6.5</td><td class="call"></td><td class="num">8th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Warwoven</span><span class="jockey">Rachel King</span></td><td class="num">$6.9</td><td class="num">$8</td><td class="call"></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Music Time</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$9.6</td><td class="num">$12</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">3rd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Blue Door against Wild Atlantic at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Guest House <i>$7</i></span><span class="placing"><b>2</b> Blue Door <i>$1.95</i></span><span class="placing"><b>3</b> Music Time <i>$12</i></span><span class="placing"><b>4</b> Half Pipe <i>$26</i></span>
+        <span class="ours miss">Not in our four, rated $9.9</span>
+      </div>
+      <p class="settle"><span class="down">Bet Music Time $12: 3rd, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>Heatherlie Stakes</h3>
+        <span class="meta">Caulfield R9 · 1700m · Soft 6 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Yellow Jersey</span><span class="jockey">Mark Zahra</span></td><td class="num">$3.5</td><td class="num">$2.35</td><td class="call"><span class="chip lay">Lay</span></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">16</span></td><td class="horse"><span class="name">First Chorus</span><span class="jockey">Jamie Mott</span></td><td class="num">$9</td><td class="num">$5.5</td><td class="call"></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Barnavara</span><span class="jockey">Damian Lane</span></td><td class="num">$10.3</td><td class="num">$12</td><td class="call"></td><td class="num">15th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Just Folk</span><span class="jockey">Blake Shinn</span></td><td class="num">$13.2</td><td class="num">$12</td><td class="call"></td><td class="num">2nd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Yellow Jersey settles close enough to hold off Barnavara once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Kingswood <i>$21</i></span><span class="placing"><b>2</b> Just Folk <i>$11</i></span><span class="placing"><b>3</b> Deakin <i>$51</i></span><span class="placing"><b>4</b> Zahrann <i>$11</i></span>
+        <span class="ours miss">Not in our four, rated $16.8</span>
+      </div>
+      <p class="settle"><span class="up">Lay Yellow Jersey $2.35: held, +1u</span></p>
+    </article></div></section><section class="week" id="w2026-09-05">
+  <header class="week-head">
+    <h2>Saturday 5 September</h2>
+    <p class="week-line"><strong>8 of 8</strong> winners in our top four, <strong>1</strong> rated #1 won. Bets 0 of 2, −2.0u.</p>
+  </header>
+  <div class="races"><article class="race g1">
+      <div class="race-head">
+        <span class="grade">Group 1</span>
+        <h3>Moir Stakes</h3>
+        <span class="meta">Sandown Hillside R8 · 1000m · Soft 7 · $750k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">13</span></td><td class="horse"><span class="name">Natural Fling</span><span class="jockey">Jamie Melham</span></td><td class="num">$3.2</td><td class="num">$3.1</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Giga Kick</span><span class="jockey">Mark Zahra</span></td><td class="num">$5.7</td><td class="num">$5.5</td><td class="call"></td><td class="num">10th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Cavalry Girl</span><span class="jockey">Craig Williams</span></td><td class="num">$10.9</td><td class="num">$9</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class="won"><td class="rk">4</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">My Gladiola</span><span class="jockey">Jamie Mott</span></td><td class="num">$13.9</td><td class="num">$10</td><td class="call"></td><td class="num">1st</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Natural Fling against Giga Kick at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> My Gladiola <i>$9.5</i></span><span class="placing"><b>2</b> Cavalry Girl <i>$8.5</i></span><span class="placing"><b>3</b> Natural Fling <i>$3</i></span><span class="placing"><b>4</b> Extragalactic <i>$13</i></span>
+        <span class="ours hit">Our #4, rated $13.9</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Furious Stakes</h3>
+        <span class="meta">Randwick R6 · 1200m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Pembrey</span><span class="jockey">Tommy Berry</span></td><td class="num">$2.6</td><td class="num">$2.15</td><td class="call"></td><td class="num">6th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Chilly Girl</span><span class="jockey">Tim Clark</span></td><td class="num">$4.9</td><td class="num">$4.2</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Chayan</span><span class="jockey">James McDonald</span></td><td class="num">$6.4</td><td class="num">$8</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">8th</td></tr>
+        <tr class="won"><td class="rk">4</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Bangkok Hottie</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$11.6</td><td class="num">$9</td><td class="call"></td><td class="num">1st</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Pembrey settles close enough to hold off Chayan once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Bangkok Hottie <i>$8.5</i></span><span class="placing"><b>2</b> Chilly Girl <i>$4</i></span><span class="placing"><b>3</b> Striking Alibi <i>$21</i></span><span class="placing"><b>4</b> Cherry Bomshell <i>$26</i></span>
+        <span class="ours hit">Our #4, rated $11.6</span>
+      </div>
+      <p class="settle"><span class="down">Bet Chayan $8: 8th, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Tramway Stakes</h3>
+        <span class="meta">Randwick R7 · 1400m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Idle Flyer</span><span class="jockey">Zac Lloyd</span></td><td class="num">$3.4</td><td class="num">$2.5</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Headley Grange</span><span class="jockey">Adam Hyeronimus</span></td><td class="num">$4.1</td><td class="num">$4</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Private Eye</span><span class="jockey">Nash Rawiller</span></td><td class="num">$4.4</td><td class="num">$5.5</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Transatlantic</span><span class="jockey">Ben E Thompson</span></td><td class="num">$9.4</td><td class="num">$10</td><td class="call"></td><td class="num">5th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Idle Flyer settles close enough to hold off Headley Grange once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Headley Grange <i>$3.8</i></span><span class="placing"><b>2</b> Soothsayer <i>$16</i></span><span class="placing"><b>3</b> Attica <i>$12</i></span><span class="placing"><b>4</b> Idle Flyer <i>$2.45</i></span>
+        <span class="ours hit">Our #2, rated $4.1</span>
+      </div>
+      <p class="settle"><span class="down">Bet Private Eye $5.5: 7th, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Concorde Stakes</h3>
+        <span class="meta">Randwick R8 · 1000m · Good 4 · $975k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Tempted</span><span class="jockey">Chad Schofield</span></td><td class="num">$2.5</td><td class="num">$2.1</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Headwall</span><span class="jockey">Zac Lloyd</span></td><td class="num">$4.5</td><td class="num">$4.5</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Marhoona</span><span class="jockey">Rachel King</span></td><td class="num">$10.1</td><td class="num">$10</td><td class="call"></td><td class="num">6th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Roselyn's Star</span><span class="jockey">Regan Bayliss</span></td><td class="num">$11.7</td><td class="num">$9.5</td><td class="call"></td><td class="num">5th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Tempted settles close enough to hold off Headwall once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Tempted <i>$1.95</i></span><span class="placing"><b>2</b> Headwall <i>$4.4</i></span><span class="placing"><b>3</b> Beadman <i>$31</i></span><span class="placing"><b>4</b> King's Secret <i>$31</i></span>
+        <span class="ours hit-top">Our #1, rated $2.5</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Chelmsford Stakes</h3>
+        <span class="meta">Randwick R9 · 1600m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Fangirl</span><span class="jockey">James McDonald</span></td><td class="num">$3.3</td><td class="num">$3.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Ceolwulf</span><span class="jockey">Chad Schofield</span></td><td class="num">$3.7</td><td class="num">$3.7</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Lindermann</span><span class="jockey">Nash Rawiller</span></td><td class="num">$4</td><td class="num">$3</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Green Spaces</span><span class="jockey">Rachel King</span></td><td class="num">$14.8</td><td class="num">$9.5</td><td class="call"></td><td class="num">6th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Ceolwulf gets into it early enough to run down Fangirl off a slow tempo.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Lindermann <i>$2.7</i></span><span class="placing"><b>2</b> Ceolwulf <i>$3.6</i></span><span class="placing"><b>3</b> Fangirl <i>$3.3</i></span><span class="placing"><b>4</b> The Euphrates <i>$31</i></span>
+        <span class="ours hit">Our #3, rated $4</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>DrinkWise Cup</h3>
+        <span class="meta">Randwick R4 · 2400m · Good 4 · $195k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Thebudgiesmugla</span><span class="jockey">Dylan Gibbons</span></td><td class="num">$3.5</td><td class="num">$3.2</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">So You Are</span><span class="jockey">Rachel King</span></td><td class="num">$3.6</td><td class="num">$3.2</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Sam Hawkens</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$7.7</td><td class="num">$7</td><td class="call"></td><td class="num">6th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Fernao</span><span class="jockey">Alysha Collett</span></td><td class="num">$8.4</td><td class="num">$6.5</td><td class="call"></td><td class="num">2nd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Thebudgiesmugla against So You Are at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> So You Are <i>$3</i></span><span class="placing"><b>2</b> Fernao <i>$6.5</i></span><span class="placing"><b>3</b> Amplify <i>$7.5</i></span><span class="placing"><b>4</b> Thebudgiesmugla <i>$2.9</i></span>
+        <span class="ours hit">Our #2, rated $3.6</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>Atlantic Jewel Stakes</h3>
+        <span class="meta">Sandown Hillside R5 · 1300m · Soft 7 · $175k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Ghana's Akan</span><span class="jockey">Ethan Brown</span></td><td class="num">$5.2</td><td class="num">$4.2</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Portinari</span><span class="jockey">Blake Shinn</span></td><td class="num">$6.1</td><td class="num">$4.4</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Pretty Baby</span><span class="jockey">Jamie Melham</span></td><td class="num">$6.1</td><td class="num">$5.5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">12</span></td><td class="horse"><span class="name">Saintly Dancer</span><span class="jockey">Jabez Johnstone</span></td><td class="num">$6.7</td><td class="num">$6</td><td class="call"></td><td class="num">6th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Ghana's Akan against Portinari at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Pretty Baby <i>$5.5</i></span><span class="placing"><b>2</b> Ghana's Akan <i>$3.9</i></span><span class="placing"><b>3</b> Portinari <i>$4</i></span><span class="placing"><b>4</b> Profligate <i>$19</i></span>
+        <span class="ours hit">Our #3, rated $6.1</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>McKenzie Stakes</h3>
+        <span class="meta">Sandown Hillside R6 · 1300m · Soft 7 · $175k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Closer To Free</span><span class="jockey">Mark Zahra</span></td><td class="num">$3.7</td><td class="num">$3.6</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Blind Raise</span><span class="jockey">Blake Shinn</span></td><td class="num">$4.5</td><td class="num">$3.2</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Wolf Gap</span><span class="jockey">Ethan Brown</span></td><td class="num">$5.7</td><td class="num">$5</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Tornado Valley</span><span class="jockey">Declan Bates</span></td><td class="num">$9.5</td><td class="num">$9.5</td><td class="call"></td><td class="num">4th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Closer To Free against Blind Raise at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Blind Raise <i>$3</i></span><span class="placing"><b>2</b> Wolf Gap <i>$5</i></span><span class="placing"><b>3</b> Shooting Brake <i>$16</i></span><span class="placing"><b>4</b> Tornado Valley <i>$8.5</i></span>
+        <span class="ours hit">Our #2, rated $4.5</span>
+      </div>
+      
+    </article></div></section><section class="week" id="w2026-09-12">
+  <header class="week-head">
+    <h2>Saturday 12 September</h2>
+    <p class="week-line"><strong>8 of 12</strong> winners in our top four, <strong>3</strong> rated #1 won. Bets 1 of 6, +3.5u. Lays 1 of 1 held, +1.0u.</p>
+  </header>
+  <div class="races"><article class="race g1">
+      <div class="race-head">
+        <span class="grade">Group 1</span>
+        <h3>Makybe Diva Stakes</h3>
+        <span class="meta">Flemington R8 · 1600m · Good 3 · $750k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">12</span></td><td class="horse"><span class="name">Sheza Alibi</span><span class="jockey">Luke Nolen</span></td><td class="num">$2</td><td class="num">$1.65</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Sir Delius</span><span class="jockey">Craig Williams</span></td><td class="num">$5.7</td><td class="num">$5.5</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Mr Brightside</span><span class="jockey">Blake Shinn</span></td><td class="num">$9.2</td><td class="num">$9</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Treasurethe Moment</span><span class="jockey">Damian Lane</span></td><td class="num">$13</td><td class="num">$15</td><td class="call"></td><td class="num">10th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Sheza Alibi settles close enough to hold off Sir Delius once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Sheza Alibi <i>$1.6</i></span><span class="placing"><b>2</b> Autumn Boy <i>$20</i></span><span class="placing"><b>3</b> Another Wil <i>$101</i></span><span class="placing"><b>4</b> Sir Delius <i>$5</i></span>
+        <span class="ours hit-top">Our #1, rated $2</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Bobbie Lewis Qlty</h3>
+        <span class="meta">Flemington R7 · 1200m · Good 3 · $300k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Oliveanotherday</span><span class="jockey">Harry Coffey</span></td><td class="num">$2.3</td><td class="num">$1.65</td><td class="call"><span class="chip lay">Lay</span></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Hedged</span><span class="jockey">Blake Shinn</span></td><td class="num">$10.4</td><td class="num">$13</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Arkansaw Kid</span><span class="jockey">Mark Zahra</span></td><td class="num">$13.2</td><td class="num">$18</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class="won"><td class="rk">4</td><td class="no"><span class="cloth">13</span></td><td class="horse"><span class="name">Losesomewinmore</span><span class="jockey">Craig Williams</span></td><td class="num">$16.2</td><td class="num">$13</td><td class="call"></td><td class="num">1st</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Oliveanotherday against Hedged at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Losesomewinmore <i>$12</i></span><span class="placing"><b>2</b> Hedged <i>$13</i></span><span class="placing"><b>3</b> Enxuto <i>$151</i></span><span class="placing"><b>4</b> Arkansaw Kid <i>$17</i></span>
+        <span class="ours hit">Our #4, rated $16.2</span>
+      </div>
+      <p class="settle"><span class="up">Lay Oliveanotherday $1.65: held, +1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Let's Elope Stakes</h3>
+        <span class="meta">Flemington R9 · 1400m · Good 3 · $300k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Gold Coast Belle</span><span class="jockey">Jordan Childs</span></td><td class="num">$2.95</td><td class="num">$2.2</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">8</span></td><td class="horse"><span class="name">On Display</span><span class="jockey">Damian Lane</span></td><td class="num">$7.7</td><td class="num">$6.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Salty Pearl</span><span class="jockey">Ben Allen</span></td><td class="num">$8.9</td><td class="num">$8.5</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Coeur Volante</span><span class="jockey">Ethan Brown</span></td><td class="num">$9.9</td><td class="num">$10</td><td class="call"></td><td class="num">11th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Gold Coast Belle against On Display at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Pondalowie <i>$51</i></span><span class="placing"><b>2</b> Too Darn Discreet <i>$21</i></span><span class="placing"><b>3</b> On Display <i>$6</i></span><span class="placing"><b>4</b> Salty Pearl <i>$7.5</i></span>
+        <span class="ours miss">Not in our four, rated $36.8</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Sheraco Stakes</h3>
+        <span class="meta">Rosehill R7 · 1200m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Lazzura</span><span class="jockey">James McDonald</span></td><td class="num">$2.8</td><td class="num">$3</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">8</span></td><td class="horse"><span class="name">Weeping Woman</span><span class="jockey">Tim Clark</span></td><td class="num">$5.2</td><td class="num">$3.5</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Gangsta Granny</span><span class="jockey">Dylan Gibbons</span></td><td class="num">$6.2</td><td class="num">$6.5</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Plaintiff</span><span class="jockey">Chad Schofield</span></td><td class="num">$9.6</td><td class="num">$7</td><td class="call"></td><td class="num">4th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Lazzura settles close enough to hold off Weeping Woman once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Savvy Hallie <i>$20</i></span><span class="placing"><b>2</b> Gangsta Granny <i>$6</i></span><span class="placing"><b>3</b> Lazzura <i>$2.9</i></span><span class="placing"><b>4</b> Plaintiff <i>$7</i></span>
+        <span class="ours miss">Not in our four, rated $17.6</span>
+      </div>
+      <p class="settle"><span class="down">Bet Lazzura $3: 3rd, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Run To The Rose</h3>
+        <span class="meta">Rosehill R8 · 1200m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">St Gotthard</span><span class="jockey">James McDonald</span></td><td class="num">$3.5</td><td class="num">$2.75</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">11</span></td><td class="horse"><span class="name">Central Europe</span><span class="jockey">Zac Lloyd</span></td><td class="num">$6.5</td><td class="num">$6</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Warwoven</span><span class="jockey">Rachel King</span></td><td class="num">$7.3</td><td class="num">$8</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">12</span></td><td class="horse"><span class="name">Under Focus</span><span class="jockey">Dylan Gibbons</span></td><td class="num">$9.2</td><td class="num">$6.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether St Gotthard settles close enough to hold off Central Europe once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Warwoven <i>$8</i></span><span class="placing"><b>2</b> St Gotthard <i>$2.6</i></span><span class="placing"><b>3</b> Under Focus <i>$6</i></span><span class="placing"><b>4</b> Central Europe <i>$5</i></span>
+        <span class="ours hit">Our #3, rated $7.3</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 2</span>
+        <h3>Theo Marks Stakes</h3>
+        <span class="meta">Rosehill R9 · 1300m · Good 4 · $293k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Skyhook</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$2.7</td><td class="num">$2.1</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Verona Rose</span><span class="jockey">Zac Lloyd</span></td><td class="num">$9.4</td><td class="num">$7.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Midnight In Tokyo</span><span class="jockey">Ben E Thompson</span></td><td class="num">$9.5</td><td class="num">$8</td><td class="call"></td><td class="num">10th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Sandpaper</span><span class="jockey">Nash Rawiller</span></td><td class="num">$11.8</td><td class="num">$13</td><td class="call"></td><td class="num">4th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Skyhook settles close enough to hold off Verona Rose once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Skyhook <i>$2</i></span><span class="placing"><b>2</b> Magnatear <i>$26</i></span><span class="placing"><b>3</b> Verona Rose <i>$7</i></span><span class="placing"><b>4</b> Sandpaper <i>$12</i></span>
+        <span class="ours hit-top">Our #1, rated $2.7</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Cap D'Antibes Stakes</h3>
+        <span class="meta">Flemington R3 · 1100m · Good 4 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">14</span></td><td class="horse"><span class="name">Over Excited</span><span class="jockey">Damian Lane</span></td><td class="num">$4.7</td><td class="num">$3.2</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Lucky Brook</span><span class="jockey">Blake Shinn</span></td><td class="num">$6.2</td><td class="num">$7.5</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">8th</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Satono Glow</span><span class="jockey">Jamie Melham</span></td><td class="num">$7.3</td><td class="num">$7.5</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Streisand</span><span class="jockey">Ben Melham</span></td><td class="num">$8.5</td><td class="num">$5.5</td><td class="call"></td><td class="num">6th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Over Excited settles close enough to hold off Lucky Brook once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Satono Glow <i>$7</i></span><span class="placing"><b>2</b> Over Excited <i>$3.1</i></span><span class="placing"><b>3</b> Scintillation <i>$16</i></span><span class="placing"><b>4</b> Calamari Ring <i>$15</i></span>
+        <span class="ours hit">Our #3, rated $7.3</span>
+      </div>
+      <p class="settle"><span class="down">Bet Lucky Brook $7.5: 8th, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Poseidon Stakes</h3>
+        <span class="meta">Flemington R4 · 1100m · Good 4 · $200k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Mbube</span><span class="jockey">Mark Zahra</span></td><td class="num">$3.2</td><td class="num">$2.8</td><td class="call"></td><td class="num">2nd</td></tr>
+        <tr class="won"><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Paradoxium</span><span class="jockey">Jason Collett</span></td><td class="num">$4.1</td><td class="num">$3.8</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Hard Kick</span><span class="jockey">Damian Lane</span></td><td class="num">$9</td><td class="num">$8</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Steel Will</span><span class="jockey">Ben Melham</span></td><td class="num">$9.4</td><td class="num">$8.5</td><td class="call"></td><td class="num">6th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Mbube settles close enough to hold off Paradoxium once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Paradoxium <i>$3.5</i></span><span class="placing"><b>2</b> Mbube <i>$2.8</i></span><span class="placing"><b>3</b> Big Sky <i>$8.5</i></span><span class="placing"><b>4</b> Buggsy <i>$18</i></span>
+        <span class="ours hit">Our #2, rated $4.1</span>
+      </div>
+      
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Archer Stakes</h3>
+        <span class="meta">Flemington R5 · 2500m · Good 4 · $300k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class="won-top"><td class="rk">1</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">Shockletz</span><span class="jockey">Harry Coffey</span></td><td class="num">$3.7</td><td class="num">$3.2</td><td class="call"></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Litzdeel</span><span class="jockey">Blake Shinn</span></td><td class="num">$4.5</td><td class="num">$3.8</td><td class="call"></td><td class="num">5th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Think Giant</span><span class="jockey">Jamie Melham</span></td><td class="num">$6.5</td><td class="num">$9.5</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">2nd</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Jennivamoose</span><span class="jockey">Jett Stanley</span></td><td class="num">$9.2</td><td class="num">$7.5</td><td class="call"></td><td class="num">3rd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Shockletz against Litzdeel at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Shockletz <i>$2.9</i></span><span class="placing"><b>2</b> Think Giant <i>$9</i></span><span class="placing"><b>3</b> Jennivamoose <i>$6.5</i></span><span class="placing"><b>4</b> Beach Pad <i>$101</i></span>
+        <span class="ours hit-top">Our #1, rated $3.7</span>
+      </div>
+      <p class="settle"><span class="down">Bet Think Giant $9.5: 2nd, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Group 3</span>
+        <h3>Ming Dynasty Quality</h3>
+        <span class="meta">Rosehill R6 · 1400m · Good 4 · $244k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Tenenbaum</span><span class="jockey">Chad Schofield</span></td><td class="num">$5.4</td><td class="num">$5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">6</span></td><td class="horse"><span class="name">I'm Ya Huckleberry</span><span class="jockey">Siena Grima</span></td><td class="num">$6.2</td><td class="num">$6.5</td><td class="call"></td><td class="num">10th</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">9</span></td><td class="horse"><span class="name">Genesis Runner</span><span class="jockey">Kerrin McEvoy</span></td><td class="num">$7</td><td class="num">$4.2</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">2</span></td><td class="horse"><span class="name">Stormy Marco</span><span class="jockey">James McDonald</span></td><td class="num">$7.3</td><td class="num">$9</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">2nd</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Tenenbaum settles close enough to hold off Stormy Marco once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Persian Wonder <i>$19</i></span><span class="placing"><b>2</b> Stormy Marco <i>$8</i></span><span class="placing"><b>3</b> Tenenbaum <i>$4.8</i></span><span class="placing"><b>4</b> Genesis Runner <i>$4</i></span>
+        <span class="ours miss">Not in our four, rated $18.8</span>
+      </div>
+      <p class="settle"><span class="down">Bet Stormy Marco $9: 2nd, −1u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>Michael Moroney</h3>
+        <span class="meta">Flemington R2 · 1400m · Good 4 · $175k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">3</span></td><td class="horse"><span class="name">Unit Five</span><span class="jockey">Thomas Stockdale</span></td><td class="num">$4.2</td><td class="num">$3.7</td><td class="call"></td><td class="num">7th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">12</span></td><td class="horse"><span class="name">Somethings Burnin'</span><span class="jockey">Ben Melham</span></td><td class="num">$7.8</td><td class="num">$5</td><td class="call"></td><td class="num">3rd</td></tr>
+        <tr class="won"><td class="rk">3</td><td class="no"><span class="cloth">5</span></td><td class="horse"><span class="name">Lara Antipova</span><span class="jockey">Mark Zahra</span></td><td class="num">$7.9</td><td class="num">$9.5</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">1st</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">4</span></td><td class="horse"><span class="name">Big Wigs</span><span class="jockey">Craig Williams</span></td><td class="num">$8</td><td class="num">$6</td><td class="call"></td><td class="num">13th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Unit Five against Somethings Burnin' at level terms, with nothing in the map to tip it.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Lara Antipova <i>$9</i></span><span class="placing"><b>2</b> Aragog <i>$71</i></span><span class="placing"><b>3</b> Somethings Burnin' <i>$4.6</i></span><span class="placing"><b>4</b> Autumn Lover <i>$61</i></span>
+        <span class="ours hit">Our #3, rated $7.9</span>
+      </div>
+      <p class="settle"><span class="up">Bet Lara Antipova $9.5: won, +8.50u</span></p>
+    </article><article class="race ">
+      <div class="race-head">
+        <span class="grade">Listed</span>
+        <h3>Tontonan Stakes</h3>
+        <span class="meta">Flemington R6 · 1400m · Good 3 · $175k</span>
+      </div>
+      <div class="board-wrap"><table class="board">
+        <thead><tr><th class="rk">#</th><th class="no"></th><th class="horse">Runner</th><th class="num">Rated</th><th class="num">Market</th><th class="call"></th><th class="num">Ran</th></tr></thead>
+        <tbody>
+        <tr class=""><td class="rk">1</td><td class="no"><span class="cloth">8</span></td><td class="horse"><span class="name">Sass Appeal</span><span class="jockey">Logan Bates</span></td><td class="num">$5.4</td><td class="num">$3.4</td><td class="call"></td><td class="num">4th</td></tr>
+        <tr class=""><td class="rk">2</td><td class="no"><span class="cloth">1</span></td><td class="horse"><span class="name">Cafe Millenium</span><span class="jockey">Mark Zahra</span></td><td class="num">$5.9</td><td class="num">$7.5</td><td class="call"><span class="chip bet">Bet</span></td><td class="num">3rd</td></tr>
+        <tr class=""><td class="rk">3</td><td class="no"><span class="cloth">7</span></td><td class="horse"><span class="name">Fancify</span><span class="jockey">Jamie Melham</span></td><td class="num">$7.3</td><td class="num">$6</td><td class="call"></td><td class="num">12th</td></tr>
+        <tr class=""><td class="rk">4</td><td class="no"><span class="cloth">10</span></td><td class="horse"><span class="name">Just Party</span><span class="jockey">Craig Williams</span></td><td class="num">$8</td><td class="num">$5.5</td><td class="call"></td><td class="num">5th</td></tr>
+        
+        </tbody>
+      </table></div>
+      <p class="verdict">Whether Sass Appeal settles close enough to hold off Cafe Millenium once the fast pace bites.</p>
+      <div class="result">
+        <span class="result-label">Result</span>
+        <span class="placing"><b>1</b> Welcometotheshow <i>$14</i></span><span class="placing"><b>2</b> Cote Atlantique <i>$41</i></span><span class="placing"><b>3</b> Cafe Millenium <i>$5.5</i></span><span class="placing"><b>4</b> Sass Appeal <i>$3.2</i></span>
+        <span class="ours miss">Not in our four, rated $15.9</span>
+      </div>
+      <p class="settle"><span class="down">Bet Cafe Millenium $7.5: 3rd, −1u</span></p>
+    </article></div></section>
+  <p class="foot">Rated prices are ours. Market is the best bookmaker price at the last fluctuation before the jump. SP is the official starting price. A bet is settled at the market price for one unit, a lay at the market price for one unit of stake. Lime row: winner was our #1. Blue row: winner was in our top four.</p>
+</div>
+<script>
+document.getElementById("copy-prompt").addEventListener("click", async () => {
+  const b = document.getElementById("copy-prompt");
+  try { await navigator.clipboard.writeText(document.getElementById("prompt-text").textContent); b.textContent = "Copied"; }
+  catch { b.textContent = "Select and copy"; }
+  setTimeout(() => (b.textContent = "Copy prompt"), 1800);
+});
+</script>

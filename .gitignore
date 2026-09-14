@@ -54,3 +54,4 @@ ds-bundle/
 
 # Screenshots dropped in the project root
 /*.png
+scripts/out/
