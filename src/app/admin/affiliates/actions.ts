@@ -61,3 +61,20 @@ export async function linkTipster(id: string, form: FormData): Promise<void> {
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "tipster_link", affiliate: id, email, error: error?.message, by: admin.email } });
   revalidatePath("/admin/affiliates");
 }
+
+/** Records a month's commission as paid, at the amount owed unless told otherwise. */
+export async function markPaid(affiliateId: string, month: string, form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const cents = Math.round(Number(form.get("amount")) * 100);
+  const note = String(form.get("note") ?? "").trim().slice(0, 200) || null;
+  if (!/^\d{4}-\d{2}$/.test(month) || !(cents >= 0)) return;
+  await supabaseAdmin().from("affiliate_payouts").upsert({ affiliate_id: affiliateId, month, amount_cents: cents, note, paid_at: new Date().toISOString() }, { onConflict: "affiliate_id,month" });
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: cents, meta: { action: "affiliate_paid", affiliate: affiliateId, month, by: admin.email } });
+  revalidatePath("/admin/affiliates");
+}
+
+export async function unmarkPaid(affiliateId: string, month: string): Promise<void> {
+  await requireAdmin();
+  await supabaseAdmin().from("affiliate_payouts").delete().eq("affiliate_id", affiliateId).eq("month", month);
+  revalidatePath("/admin/affiliates");
+}

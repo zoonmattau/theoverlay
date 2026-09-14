@@ -82,3 +82,54 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
     };
   });
 }
+
+export interface MonthlyCommission {
+  month: string;
+  affiliate: Affiliate;
+  /** Payments from this affiliate's members in the month. */
+  payments: number;
+  revenue_cents: number;
+  commission_cents: number;
+  paid_cents: number | null;
+  paid_at: string | null;
+  note: string | null;
+}
+
+const sydneyMonth = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }).slice(0, 7);
+
+/** Commission owed to each affiliate by month, from payment events, with what has been paid. */
+export async function commissionByMonth(): Promise<MonthlyCommission[]> {
+  const db = supabaseAdmin();
+  const [{ data: affs }, { data: members }, { data: payments }, { data: payouts }] = await Promise.all([
+    db.from("affiliates").select("*"),
+    db.from("profiles").select("id, affiliate_id").not("affiliate_id", "is", null),
+    db.from("events").select("user_id, amount_cents, created_at").eq("kind", "payment"),
+    db.from("affiliate_payouts").select("affiliate_id, month, amount_cents, paid_at, note"),
+  ]);
+  const affOf = new Map((members ?? []).map((m) => [m.id as string, m.affiliate_id as string]));
+  const byKey = new Map<string, { payments: number; cents: number }>();
+  for (const p of (payments ?? []) as { user_id: string | null; amount_cents: number | null; created_at: string }[]) {
+    const aff = p.user_id ? affOf.get(p.user_id) : undefined;
+    if (!aff || !p.amount_cents) continue;
+    const key = `${aff}:${sydneyMonth(p.created_at)}`;
+    const cur = byKey.get(key) ?? { payments: 0, cents: 0 };
+    byKey.set(key, { payments: cur.payments + 1, cents: cur.cents + p.amount_cents });
+  }
+  const paid = new Map((payouts ?? []).map((p) => [`${p.affiliate_id}:${p.month}`, p as { amount_cents: number; paid_at: string; note: string | null }]));
+  const out: MonthlyCommission[] = [];
+  for (const a of (affs ?? []) as Affiliate[]) {
+    const months = new Set<string>();
+    for (const key of byKey.keys()) if (key.startsWith(`${a.id}:`)) months.add(key.slice(a.id.length + 1));
+    for (const key of paid.keys()) if (key.startsWith(`${a.id}:`)) months.add(key.slice(a.id.length + 1));
+    for (const month of months) {
+      const v = byKey.get(`${a.id}:${month}`) ?? { payments: 0, cents: 0 };
+      const p = paid.get(`${a.id}:${month}`);
+      out.push({
+        month, affiliate: a, payments: v.payments, revenue_cents: v.cents,
+        commission_cents: Math.round((v.cents * Number(a.commission_pct)) / 100),
+        paid_cents: p?.amount_cents ?? null, paid_at: p?.paid_at ?? null, note: p?.note ?? null,
+      });
+    }
+  }
+  return out.sort((x, y) => y.month.localeCompare(x.month) || x.affiliate.name.localeCompare(y.affiliate.name));
+}

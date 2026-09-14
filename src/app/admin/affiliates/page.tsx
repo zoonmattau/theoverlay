@@ -3,19 +3,19 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { createAffiliate, linkTipster, toggleAffiliate, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { createAffiliate, linkTipster, markPaid, toggleAffiliate, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { isAdmin } from "@/lib/admin";
-import { affiliateStats } from "@/lib/affiliates";
+import { affiliateStats, commissionByMonth } from "@/lib/affiliates";
 import { getViewer } from "@/lib/auth";
 
 export const metadata: Metadata = { title: "Affiliates", robots: { index: false } };
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/admin/affiliates">) {
   return (
     <div className="page">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Affiliates />
+        <Affiliates searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -23,9 +23,11 @@ export default function Page() {
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 
-async function Affiliates() {
+async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/affiliates">["searchParams"] }) {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
+  const sp = await searchParams;
+  const tab = sp.tab === "payments" ? "payments" : "partners";
   const rows = await affiliateStats();
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
   const totals = rows.reduce(
@@ -42,13 +44,19 @@ async function Affiliates() {
   return (
     <>
       <section className="py-6">
-        <Link href="/admin" className="text-xs text-ink-soft hover:text-ink">← Admin</Link>
+        <Link href="/admin" className="text-xs text-ink-soft hover:text-ink">← Overview</Link>
         <h1 className="font-display text-3xl font-extrabold tracking-tight mt-1">Affiliates</h1>
         <p className="mt-1 text-sm text-ink-soft">
           Each partner gets a link, every click and sign-up through it is counted, and commission is worked out on what those members have paid.
         </p>
       </section>
 
+      <div className="tabs mb-5" role="tablist">
+        <Link href="/admin/affiliates" role="tab" aria-selected={tab === "partners"} className="tab">Partners</Link>
+        <Link href="/admin/affiliates?tab=payments" role="tab" aria-selected={tab === "payments"} className="tab">Payments</Link>
+      </div>
+
+      {tab === "payments" ? <Payments /> : (<>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <Tile n={totals.clicks} label="clicks" />
         <Tile n={totals.signups} label="sign-ups" />
@@ -114,6 +122,67 @@ async function Affiliates() {
             </form>
           </div>
         ))}
+      </div>
+      </>)}
+    </>
+  );
+}
+
+/** Commission owed by month, and what has been paid. */
+async function Payments() {
+  const rows = await commissionByMonth();
+  const owed = rows.filter((r) => r.paid_at === null).reduce((a, r) => a + r.commission_cents, 0);
+  const paid = rows.reduce((a, r) => a + (r.paid_cents ?? 0), 0);
+  const label = (m: string) => new Date(`${m}-15T12:00:00+10:00`).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+  return (
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+        <Tile n={money(owed)} label="owed, unpaid months" tone="prime" />
+        <Tile n={money(paid)} label="paid out, all time" />
+        <Tile n={rows.filter((r) => r.paid_at === null && r.commission_cents > 0).length} label="months to pay" />
+        <Tile n={rows.length} label="affiliate months" />
+      </div>
+      <div className="card">
+        <p className="text-sm text-ink-soft mb-3">Commission is each affiliate&apos;s percentage of what their members paid in the month, on the amount charged. Mark a month paid once the transfer has gone; the amount defaults to what is owed.</p>
+        {rows.length === 0 ? (
+          <p className="text-sm text-ink-soft">No payments from referred members yet.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="data-table text-sm">
+              <thead><tr><th>Month</th><th>Affiliate</th><th className="text-right">Payments</th><th className="text-right">Revenue</th><th className="text-right">Rate</th><th className="text-right">Owed</th><th>Paid</th><th></th></tr></thead>
+              <tbody>
+                {rows.map((r) => (
+                  <tr key={`${r.affiliate.id}:${r.month}`}>
+                    <td className="nums">{label(r.month)}</td>
+                    <td className="font-semibold">{r.affiliate.name} <span className="badge badge-muted ml-1 nums">{r.affiliate.code}</span></td>
+                    <td className="text-right nums">{r.payments}</td>
+                    <td className="text-right nums">{money(r.revenue_cents)}</td>
+                    <td className="text-right nums">{Number(r.affiliate.commission_pct)}%</td>
+                    <td className="text-right nums font-semibold">{money(r.commission_cents)}</td>
+                    <td>
+                      {r.paid_at ? (
+                        <span className="badge badge-prime">{money(r.paid_cents ?? 0)} on {new Date(r.paid_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}{r.note ? `, ${r.note}` : ""}</span>
+                      ) : (
+                        <span className="badge badge-warn">Unpaid</span>
+                      )}
+                    </td>
+                    <td>
+                      {r.paid_at ? (
+                        <form action={unmarkPaid.bind(null, r.affiliate.id, r.month)}><button className="btn btn-secondary btn-sm" type="submit">Undo</button></form>
+                      ) : (
+                        <form action={markPaid.bind(null, r.affiliate.id, r.month)} className="flex items-center gap-2">
+                          <input name="amount" type="number" step="0.01" min={0} defaultValue={(r.commission_cents / 100).toFixed(2)} className="field-input w-24 py-1 text-xs" aria-label="Amount paid" />
+                          <input name="note" placeholder="Reference" className="field-input w-28 py-1 text-xs" aria-label="Reference" />
+                          <button className="btn btn-primary btn-sm" type="submit">Mark paid</button>
+                        </form>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </>
   );

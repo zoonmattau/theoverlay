@@ -1,43 +1,36 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { inviteMember, rebuildCard, resendTips } from "@/app/admin/actions";
-import { accountState, isAdmin, listMembers, now as clock, overview, recentEvents } from "@/lib/admin";
+import { rebuildCard, resendTips } from "@/app/admin/actions";
+import { isAdmin, listMembers, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
-import { allTipsters } from "@/lib/creators";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
-export default function Page({ searchParams }: PageProps<"/admin">) {
+export default function Page() {
   return (
     <div className="page">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Admin searchParams={searchParams} />
+        <Admin />
       </Suspense>
     </div>
   );
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-const day = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" }) : "—");
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 
-async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["searchParams"] }) {
+async function Admin() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const sp = await searchParams;
-  const q = typeof sp.q === "string" ? sp.q : "";
-  const [stats, members, events, card, tipsters] = await Promise.all([overview(), listMembers(q || undefined), recentEvents(undefined, 40), getTodayCard(), allTipsters()]);
-  const tipsterIds = new Set(tipsters.map((t) => t.user_id));
-  const now = clock();
+  const members = await listMembers();
+  const [stats, events, card] = await Promise.all([overview(members), recentEvents(undefined, 40), getTodayCard()]);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
   const lastMail = events.find((e) => e.kind === "tips_email");
-
   return (
     <>
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
@@ -45,11 +38,6 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Admin</h1>
           <p className="mt-1 text-sm text-ink-soft">Members, money and what people click.</p>
         </div>
-        <form className="flex gap-2">
-          <Link href="/admin/affiliates" className="btn btn-secondary">Affiliates</Link>
-          <input name="q" defaultValue={q} placeholder="Search name, email, phone, suburb" className="field-input w-72" />
-          <button className="btn btn-secondary" type="submit">Search</button>
-        </form>
       </section>
 
       <div className="card mb-6 flex flex-wrap items-center gap-3 text-sm">
@@ -75,16 +63,6 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
         <Tile n={Object.values(stats.clicksByPlan).reduce((a, b) => a + b, 0)} label="plan clicks, 7 days" />
       </div>
 
-      <div className="card mb-6">
-        <h2 className="font-display font-extrabold">Invite someone</h2>
-        <p className="mt-1 text-sm text-ink-secondary">Creates the account and emails them a one-time link to set a password.</p>
-        <form action={inviteMember} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
-          <label className="field"><span>Email</span><input name="email" type="email" required className="field-input w-64" placeholder="name@example.com" /></label>
-          <label className="field"><span>Gift days</span><input name="days" type="number" defaultValue={14} min={0} className="field-input w-24" /></label>
-          <label className="flex items-center gap-2 pb-2"><input name="admin" type="checkbox" /> Make admin</label>
-          <button className="btn btn-primary btn-sm" type="submit">Send invite</button>
-        </form>
-      </div>
 
       <div className="grid gap-4 md:grid-cols-2 mb-6">
         <div className="card">
@@ -106,73 +84,6 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
               <span className="nums font-bold">{n}</span>
             </div>
           ))}
-        </div>
-      </div>
-
-      <div className="section mb-6">
-        <div className="section-bar">
-          <span className="section-letter">M</span>
-          <h2>Members</h2>
-          <span className="aside nums">{members.length}</span>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="data-table text-sm min-w-[1100px]">
-            <thead>
-              <tr>
-                <th>Member</th>
-                <th>Account</th>
-                <th>Plan</th>
-                <th>Status</th>
-                <th>Access until</th>
-                <th>Since</th>
-                <th className="text-right">Spent</th>
-                <th className="text-right">Passes</th>
-                <th>Gift until</th>
-                <th>Last seen</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((m) => {
-                const live = m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at;
-                return (
-                  <tr key={m.id}>
-                    <td>
-                      <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">
-                        {m.full_name || m.email || m.id}
-                      </Link>
-                      {m.full_name && <span className="block text-xs text-ink-soft">{m.email}</span>}
-                      {m.is_admin && <span className="badge badge-prime ml-2">Admin</span>}
-                    </td>
-                    <td>
-                      {accountState(m) === "active" ? (
-                        <span className="badge badge-muted">Active</span>
-                      ) : accountState(m) === "invited" ? (
-                        <span className="badge badge-warn">Invited</span>
-                      ) : (
-                        <span className="badge badge-warn">Unconfirmed</span>
-                      )}
-                    </td>
-                    <td>{tipsterIds.has(m.id) ? <span className="badge badge-prime">Tipster</span> : m.plan ? (planById(m.plan)?.name ?? m.plan) : "—"}</td>
-                    <td>
-                      {m.paused_at ? (
-                        <span className="badge badge-warn">Paused</span>
-                      ) : live ? (
-                        <span className="badge badge-prime">{m.subscription_status ?? "active"}</span>
-                      ) : (
-                        <span className="badge badge-muted">{m.subscription_status ?? "none"}</span>
-                      )}
-                    </td>
-                    <td className="nums">{day(m.access_until)}</td>
-                    <td className="nums">{day(m.subscribed_since)}</td>
-                    <td className="text-right nums">{money(m.total_spent_cents ?? 0)}</td>
-                    <td className="text-right nums">{m.pass_credits}</td>
-                    <td className="nums">{m.bonus_until && new Date(m.bonus_until).getTime() > now ? day(m.bonus_until) : "—"}</td>
-                    <td className="nums">{m.last_seen_at ? when(m.last_seen_at) : m.last_sign_in_at ? when(m.last_sign_in_at) : "never"}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
         </div>
       </div>
 

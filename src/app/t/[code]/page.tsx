@@ -68,7 +68,7 @@ async function TipsterPage({ params }: { params: Props["params"] }) {
         <span className="text-sm">
           {tipster.name}&apos;s calls sit next to the model&apos;s rated prices for every runner on {longDate(date)}. One race is free every day.
         </span>
-        <Link href={`/go/${tipster.code}?to=/pricing`} className="btn btn-primary ml-auto">Start free trial</Link>
+        <Link href="/pricing" className="btn btn-primary ml-auto">Start free trial</Link>
       </div>
     </>
   );

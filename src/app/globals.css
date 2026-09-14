@@ -2039,3 +2039,53 @@ body {
   line-height: 1;
   vertical-align: 1px;
 }
+
+/* --- Admin shell: menu down the left, page on the right --- */
+.admin-shell {
+  display: grid;
+  grid-template-columns: 200px minmax(0, 1fr);
+  gap: var(--sp-5);
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 0 var(--sp-4);
+}
+.admin-nav {
+  position: sticky;
+  top: 72px;
+  align-self: start;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: var(--sp-5);
+}
+.admin-nav-link {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+.admin-nav-link:hover {
+  color: var(--color-ink);
+  background: var(--color-surface);
+}
+.admin-nav-link.is-active {
+  color: var(--color-ink);
+  background: var(--color-lime);
+}
+.admin-main > .page {
+  padding-left: 0;
+  padding-right: 0;
+}
+@media (max-width: 800px) {
+  .admin-shell {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+  .admin-nav {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding-top: var(--sp-3);
+  }
+}

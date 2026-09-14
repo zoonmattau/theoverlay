@@ -143,8 +143,8 @@ export async function referralsMade(id: string): Promise<number> {
 export const now = () => Date.now();
 
 /** The overview numbers. */
-export async function overview() {
-  const members = await listMembers();
+export async function overview(members?: Member[]) {
+  members ??= await listMembers();
   const now = Date.now();
   const active = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at);
   const byPlan: Record<string, number> = {};

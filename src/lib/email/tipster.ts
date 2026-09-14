@@ -1,5 +1,6 @@
 import "server-only";
 
+import { logEvent } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { priceFlagged, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { longDate, price } from "@/lib/format";
@@ -81,5 +82,6 @@ export async function notifyFollowers(tipsterId: string): Promise<number> {
       await new Promise((r) => setTimeout(r, 600));
     }
   }
+  if (sent) await logEvent({ user_id: null, kind: "tipster_email", plan: null, amount_cents: null, meta: { tipster: tipster.code, sent, tips: tips.length } });
   return sent;
 }

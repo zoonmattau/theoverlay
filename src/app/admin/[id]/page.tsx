@@ -44,7 +44,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
     <>
       <div className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Link href="/admin" className="text-xs text-ink-soft hover:text-ink">← All members</Link>
+          <Link href="/admin/members" className="text-xs text-ink-soft hover:text-ink">← All members</Link>
           <h1 className="font-display text-3xl font-extrabold tracking-tight mt-1">{m.full_name || m.email || m.id}</h1>
           {m.full_name && <p className="text-sm text-ink-secondary">{m.email}</p>}
           <p className="mt-1 text-sm text-ink-soft nums">
