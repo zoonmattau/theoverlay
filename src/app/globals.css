@@ -666,6 +666,9 @@ body {
 .worm-dot {
   cursor: help;
 }
+.worm-dot-link {
+  cursor: pointer;
+}
 .worm-mine {
   fill: none;
   stroke: var(--color-ink);

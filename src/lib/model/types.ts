@@ -104,6 +104,9 @@ export interface PublishedRun {
   points: number;
   /** Identifies the race, so runs can be matched across today's field. */
   raceKey?: string;
+  /** Form King's ids, so the run can link to that race's page when we hold a card for the day. */
+  raceId?: string;
+  meetingId?: string;
   /** Runners in today's race that were in this one too, with where they finished and their lengths beaten. */
   met?: { tab: number; finish?: number; margin?: number }[];
   /** The first four home in that race, public results. */

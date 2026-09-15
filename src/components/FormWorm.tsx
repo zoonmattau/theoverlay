@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { price } from "@/lib/format";
@@ -14,6 +15,10 @@ interface Hover {
   /** The run under the pointer, or none for today's dot. */
   run?: PublishedRun;
 }
+
+/** The first date we hold a card for; earlier races have no page to open. */
+const FIRST_CARD = "2026-09-11";
+const raceHref = (run: PublishedRun) => (run.raceId && run.meetingId && run.date >= FIRST_CARD ? `/racing/${run.date}/${encodeURIComponent(run.meetingId)}/${encodeURIComponent(run.raceId)}` : undefined);
 
 const ord = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
 /** "4.5 above par" or "2.0 below par", from the points and today's par. */
@@ -34,6 +39,7 @@ const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateStrin
 export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; runner?: PublishedRunner; full?: boolean }) {
   const [hover, setHover] = useState<Hover | null>(null);
   const [full, setFull] = useState(false);
+  const router = useRouter();
   // Escape closes the full-screen view.
   useEffect(() => {
     if (!full) return;
@@ -67,9 +73,15 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
           cx={x(i + 1)}
           cy={y(run.points)}
           r={r}
-          className={cls}
+          className={`${cls} ${raceHref(run) ? "worm-dot-link" : ""}`}
           onMouseEnter={() => setHover({ x: x(i + 1), y: y(run.points), runner: f, run })}
           onMouseLeave={() => setHover(null)}
+          onClick={(e) => {
+            const href = raceHref(run);
+            if (!href) return;
+            e.stopPropagation();
+            router.push(href);
+          }}
         />
       ))}
       <circle
@@ -136,6 +148,7 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
                 <dt>Result</dt><dd>{hover.run.finish ? `${ord(hover.run.finish)}${hover.run.runners ? ` of ${hover.run.runners}` : ""}` : "unplaced"}{hover.run.margin !== undefined && hover.run.finish !== 1 ? `, ${hover.run.margin.toFixed(1)}L` : ""}</dd>
                 {hover.run.sp ? <><dt>SP</dt><dd>{price(hover.run.sp)}</dd></> : null}
                 <dt>Points</dt><dd className="worm-tip-pts">{hover.run.points.toFixed(1)}<span>, {vsPar(hover.run.points, par)}</span></dd>
+                {raceHref(hover.run) && <><dt /><dd className="text-accent font-bold">Click to open this race</dd></>}
               </dl>
             ) : (
               <dl className="worm-tip-grid">

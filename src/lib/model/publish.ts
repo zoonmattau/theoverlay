@@ -345,6 +345,8 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
       vsBench600: p.benchmark?.sections?.["6-F"]?.vsClass !== undefined ? Math.round(p.benchmark.sections["6-F"]!.vsClass * 10) / 10 : undefined,
       points: Math.round(runPoints(p, todayPar, e.horse.age) * 10) / 10,
       raceKey: p.raceId ?? `${new Date(p.date).toISOString().slice(0, 10)}:${p.track ?? ""}:${p.raceNumber}`,
+      raceId: p.raceId,
+      meetingId: p.meetingId,
       placings: (p.placings ?? [])
         .filter((x) => x.finishPosition >= 1 && x.finishPosition <= 4)
         .sort((a, b) => a.finishPosition - b.finishPosition)
