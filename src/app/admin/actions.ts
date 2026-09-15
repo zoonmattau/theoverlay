@@ -87,14 +87,18 @@ export async function saveNote(userId: string, note: string): Promise<void> {
   revalidatePath(`/admin/${userId}`);
 }
 
-/** Rebuild today's card from Form King right now. */
-export async function rebuildCard(): Promise<void> {
+/** Rebuild today's card from Form King right now; says what it built. */
+export async function rebuildCard(): Promise<string> {
   const admin = await requireAdmin();
   const date = racingToday();
   const { card, seconds } = await buildCard(date);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
+  const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
+  const bets = calls.filter((x) => x.signal === "back").length;
+  const lays = calls.filter((x) => x.signal === "lay").length;
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "rebuild_card", date, races, seconds, by: admin.email } });
   revalidatePath("/admin");
+  return `Rebuilt ${date} in ${seconds}s: ${card.meetings.length} meetings, ${races} races, ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}.`;
 }
 
 /** Pin today's free race, or hand it back to the day's draw with an empty raceId. */
@@ -110,14 +114,15 @@ export async function setFreeRace(form: FormData): Promise<void> {
   revalidatePath("/admin");
 }
 
-/** Send the morning tips email again, to everyone who qualifies today. */
-export async function resendTips(): Promise<void> {
+/** Send the morning tips email again, to everyone who qualifies today; says how many got it. */
+export async function resendTips(): Promise<string> {
   const admin = await requireAdmin();
   const date = racingToday();
   const { card } = await buildCard(date);
   const { sent } = await sendMorningTips(date, card, true);
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "resend_tips", date, sent, by: admin.email } });
   revalidatePath("/admin");
+  return `Tips email sent to ${sent} ${sent === 1 ? "member" : "members"}.`;
 }
 
 /** Admin on or off for a member; you cannot take your own away. */

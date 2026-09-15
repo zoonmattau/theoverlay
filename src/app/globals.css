@@ -453,6 +453,24 @@ body {
   color: #fff;
 }
 
+/* A toast: bottom centre, ink on lime, gone on its own. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  z-index: 200;
+  max-width: min(90vw, 560px);
+  padding: 10px 16px;
+  border-radius: var(--radius-md);
+  background: var(--color-ink);
+  color: var(--color-lime);
+  font-size: 0.85rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-lift);
+  cursor: pointer;
+}
+
 /* --- Buttons --- */
 .btn {
   display: inline-flex;

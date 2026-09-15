@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
+import { ActionButton } from "@/components/ActionButton";
 import { isAdmin, listMembers, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
@@ -50,8 +51,8 @@ async function Admin() {
           </div>
         </div>
         <div className="ml-auto flex gap-2">
-          <form action={rebuildCard}><button className="btn btn-secondary btn-sm" type="submit">Rebuild today</button></form>
-          <form action={resendTips}><button className="btn btn-secondary btn-sm" type="submit">Resend tips email</button></form>
+          <ActionButton action={rebuildCard} busy="Rebuilding, about a minute">Rebuild today</ActionButton>
+          <ActionButton action={resendTips} busy="Sending">Resend tips email</ActionButton>
         </div>
         <form action={setFreeRace} className="basis-full flex flex-wrap items-center gap-2">
           <label htmlFor="free-race" className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Free race</label>
