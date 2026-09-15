@@ -84,7 +84,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
           <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={40} className="field-input w-24" /></label>
           <button className="btn btn-primary btn-sm" type="submit">Create</button>
         </form>
-        <p className="mt-2 text-xs text-ink-soft">One step. If the email has no account yet they get an invite to set a password. Their link is {site}/go/CODE, which lands on sign-up with the code filled in and follows them as a tipster; they post tips from Your tips once they are in.</p>
+        <p className="mt-2 text-xs text-ink-soft">One step. If the email has no account yet they get an invite to set a password. Their link is {site}/go/CODE, which lands on today&apos;s board and remembers the code for 90 days, so sign-up fills it in whenever the visitor gets there; they post tips from Your tips once they are in.</p>
       </div>
 
       <div className="space-y-4">
