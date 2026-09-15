@@ -19,7 +19,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { creatorTips, followedTipster } from "@/lib/creators";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
-import { JsonLd, SITE_URL } from "@/components/JsonLd";
+import { JsonLd, SITE_URL, breadcrumbs } from "@/components/JsonLd";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { NextToGo } from "@/components/NextToGo";
 import { RaceNav } from "@/components/RaceNav";
@@ -48,13 +48,21 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const calls = race.runners.filter((r) => r.signal && !r.scratched);
   const bets = calls.filter((r) => r.signal === "back").length;
   const lays = calls.filter((r) => r.signal === "lay").length;
-  const title = `${meeting.track} Race ${race.raceNumber} tips, ratings and rated prices, ${longDate(date)}`;
+  const run = Boolean(race.result?.length);
+  const winner = run ? race.runners.find((r) => r.tabNumber === race.result![0]) : undefined;
+  const title = run
+    ? `${meeting.track} Race ${race.raceNumber} results, ${longDate(date)}: ${winner ? `${winner.horseName} won` : "first four"}`
+    : `${meeting.track} Race ${race.raceNumber} tips, ratings and rated prices, ${longDate(date)}`;
   const path = `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(raceId)}`;
+  const description = run
+    ? `${race.name}, ${race.distance}m at ${meeting.track}. The first four home, dividends, and how our ratings and calls went: ${bets} ${bets === 1 ? "bet" : "bets"} and ${lays} ${lays === 1 ? "lay" : "lays"}.`
+    : `${race.name}, ${race.distance}m at ${meeting.track}${race.goingText ? ` on a ${race.goingText} track` : ""}. Benchmark ratings, a pace map and a rated price for every runner, with ${bets} ${bets === 1 ? "bet" : "bets"} and ${lays} ${lays === 1 ? "lay" : "lays"} called.`;
   return {
     title,
-    description: `${race.name}, ${race.distance}m at ${meeting.track}${race.goingText ? ` on a ${race.goingText} track` : ""}. Benchmark ratings, a pace map and a rated price for every runner, with ${bets} ${bets === 1 ? "bet" : "bets"} and ${lays} ${lays === 1 ? "lay" : "lays"} called.`,
+    description,
     alternates: { canonical: path },
-    openGraph: { title, url: path, type: "article" },
+    openGraph: { title, description, url: path, type: "article", images: [{ url: `${path}/opengraph-image`, width: 1200, height: 630, alt: title }] },
+    twitter: { card: "summary_large_image", title, description, images: [`${path}/opengraph-image`] },
   };
 }
 
@@ -110,7 +118,8 @@ async function Race({ params }: { params: Props["params"] }) {
     name: `${meeting.track} Race ${race.raceNumber}: ${race.name}`,
     sport: "Horse racing",
     startDate: race.jumpTime,
-    eventStatus: "https://schema.org/EventScheduled",
+    eventStatus: race.result?.length ? "https://schema.org/EventCompleted" : "https://schema.org/EventScheduled",
+    endDate: race.result?.length ? race.jumpTime : undefined,
     location: { "@type": "Place", name: `${meeting.track} Racecourse`, address: { "@type": "PostalAddress", addressRegion: meeting.state, addressCountry: "AU" } },
     organizer: { "@id": `${SITE_URL}/#org` },
     url: `${SITE_URL}/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(raceId)}`,
@@ -120,9 +129,15 @@ async function Race({ params }: { params: Props["params"] }) {
       .map((r) => ({ "@type": "SportsTeam", name: r.horseName, identifier: String(r.tabNumber) })),
   };
 
+  const trail = breadcrumbs([
+    { name: "Today", path: "/" },
+    { name: `${meeting.track}, ${longDate(date)}`, path: `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(meeting.races[0]?.raceId ?? raceId)}` },
+    { name: `Race ${race.raceNumber}`, path: `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(raceId)}` },
+  ]);
+
   return (
     <div className="page space-y-4">
-      <JsonLd data={schema} />
+      <JsonLd data={[schema, trail]} />
       <LiveRefresh />
       <RaceNav prev={prevHref} next={nextHref} />
       {viewer.admin && !card.card.released && (

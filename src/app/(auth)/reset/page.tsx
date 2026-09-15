@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/app/(auth)/AuthShell";
 
-export const metadata: Metadata = { title: "Set password" };
+export const metadata: Metadata = { title: "Set password", robots: { index: false } };
 
 export default function Page({ searchParams }: PageProps<"/reset">) {
   return (

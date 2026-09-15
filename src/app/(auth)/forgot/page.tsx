@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/app/(auth)/AuthShell";
 
-export const metadata: Metadata = { title: "Forgot password" };
+export const metadata: Metadata = { title: "Forgot password", robots: { index: false } };
 
 export default function Page() {
   return (

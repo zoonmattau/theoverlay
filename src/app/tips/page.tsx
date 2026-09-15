@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { BookieLink } from "@/components/BookieLink";
+import { JsonLd, SITE_URL } from "@/components/JsonLd";
 import { MarketHover } from "@/components/MarketHover";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { Locked } from "@/components/Locked";
@@ -116,8 +117,25 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const mySettled = taken.filter((c) => c.myProfit !== undefined);
   const myTotal = mySettled.reduce((a, c) => a + (c.myProfit ?? 0), 0);
 
+  // The day's calls as a list, so a search or answer engine can quote them once released.
+  const list = released
+    ? {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        name: `The Overlay tips, ${longDate(date)}`,
+        numberOfItems: calls.length,
+        itemListElement: calls.map((c, i) => ({
+          "@type": "ListItem",
+          position: i + 1,
+          name: `${c.meeting.track} R${c.raceNumber}: ${c.runner.signal === "back" ? "Bet" : "Lay"} ${c.runner.tabNumber}. ${c.runner.horseName}`,
+          url: `${SITE_URL}/racing/${date}/${encodeURIComponent(c.meeting.meetingId)}/${encodeURIComponent(c.raceId)}`,
+        })),
+      }
+    : null;
+
   return (
     <>
+      {list && <JsonLd data={list} />}
       <section className="py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Today&apos;s tips</h1>
         <p className="mt-2 text-ink-secondary">

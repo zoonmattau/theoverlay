@@ -10,6 +10,7 @@ import { BONUS_DAYS, ensureReferralCode, referralCount } from "@/lib/referrals";
 export const metadata: Metadata = {
   title: "Invite a friend",
   description: "Share your link and you both get two weeks of the full board.",
+  robots: { index: false },
 };
 
 export default function Page() {

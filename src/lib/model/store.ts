@@ -30,6 +30,13 @@ export async function pinFreeRace(date: string, raceId: string | null, freeRaceI
   if (error) console.error("[cards]", error.message);
 }
 
+/** The dates we hold a card for, newest first, up to `limit`. */
+export async function listStoredDates(limit = 60): Promise<string[]> {
+  const { data, error } = await supabaseAdmin().from("cards").select("date").order("date", { ascending: false }).limit(limit);
+  if (error) console.error("[cards]", error.message);
+  return (data ?? []).map((r) => String(r.date));
+}
+
 export async function writeStoredCard(date: string, card: StoredCard, seconds: number): Promise<void> {
   const { error } = await supabaseAdmin()
     .from("cards")

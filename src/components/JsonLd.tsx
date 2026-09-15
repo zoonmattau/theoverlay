@@ -28,6 +28,13 @@ export const WEBSITE = {
   inLanguage: "en-AU",
 };
 
+/** The trail to a page, for the breadcrumb rich result. */
+export const breadcrumbs = (trail: { name: string; path: string }[]) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: trail.map((t, i) => ({ "@type": "ListItem", position: i + 1, name: t.name, item: `${SITE_URL}${t.path}` })),
+});
+
 export interface Faq {
   q: string;
   a: string;

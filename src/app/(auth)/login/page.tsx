@@ -5,7 +5,7 @@ import { authProviders } from "@/lib/social";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/app/(auth)/AuthShell";
 
-export const metadata: Metadata = { title: "Log in" };
+export const metadata: Metadata = { title: "Log in", robots: { index: false } };
 
 export default function Page({ searchParams }: PageProps<"/login">) {
   return (
