@@ -1,4 +1,5 @@
 import { TipChip } from "./Badge";
+import { MapHover } from "./MapHover";
 import { MAP_LABEL } from "./Ratings";
 import type { PublishedRace } from "@/lib/model/types";
 
@@ -78,7 +79,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
                   <Cell value={g.distance} par={par} />
                   <Cell value={g.track} par={par} />
                   <td className="text-xs text-ink-secondary whitespace-nowrap">
-                    {MAP_LABEL[g.map]}
+                    <MapHover race={race} runner={r}><span className="cursor-help underline decoration-dotted underline-offset-2">{MAP_LABEL[g.map]}</span></MapHover>
                   </td>
                   <td className="text-right nums text-muted">{g.runs}</td>
                 </tr>

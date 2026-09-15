@@ -1,6 +1,7 @@
 import { TipChip } from "./Badge";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
 import { Section } from "./Section";
+import { MapHover } from "./MapHover";
 import { finishFit, tempoFit, watchSentence } from "@/lib/model/narrative";
 import type { PublishedRace } from "@/lib/model/types";
 
@@ -51,7 +52,7 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
                       </div>
                     </td>
                     <td className="whitespace-nowrap">
-                      {MAP_LABEL[r.ratings.map]}
+                      <MapHover race={race} runner={r}><span className="cursor-help underline decoration-dotted underline-offset-2">{MAP_LABEL[r.ratings.map]}</span></MapHover>
                     </td>
                     <td className="whitespace-nowrap">
                       <Tone tone={t.tone}>{t.text}</Tone>

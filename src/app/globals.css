@@ -671,6 +671,80 @@ body {
 .worm-key-other { border-top: 1.2px solid var(--color-line-strong); }
 .worm-key-par { border-top: 1px dashed var(--color-ink-soft); }
 
+/* A small speed map on hover: four columns of saddlecloths, this runner lit. */
+.map-hover {
+  position: relative;
+  display: inline-block;
+}
+.map-pop {
+  position: absolute;
+  z-index: 60;
+  left: 0;
+  top: calc(100% + 6px);
+  min-width: 260px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-lift);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 0.7rem;
+  cursor: default;
+  white-space: normal;
+}
+.map-pop-title {
+  font-weight: 700;
+  color: var(--color-ink);
+}
+.map-pop-field {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  padding: 6px 0 4px;
+  border-bottom: 2px solid var(--color-ink);
+}
+.map-pop-col {
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: center;
+  gap: 3px;
+  min-height: 60px;
+}
+.map-pop-label {
+  order: 99;
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+  margin-bottom: 2px;
+}
+.map-pop-cloth {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 0.68rem;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+}
+.map-pop-cloth.is-me {
+  background: var(--color-ink);
+  color: var(--color-lime);
+  transform: scale(1.15);
+}
+.map-pop-rail {
+  color: var(--color-ink-soft);
+  font-size: 0.6rem;
+  text-align: right;
+}
+
 /* "at Sportsbet" under a price. */
 .bookie-link {
   color: var(--color-ink-soft);
