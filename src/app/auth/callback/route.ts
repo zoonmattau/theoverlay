@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { OAUTH_COOKIE } from "@/app/(auth)/actions";
+import { OAUTH_COOKIE } from "@/lib/social";
 import { attributeSignup } from "@/lib/affiliates";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { applyReferral } from "@/lib/referrals";

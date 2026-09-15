@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useActionState } from "react";
 
-import { requestReset, signIn, signInWithProvider, signUp, updatePassword, type AuthState, type Provider } from "@/app/(auth)/actions";
+import { requestReset, signIn, signInWithProvider, signUp, updatePassword, type AuthState } from "@/app/(auth)/actions";
+import type { Provider } from "@/lib/social";
 
 const EMPTY: AuthState = {};
 

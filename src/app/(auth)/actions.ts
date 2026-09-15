@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AFF_COOKIE, attributeSignup, codeFromInput } from "@/lib/affiliates";
+import { OAUTH_COOKIE, PROVIDERS, type Provider } from "@/lib/social";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { EMAILS } from "@/lib/email/messages";
@@ -29,17 +30,6 @@ export interface AuthState {
 function safeNext(value: FormDataEntryValue | null): string {
   const next = typeof value === "string" ? value : "";
   return next.startsWith("/") && !next.startsWith("//") ? next : "/";
-}
-
-/** What the sign-up form said, kept for the few minutes a provider takes, then applied to the new account. */
-export const OAUTH_COOKIE = "overlay_oauth";
-
-const PROVIDERS = { google: "Google", twitter: "X" } as const;
-export type Provider = keyof typeof PROVIDERS;
-
-/** The providers switched on in the environment: AUTH_PROVIDERS=google,twitter. */
-export async function authProviders(): Promise<Provider[]> {
-  return (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? "").split(",").map((s) => s.trim()).filter((s): s is Provider => s in PROVIDERS);
 }
 
 /**

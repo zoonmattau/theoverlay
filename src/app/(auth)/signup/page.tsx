@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/app/(auth)/AuthShell";
 import { SignupPitch } from "@/components/SignupPitch";
-import { authProviders } from "@/app/(auth)/actions";
+import { authProviders } from "@/lib/social";
 import { AFF_COOKIE, cleanCode } from "@/lib/affiliates";
 
 export const metadata: Metadata = { title: "Create account" };
@@ -32,5 +32,5 @@ async function Form({ searchParams }: { searchParams: PageProps<"/signup">["sear
   const next = typeof sp.next === "string" ? sp.next : undefined;
   // The affiliate link puts its code in the URL; a cookie remembers an earlier click.
   const aff = cleanCode(typeof sp.aff === "string" ? sp.aff : jar.get(AFF_COOKIE)?.value ?? "") || undefined;
-  return <AuthForm mode="signup" next={next} affCode={aff} providers={await authProviders()} />;
+  return <AuthForm mode="signup" next={next} affCode={aff} providers={authProviders()} />;
 }
