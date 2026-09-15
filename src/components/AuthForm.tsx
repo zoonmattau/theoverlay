@@ -36,8 +36,12 @@ function XMark() {
 
 export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mode: Mode; next?: string; refCode?: string; affCode?: string; providers?: Provider[] }) {
   const [state, formAction, pending] = useActionState(ACTIONS[mode], EMPTY);
-  const [pstate, providerAction, ppending] = useActionState(signInWithProvider, EMPTY);
+  // One action per provider: a submit button's own name is spoken for by the action plumbing.
+  const [gstate, googleAction, gpending] = useActionState(signInWithProvider.bind(null, "google"), EMPTY);
+  const [xstate, xAction, xpending] = useActionState(signInWithProvider.bind(null, "twitter"), EMPTY);
   const social = mode === "login" || mode === "signup" ? providers : [];
+  const ppending = gpending || xpending;
+  const pstate = gstate.error ? gstate : xstate;
   const busy = pending || ppending;
 
   return (
@@ -125,15 +129,15 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
             <span className="h-px flex-1 bg-line" />
           </div>
           {social.includes("google") && (
-            <button type="submit" name="provider" value="google" formAction={providerAction} className="btn btn-secondary w-full" disabled={busy}>
+            <button type="submit" formAction={googleAction} className="btn btn-secondary w-full" disabled={busy}>
               <GoogleMark />
-              {ppending ? "One moment" : "Continue with Google"}
+              {gpending ? "One moment" : "Continue with Google"}
             </button>
           )}
           {social.includes("twitter") && (
-            <button type="submit" name="provider" value="twitter" formAction={providerAction} className="btn btn-secondary w-full" disabled={busy}>
+            <button type="submit" formAction={xAction} className="btn btn-secondary w-full" disabled={busy}>
               <XMark />
-              {ppending ? "One moment" : "Continue with X"}
+              {xpending ? "One moment" : "Continue with X"}
             </button>
           )}
           {mode === "signup" && <p className="text-xs text-ink-soft text-center -mt-1">Tick the boxes above first, they apply either way.</p>}

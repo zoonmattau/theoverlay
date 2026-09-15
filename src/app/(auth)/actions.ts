@@ -38,9 +38,8 @@ function safeNext(value: FormDataEntryValue | null): string {
  * invite code and email choice ride along in a short cookie so the
  * callback can stamp them on the account the provider creates.
  */
-export async function signInWithProvider(_prev: AuthState, form: FormData): Promise<AuthState> {
+export async function signInWithProvider(provider: Provider, _prev: AuthState, form: FormData): Promise<AuthState> {
   if (!supabaseConfigured()) return { error: "Accounts are not set up yet." };
-  const provider = String(form.get("provider") ?? "") as Provider;
   if (!(provider in PROVIDERS)) return { error: "Pick Google or X." };
   const signup = form.get("mode") === "signup";
   if (signup && form.get("age") !== "on") return { error: "You need to be 18 or over." };
