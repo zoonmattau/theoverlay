@@ -14,7 +14,8 @@ function Cell({ value, par, avg, strong }: { value: number; par: number; avg: nu
   const background = t < 0 ? `rgba(217, 54, 54, ${alpha})` : `rgba(111, 154, 18, ${alpha})`;
   const signed = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
   return (
-    <td className={`text-right nums tip tip-right cursor-help ${strong ? "font-semibold" : ""}`} style={{ background }} data-tip={`${signed(value - par)} against par ${par}, ${signed(value - avg)} against the race average of ${avg.toFixed(1)}.`}>
+    <td className={`text-right nums tip tip-right cursor-help ${strong ? "font-semibold" : ""}`} style={{ background }} data-tip={`${signed(value - par)} v par
+${signed(value - avg)} v avg`}>
       {value.toFixed(1)}
     </td>
   );

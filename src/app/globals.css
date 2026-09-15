@@ -1548,7 +1548,7 @@ body {
   line-height: 1.4;
   text-transform: none;
   letter-spacing: 0;
-  white-space: normal;
+  white-space: pre-line;
   text-align: left;
   box-shadow: var(--shadow-lift);
   opacity: 0;
