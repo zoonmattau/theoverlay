@@ -73,11 +73,9 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
 
   // Today in numbers: races, and the calls whether run or not so the count never reads as empty late on.
   const races = meetings.flatMap((m) => m.races);
-  const first = races.map((r) => r.jumpTime).filter(Boolean).sort()[0];
   const calls = races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched));
   const bets = calls.filter((x) => x.signal === "back").length;
   const lays = calls.filter((x) => x.signal === "lay").length;
-  const toRun = upcoming.reduce((a, { r }) => a + r.runners.filter((x) => x.signal && !x.scratched).length, 0);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
@@ -105,40 +103,30 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           )}
         </div>
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-3">
         {next ? (
-          <Tile href={href(next.m, next.r)} label={withBet ? "Next bet" : "Next to jump"} tone={nextCall?.prime ? "prime" : nextCall ? "bet" : undefined}>
-            <div className="font-display text-3xl font-extrabold tracking-tight nums leading-none"><Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} /></div>
-            <div className="mt-2 text-sm text-ink-secondary truncate">{next.m.track} R{next.r.raceNumber}{nextCall && open ? `, ${nextCall.tabNumber}. ${nextCall.horseName}` : `, ${jumpTime(next.r.jumpTime)}`}</div>
+          <Tile href={href(next.m, next.r)} label={withBet ? `Next bet, ${next.m.track} R${next.r.raceNumber}` : `Next to jump, ${next.m.track} R${next.r.raceNumber}`} tone={nextCall?.prime ? "prime" : nextCall ? "bet" : undefined}>
+            <Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} />
           </Tile>
         ) : (
-          <Tile href="#board" label="Next bet">
-            <div className="font-display text-3xl font-extrabold tracking-tight leading-none">Done</div>
-            <div className="mt-2 text-sm text-ink-secondary">Tomorrow&apos;s board is up tonight</div>
-          </Tile>
+          <Tile href="#board" label="Next bet">Done</Tile>
         )}
-
-        <Tile href="#board" label="Meetings today">
-          <div className="font-display text-3xl font-extrabold tracking-tight leading-none nums">{meetings.length}</div>
-          <div className="mt-2 text-sm text-ink-secondary nums">{races.length} races{first ? `, first jump ${jumpTime(first)}` : ""}</div>
-        </Tile>
-
-        <Tile href={open ? "/tips" : "/pricing"} label="Calls today" tone="prime">
-          <div className="font-display text-3xl font-extrabold tracking-tight leading-none nums">{released ? bets + lays : `${RELEASE_HOUR}am`}</div>
-          <div className="mt-2 text-sm text-ink-secondary nums">{released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}${open ? `, ${toRun} to run` : ""}` : "Calls release on race morning"}</div>
+        <Tile href="#board" label={meetings.length === 1 ? "meeting today" : "meetings today"}>{meetings.length}</Tile>
+        <Tile href={open ? "/tips" : "/pricing"} label={released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}` : "calls release"} tone="prime">
+          {released ? bets + lays : `${RELEASE_HOUR}am`}
         </Tile>
       </div>
     </section>
   );
 }
 
-/** One hero tile: a small label, then whatever the tile has to say, the whole thing a link. */
+/** One hero tile: the number big, one label under it, the whole thing a link. */
 function Tile({ href, label, tone, children }: { href: string; label: string; tone?: "prime" | "bet" | "lay"; children: React.ReactNode }) {
   const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : tone === "lay" ? "border-red bg-red-soft" : "";
   return (
-    <Link href={href} className={`card card-hover block min-w-0 ${cls}`}>
-      <div className="text-[10px] uppercase tracking-[0.1em] font-bold text-ink-soft mb-1.5">{label}</div>
-      {children}
+    <Link href={href} className={`card card-hover block min-w-0 text-center ${cls}`}>
+      <div className="font-display text-3xl font-extrabold tracking-tight nums leading-none">{children}</div>
+      <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-2 truncate">{label}</div>
     </Link>
   );
 }
