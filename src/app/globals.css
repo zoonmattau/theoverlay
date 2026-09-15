@@ -698,6 +698,10 @@ body {
   left: auto;
   right: 0;
 }
+.map-pop.is-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
 .map-pop-title {
   font-weight: 700;
   color: var(--color-ink);

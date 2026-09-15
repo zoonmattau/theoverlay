@@ -7,13 +7,14 @@ import type { PublishedRace } from "@/lib/model/types";
  * A cell on the red-to-green scale: red well below par, white at par, green
  * well above, six points either side being the ends of the scale.
  */
-function Cell({ value, par, strong }: { value: number; par: number; strong?: boolean }) {
+function Cell({ value, par, avg, strong }: { value: number; par: number; avg: number; strong?: boolean }) {
   const t = Math.max(-1, Math.min(1, (value - par) / 6));
   // Red 217,54,54 through white to green 111,154,18, mixed as a tint so the number stays readable.
   const alpha = Math.abs(t) * 0.55;
   const background = t < 0 ? `rgba(217, 54, 54, ${alpha})` : `rgba(111, 154, 18, ${alpha})`;
+  const signed = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
   return (
-    <td className={`text-right nums ${strong ? "font-semibold" : ""}`} style={{ background }} title={`${value >= par ? "+" : ""}${(value - par).toFixed(1)} against par`}>
+    <td className={`text-right nums tip tip-right cursor-help ${strong ? "font-semibold" : ""}`} style={{ background }} data-tip={`${signed(value - par)} against par ${par}, ${signed(value - avg)} against the race average of ${avg.toFixed(1)}.`}>
       {value.toFixed(1)}
     </td>
   );
@@ -28,6 +29,12 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
 
   const tempo = race.pace.tempo;
   const tempoOf = (g: { tempo: { fast: number; slow: number } }) => (tempo === "slow" ? g.tempo.slow : tempo === "fast" ? g.tempo.fast : (g.tempo.fast + g.tempo.slow) / 2);
+  // The race average of each column, for the hover.
+  const mean = (pick: (g: (typeof rows)[number]["ratings"]) => number) => rows.reduce((a, r) => a + pick(r.ratings), 0) / Math.max(1, rows.length);
+  const avg = {
+    today: mean((g) => g.today), class: mean((g) => g.class), early: mean((g) => g.early), mid: mean((g) => g.mid), late: mean((g) => g.late),
+    pressure: mean((g) => g.pressure), tempo: mean((g) => tempoOf(g)), going: mean((g) => g.going[race.going]), distance: mean((g) => g.distance), track: mean((g) => g.track),
+  };
 
   return (
     <div className={bare ? "" : "card p-0 overflow-hidden"}>
@@ -69,16 +76,16 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
                       <span className="font-medium truncate">{r.horseName}</span>
                     </div>
                   </td>
-                  <Cell value={g.today} par={par} strong />
-                  <Cell value={g.class} par={par} />
-                  <Cell value={g.early} par={par} />
-                  <Cell value={g.mid} par={par} />
-                  <Cell value={g.late} par={par} />
-                  <Cell value={g.pressure} par={par} />
-                  <Cell value={tempoOf(g)} par={par} />
-                  <Cell value={g.going[race.going]} par={par} />
-                  <Cell value={g.distance} par={par} />
-                  <Cell value={g.track} par={par} />
+                  <Cell value={g.today} par={par} avg={avg.today} strong />
+                  <Cell value={g.class} par={par} avg={avg.class} />
+                  <Cell value={g.early} par={par} avg={avg.early} />
+                  <Cell value={g.mid} par={par} avg={avg.mid} />
+                  <Cell value={g.late} par={par} avg={avg.late} />
+                  <Cell value={g.pressure} par={par} avg={avg.pressure} />
+                  <Cell value={tempoOf(g)} par={par} avg={avg.tempo} />
+                  <Cell value={g.going[race.going]} par={par} avg={avg.going} />
+                  <Cell value={g.distance} par={par} avg={avg.distance} />
+                  <Cell value={g.track} par={par} avg={avg.track} />
                   <td className="text-xs text-ink-secondary whitespace-nowrap">
                     <MapHover race={race} runner={r}><span className="cursor-help underline decoration-dotted underline-offset-2">{MAP_LABEL[g.map]}</span></MapHover>
                   </td>
