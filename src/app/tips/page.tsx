@@ -270,7 +270,7 @@ function CallTable({
                     </span>
                   </td>
                   <td className="text-right">
-                    <MarketHover r={c.runner}>
+                    <MarketHover r={c.runner} className="market-right">
                       <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
                     </MarketHover>
                     <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />

@@ -82,7 +82,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                     <td className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
                     <td className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
                     <td className="text-right">
-                      <MarketHover r={r}>
+                      <MarketHover r={r} className="market-right">
                         <span className={`price-chip ${locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
                           {price(r.marketPrice)}
                         </span>
