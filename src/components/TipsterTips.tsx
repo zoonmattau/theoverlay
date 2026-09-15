@@ -1,9 +1,11 @@
 import Link from "next/link";
 
+import { Jumps } from "./Countdown";
 import { Outcome } from "./SelectionCard";
 import { SocialLinks } from "./SocialLinks";
 import { priceFlagged, type CreatorTip, type Tipster, type TipsterRecord } from "@/lib/creators";
-import { price } from "@/lib/format";
+import { jumpTime, price } from "@/lib/format";
+import { getCard } from "@/lib/model/source";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
 
@@ -11,7 +13,17 @@ const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).t
  * A tipster's calls for the day, shown to their followers above the model's.
  * Labelled as the tipster's, never mixed with ours, and settled the same way.
  */
-export function TipsterTips({ tipster, tips, record, date, compact }: { tipster: Tipster; tips: CreatorTip[]; record?: TipsterRecord; date: string; compact?: boolean }) {
+export async function TipsterTips({ tipster, tips, record, date, compact }: { tipster: Tipster; tips: CreatorTip[]; record?: TipsterRecord; date: string; compact?: boolean }) {
+  // Jump times for the countdown on calls still to run, from the day's card.
+  const jumps = new Map<string, string>();
+  if (tips.some((t) => !t.settled_at)) {
+    try {
+      const card = await getCard(date);
+      for (const m of card.meetings) for (const r of m.races) if (r.jumpTime) jumps.set(r.raceId, r.jumpTime);
+    } catch {
+      // No card, no countdown.
+    }
+  }
   if (tips.length === 0 && compact) return null;
   const settled = tips.filter((t) => t.settled_at);
   const total = settled.reduce((a, t) => a + Number(t.units), 0);
@@ -39,6 +51,9 @@ export function TipsterTips({ tipster, tips, record, date, compact }: { tipster:
                   {t.tab_number}. {t.horse_name}
                 </Link>
                 <span className="text-xs text-ink-soft uppercase tracking-wider">{t.track} R{t.race_number}</span>
+                {!t.settled_at && jumps.get(t.race_id) && (
+                  <span className="badge badge-muted nums"><Jumps iso={jumps.get(t.race_id)} clock={jumpTime(jumps.get(t.race_id))} /></span>
+                )}
                 <span className="nums text-sm">{price(Number(t.price))}{t.bookie || t.bookie_price ? <span className="text-ink-soft"> {t.bookie_price ? price(Number(t.bookie_price)) : ""}{t.bookie ? ` at ${t.bookie}` : ""}</span> : null}</span>
                 {priceFlagged(t) && <span className="badge badge-warn" title={`Best price we saw when posted was ${price(Number(t.market_at_post))}`}>over market</span>}
                 <span className="ml-auto flex items-center gap-2">
