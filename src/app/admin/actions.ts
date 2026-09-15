@@ -97,7 +97,7 @@ export async function rebuildCard(): Promise<void> {
   revalidatePath("/admin");
 }
 
-/** Pin today's free race, or hand it back to the automatic pick with an empty raceId. */
+/** Pin today's free race, or hand it back to the day's draw with an empty raceId. */
 export async function setFreeRace(form: FormData): Promise<void> {
   const admin = await requireAdmin();
   const date = racingToday();

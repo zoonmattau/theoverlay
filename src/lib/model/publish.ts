@@ -438,16 +438,27 @@ const key = (c: { race: PublishedRace; runner: PublishedRunner }) =>
   `${c.race.raceId}:${c.runner.tabNumber}`;
 
 /**
- * One race a day is open to everyone: the race an admin pinned, or else the
- * earliest race still to jump that carries a bet, so a first-time visitor
- * sees a real tip before paying.
+ * One race a day is open to everyone, so a first-time visitor sees a real
+ * tip before paying: the race an admin pinned, else the one already chosen
+ * for the day, else one of the day's bets drawn at random (seeded by the
+ * date, so every rebuild agrees), else the earliest race still to jump.
  */
-export function pickFreeRace(meetings: PublishedMeeting[], pinned?: string): string | undefined {
+export function pickFreeRace(meetings: PublishedMeeting[], pinned?: string, previous?: string): string | undefined {
   const races = meetings
     .flatMap((m) => m.races)
     .filter((r) => r.jumpTime)
     .sort((a, b) => a.jumpTime!.localeCompare(b.jumpTime!));
-  if (pinned && races.some((r) => r.raceId === pinned)) return pinned;
-  const withBet = races.find((r) => !r.result && r.runners.some((x) => x.signal === "back"));
-  return (withBet ?? races.find((r) => !r.result) ?? races[0])?.raceId;
+  const has = (id?: string) => Boolean(id) && races.some((r) => r.raceId === id);
+  if (has(pinned)) return pinned;
+  if (has(previous)) return previous;
+  const withBet = races.filter((r) => !r.result && r.runners.some((x) => x.signal === "back" && !x.scratched));
+  if (withBet.length > 0) return withBet[seed(meetings[0]?.date ?? "") % withBet.length].raceId;
+  return (races.find((r) => !r.result) ?? races[0])?.raceId;
+}
+
+/** A small stable hash, so a draw for a date comes out the same every time. */
+function seed(text: string): number {
+  let h = 2166136261;
+  for (const c of text) h = Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0;
+  return h;
 }

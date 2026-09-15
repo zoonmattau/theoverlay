@@ -66,7 +66,7 @@ async function Admin() {
             ))}
           </select>
           <button className="btn btn-secondary btn-sm" type="submit">Set free race</button>
-          <span className="text-xs text-ink-soft">Stays pinned through rebuilds until you set it back to automatic.</span>
+          <span className="text-xs text-ink-soft">Automatic draws one of the day's bets at random and keeps it all day. A pin stays until you clear it.</span>
         </form>
       </div>
 
