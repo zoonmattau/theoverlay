@@ -32,20 +32,21 @@ const LONG_MIN_PRICE = 8;
  * A Prime Overlay is a bet with an edge of five points or more;
  * on today's card only Charlie Messy Hair (6.2 points) clears it.
  */
-const PRIME_EDGE = 0.05;
+const PRIME_EDGE = 0.08;
 /**
  * Bet and lay thresholds in probability points (our chance minus the
- * market's), set on a live card with scripts/calibrate.ts so a normal day
- * gives about one bet in five races and a few more lays.
+ * market's). Set with the market weight at 0.5, where our rating leads and
+ * the market tempers it, so a normal day gives a bet in about one race in
+ * three and a similar number of lays.
  */
-const MIN_EDGE = 0.02;
+const MIN_EDGE = 0.04;
 /** A bet needs a real chance and a price someone would actually take. */
 const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /** Market shorter than our price by this much, on a runner we can lay. */
-const LAY_EDGE = -0.12;
+const LAY_EDGE = -0.14;
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 
