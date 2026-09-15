@@ -35,11 +35,6 @@ export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster
               <div className="pick-rank">#{r.rank}</div>
               <div className="pick-name truncate">
                 {r.tabNumber}. {r.horseName}
-                {theirs.has(r.tabNumber) && (
-                  <span className="tipster-mark tip ml-1.5" data-tip={tip(theirs.get(r.tabNumber)!)}>
-                    {tipster!.name.trim()[0]?.toUpperCase()}
-                  </span>
-                )}
               </div>
               <div className="text-[11px] text-ink-soft mt-0.5">
                 Bar {r.barrier}
@@ -47,7 +42,14 @@ export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster
                 {r.jockey ? ` · ${r.jockey}` : ""}
               </div>
             </div>
-            <SignalBadge signal={r.signal} prime={r.prime} />
+            <span className="flex items-center gap-1.5 shrink-0">
+              {theirs.has(r.tabNumber) && (
+                <span className="tipster-mark tip tip-right" data-tip={tip(theirs.get(r.tabNumber)!)}>
+                  {tipster!.name.trim()[0]?.toUpperCase()}
+                </span>
+              )}
+              <SignalBadge signal={r.signal} prime={r.prime} />
+            </span>
           </div>
 
           <div className="flex gap-2">
