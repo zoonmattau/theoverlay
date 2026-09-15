@@ -40,6 +40,9 @@ const MIN_OVERLAY = 0.14;
 const MIN_EDGE = 0.025;
 const PRIME_OVERLAY = 0.3;
 const PRIME_EDGE = 0.05;
+/** A Prime is a real chance, not a long shot with a wide gap, and there are only a few a day. */
+const PRIME_MIN_PROB = 0.15;
+const PRIME_MAX = 3;
 /** A bet needs a real chance and a price someone would actually take. */
 const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
@@ -461,11 +464,13 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
   // Overlay of the day: the biggest edge on the card, at any price.
   take("top_overlay", qualifying, (a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0));
 
-  // Prime overlays: every other bet where the market is a third or more above our price, biggest first.
+  // Prime overlays: the few bets where the market is a third or more above
+  // our price on a horse we give a real chance, biggest gap first.
   const overlayOf = (c: (typeof qualifying)[number]) => (c.runner.marketPrice ?? 0) / c.runner.ratedPrice - 1;
   for (const c of [...qualifying]
-    .filter((c) => overlayOf(c) >= PRIME_OVERLAY && (c.runner.edge ?? 0) >= PRIME_EDGE && !used.has(key(c)))
-    .sort((a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0))) {
+    .filter((c) => overlayOf(c) >= PRIME_OVERLAY && (c.runner.edge ?? 0) >= PRIME_EDGE && c.runner.ratedProbability >= PRIME_MIN_PROB && !used.has(key(c)))
+    .sort((a, b) => overlayOf(b) - overlayOf(a))
+    .slice(0, PRIME_MAX)) {
     take("prime_overlay", [c], () => 0);
   }
 
