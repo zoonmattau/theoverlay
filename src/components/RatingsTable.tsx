@@ -4,11 +4,13 @@ import { MAP_LABEL } from "./Ratings";
 import type { PublishedRace } from "@/lib/model/types";
 
 /**
- * A cell on the red-to-green scale: red well below par, white at par, green
- * well above, six points either side being the ends of the scale.
+ * A cell on the red-to-green scale: red well below the race average for that
+ * column, white at it, green well above, six points either side being the
+ * ends of the scale. Relative to the field, so the best in the race is green
+ * whatever the class.
  */
 function Cell({ value, par, avg, strong }: { value: number; par: number; avg: number; strong?: boolean }) {
-  const t = Math.max(-1, Math.min(1, (value - par) / 6));
+  const t = Math.max(-1, Math.min(1, (value - avg) / 6));
   // Red 217,54,54 through white to green 111,154,18, mixed as a tint so the number stays readable.
   const alpha = Math.abs(t) * 0.55;
   const background = t < 0 ? `rgba(217, 54, 54, ${alpha})` : `rgba(111, 154, 18, ${alpha})`;
@@ -98,7 +100,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
         </table>
       </div>
       <p className="border-t border-line bg-bg-soft px-4 py-2 text-xs text-ink-soft">
-        Ratings are in benchmark points on the same scale as the race class. Green is above par, red below, deeper the further from it.
+        Ratings are in benchmark points on the same scale as the race class. Green is above the race average for that column, red below, deeper the further from it.
       </p>
     </div>
   );
