@@ -33,32 +33,43 @@ export function weightFactor(e: RaceEntry): number {
 }
 
 /**
- * Fresh horses are rated on their past first-up runs rather than their last
- * run, and a poor first-up or second-up record costs a point.
+ * Where the horse is in its preparation, and what that has meant before.
+ * First up it is rated on its past first-up runs; deeper in, on its past
+ * runs at the same stage, so a horse that peaks third up gets that and one
+ * that tails off late in a campaign loses it. A poor first-up or second-up
+ * record costs a point, and a horse six or more runs in with nothing to
+ * say it holds its form is docked half a point.
  */
 export function freshFactor(e: RaceEntry, cls: number, runPoints: (p: NonNullable<RaceEntry["pastEvents"]>[number]) => number): number {
-  const days = e.daysSinceLastRace ?? 0;
-  const firstUp = days >= 80 || e.raceInPrep === 1;
-  const secondUp = !firstUp && e.raceInPrep === 2;
-  if (!firstUp && !secondUp) return 0;
+  const stage = prepStage(e);
+  const firstUp = stage === 1;
+  if (stage === 0) return 0;
 
   let out = 0;
-  if (firstUp) {
-    const runs = (e.pastEvents ?? []).filter(
-      (p) => p.race !== false && (p.daysSincePreviousRace ?? 0) >= 80,
-    );
-    if (runs.length) {
-      const ps = runs.slice(0, 3).map(runPoints);
-      const fresh = (ps.reduce((a, b) => a + b, 0) + cls * SHRINK) / (ps.length + SHRINK);
-      out += 0.5 * (fresh - cls);
+  const past = (e.pastEvents ?? []).filter((p) => p.race !== false);
+  const same = firstUp ? past.filter((p) => (p.daysSincePreviousRace ?? 0) >= 80) : past.filter((p) => p.raceInPrep === stage);
+  if (same.length) {
+    const ps = same.slice(0, 3).map(runPoints);
+    const at = (ps.reduce((a, b) => a + b, 0) + cls * SHRINK) / (ps.length + SHRINK);
+    out += 0.5 * (at - cls);
+  } else if (stage >= 6) {
+    out -= 0.5;
+  }
+  if (stage <= 2) {
+    const record = parseRecord(firstUp ? e.form?.firstUpForm : e.form?.secondUpForm);
+    if (record && record.starts >= 3) {
+      const placeRate = (record.wins + record.seconds + record.thirds) / record.starts;
+      out += placeRate >= 0.5 ? 0.5 : placeRate < 0.2 ? -1 : 0;
     }
   }
-  const record = parseRecord(firstUp ? e.form?.firstUpForm : e.form?.secondUpForm);
-  if (record && record.starts >= 3) {
-    const placeRate = (record.wins + record.seconds + record.thirds) / record.starts;
-    out += placeRate >= 0.5 ? 0.5 : placeRate < 0.2 ? -1 : 0;
-  }
   return clamp(out, -CAP.fresh, CAP.fresh);
+}
+
+/** Which run of the preparation this is: 1 first up, 2 second up and so on, 0 when unknown. */
+export function prepStage(e: RaceEntry): number {
+  const days = e.daysSinceLastRace ?? 0;
+  if (days >= 80) return 1;
+  return e.raceInPrep ?? 0;
 }
 
 /**

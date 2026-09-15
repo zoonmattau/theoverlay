@@ -23,6 +23,7 @@ import type {
   Signal,
 } from "./types";
 import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, runPoints, verdict } from "./ratings";
+import { prepStage } from "./factors";
 import { rateRace } from "./rate";
 
 /** A long overlay has to actually pay something. */
@@ -304,6 +305,7 @@ function profileOf(e: RaceEntry): HorseProfile {
     career: e.form?.careerForm,
     firstUpForm: e.form?.firstUpForm,
     secondUpForm: e.form?.secondUpForm,
+    runInPrep: prepStage(e) || undefined,
     distanceForm: e.form?.distanceForm,
     trackForm: e.form?.trackForm,
     gear: (e.gear ?? []).filter((g) => g.on !== false && !/gelded/i.test(g.gear)).map((g) => g.gear),

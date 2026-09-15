@@ -114,23 +114,23 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
     const before = last?.weight;
     const diff = today && before ? today - before : 0;
     const carry = today && before ? `Carries ${today}kg today against ${before}kg last start${Math.abs(diff) >= 0.5 ? `, ${Math.abs(diff).toFixed(1)}kg ${diff > 0 ? "more" : "less"}` : ""}.` : today ? `Carries ${today}kg today.` : "";
-    if (v > 0) return `${carry} Less on its back than it has been carrying, and its form reads better at today's weight.`;
-    if (v < 0) return `${carry} More on its back than its form was made with, and weight slows a horse down.`;
+    if (v > 0) return `${carry} Its form reads better at today's weight than at what it has been carrying.`;
+    if (v < 0) return `${carry} Its form was made with less on its back than it carries today.`;
     return `${carry} About what it has been carrying, so the weight is neither here nor there.`;
   }
   function freshWhy(): string {
     const v = g.factors.fresh ?? 0;
     const days = h?.daysSinceLastRun;
+    const stage = h?.runInPrep ?? 0;
     if (h?.firstStarter) return "A first starter, rated off the field until it has run.";
-    const firstUp = Boolean(days && days >= 80);
-    const secondUp = !firstUp && v !== 0;
-    if (!firstUp && !secondUp) return "Not resuming, so the break is not a factor today.";
-    const record = firstUp ? h?.firstUpForm : h?.secondUpForm;
-    const rec = record && record !== "0:0-0-0" ? ` Its ${firstUp ? "first" : "second"}-up record is ${record} (starts:wins-seconds-thirds).` : "";
-    const lead = firstUp ? `Off for ${days} days.` : "Second up from a break.";
-    if (v > 0) return `${lead} It has gone well ${firstUp ? "fresh" : "second up"} before, its runs at this stage of a preparation rate above its class, so the break suits it.${rec}`;
-    if (v < 0) return `${lead} It has not gone well ${firstUp ? "fresh" : "second up"} before, its runs at this stage of a preparation rate below its class, so it may need the run.${rec}`;
-    return `${lead} Its runs at this stage of a preparation are in line with its class, so the break is neither here nor there.${rec}`;
+    if (!stage) return "Where it is in its preparation is not known, so nothing either way.";
+    const stageName = stage === 1 ? "first up" : stage === 2 ? "second up" : stage === 3 ? "third up" : `${ord(stage)} run of the preparation`;
+    const lead = stage === 1 ? `Off for ${days} days, first up.` : `${stageName[0].toUpperCase()}${stageName.slice(1)}, ${days} days since its last run.`;
+    const record = stage === 1 ? h?.firstUpForm : stage === 2 ? h?.secondUpForm : undefined;
+    const rec = record && record !== "0:0-0-0" ? ` Its ${stageName} record is ${record} (starts:wins-seconds-thirds).` : "";
+    if (v > 0) return `${lead} This is a stage it has gone well at before, its past runs ${stageName} rate above its class, so it suits.${rec}`;
+    if (v < 0) return stage >= 6 && !rec ? `${lead} Deep into a campaign with nothing in its past to say it holds its form this far in, so it may be past its best for now.` : `${lead} It has not gone well at this stage before, its past runs ${stageName} rate below its class, so it may need the run or be past its peak.${rec}`;
+    return `${lead} Its past runs at this stage are in line with its class, so it is neither here nor there.${rec}`;
   }
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;

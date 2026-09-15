@@ -121,6 +121,8 @@ export interface HorseProfile {
   career?: string;
   firstUpForm?: string;
   secondUpForm?: string;
+  /** Which run of the preparation this is, 1 first up. */
+  runInPrep?: number;
   distanceForm?: string;
   trackForm?: string;
   /** Gear on today, e.g. "Blinkers". */
