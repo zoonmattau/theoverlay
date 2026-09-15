@@ -47,6 +47,9 @@ export async function NavUser({ links }: { links: { href: string; label: string 
     return (
       <>
         {nav}
+        <Link href="/faq" className="topbar-link">
+          FAQ
+        </Link>
         <Link href="/login" className="topbar-link">
           Log in
         </Link>

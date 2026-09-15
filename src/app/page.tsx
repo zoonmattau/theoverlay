@@ -3,7 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { FaqList, JsonLd, ORGANIZATION, WEBSITE, faqSchema, type Faq } from "@/components/JsonLd";
+import { JsonLd, ORGANIZATION, WEBSITE } from "@/components/JsonLd";
 import { JumpTile } from "@/components/Countdown";
 import { LiveRefresh } from "@/components/LiveRefresh";
 
@@ -19,18 +19,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/" },
 };
 
-const FAQ: Faq[] = [
-  { q: "What is The Overlay?", a: "The Overlay is an Australian horse racing tips site that rates every runner on the benchmark scale, turns the ratings into a rated price, and calls a bet when the market price is bigger than ours and a lay when it is shorter." },
-  { q: "What is an overlay in horse racing?", a: "An overlay is a horse whose market price is longer than its true chance, so a $5 horse we rate a $4 chance is an overlay and worth a bet." },
-  { q: "When are the tips released?", a: "Tips are published at 8:00am AEST on each race day and prices refresh through the day until the jump." },
-  { q: "Which races are covered?", a: "Every TAB flat meeting in Australia, every state, with one race a day free and the rest open to members." },
-  { q: "How much does it cost?", a: "Saturday tips are $19 a month, Saturday plus Wednesday $29, every day $49, all with a 7-day free trial, or day passes from $10 each." },
-];
 
 export default function Page({ searchParams }: PageProps<"/">) {
   return (
     <div className="page">
-      <JsonLd data={[ORGANIZATION, WEBSITE, faqSchema(FAQ)]} />
+      <JsonLd data={[ORGANIZATION, WEBSITE]} />
       <LiveRefresh />
       <Suspense fallback={<HeroSkeleton />}>
         <Hero searchParams={searchParams} />
@@ -45,7 +38,6 @@ export default function Page({ searchParams }: PageProps<"/">) {
       </section>
 
       <WhyUs />
-      <FaqList items={FAQ} />
     </div>
   );
 }

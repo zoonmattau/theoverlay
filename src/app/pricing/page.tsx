@@ -4,7 +4,8 @@ import { Suspense } from "react";
 
 import { AutoCheckout } from "@/components/AutoCheckout";
 import { CheckoutButton } from "@/components/CheckoutButton";
-import { FaqList, JsonLd, SITE_URL, faqSchema, type Faq } from "@/components/JsonLd";
+import { FaqList, JsonLd, SITE_URL, faqSchema } from "@/components/JsonLd";
+import { PLANS_FAQ } from "@/lib/faq";
 import { getViewer } from "@/lib/auth";
 import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS } from "@/lib/billing/plans";
 
@@ -14,13 +15,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/pricing" },
 };
 
-const FAQ: Faq[] = [
-  { q: "Is there a free trial?", a: "Yes, every subscription starts with a 7-day free trial and nothing is charged if you cancel before it ends." },
-  { q: "What does a day pass do?", a: "A day pass opens every race on one racing date of your choice, costs $10, never expires, and gets cheaper in bundles of 3, 5 or 10." },
-  { q: "Can I cancel any time?", a: "Yes, cancel from your account and the board stays open until the end of the period you have paid for." },
-  { q: "Do prices include GST?", a: "Prices are in Australian dollars excluding GST, which is added at checkout." },
-  { q: "What is free without a plan?", a: "The race board, jump times, results, the live market and one free race every day." },
-];
 
 const PRODUCT = {
   "@context": "https://schema.org",
@@ -46,7 +40,7 @@ const PRODUCT = {
 export default function Page({ searchParams }: PageProps<"/pricing">) {
   return (
     <div className="page max-w-5xl">
-      <JsonLd data={[PRODUCT, faqSchema(FAQ)]} />
+      <JsonLd data={[PRODUCT, faqSchema(PLANS_FAQ)]} />
       <section className="text-center max-w-2xl mx-auto py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
           Know the price <span className="bg-lime px-2 box-decoration-clone">before you bet.</span>
@@ -72,7 +66,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
         </div>
       </section>
 
-      <FaqList items={FAQ} />
+      <FaqList items={PLANS_FAQ} />
 
       <p className="mt-8 text-xs text-ink-soft text-center">
         Prices in AUD excluding GST, which is added at checkout. Subscriptions renew monthly until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}

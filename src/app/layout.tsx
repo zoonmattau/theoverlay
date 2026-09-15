@@ -93,6 +93,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="page py-8 text-xs text-ink-soft space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <Link href="/method" className="hover:text-ink-secondary">How it works</Link>
+              <Link href="/faq" className="hover:text-ink-secondary">Questions</Link>
               <Link href="/tipsters" className="hover:text-ink-secondary">Tipsters</Link>
               <Link href="/responsible-gambling" className="hover:text-ink-secondary">
                 Responsible gambling
