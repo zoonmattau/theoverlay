@@ -1710,13 +1710,49 @@ body {
    runs take a full row beneath the horse and the expectations. */
 .runner-detail {
   display: grid;
-  gap: var(--sp-4);
+  gap: var(--sp-3) var(--sp-4);
   grid-template-columns: minmax(200px, 1fr) minmax(260px, 1.2fr);
   grid-template-areas:
     "horse expect"
     "runs runs";
-  padding: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
   border-left: 3px solid var(--color-lime);
+}
+/* Horse facts: short sentences, and a four-up grid for the records. */
+.detail-facts {
+  font-size: 0.8rem;
+  line-height: 1.45;
+  color: var(--color-ink-secondary);
+  margin: 0 0 4px;
+}
+.detail-facts strong {
+  color: var(--color-ink);
+}
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  margin: 6px 0 8px;
+}
+.detail-grid > div {
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+  padding: 4px 6px;
+  min-width: 0;
+}
+.detail-grid dt {
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+}
+.detail-grid dd {
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .runner-detail > .runner-detail-col:nth-child(1) { grid-area: horse; }
 .runner-detail > .runner-detail-col:nth-child(2) { grid-area: runs; }
@@ -1792,7 +1828,7 @@ body {
   padding: 0 8px 4px 0;
 }
 .runs-table td {
-  padding: 4px 8px 4px 0;
+  padding: 3px 8px 3px 0;
   border-top: 1px solid var(--color-line-soft);
 }
 .detail-lines {
