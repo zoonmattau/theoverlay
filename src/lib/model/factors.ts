@@ -67,12 +67,13 @@ export function freshFactor(e: RaceEntry, cls: number, runPoints: (p: NonNullabl
  * gains from an inside one; a midfield or back runner cares less, though a
  * very wide gate still costs cover and an inside gate in a big field can
  * mean being held up. Sprints punish the wide gate most, staying races
- * hardly at all, and small fields halve the lot.
+ * hardly at all, and small fields halve the lot. `gate` is the runner's
+ * place from the rail once scratchings are out, 1 the innermost.
  */
-export function barrierFactor(barrier: number, field: number, map: MapPosition, distance: number): number {
-  if (field < 4 || barrier < 1) return 0;
+export function barrierFactor(gate: number, field: number, map: MapPosition, distance: number): number {
+  if (field < 4 || gate < 1) return 0;
   // 0 is the rail, 1 the widest gate.
-  const g = (Math.min(barrier, field) - 1) / Math.max(1, field - 1);
+  const g = (Math.min(gate, field) - 1) / Math.max(1, field - 1);
   const w = distance <= 1200 ? 1 : distance <= 1600 ? 0.7 : distance <= 2000 ? 0.45 : 0.3;
   const front = map === "leader" || map === "on pace";
   let out = 0;

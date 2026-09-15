@@ -173,7 +173,7 @@ export function rateEntries(
       fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age)),
       jockey: clamp(((e.jockeyForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.06, -CAP.jockey, CAP.jockey),
       trainer: clamp(((e.trainerForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.04, -CAP.trainer, CAP.trainer),
-      barrier: barrierFactor(e.barrier, n, mapOf(ppir, n, coLeaders), race.distance),
+      barrier: barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, mapOf(ppir, n, coLeaders), race.distance),
       market: fk[i] * FK_NUDGE,
     };
     for (const k of Object.keys(factors) as Factor[]) {
