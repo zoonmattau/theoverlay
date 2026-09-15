@@ -126,11 +126,6 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
             <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
           ) : null}
         </dl>
-        <h4 className="mt-4">Our call</h4>
-        <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
-          {callLine(r)}
-          {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block mt-1 font-bold" /> : null}
-        </p>
       </div>
 
       <div className="runner-detail-col runner-detail-runs">
@@ -221,6 +216,11 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           {expectations(r, race).slice(0, 4).map((line) => <li key={line.text} className={line.tone > 0 ? "is-up" : line.tone < 0 ? "is-down" : ""}>{line.text}</li>)}
         </ul>
         <div className="mt-2"><Factors r={r.ratings} compact /></div>
+        <h4 className="mt-4">Our call</h4>
+        <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
+          {callLine(r)}
+          {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block mt-1 font-bold" /> : null}
+        </p>
       </div>
     </div>
   );
