@@ -109,7 +109,10 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
             {hover.run ? (
               <dl className="worm-tip-grid">
                 <dt>When</dt><dd>{day(hover.run.date)}</dd>
-                <dt>Where</dt><dd>{hover.run.track ?? "—"}, {hover.run.distance}m{hover.run.className ? `, ${hover.run.className}` : ""}</dd>
+                <dt>Track</dt><dd>{hover.run.track ?? "—"}</dd>
+                <dt>Distance</dt><dd>{hover.run.distance}m</dd>
+                {hover.run.going ? <><dt>Going</dt><dd>{hover.run.going}</dd></> : null}
+                {hover.run.className ? <><dt>Class</dt><dd>{hover.run.className}</dd></> : null}
                 <dt>Result</dt><dd>{hover.run.finish ? `${ord(hover.run.finish)}${hover.run.runners ? ` of ${hover.run.runners}` : ""}` : "unplaced"}{hover.run.margin !== undefined && hover.run.finish !== 1 ? `, ${hover.run.margin.toFixed(1)}L` : ""}</dd>
                 {hover.run.sp ? <><dt>SP</dt><dd>{price(hover.run.sp)}</dd></> : null}
                 <dt>Points</dt><dd className="worm-tip-pts">{hover.run.points.toFixed(1)}<span>, {vsPar(hover.run.points, par)}</span></dd>

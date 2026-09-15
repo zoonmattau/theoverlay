@@ -112,7 +112,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <div><dt>Breeding</dt><dd>{h?.sire ? `${h.sire} × ${h.dam ?? "?"}` : "—"}</dd></div>
           <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}{fx("trainer")}</dd></div>
           <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}</dd></div>
-          <div><dt>Barrier</dt><dd className="nums">{r.barrier}</dd></div>
+          <div><dt>Barrier</dt><dd className="nums">{r.barrier}{fx("barrier")}</dd></div>
           <div><dt>Weight</dt><dd className="nums">{r.weight ?? "—"}kg{fx("weight")}</dd></div>
           <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}</dd></div>
           <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}{fx("distance")}</dd></div>

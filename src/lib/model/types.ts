@@ -24,6 +24,7 @@ export type Factor =
   | "fresh"
   | "jockey"
   | "trainer"
+  | "barrier"
   | "market";
 
 export const FACTOR_LABEL: Record<Factor, string> = {
@@ -35,6 +36,7 @@ export const FACTOR_LABEL: Record<Factor, string> = {
   fresh: "Freshness",
   jockey: "Jockey",
   trainer: "Trainer",
+  barrier: "Barrier",
   market: "Field",
 };
 

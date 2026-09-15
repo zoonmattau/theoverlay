@@ -5,8 +5,9 @@
  */
 
 import type { RaceEntry } from "@/lib/formking/types";
+import type { MapPosition } from "./types";
 
-const CAP = { weight: 3, fresh: 3 };
+const CAP = { weight: 3, fresh: 3, barrier: 1.5 };
 /** Form King's restated ratings move a lot per kilo, so take half. */
 const WEIGHT_SCALE = 0.5;
 const SHRINK = 2;
@@ -58,6 +59,32 @@ export function freshFactor(e: RaceEntry, cls: number, runPoints: (p: NonNullabl
     out += placeRate >= 0.5 ? 0.5 : placeRate < 0.2 ? -1 : 0;
   }
   return clamp(out, -CAP.fresh, CAP.fresh);
+}
+
+/**
+ * The draw, read with where the horse settles. A leader or on-pace runner
+ * pays for a wide gate because it has to work early to hold its spot, and
+ * gains from an inside one; a midfield or back runner cares less, though a
+ * very wide gate still costs cover and an inside gate in a big field can
+ * mean being held up. Sprints punish the wide gate most, staying races
+ * hardly at all, and small fields halve the lot.
+ */
+export function barrierFactor(barrier: number, field: number, map: MapPosition, distance: number): number {
+  if (field < 4 || barrier < 1) return 0;
+  // 0 is the rail, 1 the widest gate.
+  const g = (Math.min(barrier, field) - 1) / Math.max(1, field - 1);
+  const w = distance <= 1200 ? 1 : distance <= 1600 ? 0.7 : distance <= 2000 ? 0.45 : 0.3;
+  const front = map === "leader" || map === "on pace";
+  let out = 0;
+  if (front) {
+    if (g > 0.45) out = -(g - 0.45) * 2.6 * w;
+    else if (g < 0.3) out = (0.3 - g) * 1.6 * w;
+  } else {
+    if (g > 0.65) out = -(g - 0.65) * 1.6 * w;
+    else if (g < 0.15 && field >= 12) out = -(0.15 - g) * 2 * w;
+  }
+  if (field < 8) out *= 0.5;
+  return clamp(out, -CAP.barrier, CAP.barrier);
 }
 
 /** "4:1-0-2" is starts:wins-seconds-thirds. */

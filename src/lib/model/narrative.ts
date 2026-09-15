@@ -153,6 +153,7 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   const h = r.horse;
   const last = r.runs?.[0];
   const field = race.runners.filter((x) => !x.scratched).length;
+  const pts = (v: number) => `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "point" : "points"}`;
 
   // Class move from the last start.
   const lastClass = classNumber(last?.className);
@@ -188,15 +189,14 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
     else if (diff >= 2) out.push({ weight: 2, tone: -1, text: `goes up ${diff.toFixed(1)}kg` });
   }
 
-  // Barrier against the run style.
+  // The draw, said with where it settles; the points come from the barrier factor.
   const front = g.map === "leader" || g.map === "on pace";
-  if (front && r.barrier <= 3) out.push({ weight: 2, tone: 1, text: pick(r, ["draws to get the run of the race", "has the inside draw to hold its spot"]) });
-  else if (front && field >= 10 && r.barrier >= field - 2) out.push({ weight: 2, tone: -1, text: "has to work early from the wide gate" });
-  else if (!front && r.barrier >= field - 2) out.push({ weight: 1, tone: -1, text: "goes back from the wide draw" });
+  const draw = g.factors.barrier ?? 0;
+  if (draw >= 0.5) out.push({ weight: 2, tone: 1, text: `${pick(r, ["draws to get the run of the race", "has the inside draw to hold its spot"])}, ${pts(draw)} up` });
+  else if (draw <= -0.5) out.push({ weight: 2, tone: -1, text: `${front ? "has to work early from the wide gate" : field >= 12 && r.barrier <= 2 ? "risks being held up from the inside gate" : "goes back from the wide draw"}, ${pts(draw)} off` });
 
   // The factors that moved Today away from Class: anything worth a point and
   // a half gets said, the biggest movers loudest.
-  const pts = (v: number) => `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "point" : "points"}`;
   const factorLines: Partial<Record<keyof typeof g.factors, [string, string]>> = {
     distance: [`the trip is a query, ${"%"} off its class${tripDetail(r, race)}`, `is at its best at this trip, ${"%"} up${tripDetail(r, race)}`],
     going: [`the ${race.going} ground costs it ${"%"}`, `the ${race.going} ground adds ${"%"}`],
