@@ -54,7 +54,7 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
             <span className="nums whitespace-nowrap">
               <span className="text-ink-soft">{priceWithChance(r.ratedPrice, r.ratedProbability)}</span>
               <span className="text-muted"> v </span>
-              <span className={r.signal === "back" ? "text-blue font-bold" : "text-red font-bold"}>
+              <span className={r.prime ? "text-accent font-bold" : r.signal === "back" ? "text-blue font-bold" : "text-red font-bold"}>
                 {price(r.marketPrice)}
               </span>
               <span className="text-ink-soft text-xs"> {signedPercent(r.edge)}</span>

@@ -919,6 +919,14 @@ body {
   font-weight: 700;
   margin-top: 1px;
 }
+.price-box.is-prime {
+  background: var(--color-lime);
+  border-color: var(--color-lime);
+  color: var(--color-ink);
+}
+.price-box.is-prime .label {
+  color: var(--color-ink-secondary);
+}
 .price-box.is-back {
   background: var(--color-blue);
   border-color: var(--color-blue);
@@ -1105,6 +1113,11 @@ body {
   font-variant-numeric: tabular-nums;
   font-weight: 700;
   text-align: center;
+}
+.price-chip.is-prime {
+  background: var(--color-lime);
+  border-color: var(--color-lime);
+  color: var(--color-ink);
 }
 .price-chip.is-back {
   background: var(--color-blue);
@@ -1638,6 +1651,10 @@ body {
   border-radius: var(--radius-sm);
   background: var(--color-surface);
   border-left: 3px solid var(--color-line);
+}
+.detail-call.is-prime {
+  border-left-color: var(--color-accent);
+  background: var(--color-lime-soft);
 }
 .detail-call.is-back {
   border-left-color: var(--color-blue);

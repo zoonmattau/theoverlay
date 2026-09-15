@@ -268,10 +268,10 @@ function CallTable({
                     </span>
                   </td>
                   <td className="text-right">
-                    <span className={`price-chip ${side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
+                    <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
                   </td>
                   <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
-                  <td className={`text-right nums font-bold ${side === "back" ? "text-blue" : "text-red"}`}>
+                  <td className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>
                     {signedPercent(c.runner.edge)}
                   </td>
                   <td>

@@ -80,7 +80,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                     <td className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
                     <td className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
                     <td className="text-right">
-                      <span className={`price-chip ${!locked && r.signal === "back" ? "is-back" : !locked && r.signal === "lay" ? "is-lay" : ""}`}>
+                      <span className={`price-chip ${locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
                         {price(r.marketPrice)}
                       </span>
                     </td>
@@ -88,7 +88,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                     {!locked && <td className="hide-sm text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
                     {!locked && (
                       <td className="text-right nums">
-                        <span className={r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
+                        <span className={r.prime ? "text-accent font-semibold" : r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
                           {signedPercent(r.edge)}
                         </span>
                       </td>

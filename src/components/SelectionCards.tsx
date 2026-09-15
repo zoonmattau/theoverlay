@@ -32,7 +32,7 @@ export function SelectionCards({ race }: { race: PublishedRace }) {
           </div>
 
           <div className="flex gap-2">
-            <div className={`price-box ${r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
+            <div className={`price-box ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
               <div className="label">Live</div>
               <div className="value nums">{price(r.marketPrice)}</div>
             </div>

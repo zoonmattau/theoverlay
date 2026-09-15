@@ -129,7 +129,7 @@ function Bar({
         />
       </div>
       <div className="bar-value nums">{value.toFixed(1)}</div>
-      <div className={`bar-price nums ${r.signal === "back" ? "text-blue font-bold" : r.signal === "lay" ? "text-red font-bold" : "text-ink-soft"}`}>
+      <div className={`bar-price nums ${r.prime ? "text-accent font-bold" : r.signal === "back" ? "text-blue font-bold" : r.signal === "lay" ? "text-red font-bold" : "text-ink-soft"}`}>
         {price(r.marketPrice)}
       </div>
     </div>
