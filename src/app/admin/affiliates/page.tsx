@@ -25,6 +25,12 @@ export default function Page({ searchParams }: PageProps<"/admin/affiliates">) {
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 const day = (ymd: string) => new Date(`${ymd}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+type Params = Record<string, string | string[] | undefined>;
+/** Which panel a card shows: ?show=<affiliate id>:<panel>, the last 14 days by default. */
+function show(sp: Params, id: string): string {
+  const v = typeof sp.show === "string" ? sp.show : "";
+  return v.startsWith(`${id}:`) ? v.slice(id.length + 1) : "days";
+}
 const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };
 
 async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/affiliates">["searchParams"] }) {
@@ -106,23 +112,39 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 </form>
               </div>
             </div>
-            <div className="mt-3 grid grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3 text-center text-sm">
-              <Stat n={a.clicksToday} label="clicks today" />
-              <Stat n={a.clicks7} label="clicks, 7d" />
-              <Stat n={a.clicks30} label="clicks, 30d" />
-              <Stat n={a.clicks} label="clicks, all" />
-              <Stat n={a.signups} label="sign-ups" />
-              <Stat n={a.signups30} label="sign-ups, 30d" />
-              <Stat n={`${a.conversion}%`} label="click to sign-up" />
-              <Stat n={a.paying} label="paying now" />
-              <Stat n={money(a.revenue_cents)} label="revenue" />
-              <Stat n={money(a.commission_cents)} label="commission" />
+            <div className="mt-4 grid gap-4 md:grid-cols-[2fr_3fr]">
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold mb-1.5">Clicks</div>
+                <div className="grid grid-cols-4 gap-2 text-center text-sm">
+                  <Stat n={a.clicksToday} label="today" />
+                  <Stat n={a.clicks7} label="7 days" />
+                  <Stat n={a.clicks30} label="30 days" />
+                  <Stat n={a.clicks} label="all" />
+                </div>
+              </div>
+              <div>
+                <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold mb-1.5">Members</div>
+                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-sm">
+                  <Stat n={a.signups} label="sign-ups" />
+                  <Stat n={a.signups30} label="30 days" />
+                  <Stat n={`${a.conversion}%`} label="per click" />
+                  <Stat n={a.paying} label="paying" tone="prime" />
+                  <Stat n={money(a.revenue_cents)} label="revenue" tone="bet" />
+                  <Stat n={money(a.commission_cents)} label="commission" />
+                </div>
+              </div>
             </div>
             <p className="mt-2 text-xs text-ink-soft">{a.lastClickAt ? `Last click ${when(a.lastClickAt)}.` : "No clicks yet."}</p>
-            <div className="mt-3 grid gap-3 lg:grid-cols-3">
-              <details>
-                <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Last 14 days</summary>
-                <table className="data-table text-xs mt-2">
+
+            <div className="tabs mt-4 text-xs" role="tablist">
+              <Link href={`/admin/affiliates?show=${a.id}:days`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "days"} className="tab">Last 14 days</Link>
+              <Link href={`/admin/affiliates?show=${a.id}:clicks`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "clicks"} className="tab">Recent clicks ({a.recentClicks.length})</Link>
+              <Link href={`/admin/affiliates?show=${a.id}:members`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "members"} className="tab">Sign-ups ({a.members.length})</Link>
+              <Link href={`/admin/affiliates?show=${a.id}:settings`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "settings"} className="tab">Link and terms</Link>
+            </div>
+            <div className="mt-3 overflow-x-auto">
+              {show(sp, a.id) === "days" && (
+                <table className="data-table text-xs">
                   <thead><tr><th>Day</th><th className="text-right">Clicks</th><th className="text-right">Sign-ups</th></tr></thead>
                   <tbody>
                     {a.days.map((d) => (
@@ -130,39 +152,41 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                     ))}
                   </tbody>
                 </table>
-              </details>
-              <details>
-                <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Recent clicks ({a.recentClicks.length})</summary>
-                {a.recentClicks.length === 0 && <p className="mt-2 text-xs text-ink-soft">None yet.</p>}
-                <ul className="mt-2 text-xs divide-y divide-line-soft">
-                  {a.recentClicks.map((c, i) => (
-                    <li key={i} className="py-1 flex flex-wrap gap-x-3">
-                      <span className="nums text-ink-secondary">{when(c.created_at)}</span>
-                      <span>{c.device}</span>
-                      <span className="text-ink-soft truncate">{c.landing ?? "/"}</span>
-                      {c.referrer && <span className="text-ink-soft truncate">from {host(c.referrer)}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-              <details>
-                <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Sign-ups ({a.members.length})</summary>
-                {a.members.length === 0 && <p className="mt-2 text-xs text-ink-soft">None yet.</p>}
-                <ul className="mt-2 text-xs divide-y divide-line-soft">
-                  {a.members.map((m) => (
-                    <li key={m.id} className="py-1 flex flex-wrap items-center gap-x-3">
-                      <span className="nums text-ink-secondary">{when(m.created_at)}</span>
-                      <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue truncate">{m.email ?? m.id}</Link>
-                      <span className={`badge ${m.status === "paying" ? "badge-prime" : m.status === "trial" ? "badge-ok" : "badge-muted"}`}>{m.status}</span>
-                      {m.plan && <span className="text-ink-soft">{m.plan}</span>}
-                      {m.spent_cents > 0 && <span className="nums text-ink-soft">{money(m.spent_cents)}</span>}
-                      {m.last_seen_at && <span className="text-ink-soft">seen {when(m.last_seen_at)}</span>}
-                    </li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-2">
+              )}
+              {show(sp, a.id) === "clicks" && (a.recentClicks.length === 0 ? <p className="text-xs text-ink-soft">No clicks yet.</p> : (
+                <table className="data-table text-xs">
+                  <thead><tr><th>When</th><th>Device</th><th>Landed on</th><th>Came from</th></tr></thead>
+                  <tbody>
+                    {a.recentClicks.map((c, i) => (
+                      <tr key={i}>
+                        <td className="nums whitespace-nowrap">{when(c.created_at)}</td>
+                        <td>{c.device}</td>
+                        <td className="text-ink-secondary">{c.landing ?? "/"}</td>
+                        <td className="text-ink-secondary">{c.referrer ? host(c.referrer) : "direct"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
+              {show(sp, a.id) === "members" && (a.members.length === 0 ? <p className="text-xs text-ink-soft">No sign-ups yet.</p> : (
+                <table className="data-table text-xs">
+                  <thead><tr><th>Joined</th><th>Member</th><th>Status</th><th>Plan</th><th className="text-right">Spent</th><th>Last seen</th></tr></thead>
+                  <tbody>
+                    {a.members.map((m) => (
+                      <tr key={m.id}>
+                        <td className="nums whitespace-nowrap">{when(m.created_at)}</td>
+                        <td><Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.email ?? m.id}</Link></td>
+                        <td><span className={`badge ${m.status === "paying" ? "badge-prime" : m.status === "trial" ? "badge-ok" : "badge-muted"}`}>{m.status}</span></td>
+                        <td className="text-ink-secondary">{m.plan ?? "—"}</td>
+                        <td className="text-right nums">{m.spent_cents > 0 ? money(m.spent_cents) : "—"}</td>
+                        <td className="nums whitespace-nowrap text-ink-secondary">{m.last_seen_at ? when(m.last_seen_at) : "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
+              {show(sp, a.id) === "settings" && (
+            <div className="grid gap-3 md:grid-cols-2">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Link</div>
                 <CopyLink link={`${site}/go/${a.code}`} />
@@ -172,6 +196,8 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 <label className="field flex-1 min-w-[160px]"><span>Notes</span><input name="notes" defaultValue={a.notes ?? ""} className="field-input w-full" placeholder="Paid to, agreed terms" /></label>
                 <button className="btn btn-secondary btn-sm" type="submit">Save</button>
               </form>
+            </div>
+              )}
             </div>
           </div>
         ))}
@@ -251,9 +277,10 @@ function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "p
   );
 }
 
-function Stat({ n, label }: { n: number | string; label: string }) {
+function Stat({ n, label, tone }: { n: number | string; label: string; tone?: "prime" | "bet" }) {
+  const cls = tone === "prime" ? "bg-lime-soft" : tone === "bet" ? "bg-blue-soft" : "bg-panel-alt";
   return (
-    <div className="rounded-md bg-panel-alt py-2">
+    <div className={`rounded-md py-2 ${cls}`}>
       <div className="font-display font-extrabold nums">{n}</div>
       <div className="text-[10px] uppercase tracking-[0.06em] text-ink-soft font-bold">{label}</div>
     </div>
