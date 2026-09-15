@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
 import { ActionButton } from "@/components/ActionButton";
+import { ActivityFeed } from "@/components/ActivityFeed";
 import { isAdmin, listMembers, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
@@ -11,11 +12,11 @@ import { planById } from "@/lib/billing/plans";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/admin">) {
   return (
     <div className="page">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Admin />
+        <Admin searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -25,11 +26,13 @@ const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const jump = (iso?: string) => (iso ? new Date(iso).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }) : "");
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 
-async function Admin() {
+async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["searchParams"] }) {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
+  const sp = await searchParams;
+  const activity = typeof sp.activity === "string" && ["money", "members", "admin"].includes(sp.activity) ? sp.activity : "all";
   const members = await listMembers();
-  const [stats, events, card] = await Promise.all([overview(members), recentEvents(undefined, 40), getTodayCard()]);
+  const [stats, events, card] = await Promise.all([overview(members), recentEvents(undefined, 80), getTodayCard()]);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
   const lastMail = events.find((e) => e.kind === "tips_email");
@@ -104,28 +107,7 @@ async function Admin() {
         </div>
       </div>
 
-      <div className="section">
-        <div className="section-bar">
-          <span className="section-letter">E</span>
-          <h2>Recent activity</h2>
-        </div>
-        <ul className="divide-y divide-line-soft">
-          {events.length === 0 && <li className="p-4 text-sm text-ink-soft">Nothing yet.</li>}
-          {events.map((e) => {
-            const m = members.find((x) => x.id === e.user_id);
-            return (
-              <li key={e.id} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
-                <span className="nums text-ink-soft w-28">{when(e.created_at)}</span>
-                <span className="badge badge-muted">{e.kind}</span>
-                <span className="font-semibold">{m?.email ?? e.user_id ?? "visitor"}</span>
-                {e.plan && <span className="text-ink-secondary">{planById(e.plan)?.name ?? e.plan}</span>}
-                {e.amount_cents ? <span className="nums">{money(e.amount_cents)}</span> : null}
-                {e.meta && <span className="text-xs text-ink-soft">{JSON.stringify(e.meta)}</span>}
-              </li>
-            );
-          })}
-        </ul>
-      </div>
+      <ActivityFeed events={events} members={members} filter={activity} base="/admin" />
     </>
   );
 }
