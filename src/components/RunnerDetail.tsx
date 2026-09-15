@@ -87,6 +87,12 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   const runs = r.runs ?? [];
   const avg = fieldAverage(race);
   const g = r.ratings;
+  // The points a factor adds to or takes from Today, next to the fact it came from.
+  const fx = (key: keyof typeof g.factors) => {
+    const v = g.factors[key];
+    if (!v) return null;
+    return <span className={`factor nums ml-1.5 ${v > 0 ? "is-up" : "is-down"}`} title={`${v > 0 ? "Adds" : "Costs"} ${Math.abs(v).toFixed(1)} points today`}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
+  };
   const tile = (label: string, value: number, what: string) => {
     const gap = value - g.class;
     const verdict = gap > 1 ? `above its class rating of ${g.class.toFixed(1)}, a plus today` : gap < -1 ? `below its class rating of ${g.class.toFixed(1)}, a query today` : `in line with its class rating of ${g.class.toFixed(1)}`;
@@ -104,13 +110,17 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         <dl className="detail-list">
           <div><dt>Profile</dt><dd>{[h?.age ? `${h.age}yo` : null, h?.sex ? SEX[h.sex] ?? h.sex : null].filter(Boolean).join(" ") || "—"}</dd></div>
           <div><dt>Breeding</dt><dd>{h?.sire ? `${h.sire} × ${h.dam ?? "?"}` : "—"}</dd></div>
-          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}</dd></div>
-          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}</dd></div>
-          <div><dt>Barrier / weight</dt><dd className="nums">{r.barrier} / {r.weight ?? "—"}kg</dd></div>
+          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}{fx("trainer")}</dd></div>
+          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}</dd></div>
+          <div><dt>Barrier</dt><dd className="nums">{r.barrier}</dd></div>
+          <div><dt>Weight</dt><dd className="nums">{r.weight ?? "—"}kg{fx("weight")}</dd></div>
           <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}</dd></div>
-          <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}</dd></div>
-          <div><dt>This track</dt><dd className="nums">{h?.trackForm ?? "—"}</dd></div>
-          <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}</dd></div>
+          <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}{fx("distance")}</dd></div>
+          <div><dt>This track</dt><dd className="nums">{h?.trackForm ?? "—"}{fx("track")}</dd></div>
+          <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}{fx("fresh")}</dd></div>
+          <div><dt>Going</dt><dd>{race.goingText ?? race.going}{fx("going")}</dd></div>
+          <div><dt>Tempo</dt><dd>{race.pace.tempo}{fx("tempo")}</dd></div>
+          {g.factors.market ? <div><dt>Market</dt><dd className="nums">{r.marketPrice ? price(r.marketPrice) : "—"}{fx("market")}</dd></div> : null}
           <div><dt>Gear</dt><dd>{h?.gear?.length ? h.gear.join(", ") : "none"}</dd></div>
           {h?.gearChanges?.length ? (
             <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
