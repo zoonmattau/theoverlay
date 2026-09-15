@@ -16,6 +16,12 @@ interface Hover {
 }
 
 const ord = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
+/** "4.5 above par" or "2.0 below par", from the points and today's par. */
+const vsPar = (v: number, par: number) => {
+  const gap = v - par;
+  if (Math.abs(gap) < 0.05) return "at par";
+  return `${Math.abs(gap).toFixed(1)} ${gap > 0 ? "above" : "below"} par`;
+};
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" });
 
 /**
@@ -106,11 +112,11 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
                 <dt>Where</dt><dd>{hover.run.track ?? "—"}, {hover.run.distance}m{hover.run.className ? `, ${hover.run.className}` : ""}</dd>
                 <dt>Result</dt><dd>{hover.run.finish ? `${ord(hover.run.finish)}${hover.run.runners ? ` of ${hover.run.runners}` : ""}` : "unplaced"}{hover.run.margin !== undefined && hover.run.finish !== 1 ? `, ${hover.run.margin.toFixed(1)}L` : ""}</dd>
                 {hover.run.sp ? <><dt>SP</dt><dd>{price(hover.run.sp)}</dd></> : null}
-                <dt>Points</dt><dd className="worm-tip-pts">{hover.run.points.toFixed(1)}<span>{hover.run.points >= par ? " above par" : " below par"}</span></dd>
+                <dt>Points</dt><dd className="worm-tip-pts">{hover.run.points.toFixed(1)}<span>, {vsPar(hover.run.points, par)}</span></dd>
               </dl>
             ) : (
               <dl className="worm-tip-grid">
-                <dt>Today</dt><dd className="worm-tip-pts">{hover.runner.ratings.today.toFixed(1)}<span>{hover.runner.ratings.today >= par ? " above par" : " below par"}</span></dd>
+                <dt>Today</dt><dd className="worm-tip-pts">{hover.runner.ratings.today.toFixed(1)}<span>, {vsPar(hover.runner.ratings.today, par)}</span></dd>
                 <dt>Rated</dt><dd>{price(hover.runner.ratedPrice)}</dd>
                 {hover.runner.marketPrice ? <><dt>Market</dt><dd>{price(hover.runner.marketPrice)}</dd></> : null}
               </dl>
