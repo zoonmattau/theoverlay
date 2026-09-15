@@ -96,10 +96,12 @@ export function watchSentence(r: PublishedRunner, race: PublishedRace): string {
   return `${settles(r)}${body}. ${callLine(r)}`;
 }
 
-interface Observation {
+export interface Observation {
   /** Bigger is more worth saying. */
   weight: number;
   text: string;
+  /** Good news, bad news, or just news. */
+  tone: Tone;
 }
 
 /** Benchmark points from a class string like "Bm78", "Class 3" or "Mdn". */
@@ -156,41 +158,41 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   const lastClass = classNumber(last?.className);
   if (lastClass !== undefined) {
     const move = lastClass - race.classPoints;
-    if (move >= 6) out.push({ weight: 4, text: pick(r, [`drops in class from a ${last!.className}`, `comes back in grade from a ${last!.className}`, `eases in class off a ${last!.className}`]) });
-    else if (move <= -6) out.push({ weight: 3, text: pick(r, [`steps up in class from a ${last!.className}`, `rises in grade off a ${last!.className}`]) });
+    if (move >= 6) out.push({ weight: 4, tone: 1, text: pick(r, [`drops in class from a ${last!.className}`, `comes back in grade from a ${last!.className}`, `eases in class off a ${last!.className}`]) });
+    else if (move <= -6) out.push({ weight: 3, tone: -1, text: pick(r, [`steps up in class from a ${last!.className}`, `rises in grade off a ${last!.className}`]) });
   }
 
   // Last start.
-  if (last?.finish === 1) out.push({ weight: 3, text: pick(r, ["won last start", "comes off a win", "is a last-start winner"]) });
-  else if (last?.finish && last.finish <= 3) out.push({ weight: 2, text: pick(r, [`ran ${last.finish === 2 ? "second" : "third"} last start`, "placed last start"]) });
-  else if (last?.margin !== undefined && last.margin >= 6) out.push({ weight: 2, text: pick(r, ["was well beaten last start", "has a poor last run to forgive"]) });
+  if (last?.finish === 1) out.push({ weight: 3, tone: 1, text: pick(r, ["won last start", "comes off a win", "is a last-start winner"]) });
+  else if (last?.finish && last.finish <= 3) out.push({ weight: 2, tone: 1, text: pick(r, [`ran ${last.finish === 2 ? "second" : "third"} last start`, "placed last start"]) });
+  else if (last?.margin !== undefined && last.margin >= 6) out.push({ weight: 2, tone: -1, text: pick(r, ["was well beaten last start", "has a poor last run to forgive"]) });
 
   // Rivals met last start.
   const rival = last?.met?.find((m) => m.finish !== undefined && last.finish !== undefined && last.finish < m.finish);
   if (rival) {
     const other = race.runners.find((x) => x.tabNumber === rival.tab);
-    if (other && !other.scratched) out.push({ weight: 4, text: `beat ${other.horseName} last start` });
+    if (other && !other.scratched) out.push({ weight: 4, tone: 1, text: `beat ${other.horseName} last start` });
   }
 
   // Freshness.
   const days = h?.daysSinceLastRun;
-  if (h?.firstStarter) out.push({ weight: 3, text: "is a first starter" });
-  else if (days && days > 120) out.push({ weight: 3, text: `is first up after ${days} days` });
-  else if (days && days > 60) out.push({ weight: 2, text: "resumes from a break" });
-  else if (days && days <= 7) out.push({ weight: 2, text: `backs up after ${days} days` });
+  if (h?.firstStarter) out.push({ weight: 3, tone: 0, text: "is a first starter" });
+  else if (days && days > 120) out.push({ weight: 3, tone: 0, text: `is first up after ${days} days` });
+  else if (days && days > 60) out.push({ weight: 2, tone: 0, text: "resumes from a break" });
+  else if (days && days <= 7) out.push({ weight: 2, tone: 0, text: `backs up after ${days} days` });
 
   // Weight against last start.
   if (last?.weight && r.weight) {
     const diff = r.weight - last.weight;
-    if (diff <= -2) out.push({ weight: 2, text: `drops ${Math.abs(diff).toFixed(1)}kg` });
-    else if (diff >= 2) out.push({ weight: 2, text: `goes up ${diff.toFixed(1)}kg` });
+    if (diff <= -2) out.push({ weight: 2, tone: 1, text: `drops ${Math.abs(diff).toFixed(1)}kg` });
+    else if (diff >= 2) out.push({ weight: 2, tone: -1, text: `goes up ${diff.toFixed(1)}kg` });
   }
 
   // Barrier against the run style.
   const front = g.map === "leader" || g.map === "on pace";
-  if (front && r.barrier <= 3) out.push({ weight: 2, text: pick(r, ["draws to get the run of the race", "has the inside draw to hold its spot"]) });
-  else if (front && field >= 10 && r.barrier >= field - 2) out.push({ weight: 2, text: "has to work early from the wide gate" });
-  else if (!front && r.barrier >= field - 2) out.push({ weight: 1, text: "goes back from the wide draw" });
+  if (front && r.barrier <= 3) out.push({ weight: 2, tone: 1, text: pick(r, ["draws to get the run of the race", "has the inside draw to hold its spot"]) });
+  else if (front && field >= 10 && r.barrier >= field - 2) out.push({ weight: 2, tone: -1, text: "has to work early from the wide gate" });
+  else if (!front && r.barrier >= field - 2) out.push({ weight: 1, tone: -1, text: "goes back from the wide draw" });
 
   // The factors that moved Today away from Class: anything worth a point and
   // a half gets said, the biggest movers loudest.
@@ -208,24 +210,24 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   for (const [key, v] of Object.entries(g.factors) as [keyof typeof g.factors, number][]) {
     const tpl = factorLines[key];
     if (!tpl || Math.abs(v) < 1.5) continue;
-    out.push({ weight: Math.abs(v) >= 3 ? 5 : 3, text: tpl[v < 0 ? 0 : 1].replace("%", pts(v)) });
+    out.push({ weight: Math.abs(v) >= 3 ? 5 : 3, tone: v < 0 ? -1 : 1, text: tpl[v < 0 ? 0 : 1].replace("%", pts(v)) });
   }
 
   // Market move since opening.
   if (r.marketOpen && r.marketPrice) {
     const move = r.marketPrice / r.marketOpen;
-    if (move <= 0.8) out.push({ weight: 2, text: pick(r, ["is firming in the market", "has been backed"]) });
-    else if (move >= 1.3) out.push({ weight: 2, text: pick(r, ["is drifting in the market", "has eased in betting"]) });
+    if (move <= 0.8) out.push({ weight: 2, tone: 1, text: pick(r, ["is firming in the market", "has been backed"]) });
+    else if (move >= 1.3) out.push({ weight: 2, tone: -1, text: pick(r, ["is drifting in the market", "has eased in betting"]) });
   }
 
   // Gear changes are worth a line, blinkers first time above all.
   for (const g of h?.gearChanges ?? []) {
-    out.push({ weight: /blinkers on first/i.test(g) ? 3 : 2, text: `has ${g.toLowerCase()}` });
+    out.push({ weight: /blinkers on first/i.test(g) ? 3 : 2, tone: 0, text: `has ${g.toLowerCase()}` });
   }
 
   // Stable and rider.
-  if ((g.factors.trainer ?? 0) >= 0.4) out.push({ weight: 1, text: "comes from an in-form stable" });
-  if ((g.factors.jockey ?? 0) >= 0.4) out.push({ weight: 1, text: "has a top rider up" });
+  if ((g.factors.trainer ?? 0) >= 0.4) out.push({ weight: 1, tone: 1, text: "comes from an in-form stable" });
+  if ((g.factors.jockey ?? 0) >= 0.4) out.push({ weight: 1, tone: 1, text: "has a top rider up" });
 
   return out.sort((a, b) => b.weight - a.weight);
 }

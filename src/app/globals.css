@@ -1718,42 +1718,6 @@ body {
   padding: var(--sp-3) var(--sp-4);
   border-left: 3px solid var(--color-lime);
 }
-/* Horse facts: short sentences, and a four-up grid for the records. */
-.detail-facts {
-  font-size: 0.8rem;
-  line-height: 1.45;
-  color: var(--color-ink-secondary);
-  margin: 0 0 4px;
-}
-.detail-facts strong {
-  color: var(--color-ink);
-}
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 4px;
-  margin: 6px 0 8px;
-}
-.detail-grid > div {
-  background: var(--color-surface);
-  border-radius: var(--radius-sm);
-  padding: 4px 6px;
-  min-width: 0;
-}
-.detail-grid dt {
-  font-size: 0.58rem;
-  font-weight: 800;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--color-ink-soft);
-}
-.detail-grid dd {
-  font-size: 0.8rem;
-  font-weight: 700;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
 .runner-detail > .runner-detail-col:nth-child(1) { grid-area: horse; }
 .runner-detail > .runner-detail-col:nth-child(2) { grid-area: runs; }
 .runner-detail > .runner-detail-col:nth-child(3) { grid-area: expect; }
@@ -1844,10 +1808,17 @@ body {
   position: absolute;
   left: 0;
   top: 9px;
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  background: var(--color-lime);
+  background: var(--color-ink);
+}
+/* Good news lime, bad news red, plain news ink. */
+.detail-lines li.is-up::before {
+  background: var(--color-accent);
+}
+.detail-lines li.is-down::before {
+  background: var(--color-red);
 }
 .detail-call {
   font-size: 0.9rem;

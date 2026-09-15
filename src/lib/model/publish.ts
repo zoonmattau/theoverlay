@@ -314,12 +314,12 @@ function profileOf(e: RaceEntry): HorseProfile {
   };
 }
 
-/** The last six starts as a form guide prints them, plus our points for each. */
+/** The last ten starts, most recent first, plus our points for each. */
 function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
   return (e.pastEvents ?? [])
     .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
     .sort((a, b) => b.date - a.date)
-    .slice(0, 6)
+    .slice(0, 10)
     .map((p) => ({
       date: new Date(p.date).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }),
       track: p.track,

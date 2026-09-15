@@ -3,21 +3,21 @@ import { Fragment } from "react";
 import { BookieLink } from "./BookieLink";
 import { Factors } from "./Factors";
 import { price } from "@/lib/format";
-import { callLine, finishFit, observations, settles, tempoFit } from "@/lib/model/narrative";
+import { callLine, finishFit, observations, settles, tempoFit, type Tone } from "@/lib/model/narrative";
 import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
 const SEX: Record<string, string> = { M: "mare", G: "gelding", H: "horse", C: "colt", F: "filly", R: "rig" };
 
-/** What to expect today: position, tempo, finish, then the strongest facts from the form. */
-function expectations(r: PublishedRunner, race: PublishedRace): string[] {
-  const out: string[] = [`${settles(r)}.`];
+/** What to expect today: position, tempo, finish, then the strongest facts from the form, each with a tone. */
+function expectations(r: PublishedRunner, race: PublishedRace): { text: string; tone: Tone }[] {
+  const out: { text: string; tone: Tone }[] = [{ text: `${settles(r)}.`, tone: 0 }];
   const t = tempoFit(r, race);
-  if (t.tone !== 0) out.push(`${t.text}.`);
+  if (t.tone !== 0) out.push({ text: `${t.text}.`, tone: t.tone });
   const f = finishFit(r, race);
-  if (f.tone !== 0) out.push(`${f.text}.`);
-  for (const o of observations(r, race).slice(0, 4)) out.push(`${o.text[0].toUpperCase()}${o.text.slice(1)}.`);
+  if (f.tone !== 0) out.push({ text: `${f.text}.`, tone: f.tone });
+  for (const o of observations(r, race).slice(0, 4)) out.push({ text: `${o.text[0].toUpperCase()}${o.text.slice(1)}.`, tone: o.tone });
   return out.slice(0, 6);
 }
 
@@ -98,22 +98,25 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
     <div className="runner-detail">
       <div className="runner-detail-col">
         <h4>Horse</h4>
-        <p className="detail-facts">
-          {[h?.age ? `${h.age}yo` : null, h?.sex ? SEX[h.sex] ?? h.sex : null].filter(Boolean).join(" ") || "—"}
-          {h?.sire ? `, by ${h.sire} out of ${h.dam ?? "?"}` : ""}
-        </p>
-        <p className="detail-facts">
-          {r.trainer ?? "—"} / {r.jockey ?? "—"}, barrier {r.barrier}, {r.weight ?? "—"}kg
-        </p>
-        <dl className="detail-grid">
+        <dl className="detail-list">
+          <div><dt>Profile</dt><dd>{[h?.age ? `${h.age}yo` : null, h?.sex ? SEX[h.sex] ?? h.sex : null].filter(Boolean).join(" ") || "—"}</dd></div>
+          <div><dt>Breeding</dt><dd>{h?.sire ? `${h.sire} × ${h.dam ?? "?"}` : "—"}</dd></div>
+          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}</dd></div>
+          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}</dd></div>
+          <div><dt>Barrier / weight</dt><dd className="nums">{r.barrier} / {r.weight ?? "—"}kg</dd></div>
           <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}</dd></div>
-          <div><dt>Trip</dt><dd className="nums">{h?.distanceForm ?? "—"}</dd></div>
-          <div><dt>Track</dt><dd className="nums">{h?.trackForm ?? "—"}</dd></div>
-          <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun}d ago` : h?.firstStarter ? "first start" : "—"}</dd></div>
+          <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}</dd></div>
+          <div><dt>This track</dt><dd className="nums">{h?.trackForm ?? "—"}</dd></div>
+          <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}</dd></div>
+          <div><dt>Gear</dt><dd>{h?.gear?.length ? h.gear.join(", ") : "none"}</dd></div>
+          {h?.gearChanges?.length ? (
+            <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
+          ) : null}
         </dl>
-        <p className="detail-facts">
-          Gear: {h?.gear?.length ? h.gear.join(", ") : "none"}
-          {h?.gearChanges?.length ? <strong>. {h.gearChanges.join(", ")}</strong> : null}
+        <h4 className="mt-4">Our call</h4>
+        <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
+          {callLine(r)}
+          {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={` Take ${price(r.marketPrice)} at `} className="font-bold" /> : null}
         </p>
       </div>
 
@@ -135,7 +138,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                 <th className="tip" data-tip="Weight carried, in kilograms.">Wgt</th>
                 <th className="tip" data-tip="Starting price, the odds at the jump.">SP</th>
                 <th className="tip" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
-                <th className="text-right tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock, never the placing.">Pts</th>
+                <th className="text-right tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock.">Pts</th>
               </tr>
             </thead>
             <tbody>
@@ -192,14 +195,9 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         </div>
         <h4 className="mt-4">What to expect</h4>
         <ul className="detail-lines">
-          {expectations(r, race).slice(0, 4).map((line) => <li key={line}>{line}</li>)}
+          {expectations(r, race).slice(0, 4).map((line) => <li key={line.text} className={line.tone > 0 ? "is-up" : line.tone < 0 ? "is-down" : ""}>{line.text}</li>)}
         </ul>
         <div className="mt-2"><Factors r={r.ratings} compact /></div>
-        <h4 className="mt-4">Our call</h4>
-        <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
-          {callLine(r)}
-          {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={` Take ${price(r.marketPrice)} at `} className="font-bold" /> : null}
-        </p>
       </div>
     </div>
   );
