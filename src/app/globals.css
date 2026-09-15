@@ -114,6 +114,39 @@ h1, h2, h3 {
   top: 0;
   z-index: 100;
 }
+/* Launch offer strip under the bar: lime, one line, the whole thing a link. */
+.offer-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2) var(--sp-3);
+  padding: 6px var(--sp-5);
+  background: var(--color-lime);
+  color: var(--color-ink);
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+}
+.offer-bar:hover .offer-cta {
+  text-decoration: underline;
+}
+.offer-tag {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-lime);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.offer-cta {
+  font-weight: 800;
+}
+.offer-cta::after {
+  content: " \2192";
+}
 .topbar-brand {
   display: flex;
   align-items: center;

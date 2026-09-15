@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 import Image from "next/image";
+import { LaunchOffer } from "@/components/LaunchOffer";
 import { HorseSearch } from "@/components/HorseSearch";
 import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
@@ -86,6 +87,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </Suspense>
           </div>
         </nav>
+        <Suspense fallback={null}>
+          <LaunchOffer />
+        </Suspense>
 
         <main className="flex-1">{children}</main>
 
