@@ -31,6 +31,49 @@ function safeNext(value: FormDataEntryValue | null): string {
   return next.startsWith("/") && !next.startsWith("//") ? next : "/";
 }
 
+/** What the sign-up form said, kept for the few minutes a provider takes, then applied to the new account. */
+export const OAUTH_COOKIE = "overlay_oauth";
+
+const PROVIDERS = { google: "Google", twitter: "X" } as const;
+export type Provider = keyof typeof PROVIDERS;
+
+/** The providers switched on in the environment: AUTH_PROVIDERS=google,twitter. */
+export async function authProviders(): Promise<Provider[]> {
+  return (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? "").split(",").map((s) => s.trim()).filter((s): s is Provider => s in PROVIDERS);
+}
+
+/**
+ * Continue with Google or X, from the log in or sign up form. On sign up
+ * the age and terms boxes have to be ticked first; the affiliate code,
+ * invite code and email choice ride along in a short cookie so the
+ * callback can stamp them on the account the provider creates.
+ */
+export async function signInWithProvider(_prev: AuthState, form: FormData): Promise<AuthState> {
+  if (!supabaseConfigured()) return { error: "Accounts are not set up yet." };
+  const provider = String(form.get("provider") ?? "") as Provider;
+  if (!(provider in PROVIDERS)) return { error: "Pick Google or X." };
+  const signup = form.get("mode") === "signup";
+  if (signup && form.get("age") !== "on") return { error: "You need to be 18 or over." };
+  if (signup && form.get("privacy") !== "on") return { error: "Please accept the terms and privacy policy." };
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+  const jar = await cookies();
+  const aff = codeFromInput(String(form.get("aff") ?? "")) || jar.get(AFF_COOKIE)?.value || "";
+  const ref = String(form.get("ref") ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const wanted = safeNext(form.get("next"));
+  const next = wanted === "/" && aff ? "/pricing" : wanted;
+  if (signup) {
+    const stash = { terms: true, marketing: form.get("marketing") === "on", aff, ref, provider };
+    jar.set(OAUTH_COOKIE, JSON.stringify(stash), { maxAge: 600, path: "/", sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
+  }
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider,
+    options: { redirectTo: `${site}/auth/callback?next=${encodeURIComponent(next)}`, ...(provider === "google" ? { queryParams: { prompt: "select_account" } } : {}) },
+  });
+  if (error || !data.url) return { error: error?.message ?? `${PROVIDERS[provider]} is not available right now.` };
+  redirect(data.url);
+}
+
 export async function signIn(_prev: AuthState, form: FormData): Promise<AuthState> {
   if (!supabaseConfigured()) return { error: "Accounts are not set up yet." };
   const email = String(form.get("email") ?? "").trim();

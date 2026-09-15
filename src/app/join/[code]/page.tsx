@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { Suspense } from "react";
 
 import { AuthShell } from "@/app/(auth)/AuthShell";
+import { authProviders } from "@/app/(auth)/actions";
 import { AuthForm } from "@/components/AuthForm";
 import { getViewer } from "@/lib/auth";
 import { BONUS_DAYS, REF_COOKIE, referrerForCode } from "@/lib/referrals";
@@ -30,7 +31,7 @@ async function Join({ params }: { params: PageProps<"/join/[code]">["params"] })
   if (!referrer) {
     return (
       <AuthShell title="That invite link is not right" intro="Check the link your friend sent, or create an account anyway.">
-        <AuthForm mode="signup" />
+        <AuthForm mode="signup" providers={await authProviders()} />
       </AuthShell>
     );
   }
@@ -48,7 +49,7 @@ async function Join({ params }: { params: PageProps<"/join/[code]">["params"] })
       title={`A friend has invited you`}
       intro={`Create an account, start a plan, and you both get ${BONUS_DAYS} days of the full board on top of your free trial.`}
     >
-      <AuthForm mode="signup" refCode={clean} />
+      <AuthForm mode="signup" refCode={clean} providers={await authProviders()} />
       {remembered && remembered !== clean && (
         <p className="mt-3 text-xs text-ink-soft">This link replaces the earlier invite you opened.</p>
       )}

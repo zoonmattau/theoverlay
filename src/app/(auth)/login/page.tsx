@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 
+import { authProviders } from "@/app/(auth)/actions";
 import { AuthForm } from "@/components/AuthForm";
 import { AuthShell } from "@/app/(auth)/AuthShell";
 
@@ -24,7 +25,7 @@ async function Form({ searchParams }: { searchParams: PageProps<"/login">["searc
       {sp.error === "link" && (
         <p className="mb-4 text-sm text-red font-semibold">That link has expired, log in or sign up again.</p>
       )}
-      <AuthForm mode="login" next={next} />
+      <AuthForm mode="login" next={next} providers={await authProviders()} />
     </>
   );
 }
