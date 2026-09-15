@@ -114,7 +114,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}</dd></div>
           <div><dt>Barrier</dt><dd className="nums">{r.barrier}{fx("barrier")}</dd></div>
           <div><dt>Weight</dt><dd className="nums">{r.weight ?? "—"}kg{fx("weight")}</dd></div>
-          <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}</dd></div>
+          <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}<span className="factor is-base nums ml-1.5" title={`Class rating from its runs, the base every factor moves. Today ${g.today.toFixed(1)}.`}>{g.class.toFixed(1)}</span></dd></div>
           <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}{fx("distance")}</dd></div>
           <div><dt>This track</dt><dd className="nums">{h?.trackForm ?? "—"}{fx("track")}</dd></div>
           <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}{fx("fresh")}</dd></div>
