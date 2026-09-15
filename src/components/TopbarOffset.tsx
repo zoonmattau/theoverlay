@@ -2,32 +2,16 @@
 
 import { useEffect } from "react";
 
-/**
- * Publishes the top bar's height as --topbar-h, and the offer strip's as
- * --offer-h, so sticky strips can stack under them.
- */
+/** Publishes the sticky header's height (top bar plus any offer strip) as --topbar-h so sticky strips can sit under it. */
 export function TopbarOffset() {
   useEffect(() => {
-    const bar = document.querySelector<HTMLElement>(".topbar");
-    if (!bar) return;
-    const root = document.documentElement.style;
-    const set = () => {
-      root.setProperty("--topbar-h", `${bar.offsetHeight}px`);
-      root.setProperty("--offer-h", `${document.querySelector<HTMLElement>(".offer-bar")?.offsetHeight ?? 0}px`);
-    };
+    const head = document.querySelector<HTMLElement>(".site-head");
+    if (!head) return;
+    const set = () => document.documentElement.style.setProperty("--topbar-h", `${head.offsetHeight}px`);
     set();
     const ro = new ResizeObserver(set);
-    ro.observe(bar);
-    const mo = new MutationObserver(() => {
-      set();
-      const offer = document.querySelector<HTMLElement>(".offer-bar");
-      if (offer) ro.observe(offer);
-    });
-    mo.observe(document.body, { childList: true, subtree: true });
-    return () => {
-      ro.disconnect();
-      mo.disconnect();
-    };
+    ro.observe(head);
+    return () => ro.disconnect();
   }, []);
   return null;
 }

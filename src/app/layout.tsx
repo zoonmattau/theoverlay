@@ -63,6 +63,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <MetaPixel />
         </Suspense>
         <TopbarOffset />
+        <header className="site-head">
         <nav className="topbar" aria-label="Main navigation">
           <Link href="/" className="topbar-brand">
             <Image
@@ -90,6 +91,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Suspense fallback={null}>
           <LaunchOffer />
         </Suspense>
+        </header>
 
         <main className="flex-1">{children}</main>
 

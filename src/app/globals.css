@@ -103,6 +103,12 @@ h1, h2, h3 {
 }
 
 /* --- Topbar --- */
+/* The top bar and the offer strip stick together as one header. */
+.site-head {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
 .topbar {
   display: flex;
   align-items: center;
@@ -110,15 +116,9 @@ h1, h2, h3 {
   padding: var(--sp-3) var(--sp-5);
   background: var(--color-bar);
   color: var(--color-bar-ink);
-  position: sticky;
-  top: 0;
-  z-index: 100;
 }
 /* Launch offer strip under the bar: lime, one line, the whole thing a link. */
 .offer-bar {
-  position: sticky;
-  top: var(--topbar-h, 64px);
-  z-index: 95;
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1961,7 +1961,7 @@ body {
 /* The next-to-go strip sticks under the top bar as the page scrolls. */
 .ntg {
   position: sticky;
-  top: calc(var(--topbar-h, 64px) + var(--offer-h, 0px));
+  top: var(--topbar-h, 64px);
   z-index: 90;
   margin: 0 calc(-1 * var(--sp-5));
   padding: 8px var(--sp-5);
