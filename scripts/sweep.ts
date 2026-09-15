@@ -2,6 +2,8 @@
 // the local Form King cache, rating each race exactly as the build does and
 // settling at the cached market price, one unit level stakes.
 // npx tsx --tsconfig tsconfig.json scripts/sweep.ts
+// Replays run races, which the live publish refuses to price.
+process.env.OVERLAY_REPLAY = "1";
 import { readdirSync, readFileSync } from "node:fs";
 import type { RaceSummary } from "../src/lib/formking/types";
 import { publishRace } from "../src/lib/model/publish";

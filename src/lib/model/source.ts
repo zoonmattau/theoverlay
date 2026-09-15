@@ -10,13 +10,14 @@ import {
   getRace,
 } from "@/lib/formking/client";
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
-import { pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
+import { hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
+import { postResults } from "@/lib/discord";
 import { rememberHorses } from "./horses";
 import { recordTips } from "@/lib/tips";
-import type { PublishedMeeting } from "./types";
+import type { PublishedMeeting, PublishedRace } from "./types";
 
 /**
  * The app's only data entry point.
@@ -108,6 +109,24 @@ function mergeLive(form: RaceSummary, live?: RaceSummary): RaceSummary {
     startTime: live.startTime ?? form.startTime,
     railPosition: live.railPosition ?? form.railPosition,
     entries,
+  };
+}
+
+/**
+ * A race that has jumped stays as it was last published: the market is
+ * over, and the quotes bookmakers leave up afterwards are not prices anyone
+ * can take. Only the result, the placings and the going land on it.
+ */
+function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace {
+  if (!previous || !(live.result?.length || hasJumped(undefined, live.jumpTime))) return live;
+  const finish = new Map(live.runners.map((x) => [x.tabNumber, x.finishPosition]));
+  return {
+    ...previous,
+    going: live.going,
+    goingText: live.goingText,
+    result: live.result,
+    placings: live.placings,
+    runners: previous.runners.map((x) => ({ ...x, finishPosition: finish.get(x.tabNumber) ?? x.finishPosition })),
   };
 }
 
@@ -206,13 +225,19 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
   const started = Date.now();
   // Calls already on the stored card carry over while they keep half their edge.
   const kept: KeptSignals = new Map();
+  const before = new Map<string, PublishedRace>();
   let pinnedFreeRaceId: string | undefined;
   let previousFreeRaceId: string | undefined;
   if (storeConfigured()) {
     const previous = await readStoredCard(date);
     pinnedFreeRaceId = previous?.pinnedFreeRaceId;
     previousFreeRaceId = previous?.card.freeRaceId;
-    for (const m of previous?.card.meetings ?? []) for (const r of m.races) for (const x of r.runners) if (x.signal) kept.set(`${r.raceId}:${x.tabNumber}`, x.signal);
+    for (const m of previous?.card.meetings ?? []) {
+      for (const r of m.races) {
+        before.set(r.raceId, r);
+        for (const x of r.runners) if (x.signal) kept.set(`${r.raceId}:${x.tabNumber}`, x.signal);
+      }
+    }
   }
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
   // Every runner joins the horse store, so the compare and fantasy pages know it.
@@ -227,6 +252,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
   }
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
+    .map((m) => ({ ...m, races: m.races.map((r) => freezeRun(r, before.get(r.raceId))) }))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
   const selections = selectBestBets(meetings);
   // Prime Overlays are chosen across the card, so the runner learns it here.
@@ -256,7 +282,11 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     await recordTips(date, card);
     await settleCreatorTips(date, card);
     // Not allowed from inside a cache scope, so the in-cache build skips it.
-    if (opts.revalidate !== false) revalidateTag(`card-${date}`, "max");
+    if (opts.revalidate !== false) {
+      revalidateTag(`card-${date}`, "max");
+      // Once every race has run the day's ledger goes to Discord, once.
+      await postResults(date, card);
+    }
   }
   return { card, seconds };
 }

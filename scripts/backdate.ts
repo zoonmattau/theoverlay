@@ -2,6 +2,8 @@
 // the pre-race form and the last price before the jump, and settles each call
 // against the result. Writes a JSON file for graphics plus a readable report.
 // npx tsx --conditions=react-server --env-file=.env.local scripts/backdate.ts 2026-08-01 2026-08-08 ...
+// Replays run races, which the live publish refuses to price.
+process.env.OVERLAY_REPLAY = "1";
 import { writeFileSync } from "node:fs";
 import { getMeetingsByDate, getRace } from "../src/lib/formking/client";
 import type { MeetingSummaryLite } from "../src/lib/formking/types";

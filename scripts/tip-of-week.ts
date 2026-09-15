@@ -3,6 +3,8 @@
 // for a "free tip of the week" post and the Saturday wrap. Reads the race
 // forms already in the Form King cache, so it costs no credits after backtest.ts.
 // npx tsx --conditions=react-server --env-file=.env.local scripts/tip-of-week.ts 2026-08-01 ...
+// Replays run races, which the live publish refuses to price.
+process.env.OVERLAY_REPLAY = "1";
 import { writeFileSync } from "node:fs";
 import { getMeetingsByDate, getRace } from "../src/lib/formking/client";
 import type { MeetingSummary, MeetingSummaryLite, RaceSummary } from "../src/lib/formking/types";

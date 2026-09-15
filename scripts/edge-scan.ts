@@ -1,6 +1,8 @@
 // Pulls tomorrow's raw races from the fk_cache table and prints the bet edge
 // distribution, so a threshold can be chosen on a real card. Run with
 // npx tsx --env-file=.env.local scripts/edge-scan.ts 2026-09-12
+// Replays run races, which the live publish refuses to price.
+process.env.OVERLAY_REPLAY = "1";
 import type { MeetingSummaryLite, RaceSummary } from "../src/lib/formking/types";
 import { publishRace } from "../src/lib/model/publish";
 

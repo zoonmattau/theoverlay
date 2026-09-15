@@ -3,6 +3,8 @@
 // settles every bet, lay and headline selection. Writes scripts/out/backtest.json
 // for calibration and prints the level-stakes record.
 // npx tsx --conditions=react-server --env-file=.env.local scripts/backtest.ts 2026-08-01 2026-08-08 ...
+// Replays run races, which the live publish refuses to price.
+process.env.OVERLAY_REPLAY = "1";
 import { writeFileSync } from "node:fs";
 import { getMeetingsByDate, getRace } from "../src/lib/formking/client";
 import type { MeetingSummary, MeetingSummaryLite, RaceSummary } from "../src/lib/formking/types";
