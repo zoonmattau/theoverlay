@@ -530,6 +530,69 @@ body {
   margin: -2px 0 2px;
 }
 
+/* The form worm: the field in grey, this runner heavy, par dashed. */
+.worm {
+  margin: 0;
+}
+.worm svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.worm-grid {
+  stroke: var(--color-line-soft);
+  stroke-width: 1;
+}
+.worm-par {
+  stroke: var(--color-ink-soft);
+  stroke-width: 1;
+  stroke-dasharray: 4 4;
+}
+.worm-tick {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  fill: var(--color-ink-soft);
+}
+.worm-other {
+  fill: none;
+  stroke: var(--color-line-strong);
+  stroke-width: 1.2;
+  stroke-linejoin: round;
+}
+.worm-mine {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.worm-mine.is-prime { stroke: var(--color-accent); }
+.worm-mine.is-back { stroke: var(--color-blue); }
+.worm-mine.is-lay { stroke: var(--color-red); }
+.worm-dot {
+  fill: var(--color-ink);
+  stroke: var(--color-panel);
+  stroke-width: 1.5;
+}
+.worm-dot.is-prime { fill: var(--color-accent); }
+.worm-dot.is-back { fill: var(--color-blue); }
+.worm-dot.is-lay { fill: var(--color-red); }
+.worm-caption {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 4px;
+  font-size: 0.7rem;
+  color: var(--color-ink-soft);
+}
+.worm-key {
+  display: inline-block;
+  width: 14px;
+  height: 0;
+  border-top: 2.5px solid var(--color-ink);
+}
+.worm-key-other { border-top: 1.2px solid var(--color-line-strong); }
+.worm-key-par { border-top: 1px dashed var(--color-ink-soft); }
+
 /* "at Sportsbet" under a price. */
 .bookie-link {
   color: var(--color-ink-soft);

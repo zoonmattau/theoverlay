@@ -2,6 +2,7 @@ import { Fragment } from "react";
 
 import { BookieLink } from "./BookieLink";
 import { Factors } from "./Factors";
+import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
 import { callLine, finishFit, observations, settles, tempoFit, type Tone } from "@/lib/model/narrative";
 import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
@@ -183,6 +184,12 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
               ))}
             </tbody>
           </table>
+        )}
+        {runs.length > 0 && (
+          <>
+            <h4 className="mt-4">Against the field, run by run</h4>
+            <FormWorm race={race} runner={r} />
+          </>
         )}
       </div>
 
