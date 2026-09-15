@@ -1028,6 +1028,21 @@ body {
   line-height: 16px;
   text-align: center;
 }
+/* The tipster you follow is on this runner too. */
+.tipster-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-amber);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  vertical-align: 2px;
+  cursor: help;
+}
 .legend-dot-tipster {
   background: var(--color-amber);
 }
