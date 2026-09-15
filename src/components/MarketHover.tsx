@@ -7,8 +7,6 @@ import { price } from "@/lib/format";
 
 export interface MarketDetail {
   marketPrice?: number;
-  ratedPrice?: number;
-  formPrice?: number;
   bookies?: string[];
   marketAvg?: number;
   marketOpen?: number;
@@ -49,12 +47,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
             <span className="market-k">Best</span>
             <span className="market-v nums">{price(r.marketPrice)}</span>
           </span>
-          {r.ratedPrice ? (
-            <span className="market-row">
-              <span className="market-k">Ours</span>
-              <span className="market-v nums">{price(r.ratedPrice)}{r.formPrice && Math.abs(r.formPrice - r.ratedPrice) >= 0.05 ? <span className="market-move"> form alone {price(r.formPrice)}</span> : null}</span>
-            </span>
-          ) : null}
+
           {holders.length > 0 && (
             <span className="market-holders">{best ? [best.name, ...holders.filter((h) => h !== best.name)].join(", ") : holders.join(", ")}</span>
           )}
