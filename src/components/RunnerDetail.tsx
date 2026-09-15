@@ -111,8 +111,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;
     const cls = !v ? "" : v > 0 ? "is-up" : "is-down";
-    const head = !v ? "Neither for nor against it today." : `${v > 0 ? "Adds" : "Costs"} ${Math.abs(v).toFixed(1)} today.`;
-    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={`${head} ${why[key]}`}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
+    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={why[key]}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
     const gap = value - g.class;
