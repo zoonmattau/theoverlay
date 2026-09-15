@@ -9,6 +9,8 @@ import { LaunchOffer } from "@/components/LaunchOffer";
 import { HorseSearch } from "@/components/HorseSearch";
 import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
+import { SocialLinks } from "@/components/SocialLinks";
+import { BRAND_SOCIAL } from "@/lib/social";
 import { TopbarOffset } from "@/components/TopbarOffset";
 import "./globals.css";
 
@@ -109,12 +111,15 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/invite" className="hover:text-ink-secondary">Invite a friend</Link>
             </div>
 
-            <p>
-              Contact{" "}
-              <a href="mailto:hello@theoverlay.com.au" className="text-ink hover:text-blue">
-                hello@theoverlay.com.au
-              </a>
-            </p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <SocialLinks discord={BRAND_SOCIAL.discord} instagram={BRAND_SOCIAL.instagram} twitter={BRAND_SOCIAL.twitter} labels />
+              <span>
+                Contact{" "}
+                <a href="mailto:hello@theoverlay.com.au" className="text-ink hover:text-blue">
+                  hello@theoverlay.com.au
+                </a>
+              </span>
+            </div>
 
             <p className="max-w-3xl leading-relaxed">
               The Overlay publishes opinion and statistical analysis, not financial advice, and no outcome is guaranteed.

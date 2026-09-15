@@ -5,6 +5,8 @@
  * sentence per line, no em dashes.
  */
 
+import { BRAND_SOCIAL } from "@/lib/social";
+
 export interface EmailSpec {
   /** Subject line and the <title>. */
   subject: string;
@@ -82,6 +84,7 @@ export function renderEmail(spec: EmailSpec): { html: string; text: string } {
               The Overlay publishes opinion and statistical analysis, not financial advice, and no outcome is guaranteed.
               18+ only. Gamble responsibly. Gambling Help Online 1800 858 858.
               <br>Questions: <a href="mailto:hello@theoverlay.com.au" style="color:#454a44">hello@theoverlay.com.au</a>
+              <br><a href="${BRAND_SOCIAL.discord}" style="color:#454a44">Discord</a> &middot; <a href="https://instagram.com/${BRAND_SOCIAL.instagram}" style="color:#454a44">Instagram</a> &middot; <a href="https://x.com/${BRAND_SOCIAL.twitter}" style="color:#454a44">X</a>
             </p>
           </td>
         </tr>

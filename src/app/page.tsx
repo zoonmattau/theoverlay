@@ -11,11 +11,13 @@ import { NextToGo } from "@/components/NextToGo";
 import type { PublishedMeeting, PublishedRace } from "@/lib/model/types";
 import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
+import { SocialLinks } from "@/components/SocialLinks";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { jumpTime, longDate } from "@/lib/format";
+import { BRAND_SOCIAL } from "@/lib/social";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -40,6 +42,7 @@ export default function Page({ searchParams }: PageProps<"/">) {
       </section>
 
       <WhyUs />
+      <JoinUs />
     </div>
   );
 }
@@ -243,6 +246,22 @@ function WhyUs() {
         <p className="mt-1 text-sm text-ink-secondary">
           A bet needs the market longer than our price, a lay needs it shorter, and most races get neither.
         </p>
+      </div>
+    </section>
+  );
+}
+
+/** The Discord and the socials: where the calls get talked about. */
+function JoinUs() {
+  return (
+    <section className="card mt-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="min-w-0">
+        <h2 className="font-display text-xl font-extrabold tracking-tight">Talk it through with us</h2>
+        <p className="mt-1 text-sm text-ink-secondary">The Discord is where the day&apos;s calls, the results and the Saturday review get picked apart. Follow along on Instagram and X too.</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-4">
+        <a href={BRAND_SOCIAL.discord} target="_blank" rel="noopener" className="btn btn-primary">Join the Discord</a>
+        <SocialLinks instagram={BRAND_SOCIAL.instagram} twitter={BRAND_SOCIAL.twitter} labels />
       </div>
     </section>
   );

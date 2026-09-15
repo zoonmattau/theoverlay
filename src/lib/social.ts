@@ -9,3 +9,10 @@ export const OAUTH_COOKIE = "overlay_oauth";
 export function authProviders(): Provider[] {
   return (process.env.NEXT_PUBLIC_AUTH_PROVIDERS ?? "").split(",").map((s) => s.trim()).filter((s): s is Provider => s in PROVIDERS);
 }
+
+/** Where The Overlay lives off the site. */
+export const BRAND_SOCIAL = {
+  instagram: "theoverlay_au",
+  twitter: "theoverlay_au",
+  discord: "https://discord.gg/V6Ww8xUve8",
+} as const;

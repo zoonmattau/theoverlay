@@ -805,6 +805,24 @@ body {
   background: var(--color-ink);
   color: var(--color-lime);
 }
+/* Icons with their names beside them, in the footer and on the home page. */
+.social-links-labelled {
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.social-link-labelled {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-ink-secondary);
+}
+.social-link-labelled:hover {
+  color: var(--color-ink);
+}
+.social-link-labelled:hover .social-link {
+  background: var(--color-ink);
+  color: var(--color-lime);
+}
 .social-links-bar .social-link {
   width: 20px;
   height: 20px;

@@ -13,6 +13,7 @@ export const ORGANIZATION = {
   url: SITE_URL,
   logo: `${SITE_URL}/brand/lockup-light-stacked.png`,
   email: "hello@theoverlay.com.au",
+  sameAs: ["https://instagram.com/theoverlay_au", "https://x.com/theoverlay_au", "https://discord.gg/V6Ww8xUve8"],
   slogan: "The market has an opinion. We have the data.",
   areaServed: "AU",
   description: "Data-driven Australian horse racing tips: benchmark ratings, rated prices and bet or lay calls for every runner.",
