@@ -250,7 +250,13 @@ async function Race({ params }: { params: Props["params"] }) {
         <Locked id="selections" title="Our selections" letter="O" raceId={raceId} />
       )}
 
-      {open && released ? <AnalysisRow race={race} /> : null}
+      {open && released ? (
+        <Section id="analysis" letter="A" title="At a glance" aside="Pressure, overlays and top rated" defaultOpen={false}>
+          <div className="section-body">
+            <AnalysisRow race={race} />
+          </div>
+        </Section>
+      ) : null}
 
       {open ? <Rankings race={race} /> : <Locked id="rankings" title="Rankings" letter="R" lines={10} raceId={raceId} />}
 
