@@ -141,4 +141,30 @@ export function NtgCountdown({
   );
 }
 
+/**
+ * Time to the jump as a stat tile, ticking: the time big, what it means
+ * small. The server paints the clock time so the first render matches.
+ */
+export function JumpTile({ iso, clock, run, title }: { iso?: string; clock: string; run?: boolean; title?: string }) {
+  const [label, setLabel] = useState(clock);
+
+  useEffect(() => {
+    if (!iso || run) return;
+    const jump = new Date(iso).getTime();
+    const tick = () => setLabel(countdown(jump - Date.now(), clock));
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [iso, clock, run]);
+
+  const [big, small] = run || label === "Run" ? ["Run", "result is in"] : label === "Now" ? ["Now", "jumping"] : label === clock ? [clock, "jump time"] : [label, `to the jump, ${clock}`];
+  return (
+    <div className="rounded-md border border-line bg-panel px-4 py-2 text-center min-w-40">
+      {title && <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft">{title}</div>}
+      <div className="font-display text-xl font-extrabold tracking-tight nums leading-tight">{big}</div>
+      <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft">{small}</div>
+    </div>
+  );
+}
+
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;

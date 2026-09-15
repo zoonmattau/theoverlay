@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { FaqList, JsonLd, ORGANIZATION, WEBSITE, faqSchema, type Faq } from "@/components/JsonLd";
+import { JumpTile } from "@/components/Countdown";
 import { LiveRefresh } from "@/components/LiveRefresh";
 
 import { NextToGo } from "@/components/NextToGo";
@@ -12,7 +13,7 @@ import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
-import { jumpTime, longDate, price } from "@/lib/format";
+import { jumpTime, longDate } from "@/lib/format";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -65,8 +66,8 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const released = card.released || viewer.admin;
   const races = meetings.flatMap((m) => m.races);
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
-  // Bets for the whole day, run or not, so the number never reads as empty late on.
-  const bets = races.flatMap((r) => r.runners).filter((r) => r.signal === "back").length;
+  // Plays for the whole day, bets and lays, run or not, so the number never reads as empty late on.
+  const plays = races.flatMap((r) => r.runners).filter((r) => r.signal === "back" || r.signal === "lay").length;
   const free = hasAccess(viewer, card.date) ? undefined : freeRaceOf(card);
 
   return (
@@ -99,7 +100,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
         <Tile n={races.length} label="races rated today" />
         <Tile n={runners} label="runners priced" />
         {released ? (
-          <Tile n={bets} label={bets === 1 ? "bet today" : "bets today"} accent />
+          <Tile n={plays} label={plays === 1 ? "play today" : "plays today"} accent />
         ) : (
           <Tile n={`${RELEASE_HOUR}am`} label="today's calls release" accent />
         )}
@@ -133,9 +134,9 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
 
   return (
     <>
-      {free && released && <FreeRace date={date} meeting={free.meeting} race={free.race} />}
-
       <NextToGo meetings={meetings} selections={selections} date={date} />
+
+      {free && released && <FreeRace date={date} meeting={free.meeting} race={free.race} />}
 
       <section className="mt-6" id="board">
         {previewing && (
@@ -182,27 +183,23 @@ function freeRaceOf(card: { freeRaceId?: string; meetings: PublishedMeeting[] })
  */
 function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMeeting; race: PublishedRace }) {
   const calls = race.runners.filter((x) => x.signal && !x.scratched);
+  const bets = calls.filter((x) => x.signal === "back").length;
+  const lays = calls.filter((x) => x.signal === "lay").length;
+  const words = ["no", "one", "two", "three", "four"];
+  const count = (n: number, word: string) => `${words[n] ?? n} ${n === 1 ? word : `${word}s`}`;
+  const summary = calls.length === 0 ? "Our top four and a rated price for every runner." : `${count(bets, "bet")}, ${count(lays, "lay")}.`;
   const href = `/racing/${date}/${meeting.meetingId}/${race.raceId}`;
   return (
-    <section className="card border-lime bg-lime-soft mt-2 flex flex-wrap items-center gap-x-5 gap-y-3">
-      <div>
+    <section className="card border-lime bg-lime-soft mt-6 grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+      <div className="min-w-0">
         <span className="badge badge-prime">Free race of the day</span>
-        <div className="mt-1.5 font-display text-xl font-extrabold tracking-tight">
-          {meeting.track} R{race.raceNumber}, {race.distance}m
-          <span className="ml-2 text-base font-bold text-ink-secondary nums">{race.result ? "Run" : jumpTime(race.jumpTime)}</span>
-        </div>
+        <h2 className="mt-1.5 font-display text-xl font-extrabold tracking-tight leading-tight">
+          {summary[0].toUpperCase()}{summary.slice(1)}
+        </h2>
+        <p className="mt-1 text-sm text-ink-secondary">Free to see. Every other race opens with a plan or a day pass.</p>
       </div>
-      <ul className="flex flex-wrap gap-2 text-sm">
-        {calls.length === 0 && <li className="text-ink-secondary">Our top four and a rated price for every runner, free.</li>}
-        {calls.map((x) => (
-          <li key={x.tabNumber} className="flex items-center gap-2 rounded-md border border-line bg-panel px-2.5 py-1.5">
-            <span className={`badge ${x.prime ? "badge-prime" : x.signal === "back" ? "badge-back" : "badge-lay"}`}>{x.prime ? "Prime" : x.signal === "back" ? "Bet" : "Lay"}</span>
-            <span className="font-semibold">{x.tabNumber}. {x.horseName}</span>
-            <span className="nums text-ink-secondary">{price(x.marketPrice)} v {price(x.ratedPrice)}</span>
-          </li>
-        ))}
-      </ul>
-      <Link href={href} className="btn btn-primary ml-auto">See the free race</Link>
+      <JumpTile title={`${meeting.track} R${race.raceNumber}, ${race.distance}m`} iso={race.jumpTime} clock={jumpTime(race.jumpTime)} run={Boolean(race.result)} />
+      <Link href={href} className="btn btn-primary sm:justify-self-end">See the free race</Link>
     </section>
   );
 }
