@@ -145,7 +145,7 @@ export function publishRace(
       marketPrice: p?.marketPrice,
       bookies: e.odds?.bestBookies?.length ? e.odds.bestBookies : undefined,
       marketAvg: e.odds?.avgNow || undefined,
-      marketOpen: e.odds?.avgOpen,
+      marketOpen: e.odds?.avgOpen && e.odds.avgOpen > 1.05 ? e.odds.avgOpen : undefined,
       marketMove: e.odds?.firmOrDrift,
       marketAt: e.odds?.timestamp ? new Date(e.odds.timestamp).toISOString() : undefined,
       edge: p?.edge,

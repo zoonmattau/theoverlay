@@ -26,8 +26,8 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
   if (!r.marketPrice) return <>{children}</>;
   const best = bestBookie(r.bookies);
   const holders = (r.bookies ?? []).map(bookieName).filter(Boolean);
-  const move = r.marketMove ?? 0;
-  const moveText = Math.abs(move) < 0.5 ? "holding" : move > 0 ? `firmed ${move.toFixed(1)} pts` : `drifted ${Math.abs(move).toFixed(1)} pts`;
+  const move = r.marketMove;
+  const moveText = move === undefined ? "" : Math.abs(move) < 0.5 ? "holding" : move > 0 ? `firmed ${move.toFixed(1)} pts` : `drifted ${Math.abs(move).toFixed(1)} pts`;
   return (
     <span
       className={`market-hover ${className}`}
@@ -56,11 +56,11 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
               <span className="market-v nums">{price(r.marketAvg)}</span>
             </span>
           ) : null}
-          {r.marketOpen ? (
+          {r.marketOpen && r.marketOpen > 1.05 ? (
             <span className="market-row">
               <span className="market-k">Opened</span>
               <span className="market-v nums">
-                {price(r.marketOpen)} <span className="market-move">{moveText}</span>
+                {price(r.marketOpen)}{moveText && <span className="market-move"> {moveText}</span>}
               </span>
             </span>
           ) : null}
