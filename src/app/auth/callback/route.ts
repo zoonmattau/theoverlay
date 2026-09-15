@@ -7,7 +7,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { applyReferral } from "@/lib/referrals";
 import { supabaseServer } from "@/lib/supabase/server";
 
-/** Email confirmation, magic links, Google and X land here, then go on to `next`. */
+/** Email confirmation, magic links and Google land here, then go on to `next`. */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = request.nextUrl;
   const code = searchParams.get("code");
@@ -29,10 +29,10 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * A Google or X sign-up skips our form, so the consent, email choice,
- * affiliate and invite code it collected wait in a cookie and land here,
- * once, on an account that has not accepted the terms yet. A returning
- * user has already, so nothing changes for them.
+ * A Google sign-up skips our form, so the consent, email choice, affiliate
+ * and invite code it collected wait in a cookie and land here, once, on an
+ * account that has not accepted the terms yet. A returning user has
+ * already, so nothing changes for them.
  */
 async function finishProviderSignup(userId: string, meta: Record<string, unknown>): Promise<void> {
   const jar = await cookies();
@@ -55,7 +55,7 @@ async function finishProviderSignup(userId: string, meta: Record<string, unknown
       accepted_terms_at: stash.terms ? new Date().toISOString() : null,
       marketing_opt_in: Boolean(stash.marketing),
       full_name: prof.full_name || (name ? name.slice(0, 120) : null),
-      source: stash.ref ? "invite" : stash.aff ? `affiliate:${stash.aff}` : stash.provider === "twitter" ? "x" : "google",
+      source: stash.ref ? "invite" : stash.aff ? `affiliate:${stash.aff}` : "google",
     })
     .eq("id", userId);
   if (stash.aff) await attributeSignup(userId, stash.aff);

@@ -33,14 +33,14 @@ function safeNext(value: FormDataEntryValue | null): string {
 }
 
 /**
- * Continue with Google or X, from the log in or sign up form. On sign up
- * the age and terms boxes have to be ticked first; the affiliate code,
- * invite code and email choice ride along in a short cookie so the
- * callback can stamp them on the account the provider creates.
+ * Continue with Google, from the log in or sign up form. On sign up the
+ * age and terms boxes have to be ticked first; the affiliate code, invite
+ * code and email choice ride along in a short cookie so the callback can
+ * stamp them on the account Google creates.
  */
 export async function signInWithProvider(provider: Provider, _prev: AuthState, form: FormData): Promise<AuthState> {
   if (!supabaseConfigured()) return { error: "Accounts are not set up yet." };
-  if (!(provider in PROVIDERS)) return { error: "Pick Google or X." };
+  if (!(provider in PROVIDERS)) return { error: "That log in is not available." };
   const signup = form.get("mode") === "signup";
   if (signup && form.get("age") !== "on") return { error: "You need to be 18 or over." };
   if (signup && form.get("privacy") !== "on") return { error: "Please accept the terms and privacy policy." };
@@ -57,7 +57,7 @@ export async function signInWithProvider(provider: Provider, _prev: AuthState, f
   const supabase = await supabaseServer();
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider,
-    options: { redirectTo: `${site}/auth/callback?next=${encodeURIComponent(next)}`, ...(provider === "google" ? { queryParams: { prompt: "select_account" } } : {}) },
+    options: { redirectTo: `${site}/auth/callback?next=${encodeURIComponent(next)}`, queryParams: { prompt: "select_account" } },
   });
   if (error || !data.url) return { error: error?.message ?? `${PROVIDERS[provider]} is not available right now.` };
   redirect(data.url);

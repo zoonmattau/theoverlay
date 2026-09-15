@@ -25,24 +25,12 @@ function GoogleMark() {
   );
 }
 
-/** The X logo, in ink. */
-function XMark() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" aria-hidden="true">
-      <path fill="currentColor" d="M18.2 2h3.4l-7.4 8.5L23 22h-6.8l-5.3-7-6.1 7H1.4l7.9-9.1L1 2h7l4.8 6.4L18.2 2zm-1.2 18h1.9L7.1 3.9H5.1L17 20z" />
-    </svg>
-  );
-}
-
 export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mode: Mode; next?: string; refCode?: string; affCode?: string; providers?: Provider[] }) {
   const [state, formAction, pending] = useActionState(ACTIONS[mode], EMPTY);
-  // One action per provider: a submit button's own name is spoken for by the action plumbing.
-  const [gstate, googleAction, gpending] = useActionState(signInWithProvider.bind(null, "google"), EMPTY);
-  const [xstate, xAction, xpending] = useActionState(signInWithProvider.bind(null, "twitter"), EMPTY);
+  // The provider is bound into the action: a submit button's own name is spoken for by the action plumbing.
+  const [pstate, googleAction, gpending] = useActionState(signInWithProvider.bind(null, "google"), EMPTY);
   const social = mode === "login" || mode === "signup" ? providers : [];
-  const ppending = gpending || xpending;
-  const pstate = gstate.error ? gstate : xstate;
-  const busy = pending || ppending;
+  const busy = pending || gpending;
 
   return (
     <form action={formAction} className="space-y-4">
@@ -132,12 +120,6 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
             <button type="submit" formAction={googleAction} className="btn btn-secondary w-full" disabled={busy}>
               <GoogleMark />
               {gpending ? "One moment" : "Continue with Google"}
-            </button>
-          )}
-          {social.includes("twitter") && (
-            <button type="submit" formAction={xAction} className="btn btn-secondary w-full" disabled={busy}>
-              <XMark />
-              {xpending ? "One moment" : "Continue with X"}
             </button>
           )}
           {mode === "signup" && <p className="text-xs text-ink-soft text-center -mt-1">Tick the boxes above first, they apply either way.</p>}
