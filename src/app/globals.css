@@ -572,6 +572,23 @@ body {
   stroke-width: 1.2;
   stroke-linejoin: round;
 }
+.worm-dot-other {
+  fill: var(--color-line-strong);
+  stroke: var(--color-panel);
+  stroke-width: 1;
+  cursor: help;
+}
+/* Hover any point on a rival and its whole line comes forward. */
+.worm-runner:hover .worm-other {
+  stroke: var(--color-ink-secondary);
+  stroke-width: 2;
+}
+.worm-runner:hover .worm-dot-other {
+  fill: var(--color-ink-secondary);
+}
+.worm-dot {
+  cursor: help;
+}
 .worm-mine {
   fill: none;
   stroke: var(--color-ink);

@@ -41,18 +41,26 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
         <text x={W - PAD.r} y={y(par) - 4} className="worm-tick" textAnchor="end">par {par}</text>
         <line x1={x(0.5)} x2={x(0.5)} y1={PAD.t} y2={H - PAD.b} className="worm-today" />
         {field.filter((f) => f.tabNumber !== runner.tabNumber).map((f) => (
-          <path key={f.tabNumber} d={path(series(f))} className="worm-other">
-            <title>{f.horseName}</title>
-          </path>
+          <g key={f.tabNumber} className="worm-runner">
+            <path d={path(series(f))} className="worm-other" />
+            {(f.runs ?? []).map((r, i) => (
+              <circle key={`${r.date}-${i}`} cx={x(i + 1)} cy={y(r.points)} r={3} className="worm-dot-other">
+                <title>{`${f.tabNumber}. ${f.horseName}: ${r.date} ${r.track ?? ""} ${r.distance}m, ${r.finish ? `${r.finish}${r.runners ? `/${r.runners}` : ""}` : "unplaced"}, ${r.points.toFixed(1)} points`}</title>
+              </circle>
+            ))}
+            <circle cx={x(0)} cy={y(f.ratings.today)} r={3.5} className="worm-dot-other">
+              <title>{`${f.tabNumber}. ${f.horseName}: today rated ${f.ratings.today.toFixed(1)}`}</title>
+            </circle>
+          </g>
         ))}
         <path d={path(series(runner))} className={`worm-mine ${tone}`} />
         {mine.map((r, i) => (
           <circle key={`${r.date}-${i}`} cx={x(i + 1)} cy={y(r.points)} r={4} className={`worm-dot ${tone}`}>
-            <title>{`${r.date} ${r.track ?? ""} ${r.distance}m, ${r.finish ? `${r.finish}${r.runners ? `/${r.runners}` : ""}` : "unplaced"}, ${r.points.toFixed(1)} points`}</title>
+            <title>{`${runner.tabNumber}. ${runner.horseName}: ${r.date} ${r.track ?? ""} ${r.distance}m, ${r.finish ? `${r.finish}${r.runners ? `/${r.runners}` : ""}` : "unplaced"}, ${r.points.toFixed(1)} points`}</title>
           </circle>
         ))}
         <circle cx={x(0)} cy={y(runner.ratings.today)} r={5.5} className={`worm-dot worm-dot-today ${tone}`}>
-          <title>{`Today: rated ${runner.ratings.today.toFixed(1)}`}</title>
+          <title>{`${runner.tabNumber}. ${runner.horseName}: today rated ${runner.ratings.today.toFixed(1)}`}</title>
         </circle>
         {Array.from({ length: n }, (_, back) => (
           <text key={back} x={x(back)} y={H - 6} className={`worm-tick ${back === 0 ? "worm-tick-today" : ""}`} textAnchor="middle">{back === 0 ? "today" : back === 1 ? "last" : `${back} back`}</text>
