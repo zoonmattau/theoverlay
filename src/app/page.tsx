@@ -14,8 +14,7 @@ import { Record } from "@/components/Record";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
-import { goingClass } from "@/components/RaceMatrix";
-import { jumpTime, longDate, price } from "@/lib/format";
+import { jumpTime, longDate } from "@/lib/format";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -72,10 +71,13 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const next = withBet ?? upcoming[0];
   const nextCall = withBet ? withBet.r.runners.find((x) => x.prime && !x.scratched) ?? withBet.r.runners.find((x) => x.signal === "back" && !x.scratched) : undefined;
 
-  // The biggest move since the market opened, on a runner still to run.
-  const mover = meetings
-    .flatMap((m) => m.races.filter((r) => !r.result).flatMap((r) => r.runners.filter((x) => !x.scratched && x.marketPrice && x.marketOpen && x.marketOpen > 1.05).map((x) => ({ m, r, x, move: Math.abs(Math.log((x.marketPrice ?? 1) / (x.marketOpen ?? 1))) }))))
-    .sort((a, b) => b.move - a.move)[0];
+  // Today in numbers: races, and the calls whether run or not so the count never reads as empty late on.
+  const races = meetings.flatMap((m) => m.races);
+  const first = races.map((r) => r.jumpTime).filter(Boolean).sort()[0];
+  const calls = races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched));
+  const bets = calls.filter((x) => x.signal === "back").length;
+  const lays = calls.filter((x) => x.signal === "lay").length;
+  const toRun = upcoming.reduce((a, { r }) => a + r.runners.filter((x) => x.signal && !x.scratched).length, 0);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
@@ -118,32 +120,17 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           </Tile>
         )}
 
-        <Tile href="#board" label="Tracks today">
-          <div className="font-display text-2xl font-extrabold tracking-tight leading-none">{meetings.length} {meetings.length === 1 ? "meeting" : "meetings"}</div>
-          <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            {meetings.map((m) => (
-              <li key={m.meetingId} className="flex items-center gap-1 font-semibold">
-                {m.track}
-                {m.trackCondition && <span className={`going-chip ${goingClass(m.trackCondition)}`}>{m.trackCondition}</span>}
-              </li>
-            ))}
-          </ul>
+        <Tile href="#board" label="Meetings today">
+          <div className="font-display text-2xl font-extrabold tracking-tight leading-none nums">{meetings.length} {meetings.length === 1 ? "meeting" : "meetings"}</div>
+          <div className="mt-1 text-sm font-semibold nums">{races.length} races rated</div>
+          <div className="text-xs text-ink-soft nums">{first ? `First jump ${jumpTime(first)}` : "No racing today"}</div>
         </Tile>
 
-        {mover ? (
-          <Tile href={href(mover.m, mover.r)} label="Biggest mover">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none truncate">{mover.x.horseName}</div>
-            <div className="mt-1 text-sm font-semibold nums">{price(mover.x.marketOpen)} → {price(mover.x.marketPrice)}, {(mover.x.marketPrice ?? 0) < (mover.x.marketOpen ?? 0) ? "backed" : "drifting"}</div>
-            <div className="text-xs text-ink-soft truncate">{mover.m.track} R{mover.r.raceNumber}, {jumpTime(mover.r.jumpTime)}</div>
-          </Tile>
-        ) : (
-          <Tile href="#board" label="Biggest mover">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none">Settling</div>
-            <div className="mt-1 text-sm font-semibold">No move worth a mention yet</div>
-            <div className="text-xs text-ink-soft">Prices refresh through the day</div>
-          </Tile>
-        )}
-
+        <Tile href={open ? "/tips" : "/pricing"} label="Calls today" tone="prime">
+          <div className="font-display text-2xl font-extrabold tracking-tight leading-none nums">{released ? `${bets + lays} ${bets + lays === 1 ? "play" : "plays"}` : `${RELEASE_HOUR}am`}</div>
+          <div className="mt-1 text-sm font-semibold nums">{released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}` : "Calls release on race morning"}</div>
+          <div className="text-xs text-ink-soft nums">{released ? (open ? `${toRun} still to run` : "One race free today, the rest with a plan") : "Ratings, prices and calls"}</div>
+        </Tile>
       </div>
     </section>
   );
