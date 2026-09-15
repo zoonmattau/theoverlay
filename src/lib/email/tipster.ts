@@ -2,7 +2,7 @@ import "server-only";
 
 import { logEvent } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { priceFlagged, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
+import { followerIds, priceFlagged, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { longDate, price } from "@/lib/format";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
@@ -66,14 +66,17 @@ export async function notifyFollowers(tipsterId: string): Promise<number> {
     .select("*");
   const tips = ((claimed ?? []) as CreatorTip[]).sort((a, b) => a.date.localeCompare(b.date) || a.race_number - b.race_number);
   if (tips.length === 0) return 0;
-  const { data: followers } = await db
-    .from("profiles")
-    .select("id, email")
-    .eq("tipster_id", tipsterId)
-    .eq("marketing_opt_in", true)
-    .is("paused_at", null)
-    .not("email", "is", null)
-    .neq("id", tipster.user_id ?? "");
+  const ids = await followerIds(tipsterId);
+  const { data: followers } = ids.length
+    ? await db
+        .from("profiles")
+        .select("id, email")
+        .in("id", ids)
+        .eq("marketing_opt_in", true)
+        .is("paused_at", null)
+        .not("email", "is", null)
+        .neq("id", tipster.user_id ?? "")
+    : { data: [] };
   let sent = 0;
   for (const date of [...new Set(tips.map((t) => t.date))]) {
     const batch = tips.filter((t) => t.date === date);

@@ -16,7 +16,7 @@ import { TipsterTips } from "@/components/TipsterTips";
 import { myBets, type MyBet } from "@/lib/mybets";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { creatorTips, followedTipster, tipsterRecord } from "@/lib/creators";
+import { followedCalls, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
@@ -78,9 +78,9 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   const mine = await myBets(viewer.id, date);
-  // A follower sees their tipster's calls above ours, whether or not they have paid.
-  const tipster = await followedTipster(viewer);
-  const [theirs, record] = tipster ? await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id)]) : [[], undefined];
+  // A follower sees their tipsters' calls above ours, whether or not they have paid.
+  const followed = await followedCalls(viewer, date);
+  const records = await Promise.all(followed.map((f) => tipsterRecord(f.tipster.id)));
 
   const calls: Call[] = meetings
     .flatMap((m) =>
@@ -184,11 +184,11 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
         </div>
       )}
 
-      {tipster && (
-        <div className="mb-4">
-          <TipsterTips tipster={tipster} tips={theirs} record={record} date={date} />
-        </div>
-      )}
+      {followed.map((f, i) => (
+        <section key={f.tipster.id} className="mb-6">
+          <TipsterTips tipster={f.tipster} tips={f.tips} record={records[i]} date={date} />
+        </section>
+      ))}
 
       {open ? (
         <div className="space-y-4">

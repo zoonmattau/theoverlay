@@ -68,20 +68,36 @@ export async function allTipsters(): Promise<Tipster[]> {
 }
 
 /**
- * Whose tips this viewer follows. A member's choice lives on their profile
- * (set from the affiliate at sign-up, changed in Account or on a tipster
- * page); a visitor's is the affiliate cookie from the link they arrived on,
- * so a follower sees their tipster before signing up.
+ * Whose tips this viewer follows, any number of them. A member's follows
+ * live in the follows table (the affiliate at sign-up is the first, more
+ * come from Account or a tipster page); a visitor's is the affiliate cookie
+ * from the link they arrived on, so a follower sees their tipster before
+ * signing up.
  */
-export async function followedTipster(viewer: Viewer): Promise<Tipster | undefined> {
+export async function followedTipsters(viewer: Viewer): Promise<Tipster[]> {
   if (viewer.id) {
-    const { data } = await supabaseAdmin().from("profiles").select("tipster_id").eq("id", viewer.id).maybeSingle();
-    if (!data?.tipster_id) return undefined;
-    const t = await tipsterById(data.tipster_id);
-    return t?.user_id ? t : undefined;
+    const { data } = await supabaseAdmin().from("follows").select("tipster_id").eq("user_id", viewer.id).order("created_at");
+    const ids = (data ?? []).map((r) => r.tipster_id as string);
+    if (ids.length === 0) return [];
+    const { data: rows } = await supabaseAdmin().from("affiliates").select("*").in("id", ids).eq("active", true).not("user_id", "is", null);
+    const byId = new Map(((rows ?? []) as Tipster[]).map((t) => [t.id, t]));
+    return ids.map((id) => byId.get(id)).filter((t): t is Tipster => Boolean(t));
   }
   const code = (await cookies()).get(AFF_COOKIE)?.value;
-  return code ? tipsterByCode(code) : undefined;
+  const t = code ? await tipsterByCode(code) : undefined;
+  return t ? [t] : [];
+}
+
+/** The tipsters this viewer follows, each with their calls for the date. */
+export async function followedCalls(viewer: Viewer, date: string): Promise<{ tipster: Tipster; tips: CreatorTip[] }[]> {
+  const tipsters = await followedTipsters(viewer);
+  return Promise.all(tipsters.map(async (tipster) => ({ tipster, tips: await creatorTips(tipster.id, date) })));
+}
+
+/** Everyone who follows a tipster, for their emails. */
+export async function followerIds(tipsterId: string): Promise<string[]> {
+  const { data } = await supabaseAdmin().from("follows").select("user_id").eq("tipster_id", tipsterId);
+  return (data ?? []).map((r) => r.user_id as string);
 }
 
 /** Today's call count for every tipster, for the directory. */

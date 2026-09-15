@@ -18,7 +18,7 @@ export function MatrixCell({
   prime,
   group,
   free,
-  tipster,
+  tipsters,
 }: {
   href: string;
   raceNumber: number;
@@ -32,12 +32,12 @@ export function MatrixCell({
   group?: 1 | 2 | 3;
   /** Today's free race, for a viewer who cannot open the others. */
   free?: boolean;
-  /** The name of the tipster the viewer follows, when they have a call in this race. */
-  tipster?: string;
+  /** Initials of the tipsters the viewer follows who have a call in this race. */
+  tipsters?: string[];
 }) {
   const medal = group ? <span className={`medal medal-${group}`} title={`Group ${group}`}>G{group}</span> : null;
   const freeTag = free ? <span className="matrix-free">Free</span> : null;
-  const tipsterTag = tipster ? <span className="matrix-tipster" title={`${tipster} has a call in this race`}>{tipster.trim()[0]?.toUpperCase()}</span> : null;
+  const tipsterTag = tipsters && tipsters.length > 0 ? <span className="matrix-tipsters">{tipsters.slice(0, 3).map((t, i) => <span key={i} className="matrix-tipster">{t}</span>)}</span> : null;
   const [state, setState] = useState<{ label: string; status: string }>({
     label: clock,
     status: "",

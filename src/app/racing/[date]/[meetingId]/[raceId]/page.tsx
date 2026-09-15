@@ -16,7 +16,7 @@ import { TrackMenu, type MiniMeeting } from "@/components/TrackMenu";
 import { TipsterTips } from "@/components/TipsterTips";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { creatorTips, followedTipster } from "@/lib/creators";
+import { followedCalls } from "@/lib/creators";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL, breadcrumbs } from "@/components/JsonLd";
@@ -88,11 +88,9 @@ async function Race({ params }: { params: Props["params"] }) {
   const nextHref = raceHref(meeting.races[idx + 1]);
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
-  const tipster = await followedTipster(viewer);
-  const allTheirs = tipster ? await creatorTips(tipster.id, date) : [];
-  const theirs = allTheirs.filter((t) => t.race_id === raceId);
-  const theirRaces = new Set(allTheirs.map((t) => t.race_id));
-  const initial = tipster?.name.trim()[0]?.toUpperCase();
+  const followed = await followedCalls(viewer, date);
+  const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
+  const initialsFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => f.tipster.name.trim()[0]?.toUpperCase() ?? "?").join("");
 
   // The mini matrix behind the track name: every race on the day, coloured
   // like the board.
@@ -111,7 +109,7 @@ async function Race({ params }: { params: Props["params"] }) {
         resulted: Boolean(r.result),
         tip: prime.has(r.raceId) ? "prime" : backs ? "back" : lays ? "lay" : undefined,
         group: groupOf(r.className, r.name),
-        tipster: theirRaces.has(r.raceId) ? initial : undefined,
+        tipster: initialsFor(r.raceId) || undefined,
       };
     }),
   }));
@@ -240,14 +238,14 @@ async function Race({ params }: { params: Props["params"] }) {
         </div>
       )}
 
-      {tipster && theirs.length > 0 && <TipsterTips tipster={tipster} tips={theirs} date={date} compact />}
+      {inRace.map((f) => <TipsterTips key={f.tipster.id} tipster={f.tipster} tips={f.tips} date={date} compact />)}
 
       {!released ? (
         <ReleaseNotice hour={RELEASE_HOUR} />
       ) : open ? (
         <Section id="selections" letter="O" title="Our selections" aside="Live price against our rated price, top four">
           <div className="section-body">
-            <SelectionCards race={race} tipster={tipster && theirs.length ? { name: tipster.name, calls: theirs.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) } : undefined} />
+            <SelectionCards race={race} tipsters={inRace.map((f) => ({ name: f.tipster.name, calls: f.tips.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) }))} />
           </div>
         </Section>
       ) : (

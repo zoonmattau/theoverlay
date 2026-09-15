@@ -1013,7 +1013,18 @@ body {
   letter-spacing: 0.08em;
   line-height: 1.5;
 }
-/* The tipster you follow has a call here: their initial in the top-left corner. */
+/* The tipsters you follow with a call here: their initials in the top-left corner. */
+.matrix-tipsters {
+  position: absolute;
+  top: -7px;
+  left: -4px;
+  display: flex;
+  gap: 1px;
+}
+.matrix-tipsters .matrix-tipster,
+.mini-cell .matrix-tipsters .matrix-tipster {
+  position: static;
+}
 .matrix-tipster {
   position: absolute;
   top: -7px;

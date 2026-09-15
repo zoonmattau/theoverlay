@@ -20,17 +20,17 @@ export function RaceMatrix({
   selections,
   date,
   freeRaceId,
-  tipster,
+  tipsters,
 }: {
   meetings: PublishedMeeting[];
   selections: Selection[];
   date: string;
   /** Marked in the grid for viewers who cannot open the rest. */
   freeRaceId?: string;
-  /** Races where the tipster the viewer follows has a call, with the tipster's name. */
-  tipster?: { name: string; raceIds: string[] };
+  /** The tipsters the viewer follows, each with the races they have called. */
+  tipsters?: { name: string; raceIds: string[] }[];
 }) {
-  const followed = new Set(tipster?.raceIds ?? []);
+  const initialsFor = (raceId: string) => (tipsters ?? []).filter((t) => t.raceIds.includes(raceId)).map((t) => t.name.trim()[0]?.toUpperCase() ?? "?");
   const cols = Math.max(0, ...meetings.map((m) => m.races.length));
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => s.raceId));
 
@@ -85,7 +85,7 @@ export function RaceMatrix({
                       prime={prime.has(race.raceId)}
                       group={groupOf(race.className, race.name)}
                       free={race.raceId === freeRaceId}
-                      tipster={followed.has(race.raceId) ? tipster!.name : undefined}
+                      tipsters={initialsFor(race.raceId)}
                     />
                   </td>
                 );
@@ -100,7 +100,7 @@ export function RaceMatrix({
         <span><span className="legend-dot bg-blue" />Bet</span>
         <span><span className="legend-dot bg-red" />Lay</span>
         <span><span className="legend-dot bg-surface-alt" />Resulted, first four, border shows what we had on</span>
-        {tipster && <span><span className="legend-dot legend-dot-tipster" />{tipster.name} has a call</span>}
+        {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />{tipsters.map((t) => t.name).join(", ")}: a call in this race</span>}
       </div>
     </div>
   );

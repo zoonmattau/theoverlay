@@ -50,6 +50,8 @@ export async function attributeSignup(userId: string, code: string | undefined):
     .update({ affiliate_id: aff.id, affiliate_attributed_at: new Date().toISOString(), tipster_id: aff.id })
     .eq("id", userId)
     .is("affiliate_id", null);
+  // A tipster affiliate is followed from the start.
+  if ((aff as { user_id?: string | null }).user_id) await supabaseAdmin().from("follows").upsert({ user_id: userId, tipster_id: aff.id }, { onConflict: "user_id,tipster_id" });
 }
 
 export interface AffiliateClick {

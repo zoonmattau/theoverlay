@@ -18,10 +18,12 @@ export interface TipsterCall {
   comment?: string | null;
 }
 
-export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster?: { name: string; calls: TipsterCall[] } }) {
-  const theirs = new Map((tipster?.calls ?? []).map((c) => [c.tabNumber, c]));
-  const tip = (c: TipsterCall) =>
-    `${tipster!.name}: ${c.side === "back" ? "Bet" : "Lay"} at ${price(c.price)}${c.bookiePrice ? `, ${price(c.bookiePrice)}${c.bookie ? ` at ${c.bookie}` : ""}` : c.bookie ? ` at ${c.bookie}` : ""}.${c.comment ? ` ${c.comment}` : ""}`;
+export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; tipsters?: { name: string; calls: TipsterCall[] }[] }) {
+  // Every followed tipster's call on each runner, in follow order.
+  const theirs = new Map<number, { name: string; call: TipsterCall }[]>();
+  for (const t of tipsters) for (const c of t.calls) theirs.set(c.tabNumber, [...(theirs.get(c.tabNumber) ?? []), { name: t.name, call: c }]);
+  const tip = (name: string, c: TipsterCall) =>
+    `${name}: ${c.side === "back" ? "Bet" : "Lay"} at ${price(c.price)}${c.bookiePrice ? `, ${price(c.bookiePrice)}${c.bookie ? ` at ${c.bookie}` : ""}` : c.bookie ? ` at ${c.bookie}` : ""}.${c.comment ? ` ${c.comment}` : ""}`;
   const picks = race.runners
     .filter((r): r is PublishedRunner & { rank: number } => r.rank !== null)
     .sort((a, b) => a.rank - b.rank);
@@ -43,11 +45,11 @@ export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster
               </div>
             </div>
             <span className="flex items-center gap-1.5 shrink-0">
-              {theirs.has(r.tabNumber) && (
-                <span className="tipster-mark tip tip-right" data-tip={tip(theirs.get(r.tabNumber)!)}>
-                  {tipster!.name.trim()[0]?.toUpperCase()}
+              {(theirs.get(r.tabNumber) ?? []).map(({ name, call }) => (
+                <span key={name} className="tipster-mark tip tip-right" data-tip={tip(name, call)}>
+                  {name.trim()[0]?.toUpperCase()}
                 </span>
-              )}
+              ))}
               <SignalBadge signal={r.signal} prime={r.prime} />
             </span>
           </div>

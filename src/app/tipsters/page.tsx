@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { FollowButton } from "@/components/FollowButton";
 import { TipsterTips } from "@/components/TipsterTips";
 import { getViewer } from "@/lib/auth";
-import { allTipsters, creatorTips, followedTipster, tipsterCallCounts, tipsterRecord } from "@/lib/creators";
+import { allTipsters, creatorTips, followedTipsters, tipsterCallCounts, tipsterRecord } from "@/lib/creators";
 import { getTodayCard } from "@/lib/model/source";
 
 export const metadata: Metadata = {
@@ -31,13 +31,13 @@ const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).t
 async function Directory() {
   await connection();
   const viewer = await getViewer();
-  const [tipsters, following, { date }] = await Promise.all([allTipsters(), followedTipster(viewer), getTodayCard(viewer.admin)]);
+  const [tipsters, following, { date }] = await Promise.all([allTipsters(), followedTipsters(viewer), getTodayCard(viewer.admin)]);
+  const followingIds = new Set(following.map((t) => t.id));
   const [records, counts, followedTips] = await Promise.all([
     Promise.all(tipsters.map((t) => tipsterRecord(t.id))),
     tipsterCallCounts(date),
-    following ? creatorTips(following.id, date) : Promise.resolve([]),
+    Promise.all(following.map((t) => creatorTips(t.id, date))),
   ]);
-  const followedRecord = following ? records[tipsters.findIndex((t) => t.id === following.id)] : undefined;
 
   return (
     <>
@@ -48,11 +48,11 @@ async function Directory() {
         </p>
       </section>
 
-      {following && (
-        <div className="mb-6">
-          <TipsterTips tipster={following} tips={followedTips} record={followedRecord} date={date} />
+      {following.map((t, i) => (
+        <div key={t.id} className="mb-6">
+          <TipsterTips tipster={t} tips={followedTips[i]} record={records[tipsters.findIndex((x) => x.id === t.id)]} date={date} />
         </div>
-      )}
+      ))}
 
       {tipsters.length === 0 ? (
         <p className="text-sm text-ink-soft">No tipsters yet.</p>
@@ -61,7 +61,7 @@ async function Directory() {
           {tipsters.map((t, i) => {
             const r = records[i];
             const today = counts.get(t.id) ?? 0;
-            const isFollowing = following?.id === t.id;
+            const isFollowing = followingIds.has(t.id);
             return (
               <div key={t.id} className={`card flex flex-col gap-3 ${isFollowing ? "border-lime" : ""}`}>
                 <div className="flex items-start justify-between gap-3">

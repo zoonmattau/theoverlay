@@ -25,14 +25,13 @@ interface Row {
   paused_at: string | null;
   marketing_opt_in: boolean;
   is_admin: boolean;
-  tipster_id: string | null;
 }
 
 /** Members whose access covers the date and who ticked tips emails. */
 async function recipients(date: string): Promise<Row[]> {
   const { data } = await supabaseAdmin()
     .from("profiles")
-    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin, tipster_id")
+    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin")
     .eq("marketing_opt_in", true)
     .not("email", "is", null);
   const now = Date.now();
@@ -104,7 +103,7 @@ export interface Followed {
   tips: CreatorTip[];
 }
 
-export function morningTipsEmail(date: string, card: StoredCard, userId: string, followed?: Followed): EmailSpec {
+export function morningTipsEmail(date: string, card: StoredCard, userId: string, followed: Followed[] = []): EmailSpec {
   const all = calls(date, card);
   const bets = all.filter((c) => c.side === "bet");
   const lays = all.filter((c) => c.side === "lay");
@@ -119,8 +118,8 @@ export function morningTipsEmail(date: string, card: StoredCard, userId: string,
       `${races} races rated across ${card.meetings.length} meetings, with <strong>${bets.length} ${bets.length === 1 ? "bet" : "bets"}</strong> and <strong>${lays.length} ${lays.length === 1 ? "lay" : "lays"}</strong> called at 10am prices.`,
       `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#1f6fd6">Bets</strong>${table(bets)}`,
       `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#d93636">Lays</strong>${table(lays)}`,
-      ...(followed && followed.tips.length > 0
-        ? [`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6f9a12">${esc(followed.tipster.name)}'s tips</strong>${tipsterTable(followed.tips)}`]
+      ...(followed.filter((f) => f.tips.length > 0).length > 0
+        ? followed.filter((f) => f.tips.length > 0).map((f) => `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6f9a12">${esc(f.tipster.name)}'s tips</strong>${tipsterTable(f.tips)}`)
         : []),
       "Prices move, so check the live price on the race page before you bet.",
     ],
@@ -140,15 +139,19 @@ export async function sendMorningTips(date: string, card: StoredCard, force = fa
     if (data && data.length > 0) return { sent: 0, skipped: "already sent" };
   }
   const to = await recipients(date);
-  // Tipster calls already posted for the day, once per tipster.
+  // Who follows whom, and each tipster's calls for the day, fetched once.
+  const { data: followRows } = await db.from("follows").select("user_id, tipster_id").in("user_id", to.map((r) => r.id));
+  const followsOf = new Map<string, string[]>();
+  for (const f of (followRows ?? []) as { user_id: string; tipster_id: string }[]) followsOf.set(f.user_id, [...(followsOf.get(f.user_id) ?? []), f.tipster_id]);
   const followed = new Map<string, Followed>();
-  for (const id of new Set(to.map((r) => r.tipster_id).filter((x): x is string => Boolean(x)))) {
+  for (const id of new Set([...followsOf.values()].flat())) {
     const tipster = await tipsterById(id);
     if (tipster?.user_id) followed.set(id, { tipster, tips: await creatorTips(id, date) });
   }
   let sent = 0;
   for (const r of to) {
-    const ok = await sendEmail(r.email!, morningTipsEmail(date, card, r.id, r.tipster_id ? followed.get(r.tipster_id) : undefined), {
+    const theirs = (followsOf.get(r.id) ?? []).map((id) => followed.get(id)).filter((f): f is Followed => Boolean(f));
+    const ok = await sendEmail(r.email!, morningTipsEmail(date, card, r.id, theirs), {
       "List-Unsubscribe": `<${unsubscribeUrl(r.id)}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     });

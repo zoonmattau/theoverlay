@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { FollowButton } from "@/components/FollowButton";
 import { TipsterTips } from "@/components/TipsterTips";
 import { getViewer } from "@/lib/auth";
-import { creatorTips, followedTipster, tipsterByCode, tipsterRecord } from "@/lib/creators";
+import { creatorTips, followedTipsters, tipsterByCode, tipsterRecord } from "@/lib/creators";
 import { longDate } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 
@@ -40,7 +40,8 @@ async function TipsterPage({ params }: { params: Props["params"] }) {
   if (!tipster) notFound();
   const viewer = await getViewer();
   const { date } = await getTodayCard(viewer.admin);
-  const [tips, record, following] = await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id), followedTipster(viewer)]);
+  const [tips, record, followingList] = await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id), followedTipsters(viewer)]);
+  const following = followingList.find((t) => t.id === tipster.id);
 
   return (
     <>
