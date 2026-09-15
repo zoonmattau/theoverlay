@@ -89,8 +89,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   const g = r.ratings;
   // The points a factor adds to or takes from Today, next to the fact it came from.
   const fx = (key: keyof typeof g.factors) => {
-    const v = g.factors[key];
-    if (!v) return null;
+    const v = g.factors[key] ?? 0;
+    if (!v) return <span className="factor nums ml-1.5" title="Neither for nor against it today">0.0</span>;
     return <span className={`factor nums ml-1.5 ${v > 0 ? "is-up" : "is-down"}`} title={`${v > 0 ? "Adds" : "Costs"} ${Math.abs(v).toFixed(1)} points today`}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
@@ -120,7 +120,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}{fx("fresh")}</dd></div>
           <div><dt>Going</dt><dd>{race.goingText ?? race.going}{fx("going")}</dd></div>
           <div><dt>Tempo</dt><dd>{race.pace.tempo}{fx("tempo")}</dd></div>
-          {g.factors.market ? <div><dt>Market</dt><dd className="nums">{r.marketPrice ? price(r.marketPrice) : "—"}{fx("market")}</dd></div> : null}
+          <div><dt>Field</dt><dd className="nums">{r.marketPrice ? price(r.marketPrice) : "—"}{fx("market")}</dd></div>
           <div><dt>Gear</dt><dd>{h?.gear?.length ? h.gear.join(", ") : "none"}</dd></div>
           {h?.gearChanges?.length ? (
             <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
