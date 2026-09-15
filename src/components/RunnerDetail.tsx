@@ -120,7 +120,6 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
           <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}{fx("fresh")}</dd></div>
           <div><dt>Going</dt><dd>{race.goingText ?? race.going}{fx("going")}</dd></div>
           <div><dt>Tempo</dt><dd>{race.pace.tempo}{fx("tempo")}</dd></div>
-          <div><dt>Field</dt><dd className="nums">{r.marketPrice ? price(r.marketPrice) : "—"}{fx("market")}</dd></div>
           <div><dt>Gear</dt><dd>{h?.gear?.length ? h.gear.join(", ") : "none"}</dd></div>
           {h?.gearChanges?.length ? (
             <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
