@@ -122,7 +122,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
         {locked ? (
           <p>Rated prices, edges and our bet or lay calls open with a pass.</p>
         ) : (
-          <p>Click a runner for the horse, its last runs, what to expect and our call. Edge is our win chance minus the market&apos;s, in points.</p>
+          <p>Click a runner for the horse, its last runs, what to expect and our call.</p>
         )}
       </div>
     </Section>

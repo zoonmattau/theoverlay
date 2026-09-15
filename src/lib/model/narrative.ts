@@ -117,6 +117,27 @@ function classNumber(name?: string): number | undefined {
   return undefined;
 }
 
+/**
+ * What the trip verdict rests on: how many of its recent runs were near
+ * today's distance, and where its best runs have come if that is elsewhere.
+ * Runs within 200m count as the same trip, the way the rating groups them.
+ */
+function tripDetail(r: PublishedRunner, race: PublishedRace): string {
+  const runs = (r.runs ?? []).filter((x) => x.distance > 0);
+  if (runs.length === 0) return "";
+  const near = runs.filter((x) => Math.abs(x.distance - race.distance) <= 200);
+  // Its best trip: the 200m band with the highest average points, at least one run.
+  const bands = new Map<number, number[]>();
+  for (const x of runs) {
+    const band = Math.round(x.distance / 200) * 200;
+    bands.set(band, [...(bands.get(band) ?? []), x.points]);
+  }
+  const best = [...bands.entries()].map(([band, pts]) => ({ band, avg: pts.reduce((a, b) => a + b, 0) / pts.length })).sort((a, b) => b.avg - a.avg)[0];
+  const bestElsewhere = best && Math.abs(best.band - race.distance) > 200 ? ` and its best runs have come near ${best.band}m` : "";
+  if (near.length === 0) return `. It has not raced within 200m of ${race.distance}m in its last ${runs.length}${bestElsewhere}`;
+  return ` from ${near.length} ${near.length === 1 ? "run" : "runs"} near ${race.distance}m${bestElsewhere}`;
+}
+
 /** Picks a phrasing for a runner so the column does not read as a template. */
 const pick = (r: PublishedRunner, options: string[]) => options[(r.tabNumber + r.barrier) % options.length];
 
@@ -175,7 +196,7 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   // a half gets said, the biggest movers loudest.
   const pts = (v: number) => `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "point" : "points"}`;
   const factorLines: Partial<Record<keyof typeof g.factors, [string, string]>> = {
-    distance: [`the trip is a real query, ${"%"} off its class`, `is at its best at this trip, ${"%"} up`],
+    distance: [`the trip is a query, ${"%"} off its class${tripDetail(r, race)}`, `is at its best at this trip, ${"%"} up${tripDetail(r, race)}`],
     going: [`the ${race.going} ground costs it ${"%"}`, `the ${race.going} ground adds ${"%"}`],
     track: [`this track costs it ${"%"}`, `goes well here, ${"%"} up`],
     tempo: [`the likely tempo costs it ${"%"}`, `the likely tempo adds ${"%"}`],
