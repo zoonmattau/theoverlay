@@ -2229,11 +2229,15 @@ body {
 /* --- Admin shell: menu down the left, page on the right --- */
 .admin-shell {
   display: grid;
-  grid-template-columns: 200px minmax(0, 1fr);
+  grid-template-columns: 180px minmax(0, 1fr);
   gap: var(--sp-5);
-  max-width: 1400px;
+  max-width: 1800px;
   margin: 0 auto;
   padding: 0 var(--sp-4);
+}
+/* Admin tables have many columns; headers stay on one line and the table scrolls sideways if it must. */
+.admin-main .data-table th {
+  white-space: nowrap;
 }
 .admin-nav {
   position: sticky;
