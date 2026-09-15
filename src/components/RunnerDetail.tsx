@@ -99,7 +99,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   const why: Record<keyof typeof g.factors, string> = {
     trainer: r.trainerWin !== undefined ? `The stable has won ${r.trainerWin.toFixed(0)}% of its runners in the last twelve months, against 12% for an average stable.` : "No stable record to go on.",
     jockey: r.jockeyWin !== undefined ? `The rider has won ${r.jockeyWin.toFixed(0)}% of rides in the last twelve months, against 12% for an average rider.` : "No riding record to go on.",
-    weight: last?.weight && r.weight ? `Carries ${r.weight}kg today, ${last.weight}kg last start. Each past run is restated at today's weight and the average shift is the adjustment.` : "Today's weight against what it has carried before.",
+    weight: weightWhy(),
     distance: `Its runs within 200m of ${race.distance}m rate ${g.distance.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.distance - g.class)}.`,
     track: `Its runs at this track rate ${g.track.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.track - g.class)}.`,
     going: `Its ${band}-track runs rate ${g.going[band].toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.going[band] - g.class)}. A band with no runs sits at class.`,
@@ -108,6 +108,16 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
     barrier: `Barrier ${r.barrier}, ${ord(race.runners.filter((x) => !x.scratched && x.barrier < r.barrier).length + 1)} from the rail of ${race.runners.filter((x) => !x.scratched).length} once scratchings are out, for a runner that ${MAP_LABEL[g.map].toLowerCase()}, over ${race.distance}m. ${g.map === "leader" || g.map === "on pace" ? "A wide gate means working early to hold a spot; an inside one saves that." : "Back in the field the draw matters less, though a very wide gate costs cover and a rail draw in a big field can mean being held up."}`,
     market: "Form King's own view of this runner against the rest of the field.",
   };
+  function weightWhy(): string {
+    const v = g.factors.weight ?? 0;
+    const today = r.weight;
+    const before = last?.weight;
+    const diff = today && before ? today - before : 0;
+    const carry = today && before ? `Carries ${today}kg today against ${before}kg last start${Math.abs(diff) >= 0.5 ? `, ${Math.abs(diff).toFixed(1)}kg ${diff > 0 ? "more" : "less"}` : ""}.` : today ? `Carries ${today}kg today.` : "";
+    if (v > 0) return `${carry} Less on its back than it has been carrying, and its form reads better at today's weight.`;
+    if (v < 0) return `${carry} More on its back than its form was made with, and weight slows a horse down.`;
+    return `${carry} About what it has been carrying, so the weight is neither here nor there.`;
+  }
   function freshWhy(): string {
     const v = g.factors.fresh ?? 0;
     const days = h?.daysSinceLastRun;
