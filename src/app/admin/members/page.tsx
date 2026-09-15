@@ -6,6 +6,7 @@ import { deleteMember, inviteMember } from "@/app/admin/actions";
 import { accountState, isAdmin, listMembers, now as clock } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { planById, PLANS } from "@/lib/billing/plans";
+import { supabaseAdmin } from "@/lib/billing/access";
 import { allTipsters } from "@/lib/creators";
 import { MembersTable, type MemberRow } from "../MembersTable";
 
@@ -29,8 +30,9 @@ async function removeFromList(id: string) {
 async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [members, tipsters] = await Promise.all([listMembers(), allTipsters()]);
+  const [members, tipsters, { data: affiliates }] = await Promise.all([listMembers(), allTipsters(), supabaseAdmin().from("affiliates").select("id, code")]);
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
+  const codeOf = new Map((affiliates ?? []).map((a) => [a.id as string, a.code as string]));
   const now = clock();
   const ms = (iso: string | null | undefined) => (iso ? new Date(iso).getTime() : 0);
   const rows: MemberRow[] = members.map((m) => {
@@ -39,11 +41,13 @@ async function Members() {
       id: m.id,
       name: m.full_name || m.email || m.id,
       email: m.email ?? "",
-      haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code].filter(Boolean).join(" ").toLowerCase(),
+      haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code, m.affiliate_id ? codeOf.get(m.affiliate_id) : null, m.source].filter(Boolean).join(" ").toLowerCase(),
       account: accountState(m),
       admin: Boolean(m.is_admin),
       tipster: tipsterIds.has(m.id),
       plan: m.plan ? (planById(m.plan)?.name ?? m.plan) : "",
+      affiliate: (m.affiliate_id && codeOf.get(m.affiliate_id)) || "",
+      source: (m.source ?? "signup").replace(/^affiliate:.*/, "affiliate"),
       status: m.paused_at ? "paused" : live ? "live" : "none",
       statusLabel: m.paused_at ? "Paused" : live ? (m.subscription_status ?? "active") : (m.subscription_status ?? "none"),
       accessUntil: ms(m.access_until),

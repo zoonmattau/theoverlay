@@ -17,6 +17,10 @@ export interface MemberRow {
   admin: boolean;
   tipster: boolean;
   plan: string;
+  /** The affiliate code they signed up through, or "" for none. */
+  affiliate: string;
+  /** signup, invite, google or affiliate. */
+  source: string;
   status: "live" | "paused" | "none";
   statusLabel: string;
   accessUntil: number;
@@ -28,12 +32,13 @@ export interface MemberRow {
   lastSeen: number;
 }
 
-type Key = "name" | "account" | "plan" | "status" | "accessUntil" | "since" | "spent" | "passes" | "gift" | "emails" | "lastSeen";
+type Key = "name" | "account" | "plan" | "affiliate" | "status" | "accessUntil" | "since" | "spent" | "passes" | "gift" | "emails" | "lastSeen";
 
 const COLS: { key: Key; label: string; right?: boolean }[] = [
   { key: "name", label: "Member" },
   { key: "account", label: "Account" },
   { key: "plan", label: "Plan" },
+  { key: "affiliate", label: "Came from" },
   { key: "status", label: "Status" },
   { key: "accessUntil", label: "Access until" },
   { key: "since", label: "Since" },
@@ -75,7 +80,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
     return out.sort((a, b) => sort.dir * cmp(a, b) || a.name.localeCompare(b.name));
   }, [rows, q, status, plan, account, emails, sort]);
 
-  const click = (key: Key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" || key === "plan" || key === "account" || key === "status" ? 1 : -1 }));
+  const click = (key: Key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" || key === "plan" || key === "account" || key === "status" || key === "affiliate" ? 1 : -1 }));
   const sel = "field-input py-1 text-xs";
 
   return (
@@ -129,6 +134,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                 </td>
                 <td>{m.account === "active" ? <span className="badge badge-muted">Active</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
                 <td>{m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}</td>
+                <td>{m.affiliate ? <span className="badge badge-muted nums">{m.affiliate}</span> : <span className="text-xs text-ink-soft">{m.source}</span>}</td>
                 <td>{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? <span className="badge badge-prime">{m.statusLabel}</span> : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
                 <td className="nums">{day(m.accessUntil)}</td>
                 <td className="nums">{day(m.since)}</td>
