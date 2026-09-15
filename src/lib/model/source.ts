@@ -14,6 +14,7 @@ import { pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zone
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
+import { rememberHorses } from "./horses";
 import { recordTips } from "@/lib/tips";
 import type { PublishedMeeting } from "./types";
 
@@ -214,6 +215,16 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     for (const m of previous?.card.meetings ?? []) for (const r of m.races) for (const x of r.runners) if (x.signal) kept.set(`${r.raceId}:${x.tabNumber}`, x.signal);
   }
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
+  // Every runner joins the horse store, so the compare and fantasy pages know it.
+  if (storeConfigured() && usingLiveData()) {
+    for (const { meeting, races } of raw) {
+      try {
+        await rememberHorses(meeting, races);
+      } catch (err) {
+        console.error("[horses] remember failed", err);
+      }
+    }
+  }
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
