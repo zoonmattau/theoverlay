@@ -145,8 +145,10 @@ export interface PublishedRunner {
   form?: string;
   scratched: boolean;
   ratings: RunnerRatings;
-  /** Our model's fair price. Ours, not Form King's. */
+  /** Our price: the form melded with the market. Ours, not Form King's. */
   ratedPrice: number;
+  /** Our price from the form alone, before the market had a say. */
+  formPrice?: number;
   /** Our model's win probability, 0-1. */
   ratedProbability: number;
   /** Best market price we saw at publish time. */

@@ -262,6 +262,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         <h4 className="mt-4">Our call</h4>
         <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
           {callLine(r)}
+          {r.formPrice && r.marketPrice && Math.abs(r.formPrice - r.ratedPrice) >= 0.3 ? <span className="block text-xs font-medium mt-1 opacity-80">The form alone says {price(r.formPrice)}; the market is far enough from that for us to move to {price(r.ratedPrice)}.</span> : null}
           {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block mt-1 font-bold" /> : null}
         </p>
       </div>

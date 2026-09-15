@@ -28,6 +28,16 @@ const DEFAULT_TEMPERATURE = 8;
  * see scripts/backtest.ts.
  */
 const DEFAULT_MARKET_WEIGHT = Number(process.env.OVERLAY_MARKET_WEIGHT ?? 0.5);
+/**
+ * The meld: where we and the market agree the market gets its base weight,
+ * and the further apart we are the more it gets, up to OUTLIER_WEIGHT. The
+ * scale is in log-odds, so a gap of one scale (roughly a price ratio of two)
+ * takes the weight about two thirds of the way from base to the ceiling.
+ * A $8 rating against an $18 market is where we are most often the ones who
+ * are wrong, and this is what pulls it in without hiding the disagreement.
+ */
+const OUTLIER_WEIGHT = Number(process.env.OVERLAY_OUTLIER_WEIGHT ?? 0.8);
+const OUTLIER_SCALE = Number(process.env.OVERLAY_OUTLIER_SCALE ?? 1.5);
 
 export interface RateInput {
   key: string;
@@ -40,6 +50,8 @@ export interface RateInput {
 
 export interface RateOutput {
   key: string;
+  /** Our price from the form alone, before the meld with the market. */
+  modelPrice?: number;
   probability: number;
   ratedPrice: number;
   marketPrice?: number;
@@ -55,10 +67,12 @@ export interface RateResult {
 
 export function rateRace(
   inputs: RateInput[],
-  opts: { temperature?: number; marketWeight?: number } = {},
+  opts: { temperature?: number; marketWeight?: number; outlierWeight?: number; outlierScale?: number } = {},
 ): RateResult {
   const temperature = opts.temperature ?? DEFAULT_TEMPERATURE;
   const marketWeight = opts.marketWeight ?? DEFAULT_MARKET_WEIGHT;
+  const outlierWeight = Math.max(marketWeight, opts.outlierWeight ?? OUTLIER_WEIGHT);
+  const outlierScale = opts.outlierScale ?? OUTLIER_SCALE;
 
   const live = inputs.filter((r) => !r.scratched);
   if (live.length === 0) return { runners: [], confidence: 0 };
@@ -79,11 +93,18 @@ export function rateRace(
     if (market === undefined) return model;
     // A runner we could not rate is priced off the market alone.
     if (r.rating === undefined) return market;
-    return sigmoid(weight * logit(market) + (1 - weight) * logit(model));
+    // The market's say grows with the size of the disagreement, but only
+    // when we have the horse shorter than the market: that is the side the
+    // market is usually right about. Where we have it longer (the lay side)
+    // the base weight stands, because that is where the form has been right.
+    const gap = Math.max(0, logit(model) - logit(market));
+    const w = weight === 0 ? 0 : weight + (outlierWeight - weight) * (1 - Math.exp(-gap / outlierScale));
+    return sigmoid(w * logit(market) + (1 - w) * logit(model));
   });
 
   const total = blended.reduce((a, b) => a + b, 0);
   const normalised = blended.map((p) => p / total);
+  const modelTotal = modelProbs.reduce((a, b) => a + b, 0);
 
   const runners: RateOutput[] = live.map((r, i) => {
     const probability = normalised[i];
@@ -92,7 +113,9 @@ export function rateRace(
     // market is 25% less 20%, an edge of five points.
     const edge =
       r.marketPrice !== undefined ? round4(probability - 1 / r.marketPrice) : undefined;
-    return { key: r.key, probability, ratedPrice, marketPrice: r.marketPrice, edge };
+    // The form alone, before the market had a say.
+    const modelPrice = r.rating === undefined ? undefined : roundPrice(modelTotal / modelProbs[i]);
+    return { key: r.key, probability, ratedPrice, modelPrice, marketPrice: r.marketPrice, edge };
   });
 
   return { runners, confidence: confidenceOf(live, modelProbs) };
