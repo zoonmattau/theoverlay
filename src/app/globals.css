@@ -782,6 +782,37 @@ body {
   text-align: right;
 }
 
+/* Social icons under a tipster's name. */
+.social-links {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+}
+.social-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-surface);
+  color: var(--color-ink-secondary);
+}
+.social-link:hover {
+  background: var(--color-ink);
+  color: var(--color-lime);
+}
+.social-links-bar .social-link {
+  width: 20px;
+  height: 20px;
+  background: rgba(245, 247, 242, 0.12);
+  color: var(--color-bar-ink);
+}
+.social-links-bar .social-link:hover {
+  background: var(--color-lime);
+  color: var(--color-ink);
+}
+
 /* "at Sportsbet" under a price. */
 .bookie-link {
   color: var(--color-ink-soft);

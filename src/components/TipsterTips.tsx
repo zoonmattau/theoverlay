@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import { Outcome } from "./SelectionCard";
+import { SocialLinks } from "./SocialLinks";
 import { priceFlagged, type CreatorTip, type Tipster, type TipsterRecord } from "@/lib/creators";
 import { price } from "@/lib/format";
 
@@ -19,6 +20,7 @@ export function TipsterTips({ tipster, tips, record, date, compact }: { tipster:
       <div className="section-bar">
         <span className="section-letter">{tipster.name.slice(0, 1).toUpperCase()}</span>
         <h2>{tipster.name}&apos;s tips</h2>
+        <SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="social-links-bar" />
         <span className="aside">
           {settled.length ? `${units(total)} today, ${settled.length} of ${tips.length} run` : `${tips.length} ${tips.length === 1 ? "call" : "calls"} today`}
           {record && record.n > 0 ? ` · ${units(record.units)} all time` : ""}

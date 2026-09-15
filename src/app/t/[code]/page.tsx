@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { FollowButton } from "@/components/FollowButton";
+import { SocialLinks } from "@/components/SocialLinks";
 import { TipsterTips } from "@/components/TipsterTips";
 import { getViewer } from "@/lib/auth";
 import { creatorTips, followedTipsters, tipsterByCode, tipsterRecord } from "@/lib/creators";
@@ -49,6 +50,7 @@ async function TipsterPage({ params }: { params: Props["params"] }) {
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">{tipster.name}</h1>
+            <SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="mt-1" />
             {tipster.blurb && <p className="mt-2 text-ink-secondary">{tipster.blurb}</p>}
           </div>
           {tipster.user_id === viewer.id ? <Link href="/tipster" className="btn btn-secondary">Post a call</Link> : <FollowButton code={tipster.code} following={following?.id === tipster.id} />}

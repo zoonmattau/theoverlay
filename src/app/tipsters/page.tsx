@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { FollowButton } from "@/components/FollowButton";
+import { SocialLinks } from "@/components/SocialLinks";
 import { TipsterTips } from "@/components/TipsterTips";
 import { getViewer } from "@/lib/auth";
 import { allTipsters, creatorTips, followedTipsters, tipsterCallCounts, tipsterRecord } from "@/lib/creators";
@@ -67,6 +68,7 @@ async function Directory() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <Link href={`/t/${t.code}`} className="font-display text-xl font-extrabold tracking-tight hover:underline">{t.name}</Link>
+                    <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} className="mt-0.5" />
                     {t.blurb && <p className="text-sm text-ink-secondary mt-0.5">{t.blurb}</p>}
                   </div>
                   {t.user_id === viewer.id ? <span className="badge badge-prime">You</span> : <FollowButton code={t.code} following={isFollowing} small />}

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
 
+import { clean } from "@/components/SocialLinks";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { tipsterForUser } from "@/lib/creators";
@@ -69,6 +70,7 @@ export async function saveBlurb(form: FormData): Promise<void> {
   const tipster = await tipsterForUser(viewer.id);
   if (!tipster) return;
   const blurb = String(form.get("blurb") ?? "").trim().slice(0, 200) || null;
-  await supabaseAdmin().from("affiliates").update({ blurb }).eq("id", tipster.id);
+  const handle = (k: string) => clean(String(form.get(k) ?? "")).slice(0, 60) || null;
+  await supabaseAdmin().from("affiliates").update({ blurb, instagram: handle("instagram"), twitter: handle("twitter"), tiktok: handle("tiktok") }).eq("id", tipster.id);
   paths();
 }

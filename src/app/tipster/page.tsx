@@ -179,9 +179,12 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
 
       <div className="card">
         <h2 className="font-display font-extrabold">About you</h2>
-        <p className="text-xs text-ink-soft mt-1">One line under your name wherever your tips show.</p>
+        <p className="text-xs text-ink-soft mt-1">One line under your name wherever your tips show, and your socials as icons beside it.</p>
         <form action={saveBlurb} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
-          <label className="field flex-1 min-w-[240px]"><span>Blurb</span><input name="blurb" maxLength={200} defaultValue={tipster.blurb ?? ""} className="field-input w-full" placeholder="Sydney form analyst, 12 years on the punt." /></label>
+          <label className="field w-full"><span>Blurb</span><input name="blurb" maxLength={200} defaultValue={tipster.blurb ?? ""} className="field-input w-full" placeholder="Sydney form analyst, 12 years on the punt." /></label>
+          <label className="field"><span>Instagram</span><input name="instagram" maxLength={60} defaultValue={tipster.instagram ?? ""} className="field-input w-40" placeholder="@handle" /></label>
+          <label className="field"><span>X</span><input name="twitter" maxLength={60} defaultValue={tipster.twitter ?? ""} className="field-input w-40" placeholder="@handle" /></label>
+          <label className="field"><span>TikTok</span><input name="tiktok" maxLength={60} defaultValue={tipster.tiktok ?? ""} className="field-input w-40" placeholder="@handle" /></label>
           <button className="btn btn-secondary btn-sm" type="submit">Save</button>
         </form>
       </div>

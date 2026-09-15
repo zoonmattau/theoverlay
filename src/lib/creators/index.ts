@@ -17,6 +17,9 @@ import { settle } from "@/lib/tips";
 export interface Tipster extends Affiliate {
   user_id: string | null;
   blurb: string | null;
+  instagram?: string | null;
+  twitter?: string | null;
+  tiktok?: string | null;
 }
 
 export interface CreatorTip {
