@@ -133,6 +133,9 @@ export interface PublishedRunner {
   barrier: number;
   jockey?: string;
   trainer?: string;
+  /** Their win rate over the last twelve months, per hundred rides or runners. */
+  jockeyWin?: number;
+  trainerWin?: number;
   weight?: number;
   /** Last five finishes, most recent last, e.g. "3x121". */
   form?: string;

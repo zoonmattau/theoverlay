@@ -4,6 +4,7 @@ import { BookieLink } from "./BookieLink";
 import { Factors } from "./Factors";
 import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
+import { MAP_LABEL } from "./Ratings";
 import { callLine, finishFit, observations, settles, tempoFit, type Tone } from "@/lib/model/narrative";
 import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
 
@@ -91,11 +92,27 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   const runs = r.runs ?? [];
   const avg = fieldAverage(race);
   const g = r.ratings;
-  // The points a factor adds to or takes from Today, next to the fact it came from.
+  // The points a factor adds to or takes from Today, next to the fact it came from, with the reason on hover.
+  const last = runs[0];
+  const band = race.going;
+  const gap = (v: number) => `${Math.abs(v).toFixed(1)} ${v >= 0 ? "above" : "below"}`;
+  const why: Record<keyof typeof g.factors, string> = {
+    trainer: r.trainerWin !== undefined ? `The stable has won ${r.trainerWin.toFixed(0)}% of its runners in the last twelve months, against 12% for an average stable. Worth 0.04 a point, capped at half a point.` : "No stable record to go on.",
+    jockey: r.jockeyWin !== undefined ? `The rider has won ${r.jockeyWin.toFixed(0)}% of rides in the last twelve months, against 12% for an average rider. Worth 0.06 a point, capped at 0.8.` : "No riding record to go on.",
+    weight: last?.weight && r.weight ? `Carries ${r.weight}kg today, ${last.weight}kg last start. Each past run is restated at today's weight and the average shift counts at half, capped at three points.` : "Today's weight against what it has carried before, capped at three points.",
+    distance: `Its runs within 200m of ${race.distance}m rate ${g.distance.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.distance - g.class)}. Half the gap counts.`,
+    track: `Its runs at this track rate ${g.track.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.track - g.class)}. Thirty percent of the gap counts.`,
+    going: `Its ${band}-track runs rate ${g.going[band].toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.going[band] - g.class)}. Half the gap counts, and a band with no runs sits at class.`,
+    tempo: race.pace.tempo === "even" ? "An even tempo is expected, which favours nobody." : `A ${race.pace.tempo} tempo is expected. Its runs at that tempo rate ${(race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow).toFixed(1)}, class ${g.class.toFixed(1)}. Half the gap counts.`,
+    fresh: h?.firstStarter ? "A first starter, rated off the field until it has run." : h?.daysSinceLastRun && h.daysSinceLastRun >= 80 ? `First up after ${h.daysSinceLastRun} days. Its past first-up runs and its first-up record decide this, capped at three points.` : h?.daysSinceLastRun !== undefined && (g.factors.fresh ?? 0) !== 0 ? "Second up. Its past second-up runs and record decide this, capped at three points." : "Not resuming, so freshness is not a factor today.",
+    barrier: `Barrier ${r.barrier} of ${race.runners.filter((x) => !x.scratched).length} for a runner that ${MAP_LABEL[g.map].toLowerCase()}, over ${race.distance}m. ${g.map === "leader" || g.map === "on pace" ? "A wide gate means working early to hold a spot; an inside one saves that." : "Back in the field the draw matters less, though a very wide gate costs cover and a rail draw in a big field can mean being held up."} Sprints weigh it most, capped at 1.5.`,
+    market: "Form King's own view of this runner against the rest of the field, a nudge of up to 1.5 points.",
+  };
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;
-    if (!v) return <span className="factor nums ml-1.5" title="Neither for nor against it today">+0.0</span>;
-    return <span className={`factor nums ml-1.5 ${v > 0 ? "is-up" : "is-down"}`} title={`${v > 0 ? "Adds" : "Costs"} ${Math.abs(v).toFixed(1)} points today`}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
+    const cls = !v ? "" : v > 0 ? "is-up" : "is-down";
+    const head = !v ? "Neither for nor against it today." : `${v > 0 ? "Adds" : "Costs"} ${Math.abs(v).toFixed(1)} today.`;
+    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={`${head} ${why[key]}`}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
     const gap = value - g.class;

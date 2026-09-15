@@ -136,6 +136,8 @@ export function publishRace(
       barrier: e.barrier,
       jockey: e.jockey,
       trainer: e.trainer,
+      jockeyWin: e.jockeyForm?.lastTwelveMonthWinPercentage,
+      trainerWin: e.trainerForm?.lastTwelveMonthWinPercentage,
       weight: e.weightCarried ?? e.weight,
       form: r?.form,
       scratched: Boolean(e.scratched),
