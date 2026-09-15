@@ -90,7 +90,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
   // The points a factor adds to or takes from Today, next to the fact it came from.
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;
-    if (!v) return <span className="factor nums ml-1.5" title="Neither for nor against it today">0.0</span>;
+    if (!v) return <span className="factor nums ml-1.5" title="Neither for nor against it today">+0.0</span>;
     return <span className={`factor nums ml-1.5 ${v > 0 ? "is-up" : "is-down"}`} title={`${v > 0 ? "Adds" : "Costs"} ${Math.abs(v).toFixed(1)} points today`}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
