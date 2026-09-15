@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { createAffiliate, markPaid, toggleAffiliate, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { createAffiliate, deleteAffiliate, markPaid, toggleAffiliate, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyLink } from "@/components/CopyLink";
 import { isAdmin } from "@/lib/admin";
 import { affiliateStats, commissionByMonth } from "@/lib/affiliates";
@@ -93,9 +94,14 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                   {new Date(a.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}
                 </p>
               </div>
-              <form action={toggleAffiliate.bind(null, a.id, !a.active)}>
-                <button className="btn btn-secondary btn-sm" type="submit">{a.active ? "Turn off" : "Turn on"}</button>
-              </form>
+              <div className="flex gap-2">
+                <form action={toggleAffiliate.bind(null, a.id, !a.active)}>
+                  <button className="btn btn-secondary btn-sm" type="submit">{a.active ? "Turn off" : "Turn on"}</button>
+                </form>
+                <form action={deleteAffiliate.bind(null, a.id)}>
+                  <ConfirmButton message={`Delete ${a.name} (${a.code}) for good? Their clicks, payouts and login go with it.`} className="btn btn-secondary btn-sm text-red">Delete</ConfirmButton>
+                </form>
+              </div>
             </div>
             <div className="mt-3 grid grid-cols-3 md:grid-cols-6 gap-3 text-center text-sm">
               <Stat n={a.clicks} label="clicks" />

@@ -186,13 +186,17 @@ export async function resendInvite(userId: string): Promise<void> {
   revalidatePath(`/admin/${userId}`);
 }
 
-/** Removes the account entirely, auth and profile; Stripe is left alone. */
-/** Removes the login and the profile for good. `stay` keeps you on the list instead of bouncing to it. */
+/**
+ * Removes the login and the profile for good, and the affiliate that was
+ * theirs, since one affiliate is one account. Stripe is left alone. `stay`
+ * keeps you on the list instead of bouncing to it.
+ */
 export async function deleteMember(userId: string, stay = false): Promise<void> {
   const admin = await requireAdmin();
   if (admin.id === userId) return;
   const db = supabaseAdmin();
   const { data } = await db.from("profiles").select("email").eq("id", userId).maybeSingle();
+  await db.from("affiliates").delete().eq("user_id", userId);
   const { error } = await db.auth.admin.deleteUser(userId);
   if (error) {
     await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "delete_failed", error: error.message, by: admin.email } });

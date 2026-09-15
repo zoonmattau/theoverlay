@@ -58,6 +58,23 @@ export async function createAffiliate(form: FormData): Promise<void> {
   revalidatePath("/admin/members");
 }
 
+/** Removes the affiliate for good, clicks and payouts with it, and the account that was theirs. */
+export async function deleteAffiliate(id: string): Promise<void> {
+  const admin = await requireAdmin();
+  const db = supabaseAdmin();
+  const { data: a } = await db.from("affiliates").select("code, user_id").eq("id", id).maybeSingle();
+  if (!a) return;
+  if (a.user_id === admin.id) return;
+  await db.from("affiliates").delete().eq("id", id);
+  if (a.user_id) {
+    await db.auth.admin.deleteUser(a.user_id);
+    await db.from("profiles").delete().eq("id", a.user_id);
+  }
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "delete_affiliate", code: a.code, account: Boolean(a.user_id), by: admin.email } });
+  revalidatePath("/admin/affiliates");
+  revalidatePath("/admin/members");
+}
+
 export async function toggleAffiliate(id: string, active: boolean): Promise<void> {
   await requireAdmin();
   await supabaseAdmin().from("affiliates").update({ active }).eq("id", id);
