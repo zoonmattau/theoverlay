@@ -35,7 +35,7 @@ const LONG_MIN_PRICE = 8;
  * disagreements toward the market: about two bets in three races, and a
  * lay in one race in four.
  */
-const MIN_EDGE = 0.03;
+const MIN_EDGE = 0.025;
 /** A Prime Overlay is a bet with a wide gap on a horse we give a real chance. */
 const PRIME_EDGE = 0.05;
 const PRIME_MIN_PROB = 0.15;

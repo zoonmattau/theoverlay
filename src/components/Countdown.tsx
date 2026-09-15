@@ -18,6 +18,7 @@ export function MatrixCell({
   prime,
   group,
   free,
+  tipster,
 }: {
   href: string;
   raceNumber: number;
@@ -31,9 +32,12 @@ export function MatrixCell({
   group?: 1 | 2 | 3;
   /** Today's free race, for a viewer who cannot open the others. */
   free?: boolean;
+  /** The name of the tipster the viewer follows, when they have a call in this race. */
+  tipster?: string;
 }) {
   const medal = group ? <span className={`medal medal-${group}`} title={`Group ${group}`}>G{group}</span> : null;
   const freeTag = free ? <span className="matrix-free">Free</span> : null;
+  const tipsterTag = tipster ? <span className="matrix-tipster" title={`${tipster} has a call in this race`}>{tipster.trim()[0]?.toUpperCase()}</span> : null;
   const [state, setState] = useState<{ label: string; status: string }>({
     label: clock,
     status: "",
@@ -60,6 +64,7 @@ export function MatrixCell({
       <Link href={href} className={`matrix-btn race-resulted ${tip ? `had-${tip}` : ""}`}>
         {medal}
         {freeTag}
+        {tipsterTag}
         <span className="matrix-race">R{raceNumber}</span>
         <span className="matrix-result nums">{result.join(",")}</span>
       </Link>
@@ -72,6 +77,7 @@ export function MatrixCell({
     <Link href={href} className={`matrix-btn ${tip ? `tip-${tip}` : ""} ${state.status}`}>
       {medal}
       {freeTag}
+      {tipsterTag}
       <span className="matrix-race">R{raceNumber}</span>
       <span className="matrix-time nums">{state.label}</span>
       {tag && <span className={`matrix-count nums is-${tip}`}>{tag}</span>}

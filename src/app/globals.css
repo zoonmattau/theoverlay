@@ -1013,6 +1013,24 @@ body {
   letter-spacing: 0.08em;
   line-height: 1.5;
 }
+/* The tipster you follow has a call here: their initial in the top-left corner. */
+.matrix-tipster {
+  position: absolute;
+  top: -7px;
+  left: -4px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--color-amber);
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  line-height: 16px;
+  text-align: center;
+}
+.legend-dot-tipster {
+  background: var(--color-amber);
+}
 .matrix-btn:hover {
   border-color: var(--color-ink-soft);
   transform: translateY(-1px);

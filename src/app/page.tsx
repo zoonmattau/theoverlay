@@ -13,6 +13,7 @@ import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
+import { creatorTips, followedTipster } from "@/lib/creators";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { jumpTime, longDate } from "@/lib/format";
 
@@ -139,6 +140,9 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
   const previewing = viewer.admin && !card.released;
   const released = card.released || viewer.admin;
   keepFresh(date, card);
+  // The tipster this viewer follows, and which races they have called today.
+  const followed = await followedTipster(viewer);
+  const tipster = followed ? { name: followed.name, raceIds: (await creatorTips(followed.id, date)).map((t) => t.race_id) } : undefined;
   const access = hasAccess(viewer, date);
   const free = access ? undefined : freeRaceOf(card);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
@@ -173,7 +177,7 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
           </p>
         )}
 
-        <RaceMatrix meetings={meetings} selections={selections} date={date} freeRaceId={free?.race.raceId} />
+        <RaceMatrix meetings={meetings} selections={selections} date={date} freeRaceId={free?.race.raceId} tipster={tipster} />
       </section>
 
     </>
