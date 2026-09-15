@@ -579,12 +579,60 @@ body {
   cursor: help;
 }
 /* Hover any point on a rival and its whole line comes forward. */
-.worm-runner:hover .worm-other {
+.worm-runner:hover .worm-other,
+.worm-runner.is-hover .worm-other {
   stroke: var(--color-ink-secondary);
   stroke-width: 2;
 }
-.worm-runner:hover .worm-dot-other {
+.worm-runner:hover .worm-dot-other,
+.worm-runner.is-hover .worm-dot-other {
   fill: var(--color-ink-secondary);
+}
+/* The tooltip: a small panel beside the point, flipped to the left near the right edge. */
+.worm-plot {
+  position: relative;
+}
+.worm-tip {
+  position: absolute;
+  z-index: 40;
+  transform: translate(12px, -50%);
+  min-width: 190px;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel);
+  box-shadow: var(--shadow-lift);
+  font-size: 0.74rem;
+  line-height: 1.35;
+  pointer-events: none;
+}
+.worm-tip.is-left {
+  transform: translate(calc(-100% - 12px), -50%);
+}
+.worm-tip-name {
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+.worm-tip-grid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 1px 10px;
+}
+.worm-tip-grid dt {
+  color: var(--color-ink-soft);
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  align-self: baseline;
+}
+.worm-tip-grid dd {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.worm-tip-pts span {
+  color: var(--color-ink-soft);
+  font-weight: 500;
 }
 .worm-dot {
   cursor: help;

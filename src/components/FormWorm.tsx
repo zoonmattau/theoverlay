@@ -1,14 +1,32 @@
-import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
+"use client";
+
+import { useState } from "react";
+
+import { price } from "@/lib/format";
+import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
 
 const W = 640, H = 170, PAD = { t: 10, r: 14, b: 22, l: 34 };
+
+interface Hover {
+  x: number;
+  y: number;
+  runner: PublishedRunner;
+  /** The run under the pointer, or none for today's dot. */
+  run?: PublishedRun;
+}
+
+const ord = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
+const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", year: "2-digit" });
 
 /**
  * The race as a worm: every runner's last runs as a line of points, most
  * recent on the right, then today's rating as the projected run in the last
  * slot. This runner is drawn heavy over the field in grey, with today's par
- * as a dashed line so a run above it reads as above class.
+ * as a dashed line so a run above it reads as above class. Hover any point
+ * for the horse and the run.
  */
 export function FormWorm({ race, runner }: { race: PublishedRace; runner: PublishedRunner }) {
+  const [hover, setHover] = useState<Hover | null>(null);
   const field = race.runners.filter((x) => !x.scratched && (x.runs?.length ?? 0) > 0);
   // One slot per past run, plus one on the right for today.
   const n = Math.max(2, ...field.map((x) => (x.runs?.length ?? 0) + 1));
@@ -25,47 +43,81 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
   const path = (values: number[]) => values.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks: number[] = [];
   for (let v = lo; v <= hi; v += 5) ticks.push(v);
-  const mine = runner.runs ?? [];
   const tone = runner.prime ? "is-prime" : runner.signal === "back" ? "is-back" : runner.signal === "lay" ? "is-lay" : "";
+  const dots = (f: PublishedRunner, cls: string, r: number) => (
+    <>
+      {(f.runs ?? []).map((run, i) => (
+        <circle
+          key={`${run.date}-${i}`}
+          cx={x(i + 1)}
+          cy={y(run.points)}
+          r={r}
+          className={cls}
+          onMouseEnter={() => setHover({ x: x(i + 1), y: y(run.points), runner: f, run })}
+          onMouseLeave={() => setHover(null)}
+        />
+      ))}
+      <circle
+        cx={x(0)}
+        cy={y(f.ratings.today)}
+        r={r + 1}
+        className={cls}
+        onMouseEnter={() => setHover({ x: x(0), y: y(f.ratings.today), runner: f })}
+        onMouseLeave={() => setHover(null)}
+      />
+    </>
+  );
 
   return (
     <figure className="worm">
-      <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${runner.horseName} against the field, run by run`}>
-        {ticks.map((v) => (
-          <g key={v}>
-            <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} className="worm-grid" />
-            <text x={PAD.l - 6} y={y(v) + 3} className="worm-tick" textAnchor="end">{v}</text>
-          </g>
-        ))}
-        <line x1={PAD.l} x2={W - PAD.r} y1={y(par)} y2={y(par)} className="worm-par" />
-        <text x={W - PAD.r} y={y(par) - 4} className="worm-tick" textAnchor="end">par {par}</text>
-        <line x1={x(0.5)} x2={x(0.5)} y1={PAD.t} y2={H - PAD.b} className="worm-today" />
-        {field.filter((f) => f.tabNumber !== runner.tabNumber).map((f) => (
-          <g key={f.tabNumber} className="worm-runner">
-            <path d={path(series(f))} className="worm-other" />
-            {(f.runs ?? []).map((r, i) => (
-              <circle key={`${r.date}-${i}`} cx={x(i + 1)} cy={y(r.points)} r={3} className="worm-dot-other">
-                <title>{`${f.tabNumber}. ${f.horseName}: ${r.date} ${r.track ?? ""} ${r.distance}m, ${r.finish ? `${r.finish}${r.runners ? `/${r.runners}` : ""}` : "unplaced"}, ${r.points.toFixed(1)} points`}</title>
-              </circle>
-            ))}
-            <circle cx={x(0)} cy={y(f.ratings.today)} r={3.5} className="worm-dot-other">
-              <title>{`${f.tabNumber}. ${f.horseName}: today rated ${f.ratings.today.toFixed(1)}`}</title>
-            </circle>
-          </g>
-        ))}
-        <path d={path(series(runner))} className={`worm-mine ${tone}`} />
-        {mine.map((r, i) => (
-          <circle key={`${r.date}-${i}`} cx={x(i + 1)} cy={y(r.points)} r={4} className={`worm-dot ${tone}`}>
-            <title>{`${runner.tabNumber}. ${runner.horseName}: ${r.date} ${r.track ?? ""} ${r.distance}m, ${r.finish ? `${r.finish}${r.runners ? `/${r.runners}` : ""}` : "unplaced"}, ${r.points.toFixed(1)} points`}</title>
-          </circle>
-        ))}
-        <circle cx={x(0)} cy={y(runner.ratings.today)} r={5.5} className={`worm-dot worm-dot-today ${tone}`}>
-          <title>{`${runner.tabNumber}. ${runner.horseName}: today rated ${runner.ratings.today.toFixed(1)}`}</title>
-        </circle>
-        {Array.from({ length: n }, (_, back) => (
-          <text key={back} x={x(back)} y={H - 6} className={`worm-tick ${back === 0 ? "worm-tick-today" : ""}`} textAnchor="middle">{back === 0 ? "today" : back === 1 ? "last" : `${back} back`}</text>
-        ))}
-      </svg>
+      <div className="worm-plot">
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${runner.horseName} against the field, run by run`}>
+          {ticks.map((v) => (
+            <g key={v}>
+              <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} className="worm-grid" />
+              <text x={PAD.l - 6} y={y(v) + 3} className="worm-tick" textAnchor="end">{v}</text>
+            </g>
+          ))}
+          <line x1={PAD.l} x2={W - PAD.r} y1={y(par)} y2={y(par)} className="worm-par" />
+          <text x={W - PAD.r} y={y(par) - 4} className="worm-tick" textAnchor="end">par {par}</text>
+          <line x1={x(0.5)} x2={x(0.5)} y1={PAD.t} y2={H - PAD.b} className="worm-today" />
+          {field.filter((f) => f.tabNumber !== runner.tabNumber).map((f) => (
+            <g key={f.tabNumber} className={`worm-runner ${hover?.runner.tabNumber === f.tabNumber ? "is-hover" : ""}`}>
+              <path d={path(series(f))} className="worm-other" />
+              {dots(f, "worm-dot-other", 3)}
+            </g>
+          ))}
+          <path d={path(series(runner))} className={`worm-mine ${tone}`} />
+          {dots(runner, `worm-dot ${tone}`, 4)}
+          {Array.from({ length: n }, (_, back) => (
+            <text key={back} x={x(back)} y={H - 6} className={`worm-tick ${back === 0 ? "worm-tick-today" : ""}`} textAnchor="middle">{back === 0 ? "today" : back === 1 ? "last" : `${back} back`}</text>
+          ))}
+        </svg>
+        {hover && (
+          <div
+            className={`worm-tip ${hover.x > W * 0.6 ? "is-left" : ""}`}
+            style={{ left: `${(hover.x / W) * 100}%`, top: `${(hover.y / H) * 100}%` }}
+            role="tooltip"
+          >
+            <div className="worm-tip-name">{hover.runner.tabNumber}. {hover.runner.horseName}</div>
+            {hover.run ? (
+              <dl className="worm-tip-grid">
+                <dt>When</dt><dd>{day(hover.run.date)}</dd>
+                <dt>Where</dt><dd>{hover.run.track ?? "—"}, {hover.run.distance}m{hover.run.className ? `, ${hover.run.className}` : ""}</dd>
+                <dt>Result</dt><dd>{hover.run.finish ? `${ord(hover.run.finish)}${hover.run.runners ? ` of ${hover.run.runners}` : ""}` : "unplaced"}{hover.run.margin !== undefined && hover.run.finish !== 1 ? `, ${hover.run.margin.toFixed(1)}L` : ""}</dd>
+                {hover.run.sp ? <><dt>SP</dt><dd>{price(hover.run.sp)}</dd></> : null}
+                <dt>Points</dt><dd className="worm-tip-pts">{hover.run.points.toFixed(1)}<span>{hover.run.points >= par ? " above par" : " below par"}</span></dd>
+              </dl>
+            ) : (
+              <dl className="worm-tip-grid">
+                <dt>Today</dt><dd className="worm-tip-pts">{hover.runner.ratings.today.toFixed(1)}<span>{hover.runner.ratings.today >= par ? " above par" : " below par"}</span></dd>
+                <dt>Rated</dt><dd>{price(hover.runner.ratedPrice)}</dd>
+                {hover.runner.marketPrice ? <><dt>Market</dt><dd>{price(hover.runner.marketPrice)}</dd></> : null}
+              </dl>
+            )}
+          </div>
+        )}
+      </div>
       <figcaption className="worm-caption">
         <span className="worm-key worm-key-mine" /> {runner.horseName}
         <span className="worm-key worm-key-other ml-3" /> the field
