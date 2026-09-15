@@ -578,6 +578,13 @@ body {
   stroke-width: 1;
   cursor: help;
 }
+/* On the field-wide worm the calls carry their colour. */
+.worm-runner.is-called.is-back .worm-other { stroke: var(--color-blue); stroke-width: 1.8; }
+.worm-runner.is-called.is-lay .worm-other { stroke: var(--color-red); stroke-width: 1.8; }
+.worm-runner.is-called.is-prime .worm-other { stroke: var(--color-accent); stroke-width: 2.2; }
+.worm-runner.is-called.is-back .worm-dot-other { fill: var(--color-blue); }
+.worm-runner.is-called.is-lay .worm-dot-other { fill: var(--color-red); }
+.worm-runner.is-called.is-prime .worm-dot-other { fill: var(--color-accent); }
 /* Hover any point on a rival and its whole line comes forward. */
 .worm-runner:hover .worm-other,
 .worm-runner.is-hover .worm-other {
@@ -1370,7 +1377,12 @@ body {
 }
 @media (min-width: 900px) {
   .analysis-row {
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (min-width: 1300px) {
+  .analysis-row {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 .panel {

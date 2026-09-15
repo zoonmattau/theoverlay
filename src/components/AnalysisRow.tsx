@@ -1,4 +1,5 @@
 import { Badge } from "./Badge";
+import { FormWorm } from "./FormWorm";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
 import { percent, price, priceWithChance, signedPercent } from "@/lib/format";
 import type { PublishedRace } from "@/lib/model/types";
@@ -82,6 +83,13 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
             </span>
           </div>
         ))}
+      </div>
+      <div className="panel">
+        <div className="panel-title">
+          Run by run
+          <span className="ml-auto text-xs text-ink-soft">hover a point</span>
+        </div>
+        <FormWorm race={race} />
       </div>
     </div>
   );

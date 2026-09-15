@@ -31,7 +31,7 @@ const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateStrin
  * as a dashed line so a run above it reads as above class. Hover any point
  * for the horse and the run.
  */
-export function FormWorm({ race, runner }: { race: PublishedRace; runner: PublishedRunner }) {
+export function FormWorm({ race, runner }: { race: PublishedRace; runner?: PublishedRunner }) {
   const [hover, setHover] = useState<Hover | null>(null);
   const field = race.runners.filter((x) => !x.scratched && (x.runs?.length ?? 0) > 0);
   // One slot per past run, plus one on the right for today.
@@ -49,7 +49,8 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
   const path = (values: number[]) => values.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks: number[] = [];
   for (let v = lo; v <= hi; v += 5) ticks.push(v);
-  const tone = runner.prime ? "is-prime" : runner.signal === "back" ? "is-back" : runner.signal === "lay" ? "is-lay" : "";
+  const tone = runner ? (runner.prime ? "is-prime" : runner.signal === "back" ? "is-back" : runner.signal === "lay" ? "is-lay" : "") : "";
+  const toneOf = (f: PublishedRunner) => (f.prime ? "is-prime" : f.signal === "back" ? "is-back" : f.signal === "lay" ? "is-lay" : "");
   const dots = (f: PublishedRunner, cls: string, r: number) => (
     <>
       {(f.runs ?? []).map((run, i) => (
@@ -77,7 +78,7 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
   return (
     <figure className="worm">
       <div className="worm-plot">
-        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`${runner.horseName} against the field, run by run`}>
+        <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={runner ? `${runner.horseName} against the field, run by run` : "The field, run by run"}>
           {ticks.map((v) => (
             <g key={v}>
               <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} className="worm-grid" />
@@ -87,14 +88,14 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
           <line x1={PAD.l} x2={W - PAD.r} y1={y(par)} y2={y(par)} className="worm-par" />
           <text x={W - PAD.r} y={y(par) - 4} className="worm-tick" textAnchor="end">par {par}</text>
           <line x1={x(0.5)} x2={x(0.5)} y1={PAD.t} y2={H - PAD.b} className="worm-today" />
-          {field.filter((f) => f.tabNumber !== runner.tabNumber).map((f) => (
-            <g key={f.tabNumber} className={`worm-runner ${hover?.runner.tabNumber === f.tabNumber ? "is-hover" : ""}`}>
+          {field.filter((f) => f.tabNumber !== runner?.tabNumber).map((f) => (
+            <g key={f.tabNumber} className={`worm-runner ${hover?.runner.tabNumber === f.tabNumber ? "is-hover" : ""} ${!runner && f.signal ? `is-called ${toneOf(f)}` : ""}`}>
               <path d={path(series(f))} className="worm-other" />
               {dots(f, "worm-dot-other", 3)}
             </g>
           ))}
-          <path d={path(series(runner))} className={`worm-mine ${tone}`} />
-          {dots(runner, `worm-dot ${tone}`, 4)}
+          {runner && <path d={path(series(runner))} className={`worm-mine ${tone}`} />}
+          {runner && dots(runner, `worm-dot ${tone}`, 4)}
           {Array.from({ length: n }, (_, back) => (
             <text key={back} x={x(back)} y={H - 6} className={`worm-tick ${back === 0 ? "worm-tick-today" : ""}`} textAnchor="middle">{back === 0 ? "today" : back === 1 ? "last" : `${back} back`}</text>
           ))}
@@ -128,10 +129,18 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner: Publis
         )}
       </div>
       <figcaption className="worm-caption">
-        <span className="worm-key worm-key-mine" /> {runner.horseName}
-        <span className="worm-key worm-key-other ml-3" /> the field
+        {runner ? (
+          <>
+            <span className="worm-key worm-key-mine" /> {runner.horseName}
+            <span className="worm-key worm-key-other ml-3" /> the field
+          </>
+        ) : (
+          <>
+            <span className="worm-key worm-key-other" /> the field, calls in colour
+          </>
+        )}
         <span className="worm-key worm-key-par ml-3" /> today&apos;s par
-        <span className="ml-3">the big dot is today&apos;s rating</span>
+        <span className="ml-3">the last dot is today&apos;s rating</span>
       </figcaption>
     </figure>
   );
