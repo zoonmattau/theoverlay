@@ -4,6 +4,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { BookieLink } from "@/components/BookieLink";
+import { MarketHover } from "@/components/MarketHover";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
@@ -269,7 +270,9 @@ function CallTable({
                     </span>
                   </td>
                   <td className="text-right">
-                    <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
+                    <MarketHover r={c.runner}>
+                      <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
+                    </MarketHover>
                     <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />
                   </td>
                   <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>

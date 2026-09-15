@@ -3,6 +3,7 @@
 import { Fragment, useEffect, useState } from "react";
 
 import { BookieLink } from "./BookieLink";
+import { MarketHover } from "./MarketHover";
 import { SignalBadge } from "./Ratings";
 import { RunnerDetail } from "./RunnerDetail";
 import { Section } from "./Section";
@@ -81,9 +82,11 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                     <td className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
                     <td className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
                     <td className="text-right">
-                      <span className={`price-chip ${locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
-                        {price(r.marketPrice)}
-                      </span>
+                      <MarketHover r={r}>
+                        <span className={`price-chip ${locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
+                          {price(r.marketPrice)}
+                        </span>
+                      </MarketHover>
                       {!locked && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} className="block text-[10px] mt-0.5" /> : null}
                     </td>
                     {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}

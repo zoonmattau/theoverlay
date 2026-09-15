@@ -471,6 +471,60 @@ body {
   cursor: pointer;
 }
 
+/* The market behind a live price, on hover or tap. */
+.market-hover {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+.market-pop {
+  position: absolute;
+  z-index: 60;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 220px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel);
+  color: var(--color-ink);
+  box-shadow: var(--shadow-lift);
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  cursor: default;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.market-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.market-k {
+  color: var(--color-ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.62rem;
+  font-weight: 800;
+  align-self: center;
+}
+.market-v {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.market-move {
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+.market-holders {
+  color: var(--color-ink-secondary);
+  font-size: 0.72rem;
+  margin: -2px 0 2px;
+}
+
 /* "at Sportsbet" under a price. */
 .bookie-link {
   color: var(--color-ink-soft);

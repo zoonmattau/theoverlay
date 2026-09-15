@@ -52,6 +52,12 @@ export interface Bookie {
   url: string;
 }
 
+/** A bookie's name from its code, or "" for one we would not send anyone to. */
+export function bookieName(code: string): string {
+  if (SKIP.has(code)) return "";
+  return KNOWN.find((b) => b.code === code)?.name ?? code.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 /** The bookie to send someone to for a price, from the codes Form King says hold it. */
 export function bestBookie(codes?: string[]): Bookie | undefined {
   const usable = (codes ?? []).filter((c) => !SKIP.has(c));

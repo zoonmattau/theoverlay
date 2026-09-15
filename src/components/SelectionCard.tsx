@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Badge } from "./Badge";
+import { MarketHover } from "./MarketHover";
 import { bestBookie } from "@/lib/bookies";
 import { price, priceWithChance, signedPercent, TAG_BLURB, TAG_LABEL } from "@/lib/format";
 import type { Selection } from "@/lib/model/types";
@@ -27,7 +28,7 @@ export function LockedSelectionCard({ s }: { s: Selection }) {
       </div>
       <p className="mt-1 text-xs text-ink-soft">{TAG_BLURB[s.tag]}</p>
       <dl className="mt-5 grid grid-cols-3 gap-3 border-t border-line pt-3">
-        <Stat label={bestBookie(s.bookies)?.name ?? "Live"} value={price(s.marketPrice)} muted />
+        <MarketHover r={s}><Stat label={bestBookie(s.bookies)?.name ?? "Live"} value={price(s.marketPrice)} muted /></MarketHover>
         <Stat label="Rated" value="$—" muted />
         <Stat label="Edge" value={lay ? "-—%" : "+—%"} accent={prime} blue={!prime && !lay} red={lay} />
       </dl>

@@ -137,8 +137,14 @@ export interface PublishedRunner {
   marketPrice?: number;
   /** Form King's codes for the bookmakers holding that price. */
   bookies?: string[];
+  /** Average price across bookmakers now. */
+  marketAvg?: number;
   /** Average price at market open, so a move is visible. */
   marketOpen?: number;
+  /** Percentage points of implied chance since open, negative is a drift. */
+  marketMove?: number;
+  /** When Form King last saw the price move, ISO. */
+  marketAt?: string;
   /** Our win chance minus the market's implied chance, e.g. 0.05 for $4 rated against $5. */
   edge?: number;
   /** 1-4 for our top four; null otherwise. */
@@ -227,6 +233,10 @@ export interface Selection {
   marketPrice?: number;
   /** Form King's codes for the bookmakers holding the market price. */
   bookies?: string[];
+  marketAvg?: number;
+  marketOpen?: number;
+  marketMove?: number;
+  marketAt?: string;
   edge?: number;
   comment?: string;
   /** Finishing position once the race is resulted, 0 for did not finish. */
