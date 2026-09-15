@@ -553,6 +553,19 @@ body {
   font-size: 10px;
   fill: var(--color-ink-soft);
 }
+.worm-tick-today {
+  fill: var(--color-ink);
+  font-weight: 700;
+}
+/* The line between what has happened and what we expect today. */
+.worm-today {
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+.worm-dot-today {
+  stroke-width: 2.5;
+}
 .worm-other {
   fill: none;
   stroke: var(--color-line-strong);
