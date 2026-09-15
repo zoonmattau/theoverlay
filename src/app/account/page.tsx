@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
-import { saveDetails, setTipsEmails } from "@/app/account/actions";
+import { saveDetails, setTipsEmails, unlinkDiscord } from "@/app/account/actions";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
 import { FollowButton } from "@/components/FollowButton";
@@ -12,8 +12,10 @@ import { allTipsters, followedTipsters, tipsterForUser } from "@/lib/creators";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
+import { discordLinkConfigured } from "@/lib/discord";
 import { getTodayCard } from "@/lib/model/source";
 import { BONUS_DAYS, ensureReferralCode, referralCount } from "@/lib/referrals";
+import { BRAND_SOCIAL } from "@/lib/social";
 
 export const metadata: Metadata = { title: "Account", robots: { index: false } };
 
@@ -56,6 +58,9 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
   return (
     <>
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
+      {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
+      {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
+      {sp.discord === "failed" && <Notice>Discord did not link. Try again.</Notice>}
       {sp.checkout === "success" && <Notice>You are in. Your plan shows below within a few seconds, refresh if it has not.</Notice>}
       {sp.checkout === "passes" && <Notice>Passes bought. They show below within a few seconds, refresh if they have not.</Notice>}
 
@@ -132,6 +137,27 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
           <div className="mt-3 flex flex-wrap gap-2">
             <Link href="/pricing#passes" className="btn btn-secondary btn-sm">Buy passes</Link>
           </div>
+        </Card>
+
+        <Card title="Discord">
+          {viewer.discordName ? (
+            <>
+              <p className="text-sm text-ink-secondary">
+                Linked as <strong>{viewer.discordName}</strong>. The Members area is open to you while your plan is live, and closes when it lapses.
+              </p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <a href={BRAND_SOCIAL.discord} target="_blank" rel="noopener" className="btn btn-secondary btn-sm">Open the server</a>
+                <form action={unlinkDiscord}><button type="submit" className="btn btn-secondary btn-sm">Unlink</button></form>
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="text-sm text-ink-secondary">Link your Discord to join the server and open the Members area while your plan is live.</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {discordLinkConfigured() ? <a href="/api/discord/link" className="btn btn-primary btn-sm">Link Discord</a> : <a href={BRAND_SOCIAL.discord} target="_blank" rel="noopener" className="btn btn-primary btn-sm">Join the Discord</a>}
+              </div>
+            </>
+          )}
         </Card>
 
         <Card title="Invite a friend">

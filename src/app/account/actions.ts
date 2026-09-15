@@ -4,12 +4,24 @@ import { revalidatePath } from "next/cache";
 
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { removeDiscordMember } from "@/lib/discord";
 
 /** Tips emails on or off, from the account page. */
 export async function setTipsEmails(form: FormData): Promise<void> {
   const viewer = await getViewer();
   if (!viewer.id) return;
   await supabaseAdmin().from("profiles").update({ marketing_opt_in: form.get("on") === "1" }).eq("id", viewer.id);
+  revalidatePath("/account");
+}
+
+/** Forgets the linked Discord account and takes the Member role off it. */
+export async function unlinkDiscord(): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer.id) return;
+  const db = supabaseAdmin();
+  const { data } = await db.from("profiles").select("discord_id").eq("id", viewer.id).maybeSingle();
+  if (data?.discord_id) await removeDiscordMember(data.discord_id);
+  await db.from("profiles").update({ discord_id: null, discord_name: null, discord_linked_at: null }).eq("id", viewer.id);
   revalidatePath("/account");
 }
 

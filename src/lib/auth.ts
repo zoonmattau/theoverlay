@@ -33,6 +33,8 @@ export interface Viewer {
   tipsEmails: boolean;
   /** Runs a tipster account, so the board is open to them. */
   tipster: boolean;
+  /** The linked Discord account, once there is one. */
+  discordName?: string;
   details: Details;
 }
 
@@ -85,7 +87,7 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer> {
   const [{ data: profile }, { data: passes }, { data: tipster }] = await Promise.all([
     supabase
       .from("profiles")
-      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob")
+      .select("plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, discord_name")
       .eq("id", user.id)
       .maybeSingle(),
     supabase.from("day_passes").select("date").eq("user_id", user.id).order("date", { ascending: false }).limit(30),
@@ -121,6 +123,7 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer> {
     referralCode: profile?.referral_code ?? undefined,
     tipsEmails: Boolean(profile?.marketing_opt_in),
     tipster: Boolean(tipster),
+    discordName: profile?.discord_name ?? undefined,
     details: {
       fullName: profile?.full_name ?? "",
       phone: profile?.phone ?? "",

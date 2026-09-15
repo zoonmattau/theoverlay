@@ -4,7 +4,9 @@ import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { postCalls, postResults, syncDiscordMembers } from "@/lib/discord";
 import { buildCard, racingToday } from "@/lib/model/source";
+import { readStoredCard } from "@/lib/model/store";
 
 export const maxDuration = 300;
 
@@ -46,7 +48,18 @@ export async function GET(request: NextRequest) {
   }
   let mail: { sent: number; skipped: string } = { sent: 0, skipped: "off" };
   if (date === today && email !== "0" && races > 0) mail = await sendMorningTips(date, card, email === "force");
-  return NextResponse.json({ date, meetings: card.meetings.length, races, selections: card.selections.length, seconds, mail });
+  // Discord: today's calls with the email, tomorrow's into the members' early look.
+  let discord: { linked: number; members: number } | undefined;
+  if (races > 0) {
+    await postCalls(date, card, { early: date !== today });
+    if (date === today) discord = await syncDiscordMembers();
+  }
+  // The evening run also closes out today: the results go up if no page view has done it.
+  if (tomorrow) {
+    const done = await readStoredCard(today);
+    if (done) await postResults(today, done.card);
+  }
+  return NextResponse.json({ date, meetings: card.meetings.length, races, selections: card.selections.length, seconds, mail, discord });
 }
 
 /** yyyy-mm-dd plus one day. */
