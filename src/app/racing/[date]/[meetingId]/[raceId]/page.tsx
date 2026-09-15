@@ -89,7 +89,10 @@ async function Race({ params }: { params: Props["params"] }) {
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
   const tipster = await followedTipster(viewer);
-  const theirs = tipster ? (await creatorTips(tipster.id, date)).filter((t) => t.race_id === raceId) : [];
+  const allTheirs = tipster ? await creatorTips(tipster.id, date) : [];
+  const theirs = allTheirs.filter((t) => t.race_id === raceId);
+  const theirRaces = new Set(allTheirs.map((t) => t.race_id));
+  const initial = tipster?.name.trim()[0]?.toUpperCase();
 
   // The mini matrix behind the track name: every race on the day, coloured
   // like the board.
@@ -108,6 +111,7 @@ async function Race({ params }: { params: Props["params"] }) {
         resulted: Boolean(r.result),
         tip: prime.has(r.raceId) ? "prime" : backs ? "back" : lays ? "lay" : undefined,
         group: groupOf(r.className, r.name),
+        tipster: theirRaces.has(r.raceId) ? initial : undefined,
       };
     }),
   }));

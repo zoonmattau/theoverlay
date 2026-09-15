@@ -1043,6 +1043,17 @@ body {
   vertical-align: 2px;
   cursor: help;
 }
+.mini-cell {
+  position: relative;
+}
+.mini-tipster {
+  top: -6px;
+  left: -5px;
+  width: 14px;
+  height: 14px;
+  line-height: 14px;
+  font-size: 0.55rem;
+}
 .legend-dot-tipster {
   background: var(--color-amber);
 }

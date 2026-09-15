@@ -10,6 +10,8 @@ export interface MiniRace {
   resulted: boolean;
   tip?: "prime" | "back" | "lay";
   group?: 1 | 2 | 3;
+  /** The tipster the viewer follows has a call in this race: their initial. */
+  tipster?: string;
 }
 
 export interface MiniMeeting {
@@ -102,6 +104,7 @@ export function TrackMenu({
                           role="menuitem"
                         >
                           {r.group && <span className={`medal medal-${r.group}`} title={`Group ${r.group}`}>G{r.group}</span>}
+                          {r.tipster && <span className="matrix-tipster mini-tipster">{r.tipster}</span>}
                           <span className="mini-r">R{r.raceNumber}</span>
                           <span className="mini-t nums">{r.resulted ? "Run" : r.clock}</span>
                         </Link>
