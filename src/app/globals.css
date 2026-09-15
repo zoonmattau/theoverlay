@@ -578,6 +578,28 @@ body {
   stroke-width: 1;
   cursor: help;
 }
+/* The worm full screen: a dark sheet, the chart as wide as the window allows. */
+.worm-full {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(20, 22, 26, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--sp-5);
+}
+.worm-full-inner {
+  width: min(1400px, 100%);
+  background: var(--color-panel);
+  border-radius: var(--radius-lg);
+  padding: var(--sp-4) var(--sp-5);
+  box-shadow: var(--shadow-lift);
+}
+.worm-full-figure .worm-tip {
+  font-size: 0.85rem;
+  min-width: 220px;
+}
 /* On the field-wide worm the calls carry their colour. */
 .worm-runner.is-called.is-back .worm-other { stroke: var(--color-blue); stroke-width: 1.8; }
 .worm-runner.is-called.is-lay .worm-other { stroke: var(--color-red); stroke-width: 1.8; }

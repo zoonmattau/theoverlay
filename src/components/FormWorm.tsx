@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { price } from "@/lib/format";
 import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
@@ -31,8 +31,16 @@ const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateStrin
  * as a dashed line so a run above it reads as above class. Hover any point
  * for the horse and the run.
  */
-export function FormWorm({ race, runner }: { race: PublishedRace; runner?: PublishedRunner }) {
+export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; runner?: PublishedRunner; full?: boolean }) {
   const [hover, setHover] = useState<Hover | null>(null);
+  const [full, setFull] = useState(false);
+  // Escape closes the full-screen view.
+  useEffect(() => {
+    if (!full) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setFull(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [full]);
   const field = race.runners.filter((x) => !x.scratched && (x.runs?.length ?? 0) > 0);
   // One slot per past run, plus one on the right for today.
   const n = Math.max(2, ...field.map((x) => (x.runs?.length ?? 0) + 1));
@@ -76,8 +84,19 @@ export function FormWorm({ race, runner }: { race: PublishedRace; runner?: Publi
   );
 
   return (
-    <figure className="worm">
-      <div className="worm-plot">
+    <figure className={`worm ${isFull ? "worm-full-figure" : ""}`}>
+      {full && !isFull && (
+        <div className="worm-full" role="dialog" aria-label="Run by run, full screen" onClick={() => setFull(false)}>
+          <div className="worm-full-inner" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="font-display font-extrabold">{runner ? `${runner.tabNumber}. ${runner.horseName} against the field` : "The field, run by run"}</span>
+              <button type="button" className="btn btn-secondary btn-sm" onClick={() => setFull(false)}>Close</button>
+            </div>
+            <FormWorm race={race} runner={runner} full />
+          </div>
+        </div>
+      )}
+      <div className={`worm-plot ${isFull ? "" : "cursor-zoom-in"}`} onClick={() => !isFull && setFull(true)} title={isFull ? undefined : "Click to open full screen"}>
         <svg viewBox={`0 0 ${W} ${H}`} role="img" aria-label={runner ? `${runner.horseName} against the field, run by run` : "The field, run by run"}>
           {ticks.map((v) => (
             <g key={v}>

@@ -40,9 +40,9 @@ const MIN_OVERLAY = 0.14;
 const MIN_EDGE = 0.025;
 const PRIME_OVERLAY = 0.3;
 const PRIME_EDGE = 0.05;
-/** A Prime is a real chance, not a long shot with a wide gap, and there are only a few a day. */
+/** A Prime is a real chance, not a long shot with a wide gap, and there are three a day at most counting the Overlay of the Day. */
 const PRIME_MIN_PROB = 0.15;
-const PRIME_MAX = 3;
+const PRIME_MAX = 2;
 /** A bet needs a real chance and a price someone would actually take. */
 const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
@@ -461,12 +461,14 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
     });
   };
 
-  // Overlay of the day: the biggest edge on the card, at any price.
-  take("top_overlay", qualifying, (a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0));
+  // Overlay of the day: the widest gap between the market and our price on
+  // a horse we give a real chance, then the Primes behind it.
+  const overlayOf = (c: (typeof qualifying)[number]) => (c.runner.marketPrice ?? 0) / c.runner.ratedPrice - 1;
+  const real = qualifying.filter((c) => c.runner.ratedProbability >= PRIME_MIN_PROB);
+  take("top_overlay", real.length ? real : qualifying, (a, b) => overlayOf(b) - overlayOf(a));
 
   // Prime overlays: the few bets where the market is a third or more above
   // our price on a horse we give a real chance, biggest gap first.
-  const overlayOf = (c: (typeof qualifying)[number]) => (c.runner.marketPrice ?? 0) / c.runner.ratedPrice - 1;
   for (const c of [...qualifying]
     .filter((c) => overlayOf(c) >= PRIME_OVERLAY && (c.runner.edge ?? 0) >= PRIME_EDGE && c.runner.ratedProbability >= PRIME_MIN_PROB && !used.has(key(c)))
     .sort((a, b) => overlayOf(b) - overlayOf(a))
