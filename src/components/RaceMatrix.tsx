@@ -20,6 +20,7 @@ export function RaceMatrix({
   selections,
   date,
   freeRaceId,
+  tipster,
 }: {
   meetings: PublishedMeeting[];
   selections: Selection[];
