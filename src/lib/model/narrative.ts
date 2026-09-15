@@ -71,7 +71,7 @@ export function callLine(r: PublishedRunner): string {
   const rated = price(r.ratedPrice);
   const live = price(r.marketPrice);
   if (!r.marketPrice) return `Rated ${rated}, no market price yet.`;
-  if (r.signal === "back") return `${r.prime ? "Prime Overlay" : "Bet"}: ${live} in the market against our ${rated}, an edge of ${signedPercent(r.edge)}.`;
+  if (r.signal === "back") return `${r.prime ? "Prime Overlay" : "Bet"}: ${live} in the market against our ${rated}, an edge of ${signedPercent(r.edge)}.`;
   if (r.signal === "lay") return `Lay: ${live} in the market is under our ${rated}.`;
   const ratio = r.marketPrice / r.ratedPrice;
   const top = r.rank && r.rank <= 4 ? "in our top four, but " : "";

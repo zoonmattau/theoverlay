@@ -536,6 +536,10 @@ body {
   font-weight: 600;
   white-space: nowrap;
 }
+.detail-call .bookie-link {
+  color: inherit;
+  white-space: normal;
+}
 .bookie-link:hover {
   color: var(--color-ink);
   text-decoration: underline;
