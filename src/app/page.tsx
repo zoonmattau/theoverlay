@@ -15,7 +15,7 @@ import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { goingClass } from "@/components/RaceMatrix";
-import { jumpTime, longDate, price, signedPercent } from "@/lib/format";
+import { jumpTime, longDate, price } from "@/lib/format";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -62,24 +62,15 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const free = open ? undefined : freeRaceOf(card);
   const href = (m: PublishedMeeting, r: PublishedRace) => `/racing/${card.date}/${m.meetingId}/${r.raceId}`;
 
-  // Next to jump: the first race still to run, and what we have on it.
+  // Next bet: the first race still to run that carries a bet, else the first race still to run.
   const cutoff = now() - 10 * 60_000;
-  const next = meetings
+  const upcoming = meetings
     .flatMap((m) => m.races.map((r) => ({ m, r })))
     .filter(({ r }) => r.jumpTime && !r.result && new Date(r.jumpTime).getTime() > cutoff)
-    .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!))[0];
-  const nextCall = next && released ? next.r.runners.find((x) => x.prime && !x.scratched) ?? next.r.runners.find((x) => x.signal === "back" && !x.scratched) ?? next.r.runners.find((x) => x.signal === "lay" && !x.scratched) : undefined;
-
-  // The day's calls, run or not, so the count never reads as empty late on.
-  const all = meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
-  const bets = all.filter((x) => x.signal === "back").length;
-  const lays = all.filter((x) => x.signal === "lay").length;
-  const plays = bets + lays;
-
-  // The Prime Overlay of the day, and the race it is in.
-  const primeSel = card.selections.find((s) => s.tag === "top_overlay") ?? card.selections.find((s) => s.tag === "prime_overlay");
-  const primeRace = primeSel ? meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === primeSel.raceId) : undefined;
-  const primeRunner = primeRace?.r.runners.find((x) => x.tabNumber === primeSel!.tabNumber);
+    .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!));
+  const withBet = released ? upcoming.find(({ r }) => r.runners.some((x) => x.signal === "back" && !x.scratched)) : undefined;
+  const next = withBet ?? upcoming[0];
+  const nextCall = withBet ? withBet.r.runners.find((x) => x.prime && !x.scratched) ?? withBet.r.runners.find((x) => x.signal === "back" && !x.scratched) : undefined;
 
   // The biggest move since the market opened, on a runner still to run.
   const mover = meetings
@@ -112,40 +103,32 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           )}
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
         {next ? (
-          <Tile href={href(next.m, next.r)} label="Next to jump" tone={nextCall?.prime ? "prime" : nextCall?.signal === "back" ? "bet" : nextCall?.signal === "lay" ? "lay" : undefined}>
+          <Tile href={href(next.m, next.r)} label={withBet ? "Next bet" : "Next to jump"} tone={nextCall?.prime ? "prime" : nextCall ? "bet" : undefined}>
             <div className="font-display text-2xl font-extrabold tracking-tight nums leading-none"><Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} /></div>
             <div className="mt-1 text-sm font-semibold truncate">{next.m.track} R{next.r.raceNumber}, {jumpTime(next.r.jumpTime)}</div>
-            <div className="text-xs text-ink-soft truncate">{nextCall ? `${nextCall.prime ? "Prime Overlay" : nextCall.signal === "back" ? "Bet" : "Lay"}: ${open ? `${nextCall.tabNumber}. ${nextCall.horseName}` : "join to see"}` : released ? "No call in this one" : `Calls release at ${RELEASE_HOUR}am`}</div>
+            <div className="text-xs text-ink-soft truncate">{nextCall ? `${nextCall.prime ? "Prime Overlay" : "Bet"}: ${open ? `${nextCall.tabNumber}. ${nextCall.horseName}` : "join to see"}` : released ? "No bets left today" : `Calls release at ${RELEASE_HOUR}am`}</div>
           </Tile>
         ) : (
-          <Tile href="#board" label="Next to jump">
+          <Tile href="#board" label="Next bet">
             <div className="font-display text-2xl font-extrabold tracking-tight leading-none">Done</div>
             <div className="mt-1 text-sm font-semibold">Racing is over for today</div>
             <div className="text-xs text-ink-soft">Tomorrow&apos;s board is up tonight</div>
           </Tile>
         )}
 
-        {!open ? (
-          <Tile href="/pricing" label="Today's calls" tone="prime">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none nums">{released ? `${plays} ${plays === 1 ? "play" : "plays"}` : `${RELEASE_HOUR}am`}</div>
-            <div className="mt-1 text-sm font-semibold nums">{released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}` : "Calls release on race morning"}</div>
-            <div className="text-xs text-ink-soft">{released ? "One race free today, the rest with a plan" : "Ratings, prices and calls"}</div>
-          </Tile>
-        ) : primeSel && primeRace ? (
-          <Tile href={href(primeRace.m, primeRace.r)} label="Prime Overlay of the day" tone="prime">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none truncate">{primeSel.horseName}</div>
-            <div className="mt-1 text-sm font-semibold truncate">{primeRace.m.track} R{primeRace.r.raceNumber}, {jumpTime(primeRace.r.jumpTime)}</div>
-            <div className="text-xs text-ink-soft nums truncate">{price(primeRunner?.marketPrice ?? primeSel.marketPrice)} in the market v our {price(primeSel.ratedPrice)}, {signedPercent(primeRunner?.edge ?? primeSel.edge)}</div>
-          </Tile>
-        ) : (
-          <Tile href="/pricing" label="Prime Overlay of the day" tone="prime">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none">{released ? "None" : `${RELEASE_HOUR}am`}</div>
-            <div className="mt-1 text-sm font-semibold">{released ? "No Prime Overlay today" : "Calls release on race morning"}</div>
-            <div className="text-xs text-ink-soft">{released ? "The gap has to be wide, most days it is" : "Ratings, prices and calls"}</div>
-          </Tile>
-        )}
+        <Tile href="#board" label="Tracks today">
+          <div className="font-display text-2xl font-extrabold tracking-tight leading-none">{meetings.length} {meetings.length === 1 ? "meeting" : "meetings"}</div>
+          <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {meetings.map((m) => (
+              <li key={m.meetingId} className="flex items-center gap-1 font-semibold">
+                {m.track}
+                {m.trackCondition && <span className={`going-chip ${goingClass(m.trackCondition)}`}>{m.trackCondition}</span>}
+              </li>
+            ))}
+          </ul>
+        </Tile>
 
         {mover ? (
           <Tile href={href(mover.m, mover.r)} label="Biggest mover">
@@ -161,17 +144,6 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           </Tile>
         )}
 
-        <Tile href="#board" label="Tracks today">
-          <div className="font-display text-2xl font-extrabold tracking-tight leading-none">{meetings.length} {meetings.length === 1 ? "meeting" : "meetings"}</div>
-          <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
-            {meetings.map((m) => (
-              <li key={m.meetingId} className="flex items-center gap-1 font-semibold">
-                {m.track}
-                {m.trackCondition && <span className={`going-chip ${goingClass(m.trackCondition)}`}>{m.trackCondition}</span>}
-              </li>
-            ))}
-          </ul>
-        </Tile>
       </div>
     </section>
   );
