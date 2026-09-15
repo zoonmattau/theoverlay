@@ -1,6 +1,9 @@
+import { BRAND_SOCIAL } from "@/lib/social";
 import type { EmailSpec } from "./template";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
+/** The invite, said once in the emails that welcome someone in. */
+const DISCORD = `Come and talk it through in <a href="${BRAND_SOCIAL.discord}" style="color:#1f6fd6">our Discord</a>: the day's calls, the results and the Saturday review.`;
 
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Sydney" });
@@ -15,6 +18,7 @@ export const EMAILS = {
       `Your <strong>${plan}</strong> trial is live and the full board is open on your race days.`,
       `The trial runs until <strong>${trialEnds}</strong>, and you can cancel any time before then from your account with nothing charged.`,
       "Every race we cover gets a top four, ratings across eight categories, a rated price for every runner and our bet or lay calls.",
+      DISCORD,
     ],
     cta: { label: "Open today's board", url: `${SITE}/` },
     note: "No promise of winning: the numbers are a guide and every bet is your own call.",
@@ -27,6 +31,7 @@ export const EMAILS = {
     paragraphs: [
       `Your <strong>${plan}</strong> plan renews on <strong>${renews}</strong>.`,
       "Manage or cancel it any time from your account.",
+      DISCORD,
     ],
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),
@@ -73,6 +78,17 @@ export const EMAILS = {
       "You joined on an invite and started a plan, so the full board is open to you for two weeks, every race day, on top of your trial.",
       until ? `It runs until <strong>${fmt(until)}</strong>.` : "It starts now.",
       "Your own invite link is on your account page, and every friend who joins adds a fortnight for you both.",
+    ],
+    cta: { label: "Open today's board", url: `${SITE}/` },
+  }),
+
+  daysAdded: (days: number, until: string): EmailSpec => ({
+    subject: `${days} free ${days === 1 ? "day" : "days"} of The Overlay`,
+    preheader: "The full board is open to you, on us.",
+    heading: "Some free days, on us.",
+    paragraphs: [
+      `We have added <strong>${days} ${days === 1 ? "day" : "days"}</strong> of the full board to your account, every race day, on top of anything you already have.`,
+      until ? `It runs until <strong>${fmt(until)}</strong>.` : "It starts now.",
     ],
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),

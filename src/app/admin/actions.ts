@@ -8,6 +8,7 @@ import { cleanCode } from "@/lib/affiliates";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
+import { syncDiscordMember } from "@/lib/discord";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
@@ -26,11 +27,14 @@ export async function addDays(userId: string, days: number): Promise<void> {
   const admin = await requireAdmin();
   if (!Number.isFinite(days) || days === 0) return;
   const db = supabaseAdmin();
-  const { data } = await db.from("profiles").select("bonus_until").eq("id", userId).maybeSingle();
+  const { data } = await db.from("profiles").select("bonus_until, email").eq("id", userId).maybeSingle();
   const base = data?.bonus_until && new Date(data.bonus_until).getTime() > Date.now() ? new Date(data.bonus_until) : new Date();
   const until = new Date(base.getTime() + days * 86400_000);
   await db.from("profiles").update({ bonus_until: until.toISOString() }).eq("id", userId);
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "add_days", days, by: admin.email } });
+  await syncDiscordMember(userId);
+  // A gift is worth telling them about; taking days away is not.
+  if (days > 0 && data?.email) await sendEmail(data.email, EMAILS.daysAdded(days, until.toISOString()));
   revalidatePath(`/admin/${userId}`);
 }
 
@@ -44,6 +48,7 @@ export async function pauseMember(userId: string): Promise<void> {
   }
   await db.from("profiles").update({ paused_at: new Date().toISOString() }).eq("id", userId);
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "pause", by: admin.email } });
+  await syncDiscordMember(userId);
   revalidatePath(`/admin/${userId}`);
 }
 
@@ -56,6 +61,7 @@ export async function resumeMember(userId: string): Promise<void> {
   }
   await db.from("profiles").update({ paused_at: null }).eq("id", userId);
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "resume", by: admin.email } });
+  await syncDiscordMember(userId);
   revalidatePath(`/admin/${userId}`);
 }
 
