@@ -1953,7 +1953,7 @@ body {
   content: "";
   position: absolute;
   left: 0;
-  top: 9px;
+  top: calc(0.75em - 3px);
   width: 6px;
   height: 6px;
   border-radius: 50%;
