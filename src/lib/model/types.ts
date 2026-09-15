@@ -97,6 +97,9 @@ export interface PublishedRun {
   time?: number;
   /** Its last 600m, seconds, when Form King has it. */
   last600?: number;
+  /** Lengths faster (+) or slower (-) than the class benchmark, for the race and for the last 600. */
+  vsBench?: number;
+  vsBench600?: number;
   /** What the run was worth on our scale. */
   points: number;
   /** Identifies the race, so runs can be matched across today's field. */

@@ -9,6 +9,10 @@ import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/t
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+/** Faster than the class benchmark reads lime, slower red, within half a length plain. */
+const bench = (v: number) => (v >= 0.5 ? "text-accent font-semibold" : v <= -0.5 ? "text-red font-semibold" : "");
+const benchTip = (v: number, what: string) => (Math.abs(v) < 0.05 ? `Ran ${what} right on the class benchmark.` : `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "length" : "lengths"} ${v > 0 ? "faster" : "slower"} than the class benchmark over ${what}.`);
+
 /** 93.14 as 1:33.14, under a minute as 58.20. */
 const clockTime = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}` : s.toFixed(2));
 
@@ -172,8 +176,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                     )}
                   </td>
                   <td>{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
-                  <td>{x.time ? clockTime(x.time) : "—"}</td>
-                  <td>{x.last600 ? x.last600.toFixed(2) : "—"}</td>
+                  <td>{x.time ? <span className={x.vsBench !== undefined ? `tip cursor-help ${bench(x.vsBench)}` : ""} data-tip={x.vsBench !== undefined ? benchTip(x.vsBench, "the race") : undefined}>{clockTime(x.time)}</span> : "—"}</td>
+                  <td>{x.last600 ? <span className={x.vsBench600 !== undefined ? `tip cursor-help ${bench(x.vsBench600)}` : ""} data-tip={x.vsBench600 !== undefined ? benchTip(x.vsBench600, "the last 600") : undefined}>{x.last600.toFixed(2)}</span> : "—"}</td>
                   <td>{x.weight ?? "—"}</td>
                   <td>{x.sp ? price(x.sp) : "—"}</td>
                   <td>{x.map ?? "—"}</td>

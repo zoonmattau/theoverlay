@@ -334,6 +334,8 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
       map: p.posSettling && p.numRunners ? mapOf(p.posSettling, p.numRunners) : undefined,
       time: p.timeInMillis ? Math.round(p.timeInMillis / 10) / 100 : undefined,
       last600: p.sectionalTimeInMillis && p.sectionalDistance === 600 ? Math.round(p.sectionalTimeInMillis / 10) / 100 : undefined,
+      vsBench: p.benchmark ? Math.round(p.benchmark.vsClass * 10) / 10 : undefined,
+      vsBench600: p.benchmark?.sections?.["6-F"]?.vsClass !== undefined ? Math.round(p.benchmark.sections["6-F"]!.vsClass * 10) / 10 : undefined,
       points: Math.round(runPoints(p, todayPar, e.horse.age) * 10) / 10,
       raceKey: p.raceId ?? `${new Date(p.date).toISOString().slice(0, 10)}:${p.track ?? ""}:${p.raceNumber}`,
       placings: (p.placings ?? [])
