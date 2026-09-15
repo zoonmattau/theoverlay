@@ -113,7 +113,7 @@ export function morningTipsEmail(date: string, card: StoredCard, userId: string,
     preheader: primes ? `${primes} Prime ${primes === 1 ? "Overlay" : "Overlays"} on the card.` : `${races} races rated, prices refresh through the day.`,
     heading: `Today's calls, ${day}.`,
     paragraphs: [
-      `${races} races rated across ${card.meetings.length} meetings, with <strong>${bets.length} ${bets.length === 1 ? "bet" : "bets"}</strong> and <strong>${lays.length} ${lays.length === 1 ? "lay" : "lays"}</strong> called at 8am prices.`,
+      `${races} races rated across ${card.meetings.length} meetings, with <strong>${bets.length} ${bets.length === 1 ? "bet" : "bets"}</strong> and <strong>${lays.length} ${lays.length === 1 ? "lay" : "lays"}</strong> called at 10am prices.`,
       `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#1f6fd6">Bets</strong>${table(bets)}`,
       `<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#d93636">Lays</strong>${table(lays)}`,
       ...(followed && followed.tips.length > 0

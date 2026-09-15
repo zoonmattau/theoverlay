@@ -205,8 +205,10 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
   const started = Date.now();
   // Calls already on the stored card carry over while they keep half their edge.
   const kept: KeptSignals = new Map();
+  let pinnedFreeRaceId: string | undefined;
   if (storeConfigured()) {
     const previous = await readStoredCard(date);
+    pinnedFreeRaceId = previous?.pinnedFreeRaceId;
     for (const m of previous?.card.meetings ?? []) for (const r of m.races) for (const x of r.runners) if (x.signal) kept.set(`${r.raceId}:${x.tabNumber}`, x.signal);
   }
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
@@ -233,7 +235,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
       }
     }
   }
-  const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings), live: usingLiveData() };
+  const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings, pinnedFreeRaceId), live: usingLiveData() };
   const seconds = Math.round((Date.now() - started) / 1000);
   if (storeConfigured()) {
     await writeStoredCard(date, card, seconds);

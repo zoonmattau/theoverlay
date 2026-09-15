@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { isAdmin, logEvent } from "@/lib/admin";
@@ -11,7 +11,9 @@ import { stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
+import { pickFreeRace } from "@/lib/model/publish";
 import { buildCard, racingToday } from "@/lib/model/source";
+import { pinFreeRace, readStoredCard } from "@/lib/model/store";
 
 async function requireAdmin() {
   const viewer = await getViewer();
@@ -92,6 +94,19 @@ export async function rebuildCard(): Promise<void> {
   const { card, seconds } = await buildCard(date);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "rebuild_card", date, races, seconds, by: admin.email } });
+  revalidatePath("/admin");
+}
+
+/** Pin today's free race, or hand it back to the automatic pick with an empty raceId. */
+export async function setFreeRace(form: FormData): Promise<void> {
+  const admin = await requireAdmin();
+  const date = racingToday();
+  const raceId = String(form.get("raceId") ?? "").trim() || null;
+  const stored = await readStoredCard(date);
+  if (!stored) return;
+  await pinFreeRace(date, raceId, pickFreeRace(stored.card.meetings, raceId ?? undefined));
+  revalidateTag(`card-${date}`, "max");
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "free_race", date, raceId, by: admin.email } });
   revalidatePath("/admin");
 }
 

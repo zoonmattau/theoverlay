@@ -438,14 +438,16 @@ const key = (c: { race: PublishedRace; runner: PublishedRunner }) =>
   `${c.race.raceId}:${c.runner.tabNumber}`;
 
 /**
- * One race a day is open to everyone: the earliest race still to jump that
- * carries a bet, so a first-time visitor sees a real tip before paying.
+ * One race a day is open to everyone: the race an admin pinned, or else the
+ * earliest race still to jump that carries a bet, so a first-time visitor
+ * sees a real tip before paying.
  */
-export function pickFreeRace(meetings: PublishedMeeting[]): string | undefined {
+export function pickFreeRace(meetings: PublishedMeeting[], pinned?: string): string | undefined {
   const races = meetings
     .flatMap((m) => m.races)
     .filter((r) => r.jumpTime)
     .sort((a, b) => a.jumpTime!.localeCompare(b.jumpTime!));
+  if (pinned && races.some((r) => r.raceId === pinned)) return pinned;
   const withBet = races.find((r) => !r.result && r.runners.some((x) => x.signal === "back"));
   return (withBet ?? races.find((r) => !r.result) ?? races[0])?.raceId;
 }

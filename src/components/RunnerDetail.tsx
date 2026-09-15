@@ -14,7 +14,7 @@ function expectations(r: PublishedRunner, race: PublishedRace): string[] {
   const out: string[] = [`${settles(r)}.`];
   const t = tempoFit(r, race);
   if (t.tone !== 0) out.push(`${t.text}.`);
-  const f = finishFit(r);
+  const f = finishFit(r, race);
   if (f.tone !== 0) out.push(`${f.text}.`);
   for (const o of observations(r, race).slice(0, 4)) out.push(`${o.text[0].toUpperCase()}${o.text.slice(1)}.`);
   return out.slice(0, 6);

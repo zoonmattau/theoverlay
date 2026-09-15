@@ -37,13 +37,28 @@ export function tempoFit(r: PublishedRunner, race: PublishedRace): { tone: Tone;
   return { tone, text };
 }
 
-/** How the runner finishes, from its late sectionals against its early ones. */
-export function finishFit(r: PublishedRunner): { tone: Tone; text: string } {
+/**
+ * How the runner finishes. First against the field: the best late
+ * sectionals in the race by a clear margin is a closer whatever its own
+ * early figures say, and the worst is not. Only then against itself, late
+ * sectionals against early ones. A backmarker with weak late sectionals is
+ * not an early runner, it makes its move mid-race and flattens out, so the
+ * words follow where it settles.
+ */
+export function finishFit(r: PublishedRunner, race: PublishedRace): { tone: Tone; text: string } {
   const g = r.ratings;
+  const others = race.runners.filter((x) => x !== r && !x.scratched).map((x) => x.ratings.late);
+  if (others.length > 0) {
+    if (g.late - Math.max(...others) >= GAP) return { tone: 1, text: "Best closing sectionals in the field" };
+    if (Math.min(...others) - g.late >= GAP) return { tone: -1, text: "Weakest closing sectionals in the field" };
+  }
   const gap = g.late - (g.early + g.mid) / 2;
   const tone: Tone = gap >= GAP ? 1 : gap <= -GAP ? -1 : 0;
-  return { tone, text: tone > 0 ? "Strong closer" : tone < 0 ? "Does its best work early" : "Runs the race out evenly" };
+  const fades = onPace(r) ? "Does its best work early" : "Makes its run mid-race, flattens late";
+  return { tone, text: tone > 0 ? "Strong closer" : tone < 0 ? fades : "Runs the race out evenly" };
 }
+
+const onPace = (r: PublishedRunner) => r.ratings.map === "leader" || r.ratings.map === "on pace";
 
 /** Where it settles, as the start of a sentence. */
 export function settles(r: PublishedRunner): string {
@@ -68,10 +83,14 @@ export function callLine(r: PublishedRunner): string {
 /** The what-to-watch sentence: position, tempo, finish, then the call. */
 export function watchSentence(r: PublishedRunner, race: PublishedRace): string {
   const t = tempoFit(r, race);
-  const f = finishFit(r);
+  const f = finishFit(r, race);
   const facts = observations(r, race).slice(0, 2).map((o) => o.text);
   const tempoBit = t.tone > 0 ? "the tempo is in its favour" : t.tone < 0 ? "the tempo is against it" : "";
-  const finishBit = f.tone > 0 ? "it finishes off hard" : f.tone < 0 ? "it needs to be there early because it does not finish off" : "";
+  const fades = onPace(r) ? "it needs to be there early because it does not finish off" : "it makes its run mid-race and does not finish it off";
+  const finishBit =
+    f.text.startsWith("Best") ? (onPace(r) ? "it has the best closing sectionals in the field" : "it comes home over the top of them with the best closing sectionals in the field")
+    : f.text.startsWith("Weakest") ? "it has the weakest closing sectionals in the field"
+    : f.tone > 0 ? "it finishes off hard" : f.tone < 0 ? fades : "";
   const clauses = [...facts, tempoBit, finishBit].filter(Boolean);
   const body = clauses.length ? `, ${clauses.slice(0, -1).join(", ")}${clauses.length > 1 ? " and " : ""}${clauses[clauses.length - 1]}` : "";
   return `${settles(r)}${body}. ${callLine(r)}`;

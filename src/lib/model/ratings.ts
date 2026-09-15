@@ -284,15 +284,17 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number): numb
   // little about a flat maiden, so the run's par stays within reach too.
   const ohr = r.benchmarkRating && r.benchmarkRating > 0 ? r.benchmarkRating : undefined;
   // Two-year-old races are their own world: a "2YO Open" or a juvenile
-  // Listed race says nothing about open benchmark company, so a run as a
-  // two-year-old is worth today's par at best, plus a little for the clock.
+  // Listed race says nothing about open benchmark company, so the race name
+  // is ignored and the run starts at the bottom of today's range, lifted
+  // only by an official rating and never above today's par.
   const juvenile = wasJuvenile(r, ageNow);
   // "Open Hcp" at a bush track is not open company: without an explicit
   // benchmark, class, group or listed tag the run can only sit a little
   // above today's par.
   const explicit = EXPLICIT_CLASS.test(r.raceName ?? "");
   const reach = juvenile ? 0 : !explicit ? 8 : todayPar <= 55 ? 12 : 25;
-  const par = clamp(parseClass(r.raceName) ?? ohr ?? todayPar, todayPar - 15, todayPar + reach);
+  const level = juvenile ? (ohr ?? todayPar - 15) : (parseClass(r.raceName) ?? ohr ?? todayPar);
+  const par = clamp(level, todayPar - 15, todayPar + reach);
   const raw = r.benchmark
     ? par + r.benchmark.vsClass * POINTS_PER_LENGTH
     : par - Math.min(15, (r.margin ?? ((r.finishPosition ?? 6) - 1) * 1.2) * POINTS_PER_LENGTH * MARGIN_WEIGHT);

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { rebuildCard, resendTips } from "@/app/admin/actions";
+import { rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
 import { isAdmin, listMembers, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
@@ -21,6 +21,7 @@ export default function Page() {
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const jump = (iso?: string) => (iso ? new Date(iso).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }) : "");
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 
 async function Admin() {
@@ -52,6 +53,21 @@ async function Admin() {
           <form action={rebuildCard}><button className="btn btn-secondary btn-sm" type="submit">Rebuild today</button></form>
           <form action={resendTips}><button className="btn btn-secondary btn-sm" type="submit">Resend tips email</button></form>
         </div>
+        <form action={setFreeRace} className="basis-full flex flex-wrap items-center gap-2">
+          <label htmlFor="free-race" className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Free race</label>
+          <select id="free-race" name="raceId" defaultValue={card.freeRaceId ?? ""} className="field-input py-1 text-xs max-w-xs">
+            <option value="">Automatic</option>
+            {card.meetings.map((m) => (
+              <optgroup key={m.meetingId} label={m.track}>
+                {m.races.map((r) => (
+                  <option key={r.raceId} value={r.raceId}>{m.track} R{r.raceNumber} {jump(r.jumpTime)}{r.raceId === card.freeRaceId ? " (current)" : ""}</option>
+                ))}
+              </optgroup>
+            ))}
+          </select>
+          <button className="btn btn-secondary btn-sm" type="submit">Set free race</button>
+          <span className="text-xs text-ink-soft">Stays pinned through rebuilds until you set it back to automatic.</span>
+        </form>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">

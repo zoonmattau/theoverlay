@@ -37,7 +37,7 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
             <tbody>
               {ours.map((r) => {
                 const t = tempoFit(r, race);
-                const f = finishFit(r);
+                const f = finishFit(r, race);
                 return (
                   <tr key={r.tabNumber}>
                     <td>

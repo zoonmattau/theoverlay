@@ -13,10 +13,21 @@ export interface StoredCard {
 
 export const storeConfigured = () => supabaseConfigured() && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
-export async function readStoredCard(date: string): Promise<{ card: StoredCard; builtAt: string } | undefined> {
-  const { data, error } = await supabaseAdmin().from("cards").select("card, built_at").eq("date", date).maybeSingle();
+export async function readStoredCard(date: string): Promise<{ card: StoredCard; builtAt: string; pinnedFreeRaceId?: string } | undefined> {
+  const { data, error } = await supabaseAdmin().from("cards").select("card, built_at, free_race_id").eq("date", date).maybeSingle();
   if (error) console.error("[cards]", error.message);
-  return data ? { card: data.card as StoredCard, builtAt: String(data.built_at) } : undefined;
+  return data ? { card: data.card as StoredCard, builtAt: String(data.built_at), pinnedFreeRaceId: (data.free_race_id as string | null) ?? undefined } : undefined;
+}
+
+/** Pins the free race for a date (null goes back to the automatic pick) and patches the stored card to match. */
+export async function pinFreeRace(date: string, raceId: string | null, freeRaceId: string | undefined): Promise<void> {
+  const stored = await readStoredCard(date);
+  if (!stored) return;
+  const { error } = await supabaseAdmin()
+    .from("cards")
+    .update({ free_race_id: raceId, card: { ...stored.card, freeRaceId } })
+    .eq("date", date);
+  if (error) console.error("[cards]", error.message);
 }
 
 export async function writeStoredCard(date: string, card: StoredCard, seconds: number): Promise<void> {
