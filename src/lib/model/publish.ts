@@ -29,17 +29,17 @@ import { rateRace } from "./rate";
 /** A long overlay has to actually pay something. */
 const LONG_MIN_PRICE = 8;
 /**
- * A Prime Overlay is a bet with an edge of five points or more;
- * on today's card only Charlie Messy Hair (6.2 points) clears it.
+ * A bet needs the market to be longer than our price by a share (so a $4.80
+ * chance at $5.50 counts, the way a punter reads it) and by a couple of
+ * points of win chance (so a $12 chance at $14 does not). A Prime Overlay
+ * needs twice the share and twice the points. Set with the market weight at
+ * 0.5, where our rating leads and the market tempers it, so a normal day
+ * gives a bet in about one race in two and a similar number of lays.
  */
-const PRIME_EDGE = 0.08;
-/**
- * Bet and lay thresholds in probability points (our chance minus the
- * market's). Set with the market weight at 0.5, where our rating leads and
- * the market tempers it, so a normal day gives a bet in about one race in
- * three and a similar number of lays.
- */
-const MIN_EDGE = 0.04;
+const MIN_OVERLAY = 0.14;
+const MIN_EDGE = 0.025;
+const PRIME_OVERLAY = 0.3;
+const PRIME_EDGE = 0.05;
 /** A bet needs a real chance and a price someone would actually take. */
 const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
@@ -285,11 +285,13 @@ function signalFor(
   kept?: Signal,
 ): Signal | undefined {
   if (scratched || edge === undefined || !marketPrice || probability === undefined) return undefined;
-  if (edge >= MIN_EDGE && probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE) return "back";
+  // The market's price as a share above ours: $5.50 against $4.80 is 0.146.
+  const overlay = marketPrice * probability - 1;
+  if (overlay >= MIN_OVERLAY && edge >= MIN_EDGE && probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE) return "back";
   if (edge <= LAY_EDGE && marketPrice <= LAY_MAX_PRICE) return "lay";
   // A call already published stays while it still has half its edge, so a
   // ten-cent move in the market does not make a tip vanish between refreshes.
-  if (kept === "back" && edge >= MIN_EDGE / 2 && marketPrice <= BET_MAX_PRICE * 1.5) return "back";
+  if (kept === "back" && overlay >= MIN_OVERLAY / 2 && edge >= MIN_EDGE / 2 && marketPrice <= BET_MAX_PRICE * 1.5) return "back";
   if (kept === "lay" && edge <= LAY_EDGE / 2 && marketPrice <= LAY_MAX_PRICE * 1.5) return "lay";
   return undefined;
 }
@@ -459,9 +461,10 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
   // Overlay of the day: the biggest edge on the card, at any price.
   take("top_overlay", qualifying, (a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0));
 
-  // Prime overlays: every other bet with a top-fifth edge, biggest first.
+  // Prime overlays: every other bet where the market is a third or more above our price, biggest first.
+  const overlayOf = (c: (typeof qualifying)[number]) => (c.runner.marketPrice ?? 0) / c.runner.ratedPrice - 1;
   for (const c of [...qualifying]
-    .filter((c) => (c.runner.edge ?? 0) >= PRIME_EDGE && !used.has(key(c)))
+    .filter((c) => overlayOf(c) >= PRIME_OVERLAY && (c.runner.edge ?? 0) >= PRIME_EDGE && !used.has(key(c)))
     .sort((a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0))) {
     take("prime_overlay", [c], () => 0);
   }
