@@ -41,12 +41,13 @@ const CLASS_TABLE: [RegExp, number][] = [
   [/^lr\b|listed/i, 96],
   [/^opn\b|\bopen\b/i, 90],
   [/^mdn\b|maiden|\bmdn\b/i, 52],
-  [/^c1\b|class\s*1\b/i, 58],
-  [/^c2\b|class\s*2\b/i, 62],
-  [/^c3\b|class\s*3\b/i, 66],
-  [/^c4\b|class\s*4\b/i, 70],
-  [/^c5\b|class\s*5\b/i, 74],
-  [/^c6\b|class\s*6\b/i, 78],
+  // "C1" leads a restrictions code, and sits in brackets or after a space in a race name.
+  [/(?:^|\(|\s)c\s?1\b|class\s*1\b/i, 58],
+  [/(?:^|\(|\s)c\s?2\b|class\s*2\b/i, 62],
+  [/(?:^|\(|\s)c\s?3\b|class\s*3\b/i, 66],
+  [/(?:^|\(|\s)c\s?4\b|class\s*4\b/i, 70],
+  [/(?:^|\(|\s)c\s?5\b|class\s*5\b/i, 74],
+  [/(?:^|\(|\s)c\s?6\b|class\s*6\b/i, 78],
   [/^cb\b/i, 60],
   [/^hdm|^hdl|^stm|hurdle|steeple/i, 70],
 ];
@@ -221,8 +222,11 @@ function rateOne(
   const weighted =
     points.reduce((a, p, i) => a + p * RUN_WEIGHTS[i], 0) /
     RUN_WEIGHTS.slice(0, points.length).reduce((a, b) => a + b, 0);
-  const peak = Math.max(...points.slice(0, 3));
-  const cls = 0.6 * peak + 0.4 * weighted;
+  // Its best form: the mean of the best two of the last three, so one big
+  // run lifts the rating but cannot carry it on its own.
+  const best = [...points.slice(0, 3)].sort((a, b) => b - a);
+  const peak = best.length >= 2 ? (best[0] + best[1]) / 2 : best[0];
+  const cls = 0.4 * peak + 0.6 * weighted;
 
   const splits = runs
     .map((r) => (r.benchmark ? splitOf(r.benchmark) : undefined))
