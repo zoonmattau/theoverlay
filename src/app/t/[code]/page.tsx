@@ -53,7 +53,10 @@ async function TipsterPage({ params }: { params: Props["params"] }) {
             <SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="mt-1" />
             {tipster.blurb && <p className="mt-2 text-ink-secondary">{tipster.blurb}</p>}
           </div>
-          {tipster.user_id === viewer.id ? <Link href="/tipster" className="btn btn-secondary">Post a call</Link> : <FollowButton code={tipster.code} following={following?.id === tipster.id} />}
+          <span className="flex items-center gap-2">
+            {tipster.user_id === viewer.id && <Link href="/tipster" className="btn btn-secondary">Post a call</Link>}
+            <FollowButton code={tipster.code} following={following?.id === tipster.id} />
+          </span>
         </div>
         <p className="mt-2 text-xs text-ink-soft">
           {tipster.user_id === viewer.id ? "This is your page, what your followers see." : following?.id === tipster.id ? `You follow ${tipster.name}: their calls show next to the model's on every race.` : `Follow ${tipster.name} and their calls show next to the model's on every race.`}

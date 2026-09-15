@@ -173,7 +173,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
               <>
                 <p className="text-xs text-ink-soft mb-2">Follow as many as you like. Their calls show next to ours on every race, and in your tips email.</p>
                 <ul className="divide-y divide-line-soft text-sm">
-                  {tipsters.filter((t) => t.user_id !== viewer.id).map((t) => (
+                  {tipsters.map((t) => (
                     <li key={t.id} className="flex items-center justify-between gap-3 py-2">
                       <Link href={`/t/${t.code}`} className="font-semibold hover:text-blue">{t.name}</Link>
                       <FollowButton code={t.code} following={followingIds.has(t.id)} small />

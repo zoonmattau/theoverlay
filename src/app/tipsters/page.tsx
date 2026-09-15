@@ -71,7 +71,10 @@ async function Directory() {
                     <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} className="mt-0.5" />
                     {t.blurb && <p className="text-sm text-ink-secondary mt-0.5">{t.blurb}</p>}
                   </div>
-                  {t.user_id === viewer.id ? <span className="badge badge-prime">You</span> : <FollowButton code={t.code} following={isFollowing} small />}
+                  <span className="flex items-center gap-2">
+                    {t.user_id === viewer.id && <span className="badge badge-prime">You</span>}
+                    <FollowButton code={t.code} following={isFollowing} small />
+                  </span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   <Stat n={r.month.n ? units(r.month.units) : "—"} label="30 days" sub={r.month.n ? `${r.month.n} calls, ${r.month.hit} landed` : "no settled calls"} tone={r.month.units > 0 ? "up" : r.month.units < 0 ? "down" : undefined} />
