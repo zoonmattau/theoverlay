@@ -108,28 +108,24 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-3">
         {next ? (
           <Tile href={href(next.m, next.r)} label={withBet ? "Next bet" : "Next to jump"} tone={nextCall?.prime ? "prime" : nextCall ? "bet" : undefined}>
-            <div className="font-display text-2xl font-extrabold tracking-tight nums leading-none"><Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} /></div>
-            <div className="mt-1 text-sm font-semibold truncate">{next.m.track} R{next.r.raceNumber}, {jumpTime(next.r.jumpTime)}</div>
-            <div className="text-xs text-ink-soft truncate">{nextCall ? `${nextCall.prime ? "Prime Overlay" : "Bet"}: ${open ? `${nextCall.tabNumber}. ${nextCall.horseName}` : "join to see"}` : released ? "No bets left today" : `Calls release at ${RELEASE_HOUR}am`}</div>
+            <div className="font-display text-3xl font-extrabold tracking-tight nums leading-none"><Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} /></div>
+            <div className="mt-2 text-sm text-ink-secondary truncate">{next.m.track} R{next.r.raceNumber}{nextCall && open ? `, ${nextCall.tabNumber}. ${nextCall.horseName}` : `, ${jumpTime(next.r.jumpTime)}`}</div>
           </Tile>
         ) : (
           <Tile href="#board" label="Next bet">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none">Done</div>
-            <div className="mt-1 text-sm font-semibold">Racing is over for today</div>
-            <div className="text-xs text-ink-soft">Tomorrow&apos;s board is up tonight</div>
+            <div className="font-display text-3xl font-extrabold tracking-tight leading-none">Done</div>
+            <div className="mt-2 text-sm text-ink-secondary">Tomorrow&apos;s board is up tonight</div>
           </Tile>
         )}
 
         <Tile href="#board" label="Meetings today">
-          <div className="font-display text-2xl font-extrabold tracking-tight leading-none nums">{meetings.length} {meetings.length === 1 ? "meeting" : "meetings"}</div>
-          <div className="mt-1 text-sm font-semibold nums">{races.length} races rated</div>
-          <div className="text-xs text-ink-soft nums">{first ? `First jump ${jumpTime(first)}` : "No racing today"}</div>
+          <div className="font-display text-3xl font-extrabold tracking-tight leading-none nums">{meetings.length}</div>
+          <div className="mt-2 text-sm text-ink-secondary nums">{races.length} races{first ? `, first jump ${jumpTime(first)}` : ""}</div>
         </Tile>
 
         <Tile href={open ? "/tips" : "/pricing"} label="Calls today" tone="prime">
-          <div className="font-display text-2xl font-extrabold tracking-tight leading-none nums">{released ? `${bets + lays} ${bets + lays === 1 ? "play" : "plays"}` : `${RELEASE_HOUR}am`}</div>
-          <div className="mt-1 text-sm font-semibold nums">{released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}` : "Calls release on race morning"}</div>
-          <div className="text-xs text-ink-soft nums">{released ? (open ? `${toRun} still to run` : "One race free today, the rest with a plan") : "Ratings, prices and calls"}</div>
+          <div className="font-display text-3xl font-extrabold tracking-tight leading-none nums">{released ? bets + lays : `${RELEASE_HOUR}am`}</div>
+          <div className="mt-2 text-sm text-ink-secondary nums">{released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}${open ? `, ${toRun} to run` : ""}` : "Calls release on race morning"}</div>
         </Tile>
       </div>
     </section>
