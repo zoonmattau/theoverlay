@@ -90,19 +90,22 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
       <div className="space-y-4">
         {rows.length === 0 && <p className="text-sm text-ink-soft">No affiliates yet.</p>}
         {rows.map((a) => (
-          <div key={a.id} className={`card ${a.active ? "" : "opacity-60"}`}>
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div>
-                <h3 className="font-display font-extrabold text-lg">
-                  {a.name} <span className="badge badge-muted ml-1 nums">{a.code}</span>
-                  {!a.active && <span className="badge badge-warn ml-1">Off</span>}
-                  {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
-                </h3>
-                <p className="text-xs text-ink-soft">
-                  {a.email ?? "no email"} · {Number(a.commission_pct)}% commission · since{" "}
-                  {new Date(a.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}
-                </p>
-              </div>
+          <details key={a.id} className={`card ${a.active ? "" : "opacity-60"}`} open={typeof sp.show === "string" && sp.show.startsWith(`${a.id}:`)}>
+            <summary className="cursor-pointer flex flex-wrap items-center justify-between gap-3">
+              <span className="font-display font-extrabold text-lg">
+                {a.name} <span className="badge badge-muted ml-1 nums">{a.code}</span>
+                {!a.active && <span className="badge badge-warn ml-1">Off</span>}
+                {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
+              </span>
+              <span className="nums text-sm text-ink-soft">
+                {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"} · {a.paying} paying · {money(a.commission_cents)} commission
+              </span>
+            </summary>
+            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
+              <p className="text-xs text-ink-soft">
+                {a.email ?? "no email"} · {Number(a.commission_pct)}% commission · since{" "}
+                {new Date(a.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}
+              </p>
               <div className="flex gap-2">
                 <form action={toggleAffiliate.bind(null, a.id, !a.active)}>
                   <button className="btn btn-secondary btn-sm" type="submit">{a.active ? "Turn off" : "Turn on"}</button>
@@ -199,7 +202,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
             </div>
               )}
             </div>
-          </div>
+          </details>
         ))}
       </div>
       </>)}
