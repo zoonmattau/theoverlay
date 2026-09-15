@@ -95,7 +95,7 @@ export function goingLabel(going?: string, goingNumber?: number): string | undef
 }
 
 /** Points per length above or below the class benchmark. */
-const POINTS_PER_LENGTH = 1.2;
+export const POINTS_PER_LENGTH = 1.2;
 /**
  * Without a benchmark all we know is the beaten margin, which says little
  * about how fast the race was run, so it counts for half and never above par.
@@ -103,6 +103,10 @@ const POINTS_PER_LENGTH = 1.2;
  * par, and a close fourth in a fast one can rate above it.
  */
 const MARGIN_WEIGHT = 0.5;
+/** Points above its official rating a run's par may sit, whatever the race was called. */
+const OHR_REACH = 10;
+/** Weight on a benchmark built from overall time alone, no sectionals. */
+const TIME_ONLY_WEIGHT = 0.5;
 /** Recency weights over the last runs, most recent first. */
 const RUN_WEIGHTS = [0.35, 0.25, 0.2, 0.12, 0.08];
 /** Prior weight, in runs, that pulls a thin category back toward class. */
@@ -110,7 +114,7 @@ const SHRINK = 2;
 /** How far a within-field Form King edge can move a runner. */
 const FK_NUDGE = 1.5;
 /** Leader early lengths vs class that make a run's tempo fast or slow. */
-const TEMPO_LENGTHS = 1.5;
+export const TEMPO_LENGTHS = 1.5;
 
 export interface RaceContext {
   classPoints: number;
@@ -299,9 +303,15 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number): numb
   const explicit = EXPLICIT_CLASS.test(r.raceName ?? "");
   const reach = juvenile ? 0 : !explicit ? 8 : todayPar <= 55 ? 12 : 25;
   const level = juvenile ? (ohr ?? todayPar - 15) : (parseClass(r.raceName) ?? ohr ?? todayPar);
-  const par = clamp(level, todayPar - 15, todayPar + reach);
+  // The official rating caps how far a race's label can flatter the run: a
+  // 45-rated horse beating four at Cobar in an "Open Hcp" ran in a 45 race.
+  const ceiling = Math.min(todayPar + reach, ohr !== undefined ? ohr + OHR_REACH : Infinity);
+  const par = clamp(level, Math.min(todayPar - 15, ceiling), ceiling);
+  // Overall time with no sectionals is a hand-held clock at a bush track, so
+  // its lengths against class count for half.
+  const trust = r.benchmark?.dataStage === "OVERALL_TIME_ONLY" ? TIME_ONLY_WEIGHT : 1;
   const raw = r.benchmark
-    ? par + r.benchmark.vsClass * POINTS_PER_LENGTH
+    ? par + r.benchmark.vsClass * POINTS_PER_LENGTH * trust
     : par - Math.min(15, (r.margin ?? ((r.finishPosition ?? 6) - 1) * 1.2) * POINTS_PER_LENGTH * MARGIN_WEIGHT);
   return clamp(raw, par - 25, par + (juvenile ? 8 : 15));
 }

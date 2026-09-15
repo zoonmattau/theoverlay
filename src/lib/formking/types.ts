@@ -312,3 +312,11 @@ export interface SpeedmapEntry {
     benchmark?: number;
   };
 }
+
+/** GET /b2c/horses/{id}: the horse and its career, most recent run first. */
+export interface HorseForm {
+  id: string;
+  horse: { name: string; sire?: string; dam?: string; age?: number; type?: string };
+  mostRecentTrainer?: string;
+  pastEvents?: PastEvent[];
+}

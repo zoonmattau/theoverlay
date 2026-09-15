@@ -8,6 +8,7 @@ const ITEMS = [
   { href: "/admin/money", label: "Money" },
   { href: "/admin/members", label: "Members" },
   { href: "/admin/reports", label: "Reports" },
+  { href: "/admin/review", label: "Weekly review" },
   { href: "/admin/affiliates", label: "Affiliates and tipsters" },
 ];
 

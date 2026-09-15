@@ -4,6 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import type {
+  HorseForm,
   MeetingSummary,
   MeetingSummaryLite,
   RaceSummary,
@@ -237,6 +238,18 @@ export function getSpeedmap(meetingId: string, raceId: string) {
 /** Every speed map at a meeting. 5 credits. */
 export function getMeetingSpeedmaps(meetingId: string) {
   return cached("speedmap", meetingId, () => request<Speedmap[]>(`/b2c/meetings/${meetingId}/speedmaps`));
+}
+
+/**
+ * A horse's career with benchmarks, by breeding id. 2 credits at five
+ * benchmarks. Not cached: the review stores what it needs.
+ */
+export function getHorse(horseId: string, opts: { numPastRaces?: number; numBenchmarks?: number } = {}) {
+  return request<HorseForm>(`/b2c/horses/${encodeURIComponent(horseId)}`, {
+    racesOnly: true,
+    numPastRaces: opts.numPastRaces ?? 3,
+    numBenchmarks: opts.numBenchmarks ?? 3,
+  });
 }
 
 /** Form King dates are DDMMYY. */

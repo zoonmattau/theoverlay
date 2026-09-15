@@ -137,6 +137,8 @@ export interface HorseProfile {
 export interface PublishedRunner {
   tabNumber: number;
   horseName: string;
+  /** Form King's breeding id, so the review can fetch the run afterwards. */
+  horseId?: string;
   barrier: number;
   jockey?: string;
   trainer?: string;

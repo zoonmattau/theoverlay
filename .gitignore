@@ -55,3 +55,5 @@ ds-bundle/
 # Screenshots dropped in the project root
 /*.png
 scripts/out/
+__pycache__/
+email-preview.html

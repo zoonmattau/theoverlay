@@ -92,8 +92,17 @@ export function publishRace(
     }),
   );
   const priceByTab = new Map(priced.runners.map((r) => [r.key, r]));
+  // Once the race has jumped the market is over: bookmakers leave quotes up
+  // that nobody can take, so a call made now would be priced off nothing.
+  // Calls already published stay; no new one is made.
+  // A backtest replays run races on purpose: OVERLAY_REPLAY=1 lets it.
+  const jumpTime = jumpIso(meeting.date ?? race.date, race.startTime, race.date, meeting.state);
+  const jumped = process.env.OVERLAY_REPLAY !== "1" && hasJumped(race.status, jumpTime);
   const signalByTab = new Map(
-    priced.runners.map((p) => [p.key, signalFor(p.edge, p.marketPrice, p.probability, false, kept.get(`${race.raceId}:${p.key}`))]),
+    priced.runners.map((p) => {
+      const held = kept.get(`${race.raceId}:${p.key}`);
+      return [p.key, jumped ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held)];
+    }),
   );
 
   // Our top four: the bets first, best edge leading, then whoever we rate
@@ -134,6 +143,7 @@ export function publishRace(
     return {
       tabNumber: e.number,
       horseName: e.horse.name,
+      horseId: (e as RaceEntry & { breedingId?: string }).breedingId,
       barrier: e.barrier,
       jockey: e.jockey,
       trainer: e.trainer,
@@ -204,7 +214,7 @@ export function publishRace(
     classPoints: points,
     going,
     goingText: goingLabel(race.going, race.goingNumber),
-    jumpTime: jumpIso(meeting.date ?? race.date, race.startTime, race.date, meeting.state),
+    jumpTime,
     prizeMoney: race.totalPrizeMoney,
     runners: runners.sort((a, b) => a.tabNumber - b.tabNumber),
     pace,
@@ -236,6 +246,12 @@ function classLabel(restrictions: string | undefined, points: number): string {
  * The jump as an instant. The feed's race date is the real start time, so it
  * wins; the printed start time is local to the track and only a fallback.
  */
+/** Whether the race has been run: Form King says so, or its jump time has passed. */
+export function hasJumped(status?: string, jumpTime?: string, now = Date.now()): boolean {
+  if (/result|abandon|closed|interim/i.test(status ?? "")) return true;
+  return Boolean(jumpTime && new Date(jumpTime).getTime() <= now);
+}
+
 function jumpIso(meetingDate?: number, startTime?: string, raceDate?: number, state?: string): string | undefined {
   if (raceDate && raceDate > 1e12) return new Date(raceDate).toISOString();
   const m = startTime?.match(/^(\d{1,2}):(\d{2})\s*(am|pm)$/i);
