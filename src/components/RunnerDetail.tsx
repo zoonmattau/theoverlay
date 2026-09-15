@@ -1,5 +1,6 @@
 import { Fragment } from "react";
 
+import { BookieLink } from "./BookieLink";
 import { Factors } from "./Factors";
 import { price } from "@/lib/format";
 import { callLine, finishFit, observations, settles, tempoFit } from "@/lib/model/narrative";
@@ -193,7 +194,10 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         </ul>
         <div className="mt-2"><Factors r={r.ratings} compact /></div>
         <h4 className="mt-4">Our call</h4>
-        <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>{callLine(r)}</p>
+        <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
+          {callLine(r)}
+          {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={` Take ${price(r.marketPrice)} at `} className="font-bold" /> : null}
+        </p>
         {r.why && <p className="text-xs text-ink-secondary mt-1">{r.why}</p>}
       </div>
     </div>

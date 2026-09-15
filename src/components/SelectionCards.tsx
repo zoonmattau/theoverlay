@@ -1,3 +1,4 @@
+import { BookieLink } from "./BookieLink";
 import { Factors } from "./Factors";
 import { SignalBadge, MAP_LABEL } from "./Ratings";
 import { percent, price } from "@/lib/format";
@@ -35,6 +36,7 @@ export function SelectionCards({ race }: { race: PublishedRace }) {
             <div className={`price-box ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
               <div className="label">Live</div>
               <div className="value nums">{price(r.marketPrice)}</div>
+              <BookieLink codes={r.bookies} raceId={race.raceId} className="block text-[10px] font-semibold mt-0.5" />
             </div>
             <div className="price-box">
               <div className="label">Rated</div>

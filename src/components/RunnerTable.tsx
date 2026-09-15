@@ -2,6 +2,7 @@
 
 import { Fragment, useEffect, useState } from "react";
 
+import { BookieLink } from "./BookieLink";
 import { SignalBadge } from "./Ratings";
 import { RunnerDetail } from "./RunnerDetail";
 import { Section } from "./Section";
@@ -83,6 +84,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                       <span className={`price-chip ${locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
                         {price(r.marketPrice)}
                       </span>
+                      {!locked && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} className="block text-[10px] mt-0.5" /> : null}
                     </td>
                     {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
                     {!locked && <td className="hide-sm text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}

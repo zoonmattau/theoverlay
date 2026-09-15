@@ -4,6 +4,7 @@ import { logEvent } from "@/lib/admin";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { planCovers } from "@/lib/billing/plans";
+import { bestBookie, type Bookie } from "@/lib/bookies";
 import { longDate, price, priceWithChance } from "@/lib/format";
 import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import type { StoredCard } from "@/lib/model/store";
@@ -51,6 +52,7 @@ interface Call {
   runner: string;
   rated: string;
   live: string;
+  bookie?: Bookie;
   side: "bet" | "lay";
   prime: boolean;
 }
@@ -70,6 +72,7 @@ function calls(date: string, card: StoredCard): Call[] {
             runner: `${x.tabNumber}. ${x.horseName}`,
             rated: priceWithChance(x.ratedPrice, x.ratedProbability),
             live: price(x.marketPrice),
+            bookie: bestBookie(x.bookies),
             side: (x.signal === "back" ? "bet" : "lay") as "bet" | "lay",
             prime: prime.has(`${r.raceId}:${x.tabNumber}`),
           })),
@@ -88,7 +91,7 @@ function table(rows: Call[]): string {
       const colour = c.side === "bet" ? "#1f6fd6" : "#d93636";
       const badge = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${colour};color:#fff;font:700 11px ${FONT};text-transform:uppercase">${c.side}</span>`;
       const primeTag = c.prime ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#c6f24e;color:#14161a;font:700 11px ${FONT}">Prime</span>` : "";
-      return `<tr>${cell(`<a href="${c.url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(c.track)} R${c.raceNumber}</a>`)}${cell(esc(c.runner) + primeTag)}${cell(`<strong style="color:${colour}">${c.live}</strong>`, "text-align:right")}${cell(c.rated, "text-align:right;white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
+      return `<tr>${cell(`<a href="${c.url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(c.track)} R${c.raceNumber}</a>`)}${cell(esc(c.runner) + primeTag)}${cell(`<strong style="color:${colour}">${c.live}</strong>${c.bookie ? `<br><a href="${c.bookie.url}" style="font:600 11px ${FONT};color:#6b716a;text-decoration:none">at ${esc(c.bookie.name)}</a>` : ""}`, "text-align:right;white-space:nowrap")}${cell(c.rated, "text-align:right;white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
     })
     .join("");
   const head = (s: string, extra = "") => `<th style="padding:0 6px 6px;text-align:left;font:700 11px ${FONT};color:#8b918a;text-transform:uppercase;letter-spacing:.06em;${extra}">${s}</th>`;

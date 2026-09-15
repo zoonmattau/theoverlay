@@ -135,6 +135,8 @@ export interface PublishedRunner {
   ratedProbability: number;
   /** Best market price we saw at publish time. */
   marketPrice?: number;
+  /** Form King's codes for the bookmakers holding that price. */
+  bookies?: string[];
   /** Average price at market open, so a move is visible. */
   marketOpen?: number;
   /** Our win chance minus the market's implied chance, e.g. 0.05 for $4 rated against $5. */
@@ -223,6 +225,8 @@ export interface Selection {
   ratedPrice: number;
   ratedProbability?: number;
   marketPrice?: number;
+  /** Form King's codes for the bookmakers holding the market price. */
+  bookies?: string[];
   edge?: number;
   comment?: string;
   /** Finishing position once the race is resulted, 0 for did not finish. */

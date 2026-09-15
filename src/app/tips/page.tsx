@@ -3,6 +3,7 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
+import { BookieLink } from "@/components/BookieLink";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
@@ -269,6 +270,7 @@ function CallTable({
                   </td>
                   <td className="text-right">
                     <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
+                    <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />
                   </td>
                   <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
                   <td className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>

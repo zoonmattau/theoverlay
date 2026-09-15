@@ -471,6 +471,17 @@ body {
   cursor: pointer;
 }
 
+/* "at Sportsbet" under a price. */
+.bookie-link {
+  color: var(--color-ink-soft);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.bookie-link:hover {
+  color: var(--color-ink);
+  text-decoration: underline;
+}
+
 /* --- Buttons --- */
 .btn {
   display: inline-flex;
