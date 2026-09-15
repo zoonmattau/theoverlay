@@ -875,6 +875,19 @@ body {
   color: var(--color-ink);
   border-bottom-color: var(--color-ink);
 }
+/* Tabs on a dark section bar: paper text, lime underline on the open one. */
+.section-bar .tab {
+  padding: 4px var(--sp-2);
+  margin-bottom: 0;
+  color: rgba(245, 247, 242, 0.65);
+}
+.section-bar .tab:hover {
+  color: var(--color-bar-ink);
+}
+.section-bar .tab[aria-selected="true"] {
+  color: var(--color-bar-ink);
+  border-bottom-color: var(--color-lime);
+}
 .tab-count {
   font-size: 0.65rem;
   padding: 0 6px;
