@@ -302,6 +302,8 @@ function profileOf(e: RaceEntry): HorseProfile {
     daysSinceLastRun: e.daysSinceLastRace,
     firstStarter: Boolean(e.firstStarter),
     career: e.form?.careerForm,
+    firstUpForm: e.form?.firstUpForm,
+    secondUpForm: e.form?.secondUpForm,
     distanceForm: e.form?.distanceForm,
     trackForm: e.form?.trackForm,
     gear: (e.gear ?? []).filter((g) => g.on !== false && !/gelded/i.test(g.gear)).map((g) => g.gear),

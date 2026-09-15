@@ -104,10 +104,24 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
     track: `Its runs at this track rate ${g.track.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.track - g.class)}.`,
     going: `Its ${band}-track runs rate ${g.going[band].toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.going[band] - g.class)}. A band with no runs sits at class.`,
     tempo: race.pace.tempo === "even" ? "An even tempo is expected, which favours nobody." : `A ${race.pace.tempo} tempo is expected. Its runs at that tempo rate ${(race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow).toFixed(1)}, class ${g.class.toFixed(1)}.`,
-    fresh: h?.firstStarter ? "A first starter, rated off the field until it has run." : h?.daysSinceLastRun && h.daysSinceLastRun >= 80 ? `First up after ${h.daysSinceLastRun} days. Its past first-up runs and its first-up record decide this.` : h?.daysSinceLastRun !== undefined && (g.factors.fresh ?? 0) !== 0 ? "Second up. Its past second-up runs and record decide this." : "Not resuming, so freshness is not a factor today.",
+    fresh: freshWhy(),
     barrier: `Barrier ${r.barrier}, ${ord(race.runners.filter((x) => !x.scratched && x.barrier < r.barrier).length + 1)} from the rail of ${race.runners.filter((x) => !x.scratched).length} once scratchings are out, for a runner that ${MAP_LABEL[g.map].toLowerCase()}, over ${race.distance}m. ${g.map === "leader" || g.map === "on pace" ? "A wide gate means working early to hold a spot; an inside one saves that." : "Back in the field the draw matters less, though a very wide gate costs cover and a rail draw in a big field can mean being held up."}`,
     market: "Form King's own view of this runner against the rest of the field.",
   };
+  function freshWhy(): string {
+    const v = g.factors.fresh ?? 0;
+    const days = h?.daysSinceLastRun;
+    if (h?.firstStarter) return "A first starter, rated off the field until it has run.";
+    const firstUp = Boolean(days && days >= 80);
+    const secondUp = !firstUp && v !== 0;
+    if (!firstUp && !secondUp) return "Not resuming, so the break is not a factor today.";
+    const record = firstUp ? h?.firstUpForm : h?.secondUpForm;
+    const rec = record && record !== "0:0-0-0" ? ` Its ${firstUp ? "first" : "second"}-up record is ${record} (starts:wins-seconds-thirds).` : "";
+    const lead = firstUp ? `Off for ${days} days.` : "Second up from a break.";
+    if (v > 0) return `${lead} It has gone well ${firstUp ? "fresh" : "second up"} before, its runs at this stage of a preparation rate above its class, so the break suits it.${rec}`;
+    if (v < 0) return `${lead} It has not gone well ${firstUp ? "fresh" : "second up"} before, its runs at this stage of a preparation rate below its class, so it may need the run.${rec}`;
+    return `${lead} Its runs at this stage of a preparation are in line with its class, so the break is neither here nor there.${rec}`;
+  }
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;
     const cls = !v ? "" : v > 0 ? "is-up" : "is-down";

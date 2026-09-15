@@ -119,6 +119,8 @@ export interface HorseProfile {
   firstStarter: boolean;
   /** Starts-wins-seconds-thirds strings as printed in a form guide. */
   career?: string;
+  firstUpForm?: string;
+  secondUpForm?: string;
   distanceForm?: string;
   trackForm?: string;
   /** Gear on today, e.g. "Blinkers". */
