@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, unmakeTipster } from "@/app/admin/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
+import { arrivalSource } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
@@ -102,6 +103,9 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <Row k="Last log in" v={stamp(m.last_sign_in_at)} />
           <Row k="Last seen" v={stamp(m.last_seen_at)} />
           <Row k="Source" v={m.source ?? "—"} />
+          <Row k="Came from" v={m.referrer ? <a className="text-blue" href={m.referrer} target="_blank" rel="noreferrer">{arrivalSource(m)}</a> : arrivalSource(m)} />
+          <Row k="Landed on" v={m.landing ?? "—"} />
+          {m.utm && <Row k="Campaign" v={Object.entries(m.utm).map(([k, v]) => `${k} ${v}`).join(", ")} />}
           <Row k="Tips email" v={m.marketing_opt_in ? "on" : "off"} />
           {state !== "active" && (
             <form action={resendInvite.bind(null, m.id)} className="pt-2">

@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { AFF_COOKIE, attributeSignup, codeFromInput } from "@/lib/affiliates";
+import { ARRIVAL_COOKIE, parseArrival } from "@/lib/arrival";
 import { OAUTH_COOKIE, PROVIDERS, type Provider } from "@/lib/social";
 
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -51,7 +52,7 @@ export async function signInWithProvider(provider: Provider, _prev: AuthState, f
   const wanted = safeNext(form.get("next"));
   const next = wanted === "/" && aff ? "/pricing" : wanted;
   if (signup) {
-    const stash = { terms: true, marketing: form.get("marketing") === "on", aff, ref, provider };
+    const stash = { terms: true, marketing: form.get("marketing") === "on", aff, ref, provider, arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) };
     jar.set(OAUTH_COOKIE, JSON.stringify(stash), { maxAge: 600, path: "/", sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
   }
   const supabase = await supabaseServer();
@@ -92,7 +93,15 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   // Someone an affiliate sent lands on the plans once their email is confirmed.
   const wanted = safeNext(form.get("next"));
   const next = wanted === "/" && aff ? "/pricing" : wanted;
-  const meta = { accepted_terms: "true", marketing_opt_in: marketing, full_name: fullName, source: ref ? "invite" : aff ? `affiliate:${aff}` : "signup", ...(ref ? { ref } : {}) };
+  const arrival = parseArrival((await cookies()).get(ARRIVAL_COOKIE)?.value);
+  const meta = {
+    accepted_terms: "true",
+    marketing_opt_in: marketing,
+    full_name: fullName,
+    source: ref ? "invite" : aff ? `affiliate:${aff}` : "signup",
+    ...(ref ? { ref } : {}),
+    ...(arrival ? { landing: arrival.landing, referrer: arrival.referrer ?? null, utm: arrival.utm ?? null } : {}),
+  };
 
   if (ownEmails()) {
     const { data, error } = await supabaseAdmin().auth.admin.generateLink({

@@ -1,5 +1,7 @@
 import "server-only";
 
+import { arrivalSource } from "@/lib/arrival";
+
 import { listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { PLANS, planById } from "@/lib/billing/plans";
@@ -136,7 +138,8 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   };
   const bySource = new Map<string, { signups: number; confirmed: number; paying: number; revenue_cents: number }>();
   for (const m of joined) {
-    const key = (m.source ?? "signup").replace(/^affiliate:/, "affiliate ");
+    // Invites and affiliates name themselves; anyone else is grouped by the site that sent them.
+    const key = m.source?.startsWith("affiliate:") ? m.source.replace(/^affiliate:/, "affiliate ") : m.source === "invite" ? "invite" : arrivalSource(m);
     const cur = bySource.get(key) ?? { signups: 0, confirmed: 0, paying: 0, revenue_cents: 0 };
     cur.signups += 1;
     if (m.confirmed_at) cur.confirmed += 1;

@@ -32,6 +32,10 @@ export interface Member {
   postcode: string | null;
   dob: string | null;
   source: string | null;
+  /** First visit: the page they landed on, the site that sent them, campaign tags. */
+  landing: string | null;
+  referrer: string | null;
+  utm: Record<string, string> | null;
   affiliate_id: string | null;
   created_at: string;
   /** From auth: when the invite went out, when the address was confirmed, last log in. */
@@ -79,7 +83,7 @@ export interface Event {
 }
 
 const MEMBER_COLS =
-  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, affiliate_id, created_at";
+  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, landing, referrer, utm, affiliate_id, created_at";
 
 export async function listMembers(search?: string): Promise<Member[]> {
   let q = supabaseAdmin().from("profiles").select(MEMBER_COLS).order("created_at", { ascending: false }).limit(500);

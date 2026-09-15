@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
+import type { Arrival } from "@/lib/arrival";
 import { OAUTH_COOKIE } from "@/lib/social";
 import { attributeSignup } from "@/lib/affiliates";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -39,7 +40,7 @@ async function finishProviderSignup(userId: string, meta: Record<string, unknown
   const raw = jar.get(OAUTH_COOKIE)?.value;
   if (!raw) return;
   jar.delete(OAUTH_COOKIE);
-  let stash: { terms?: boolean; marketing?: boolean; aff?: string; ref?: string; provider?: string };
+  let stash: { terms?: boolean; marketing?: boolean; aff?: string; ref?: string; provider?: string; arrival?: Arrival };
   try {
     stash = JSON.parse(raw);
   } catch {
@@ -56,6 +57,7 @@ async function finishProviderSignup(userId: string, meta: Record<string, unknown
       marketing_opt_in: Boolean(stash.marketing),
       full_name: prof.full_name || (name ? name.slice(0, 120) : null),
       source: stash.ref ? "invite" : stash.aff ? `affiliate:${stash.aff}` : "google",
+      ...(stash.arrival ? { landing: stash.arrival.landing, referrer: stash.arrival.referrer ?? null, utm: stash.arrival.utm ?? null } : {}),
     })
     .eq("id", userId);
   if (stash.aff) await attributeSignup(userId, stash.aff);
