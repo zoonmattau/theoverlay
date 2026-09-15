@@ -243,7 +243,7 @@ async function Race({ params }: { params: Props["params"] }) {
       ) : open ? (
         <Section id="selections" letter="O" title="Our selections" aside="Live price against our rated price, top four">
           <div className="section-body">
-            <SelectionCards race={race} tipster={tipster && theirs.length ? { name: tipster.name, calls: theirs.map((t) => ({ tabNumber: t.tab_number, side: t.side })) } : undefined} />
+            <SelectionCards race={race} tipster={tipster && theirs.length ? { name: tipster.name, calls: theirs.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) } : undefined} />
           </div>
         </Section>
       ) : (

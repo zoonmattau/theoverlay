@@ -9,8 +9,19 @@ import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
  * Our top four, side by side. Live price against the rated price, one
  * sentence on why, and the four numbers that matter for that runner.
  */
-export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster?: { name: string; calls: { tabNumber: number; side: "back" | "lay" }[] } }) {
-  const theirs = new Map((tipster?.calls ?? []).map((c) => [c.tabNumber, c.side]));
+export interface TipsterCall {
+  tabNumber: number;
+  side: "back" | "lay";
+  price: number;
+  bookie?: string | null;
+  bookiePrice?: number | null;
+  comment?: string | null;
+}
+
+export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster?: { name: string; calls: TipsterCall[] } }) {
+  const theirs = new Map((tipster?.calls ?? []).map((c) => [c.tabNumber, c]));
+  const tip = (c: TipsterCall) =>
+    `${tipster!.name}: ${c.side === "back" ? "Bet" : "Lay"} at ${price(c.price)}${c.bookiePrice ? `, ${price(c.bookiePrice)}${c.bookie ? ` at ${c.bookie}` : ""}` : c.bookie ? ` at ${c.bookie}` : ""}.${c.comment ? ` ${c.comment}` : ""}`;
   const picks = race.runners
     .filter((r): r is PublishedRunner & { rank: number } => r.rank !== null)
     .sort((a, b) => a.rank - b.rank);
@@ -25,7 +36,7 @@ export function SelectionCards({ race, tipster }: { race: PublishedRace; tipster
               <div className="pick-name truncate">
                 {r.tabNumber}. {r.horseName}
                 {theirs.has(r.tabNumber) && (
-                  <span className="tipster-mark ml-1.5" title={`${tipster!.name} ${theirs.get(r.tabNumber) === "back" ? "has backed" : "is laying"} this one`}>
+                  <span className="tipster-mark tip ml-1.5" data-tip={tip(theirs.get(r.tabNumber)!)}>
                     {tipster!.name.trim()[0]?.toUpperCase()}
                   </span>
                 )}
