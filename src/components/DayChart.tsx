@@ -95,7 +95,7 @@ export function DayTable({ series }: { series: Series[] }) {
       <table className="data-table text-xs">
         <thead><tr><th>Day</th>{series.map((s) => <th key={s.key} className="text-right">{s.title}</th>)}</tr></thead>
         <tbody>
-          {series[0].points.map((_, i) => (
+          {series[0].points.map((_, j) => series[0].points.length - 1 - j).map((i) => (
             <tr key={series[0].points[i].date}>
               <td className="nums">{short(series[0].points[i].date)}</td>
               {series.map((s) => <td key={s.key} className="text-right nums">{fmt(s.points[i].value, s.format)}</td>)}

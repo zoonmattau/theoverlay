@@ -51,37 +51,113 @@ export async function attributeSignup(userId: string, code: string | undefined):
     .is("affiliate_id", null);
 }
 
+export interface AffiliateClick {
+  created_at: string;
+  landing: string | null;
+  referrer: string | null;
+  /** "phone" or "desktop", from the user agent. */
+  device: string;
+}
+
+export interface AffiliateMember {
+  id: string;
+  email: string | null;
+  created_at: string;
+  /** paying, trial, lapsed or free. */
+  status: string;
+  plan: string | null;
+  spent_cents: number;
+  last_seen_at: string | null;
+}
+
+export interface AffiliateDay {
+  date: string;
+  clicks: number;
+  signups: number;
+}
+
 export interface AffiliateStats extends Affiliate {
   clicks: number;
+  clicksToday: number;
+  clicks7: number;
   clicks30: number;
+  lastClickAt: string | null;
   signups: number;
+  signups30: number;
+  /** Sign-ups per hundred clicks. */
+  conversion: number;
   paying: number;
   revenue_cents: number;
   commission_cents: number;
+  /** The last 14 days, newest first. */
+  days: AffiliateDay[];
+  /** The last 30 clicks, newest first. */
+  recentClicks: AffiliateClick[];
+  /** Everyone who signed up through the link, newest first. */
+  members: AffiliateMember[];
 }
 
-/** Every affiliate with clicks, sign-ups, paying members and money attributed. */
+const sydneyDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+
+/** Every affiliate with clicks, sign-ups, paying members and money attributed, and the detail behind each number. */
 export async function affiliateStats(): Promise<AffiliateStats[]> {
   const db = supabaseAdmin();
-  const month = new Date(Date.now() - 30 * 86400_000).toISOString();
+  const now = Date.now();
+  const today = sydneyDay(new Date(now).toISOString());
+  const week = new Date(now - 7 * 86400_000).toISOString();
+  const month = new Date(now - 30 * 86400_000).toISOString();
   const [{ data: affs }, { data: clicks }, { data: members }] = await Promise.all([
     db.from("affiliates").select("*").order("created_at", { ascending: false }),
-    db.from("affiliate_clicks").select("affiliate_id, created_at"),
-    db.from("profiles").select("affiliate_id, total_spent_cents, access_until").not("affiliate_id", "is", null),
+    db.from("affiliate_clicks").select("affiliate_id, created_at, landing, referrer, user_agent").order("created_at", { ascending: false }),
+    db
+      .from("profiles")
+      .select("id, email, affiliate_id, total_spent_cents, access_until, subscription_status, plan, created_at, last_seen_at")
+      .not("affiliate_id", "is", null)
+      .order("created_at", { ascending: false }),
   ]);
-  const now = Date.now();
+  const window: string[] = [];
+  for (let i = 0; i < 14; i++) window.push(sydneyDay(new Date(now - i * 86400_000).toISOString()));
+  type Click = { affiliate_id: string; created_at: string; landing: string | null; referrer: string | null; user_agent: string | null };
+  type Member = { id: string; email: string | null; affiliate_id: string; total_spent_cents: number | null; access_until: string | null; subscription_status: string | null; plan: string | null; created_at: string; last_seen_at: string | null };
   return ((affs ?? []) as Affiliate[]).map((a) => {
-    const mine = (clicks ?? []).filter((c) => c.affiliate_id === a.id);
-    const people = (members ?? []).filter((m) => m.affiliate_id === a.id);
+    const mine = ((clicks ?? []) as Click[]).filter((c) => c.affiliate_id === a.id);
+    const people = ((members ?? []) as Member[]).filter((m) => m.affiliate_id === a.id);
     const revenue = people.reduce((s, m) => s + (m.total_spent_cents ?? 0), 0);
+    const live = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now);
+    const status = (m: Member) => (live(m) ? (m.subscription_status === "trialing" ? "trial" : "paying") : m.total_spent_cents ? "lapsed" : "free");
+    const clickDays = new Map<string, number>();
+    const signupDays = new Map<string, number>();
+    for (const c of mine) clickDays.set(sydneyDay(c.created_at), (clickDays.get(sydneyDay(c.created_at)) ?? 0) + 1);
+    for (const m of people) signupDays.set(sydneyDay(m.created_at), (signupDays.get(sydneyDay(m.created_at)) ?? 0) + 1);
     return {
       ...a,
       clicks: mine.length,
+      clicksToday: clickDays.get(today) ?? 0,
+      clicks7: mine.filter((c) => c.created_at >= week).length,
       clicks30: mine.filter((c) => c.created_at >= month).length,
+      lastClickAt: mine[0]?.created_at ?? null,
       signups: people.length,
-      paying: people.filter((m) => m.access_until && new Date(m.access_until).getTime() > now).length,
+      signups30: people.filter((m) => m.created_at >= month).length,
+      conversion: mine.length ? Math.round((people.length / mine.length) * 1000) / 10 : 0,
+      paying: people.filter(live).length,
       revenue_cents: revenue,
       commission_cents: Math.round((revenue * Number(a.commission_pct)) / 100),
+      days: window.map((date) => ({ date, clicks: clickDays.get(date) ?? 0, signups: signupDays.get(date) ?? 0 })),
+      recentClicks: mine.slice(0, 30).map((c) => ({
+        created_at: c.created_at,
+        landing: c.landing,
+        referrer: c.referrer,
+        device: /mobile|iphone|android/i.test(c.user_agent ?? "") ? "phone" : "desktop",
+      })),
+      members: people.map((m) => ({
+        id: m.id,
+        email: m.email,
+        created_at: m.created_at,
+        status: status(m),
+        plan: m.plan,
+        spent_cents: m.total_spent_cents ?? 0,
+        last_seen_at: m.last_seen_at,
+      })),
     };
   });
 }

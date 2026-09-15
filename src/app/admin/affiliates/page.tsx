@@ -23,6 +23,9 @@ export default function Page({ searchParams }: PageProps<"/admin/affiliates">) {
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
+const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
+const day = (ymd: string) => new Date(`${ymd}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };
 
 async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/affiliates">["searchParams"] }) {
   const viewer = await getViewer();
@@ -103,13 +106,61 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 </form>
               </div>
             </div>
-            <div className="mt-3 grid grid-cols-3 md:grid-cols-6 gap-3 text-center text-sm">
-              <Stat n={a.clicks} label="clicks" />
+            <div className="mt-3 grid grid-cols-3 md:grid-cols-5 lg:grid-cols-10 gap-3 text-center text-sm">
+              <Stat n={a.clicksToday} label="clicks today" />
+              <Stat n={a.clicks7} label="clicks, 7d" />
               <Stat n={a.clicks30} label="clicks, 30d" />
+              <Stat n={a.clicks} label="clicks, all" />
               <Stat n={a.signups} label="sign-ups" />
+              <Stat n={a.signups30} label="sign-ups, 30d" />
+              <Stat n={`${a.conversion}%`} label="click to sign-up" />
               <Stat n={a.paying} label="paying now" />
               <Stat n={money(a.revenue_cents)} label="revenue" />
               <Stat n={money(a.commission_cents)} label="commission" />
+            </div>
+            <p className="mt-2 text-xs text-ink-soft">{a.lastClickAt ? `Last click ${when(a.lastClickAt)}.` : "No clicks yet."}</p>
+            <div className="mt-3 grid gap-3 lg:grid-cols-3">
+              <details>
+                <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Last 14 days</summary>
+                <table className="data-table text-xs mt-2">
+                  <thead><tr><th>Day</th><th className="text-right">Clicks</th><th className="text-right">Sign-ups</th></tr></thead>
+                  <tbody>
+                    {a.days.map((d) => (
+                      <tr key={d.date}><td className="nums">{day(d.date)}</td><td className="text-right nums">{d.clicks}</td><td className="text-right nums">{d.signups}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              </details>
+              <details>
+                <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Recent clicks ({a.recentClicks.length})</summary>
+                {a.recentClicks.length === 0 && <p className="mt-2 text-xs text-ink-soft">None yet.</p>}
+                <ul className="mt-2 text-xs divide-y divide-line-soft">
+                  {a.recentClicks.map((c, i) => (
+                    <li key={i} className="py-1 flex flex-wrap gap-x-3">
+                      <span className="nums text-ink-secondary">{when(c.created_at)}</span>
+                      <span>{c.device}</span>
+                      <span className="text-ink-soft truncate">{c.landing ?? "/"}</span>
+                      {c.referrer && <span className="text-ink-soft truncate">from {host(c.referrer)}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+              <details>
+                <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Sign-ups ({a.members.length})</summary>
+                {a.members.length === 0 && <p className="mt-2 text-xs text-ink-soft">None yet.</p>}
+                <ul className="mt-2 text-xs divide-y divide-line-soft">
+                  {a.members.map((m) => (
+                    <li key={m.id} className="py-1 flex flex-wrap items-center gap-x-3">
+                      <span className="nums text-ink-secondary">{when(m.created_at)}</span>
+                      <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue truncate">{m.email ?? m.id}</Link>
+                      <span className={`badge ${m.status === "paying" ? "badge-prime" : m.status === "trial" ? "badge-ok" : "badge-muted"}`}>{m.status}</span>
+                      {m.plan && <span className="text-ink-soft">{m.plan}</span>}
+                      {m.spent_cents > 0 && <span className="nums text-ink-soft">{money(m.spent_cents)}</span>}
+                      {m.last_seen_at && <span className="text-ink-soft">seen {when(m.last_seen_at)}</span>}
+                    </li>
+                  ))}
+                </ul>
+              </details>
             </div>
             <div className="mt-3 grid gap-3 md:grid-cols-2">
               <div>
