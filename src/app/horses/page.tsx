@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { notFound } from "next/navigation";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
@@ -16,6 +17,7 @@ import type { GoingBand } from "@/lib/model/types";
 
 export const metadata: Metadata = {
   title: "Horses",
+  robots: { index: false },
   description: "Every horse we have rated, ranked. Compare any of them, or put them in a race that has not been run and see how we would price it.",
   alternates: { canonical: "/horses" },
 };
@@ -41,6 +43,8 @@ async function Horses({ searchParams }: { searchParams: Params }) {
   await connection();
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   const { date } = await getTodayCard(viewer.admin);
+  // Not launched yet: admins only while it is finished.
+  if (!viewer.admin) notFound();
   const open = hasAccess(viewer, date);
 
   const ids = str(sp.h).split(",").map((s) => s.trim()).filter(Boolean).slice(0, 12);
@@ -193,7 +197,7 @@ async function Horses({ searchParams }: { searchParams: Params }) {
             <p className="text-xs text-ink-soft">Every horse we have rated, from every card we have run. Ratings are in benchmark points. Click a heading to sort{open ? ", a row to add it to the race" : ""}.</p>
           </div>
         </div>
-        <HorsesTable rows={ranked.rows} total={ranked.total} chosen={ids} hrefFor={withHorse} canPick={open} />
+        <HorsesTable rows={ranked.rows} total={ranked.total} chosen={ids} query={{ d: String(distance), g: going, c: String(classPoints) }} canPick={open} />
       </section>
     </>
   );

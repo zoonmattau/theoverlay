@@ -50,8 +50,12 @@ const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateStrin
  * sort, click a row to put the horse in the race. Everything happens in the
  * browser on the rows the server sent.
  */
-export function HorsesTable({ rows, chosen, total, hrefFor, canPick }: { rows: HorseSummary[]; chosen: string[]; total: number; hrefFor: (id: string) => string; canPick: boolean }) {
+export function HorsesTable({ rows, chosen, total, query, canPick }: { rows: HorseSummary[]; chosen: string[]; total: number; /** The current conditions, carried on every link. */ query: Record<string, string>; canPick: boolean }) {
   const router = useRouter();
+  const hrefFor = (id: string) => {
+    const p = new URLSearchParams({ ...query, h: [...chosen.filter((x) => x !== id), id].join(",") });
+    return `/horses?${p}`;
+  };
   const [q, setQ] = useState("");
   const [state, setState] = useState("all");
   const [age, setAge] = useState("all");
