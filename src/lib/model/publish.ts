@@ -74,7 +74,7 @@ export function publishRace(
   const going = goingBand(race.going);
   const { rated, pace } = rateEntries(
     race.entries,
-    { classPoints: points, going, distance: race.distance, track: race.trackName ?? meeting.trackName },
+    { classPoints: points, going, distance: race.distance, track: race.trackName ?? meeting.trackName, date: race.date },
     speedmap,
   );
   const ratedByTab = new Map(rated.map((r) => [r.key, r]));
@@ -167,7 +167,7 @@ export function publishRace(
       signal,
       finishPosition: e.horseResult ? e.horseResult.finishPosition : undefined,
       horse: profileOf(e),
-      runs: runsOf(e, points),
+      runs: runsOf(e, points, race.date),
     };
   });
 
@@ -338,7 +338,7 @@ function profileOf(e: RaceEntry): HorseProfile {
 }
 
 /** The last ten starts, most recent first, plus our points for each. */
-function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
+function runsOf(e: RaceEntry, todayPar: number, asOf?: number): PublishedRun[] {
   return (e.pastEvents ?? [])
     .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
     .sort((a, b) => b.date - a.date)
@@ -359,7 +359,7 @@ function runsOf(e: RaceEntry, todayPar: number): PublishedRun[] {
       last600: p.sectionalTimeInMillis && p.sectionalDistance === 600 ? Math.round(p.sectionalTimeInMillis / 10) / 100 : undefined,
       vsBench: p.benchmark ? Math.round(p.benchmark.vsClass * 10) / 10 : undefined,
       vsBench600: p.benchmark?.sections?.["6-F"]?.vsClass !== undefined ? Math.round(p.benchmark.sections["6-F"]!.vsClass * 10) / 10 : undefined,
-      points: Math.round(runPoints(p, todayPar, e.horse.age) * 10) / 10,
+      points: Math.round(runPoints(p, todayPar, e.horse.age, asOf) * 10) / 10,
       raceKey: p.raceId ?? `${new Date(p.date).toISOString().slice(0, 10)}:${p.track ?? ""}:${p.raceNumber}`,
       raceId: p.raceId,
       meetingId: p.meetingId,

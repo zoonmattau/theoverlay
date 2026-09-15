@@ -105,6 +105,15 @@ export const POINTS_PER_LENGTH = 1.2;
 const MARGIN_WEIGHT = 0.5;
 /** Points above its official rating a run's par may sit, whatever the race was called. */
 const OHR_REACH = 10;
+/**
+ * Points below today's par a run as a two-year-old starts from, before the
+ * clock moves it. Zero: the benchmark is already the horse's time against
+ * that race's standard, and scripts/sweep-juvenile.ts over the resulted
+ * races in the cache had every extra point costing accuracy (at 15, form
+ * saw 212 winners from juvenile-form runners where 230 won). Sweepable from
+ * the env.
+ */
+const JUVENILE_DROP = Number(process.env.OVERLAY_JUVENILE_DROP ?? 0);
 /** Weight on a benchmark built from overall time alone, no sectionals. */
 const TIME_ONLY_WEIGHT = 0.5;
 /** Recency weights over the last runs, most recent first. */
@@ -121,6 +130,8 @@ export interface RaceContext {
   going: GoingBand;
   distance: number;
   track?: string;
+  /** When the race is run, millis, so a replayed race counts birthdays to its own day. */
+  date?: number;
 }
 
 /** How much of each category's gap to class makes it into Today. */
@@ -174,7 +185,7 @@ export function rateEntries(
       distance: WEIGHTS.distance * (r.distance - r.class),
       track: WEIGHTS.track * (r.track - r.class),
       weight: weightFactor(e),
-      fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age)),
+      fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age, race.date)),
       jockey: clamp(((e.jockeyForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.06, -CAP.jockey, CAP.jockey),
       trainer: clamp(((e.trainerForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.04, -CAP.trainer, CAP.trainer),
       barrier: barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, mapOf(ppir, n, coLeaders), race.distance),
@@ -222,7 +233,7 @@ function rateOne(
     };
   }
 
-  const points = runs.map((r) => runPoints(r, race.classPoints, e.horse.age));
+  const points = runs.map((r) => runPoints(r, race.classPoints, e.horse.age, race.date));
   const weighted =
     points.reduce((a, p, i) => a + p * RUN_WEIGHTS[i], 0) /
     RUN_WEIGHTS.slice(0, points.length).reduce((a, b) => a + b, 0);
@@ -242,7 +253,7 @@ function rateOne(
   };
 
   const subset = (keep: (r: PastEvent) => boolean) => {
-    const ps = runs.filter(keep).map((r) => runPoints(r, race.classPoints, e.horse.age));
+    const ps = runs.filter(keep).map((r) => runPoints(r, race.classPoints, e.horse.age, race.date));
     return (ps.reduce((a, b) => a + b, 0) + cls * SHRINK) / (ps.length + SHRINK);
   };
 
@@ -286,7 +297,7 @@ export const isJumps = (raceName?: string) => /\b(stpl|steeple|steeplechase|hdle
  * time performance in lengths vs the class benchmark moves it up or down.
  * The result itself never adds points.
  */
-export function runPoints(r: PastEvent, todayPar: number, ageNow?: number): number {
+export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?: number): number {
   // Today's race is the prior for the level a horse races at: an official
   // rating is trusted only within reach of it, an unparsed race name means par.
   // A jumper's BM120 or a horse dropping from a much stronger grade says
@@ -294,15 +305,15 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number): numb
   const ohr = r.benchmarkRating && r.benchmarkRating > 0 ? r.benchmarkRating : undefined;
   // Two-year-old races are their own world: a "2YO Open" or a juvenile
   // Listed race says nothing about open benchmark company, so the race name
-  // is ignored and the run starts at the bottom of today's range, lifted
-  // only by an official rating and never above today's par.
-  const juvenile = wasJuvenile(r, ageNow);
+  // is ignored and the run's par never sits above today's. The clock still
+  // counts in full: the benchmark is the time against that race's standard.
+  const juvenile = wasJuvenile(r, ageNow, asOf);
   // "Open Hcp" at a bush track is not open company: without an explicit
   // benchmark, class, group or listed tag the run can only sit a little
   // above today's par.
   const explicit = EXPLICIT_CLASS.test(r.raceName ?? "");
   const reach = juvenile ? 0 : !explicit ? 8 : todayPar <= 55 ? 12 : 25;
-  const level = juvenile ? (ohr ?? todayPar - 15) : (parseClass(r.raceName) ?? ohr ?? todayPar);
+  const level = juvenile ? (ohr ?? todayPar - JUVENILE_DROP) : (parseClass(r.raceName) ?? ohr ?? todayPar);
   // The official rating caps how far a race's label can flatter the run: a
   // 45-rated horse beating four at Cobar in an "Open Hcp" ran in a 45 race.
   const ceiling = Math.min(todayPar + reach, ohr !== undefined ? ohr + OHR_REACH : Infinity);
@@ -321,13 +332,14 @@ const EXPLICIT_CLASS = /bm\s?\d|benchmark|class\s?\d|\bcl\s?\d|group\s?\d|\bg[12
 
 /**
  * Whether the horse was two when it ran: the race name says so, or its age
- * now minus the 1 August birthdays since the run leaves it at two or under.
+ * as of today's race minus the 1 August birthdays since the run leaves it at
+ * two or under.
  */
-export function wasJuvenile(r: PastEvent, ageNow?: number): boolean {
+export function wasJuvenile(r: PastEvent, ageNow?: number, asOf?: number): boolean {
   if (/\b2\s?yo?\b|two[- ]year/i.test(r.raceName ?? "")) return true;
   if (!ageNow) return false;
   const run = new Date(r.date);
-  const now = new Date();
+  const now = asOf ? new Date(asOf) : new Date();
   let birthdays = 0;
   for (let y = run.getFullYear(); y <= now.getFullYear(); y++) {
     const aug = new Date(Date.UTC(y, 7, 1));
