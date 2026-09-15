@@ -4,13 +4,17 @@ import type { MeetingSummary, RaceEntry, RaceSummary } from "@/lib/formking/type
 import { supabaseAdmin } from "@/lib/billing/access";
 import { classPoints, goingBand, rateEntries } from "./ratings";
 import { publishRace } from "./publish";
-import type { GoingBand, PublishedRace } from "./types";
+import type { GoingBand, PublishedRace, RunnerRatings } from "./types";
 
 /** A horse as the store holds it: the entry we rated it on, and where it was last seen. */
+/** The category ratings kept on the row: everything but the day-specific parts. */
+export type HorseRatings = Pick<RunnerRatings, "class" | "early" | "mid" | "late" | "pressure" | "tempo" | "going" | "runs">;
+
 export interface StoredHorse {
   id: string;
   name: string;
   entry: RaceEntry;
+  ratings: HorseRatings | null;
   class: number | null;
   age: number | null;
   state: string | null;
@@ -50,6 +54,7 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
         id,
         name: e.horse.name,
         entry: trim(e),
+        ratings: g && g.runs > 0 ? { class: g.class, early: g.early, mid: g.mid, late: g.late, pressure: g.pressure, tempo: g.tempo, going: g.going, runs: g.runs } : null,
         class: g && g.runs > 0 ? g.class : null,
         age: e.horse.age ?? null,
         state: meeting.state ?? null,
@@ -74,15 +79,16 @@ export interface HorseSummary {
   id: string;
   name: string;
   class: number | null;
+  ratings: HorseRatings | null;
   age: number | null;
   state: string | null;
   lastTrack: string | null;
   lastSeen: string;
 }
-const SUMMARY = "id, name, class, age, state, last_track, last_seen";
+const SUMMARY = "id, name, class, ratings, age, state, last_track, last_seen";
 const summary = (r: Record<string, unknown>): HorseSummary => ({
-  id: String(r.id), name: String(r.name), class: r.class === null ? null : Number(r.class), age: r.age === null ? null : Number(r.age),
-  state: (r.state as string | null) ?? null, lastTrack: (r.last_track as string | null) ?? null, lastSeen: String(r.last_seen),
+  id: String(r.id), name: String(r.name), class: r.class === null ? null : Number(r.class), ratings: (r.ratings as HorseRatings | null) ?? null,
+  age: r.age === null ? null : Number(r.age), state: (r.state as string | null) ?? null, lastTrack: (r.last_track as string | null) ?? null, lastSeen: String(r.last_seen),
 });
 
 /** Horses whose name contains the query, best rated first. */
@@ -101,13 +107,9 @@ async function getHorses(ids: string[]): Promise<StoredHorse[]> {
   return ids.map((id) => byId.get(id)).filter((h): h is StoredHorse => Boolean(h));
 }
 
-/** The power rankings: every horse we hold with a rating, best first, with optional filters. */
-export async function rankHorses(opts: { state?: string; minAge?: number; maxAge?: number; limit?: number; offset?: number } = {}): Promise<{ rows: HorseSummary[]; total: number }> {
-  let q = supabaseAdmin().from("horses").select(SUMMARY, { count: "exact" }).not("class", "is", null).order("class", { ascending: false }).order("name");
-  if (opts.state) q = q.eq("state", opts.state);
-  if (opts.minAge) q = q.gte("age", opts.minAge);
-  if (opts.maxAge) q = q.lte("age", opts.maxAge);
-  const { data, count } = await q.range(opts.offset ?? 0, (opts.offset ?? 0) + (opts.limit ?? 50) - 1);
+/** The power rankings: the best-rated horses we hold, enough for the page to sort and filter on its own. */
+export async function rankHorses(limit = 1000): Promise<{ rows: HorseSummary[]; total: number }> {
+  const { data, count } = await supabaseAdmin().from("horses").select(SUMMARY, { count: "exact" }).not("class", "is", null).order("class", { ascending: false }).order("name").limit(limit);
   return { rows: (data ?? []).map((r) => summary(r as Record<string, unknown>)), total: count ?? 0 };
 }
 

@@ -4,12 +4,13 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { FormWorm } from "@/components/FormWorm";
+import { HorsesTable } from "@/components/HorsesTable";
 import { PaceGrid } from "@/components/PaceGrid";
 import { RatingsTable } from "@/components/RatingsTable";
 import { MAP_LABEL } from "@/components/Ratings";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { percent, price } from "@/lib/format";
-import { priceFantasy, rankHorses, searchHorses, type HorseSummary } from "@/lib/model/horses";
+import { priceFantasy, rankHorses, searchHorses } from "@/lib/model/horses";
 import { getTodayCard } from "@/lib/model/source";
 import type { GoingBand } from "@/lib/model/types";
 
@@ -33,7 +34,6 @@ export default function Page({ searchParams }: { searchParams: Params }) {
 
 const DISTANCES = [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1800, 2000, 2400, 3200];
 const CLASSES: [string, number][] = [["Maiden", 52], ["Class 1", 58], ["Bm64", 64], ["Bm70", 70], ["Bm78", 78], ["Bm88", 88], ["Open", 90], ["Listed", 96], ["Group 3", 104], ["Group 2", 112], ["Group 1", 122]];
-const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 
 const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "");
 
@@ -48,19 +48,17 @@ async function Horses({ searchParams }: { searchParams: Params }) {
   const distance = DISTANCES.includes(Number(sp.d)) ? Number(sp.d) : 1200;
   const going: GoingBand = sp.g === "soft" || sp.g === "heavy" ? sp.g : "good";
   const classPoints = CLASSES.some(([, p]) => p === Number(sp.c)) ? Number(sp.c) : 70;
-  const state = STATES.includes(str(sp.s)) ? str(sp.s) : undefined;
-  const page = Math.max(1, Number(sp.p) || 1);
 
   // The chosen horses, priced as a race on the chosen conditions. The same
   // numbers serve the comparison and the fantasy market.
   const race = open && ids.length >= 2 ? await priceFantasy(ids, { distance, going, classPoints }) : undefined;
   const hits = q ? await searchHorses(q) : [];
-  const ranked = ids.length === 0 || !open ? await rankHorses({ state, limit: 50, offset: (page - 1) * 50 }) : undefined;
+  const ranked = await rankHorses(1000);
 
   // Links that keep the rest of the query.
   const href = (over: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
-    const all = { h: ids.join(","), q, d: String(distance), g: going, c: String(classPoints), s: state ?? "", ...over };
+    const all = { h: ids.join(","), q, d: String(distance), g: going, c: String(classPoints), ...over };
     for (const [k, v] of Object.entries(all)) if (v) p.set(k, v);
     return `/horses${p.size ? `?${p}` : ""}`;
   };
@@ -188,50 +186,15 @@ async function Horses({ searchParams }: { searchParams: Params }) {
         </section>
       )}
 
-      {ranked && (
-        <section>
-          <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
-            <div>
-              <h2 className="font-display text-2xl font-extrabold tracking-tight">Power rankings</h2>
-              <p className="text-xs text-ink-soft">{ranked.total.toLocaleString("en-AU")} horses with a class rating, from every card we have run. Class is in benchmark points.</p>
-            </div>
-            <div className="flex flex-wrap gap-1 text-xs">
-              <Link href={href({ s: "", p: "" })} className={`btn btn-sm ${state ? "btn-secondary" : "btn-primary"}`}>All</Link>
-              {STATES.map((s) => <Link key={s} href={href({ s, p: "" })} className={`btn btn-sm ${state === s ? "btn-primary" : "btn-secondary"}`}>{s}</Link>)}
-            </div>
+      <section>
+        <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
+          <div>
+            <h2 className="font-display text-2xl font-extrabold tracking-tight">Power rankings</h2>
+            <p className="text-xs text-ink-soft">Every horse we have rated, from every card we have run. Ratings are in benchmark points. Click a heading to sort{open ? ", a row to add it to the race" : ""}.</p>
           </div>
-          <div className="section">
-            <div className="overflow-x-auto">
-              <table className="data-table text-sm">
-                <thead><tr><th>#</th><th>Horse</th><th className="text-right">Class</th><th className="text-right">Age</th><th>Last seen</th><th></th></tr></thead>
-                <tbody>
-                  {ranked.rows.map((h, i) => <RankRow key={h.id} h={h} n={(page - 1) * 50 + i + 1} href={open ? withHorse(h.id) : undefined} chosen={ids.includes(h.id)} />)}
-                </tbody>
-              </table>
-            </div>
-            <div className="flex items-center justify-between px-4 py-3 text-xs text-ink-soft">
-              <span>Page {page} of {Math.max(1, Math.ceil(ranked.total / 50))}</span>
-              <span className="flex gap-2">
-                {page > 1 && <Link href={href({ p: String(page - 1) })} className="hover:text-ink">← Newer</Link>}
-                {page * 50 < ranked.total && <Link href={href({ p: String(page + 1) })} className="hover:text-ink">Next 50 →</Link>}
-              </span>
-            </div>
-          </div>
-        </section>
-      )}
+        </div>
+        <HorsesTable rows={ranked.rows} total={ranked.total} chosen={ids} hrefFor={withHorse} canPick={open} />
+      </section>
     </>
-  );
-}
-
-function RankRow({ h, n, href, chosen }: { h: HorseSummary; n: number; href?: string; chosen: boolean }) {
-  return (
-    <tr>
-      <td className="nums text-ink-soft">{n}</td>
-      <td className="font-semibold">{h.name}</td>
-      <td className="text-right nums">{h.class?.toFixed(1)}</td>
-      <td className="text-right nums">{h.age ?? "—"}</td>
-      <td className="text-ink-secondary text-xs">{h.lastTrack ?? "—"}, {new Date(`${h.lastSeen}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" })}</td>
-      <td className="text-right">{href ? (chosen ? <span className="badge badge-prime">In</span> : <Link href={href} className="btn btn-secondary btn-sm">Add</Link>) : null}</td>
-    </tr>
   );
 }
