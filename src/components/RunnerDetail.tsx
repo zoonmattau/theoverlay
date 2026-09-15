@@ -81,7 +81,6 @@ function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
 export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedRace }) {
   const h = r.horse;
   const runs = r.runs ?? [];
-  const metAny = runs.some((x) => x.met?.length);
   const avg = fieldAverage(race);
   const g = r.ratings;
   const tile = (label: string, value: number, what: string) => {
@@ -121,7 +120,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
       </div>
 
       <div className="runner-detail-col runner-detail-runs">
-        <h4>Last {runs.length || ""} runs{metAny ? ", with today's rivals marked" : ""}</h4>
+        <h4>Last {runs.length || ""} runs</h4>
         {runs.length === 0 ? (
           <p className="text-xs text-ink-soft">No starts yet.</p>
         ) : (
