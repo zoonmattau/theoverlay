@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { MAP_LABEL } from "./Ratings";
 import type { MapPosition, PublishedRace, PublishedRunner } from "@/lib/model/types";
@@ -14,13 +14,21 @@ const COLUMNS: MapPosition[] = ["back", "midfield", "on pace", "leader"];
  */
 export function MapHover({ race, runner, children, className = "" }: { race: PublishedRace; runner: PublishedRunner; children: React.ReactNode; className?: string }) {
   const [open, setOpen] = useState(false);
+  const [flip, setFlip] = useState(false);
+  const ref = useRef<HTMLSpanElement>(null);
+  const show = () => {
+    // Open to the left when there is no room on the right.
+    const box = ref.current?.getBoundingClientRect();
+    setFlip(Boolean(box && box.left + 280 > window.innerWidth));
+    setOpen(true);
+  };
   const live = race.runners.filter((r) => !r.scratched);
   const columns = COLUMNS.map((col) => ({ col, group: live.filter((r) => r.ratings.map === col).sort((a, b) => b.barrier - a.barrier) }));
   return (
-    <span className={`map-hover ${className}`} onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+    <span ref={ref} className={`map-hover ${className}`} onMouseEnter={show} onMouseLeave={() => setOpen(false)}>
       {children}
       {open && (
-        <span className="map-pop" role="tooltip">
+        <span className={`map-pop ${flip ? "is-left" : ""}`} role="tooltip">
           <span className="map-pop-title">{runner.tabNumber}. {runner.horseName} settles {MAP_LABEL[runner.ratings.map].toLowerCase()}</span>
           <span className="map-pop-field">
             {columns.map(({ col, group }) => (

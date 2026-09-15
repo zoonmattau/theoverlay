@@ -694,6 +694,10 @@ body {
   cursor: default;
   white-space: normal;
 }
+.map-pop.is-left {
+  left: auto;
+  right: 0;
+}
 .map-pop-title {
   font-weight: 700;
   color: var(--color-ink);

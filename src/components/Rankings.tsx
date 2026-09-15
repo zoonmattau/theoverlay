@@ -22,7 +22,7 @@ export const METRICS: Metric[] = [
   { key: "mid", label: "Mid", help: "Rating through the middle sections.", pick: (r) => r.mid },
   { key: "late", label: "Late", help: "Rating over the last 600m, the closing sectional.", pick: (r) => r.late },
   { key: "pressure", label: "Pressure", help: "Late rating in races run at a hot early tempo.", pick: (r) => r.pressure },
-  { key: "tempo", label: "Tempo", help: "Rating off the tempo the map predicts for this race.", pick: (r, race) => (race.pace.tempo === "slow" ? r.tempo.slow : r.tempo.fast) },
+  { key: "tempo", label: "Tempo", help: "Rating off the tempo the map predicts for this race; an even race takes the middle of its fast and slow ratings.", pick: (r, race) => (race.pace.tempo === "slow" ? r.tempo.slow : race.pace.tempo === "fast" ? r.tempo.fast : (r.tempo.fast + r.tempo.slow) / 2) },
   { key: "going", label: "Going", help: "Rating on today's ground.", pick: (r, race) => r.going[race.going] },
   { key: "distance", label: "Distance", help: "Rating in runs within 200m of today's trip.", pick: (r) => r.distance },
   { key: "track", label: "Track", help: "Rating in runs at this track.", pick: (r) => r.track },

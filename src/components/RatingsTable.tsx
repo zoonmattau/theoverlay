@@ -26,7 +26,8 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
     .filter((r) => !r.scratched)
     .sort((a, b) => b.ratings.today - a.ratings.today);
 
-  const tempoKey = race.pace.tempo === "slow" ? "slow" : "fast";
+  const tempo = race.pace.tempo;
+  const tempoOf = (g: { tempo: { fast: number; slow: number } }) => (tempo === "slow" ? g.tempo.slow : tempo === "fast" ? g.tempo.fast : (g.tempo.fast + g.tempo.slow) / 2);
 
   return (
     <div className={bare ? "" : "card p-0 overflow-hidden"}>
@@ -48,7 +49,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
               <th className="text-right">Mid</th>
               <th className="text-right">Late</th>
               <th className="text-right">Press</th>
-              <th className="text-right">{tempoKey} tempo</th>
+              <th className="text-right">{tempo === "even" ? "Tempo" : `${tempo} tempo`}</th>
               <th className="text-right">{race.going}</th>
               <th className="text-right">Dist</th>
               <th className="text-right">Track</th>
@@ -74,7 +75,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
                   <Cell value={g.mid} par={par} />
                   <Cell value={g.late} par={par} />
                   <Cell value={g.pressure} par={par} />
-                  <Cell value={g.tempo[tempoKey]} par={par} />
+                  <Cell value={tempoOf(g)} par={par} />
                   <Cell value={g.going[race.going]} par={par} />
                   <Cell value={g.distance} par={par} />
                   <Cell value={g.track} par={par} />
