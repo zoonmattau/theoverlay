@@ -52,7 +52,9 @@ export async function createAffiliate(form: FormData): Promise<void> {
     invited = await sendEmail(email, EMAILS.invitedAffiliate(link, name, code));
   }
 
-  const { error } = await db.from("affiliates").insert({ code, name, email, commission_pct: pct, user_id: userId });
+  const { data: made, error } = await db.from("affiliates").insert({ code, name, email, commission_pct: pct, user_id: userId }).select("id").maybeSingle();
+  // A tipster follows themselves, so their own calls are marked for them like anyone's.
+  if (made && userId) await db.from("follows").upsert({ user_id: userId, tipster_id: made.id }, { onConflict: "user_id,tipster_id" });
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "affiliate_create", code, name, email, invited, error: error?.message, by: admin.email } });
   revalidatePath("/admin/affiliates");
   revalidatePath("/admin/members");

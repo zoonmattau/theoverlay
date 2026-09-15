@@ -225,12 +225,17 @@ export async function makeTipster(userId: string, form: FormData): Promise<void>
   if (!name || !code) return;
   const { data: existing } = await db.from("affiliates").select("id, user_id").eq("code", code).maybeSingle();
   let error: string | undefined;
+  let tipsterId = existing?.id as string | undefined;
   if (existing) {
     if (existing.user_id && existing.user_id !== userId) return;
     error = (await db.from("affiliates").update({ user_id: userId, active: true }).eq("id", existing.id)).error?.message;
   } else {
-    error = (await db.from("affiliates").insert({ code, name, email: m.email, commission_pct: 40, user_id: userId })).error?.message;
+    const { data: made, error: insertError } = await db.from("affiliates").insert({ code, name, email: m.email, commission_pct: 40, user_id: userId }).select("id").maybeSingle();
+    error = insertError?.message;
+    tipsterId = made?.id;
   }
+  // A tipster follows themselves, so their own calls are marked for them like anyone's.
+  if (tipsterId) await db.from("follows").upsert({ user_id: userId, tipster_id: tipsterId }, { onConflict: "user_id,tipster_id" });
   await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: "make_tipster", code, name, error, by: admin.email } });
   revalidatePath(`/admin/${userId}`);
   revalidatePath("/admin");
