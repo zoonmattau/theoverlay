@@ -1,6 +1,22 @@
 import { RankChip } from "./Badge";
-import { MAP_LABEL, Points } from "./Ratings";
+import { MAP_LABEL } from "./Ratings";
 import type { PublishedRace } from "@/lib/model/types";
+
+/**
+ * A cell on the red-to-green scale: red well below par, white at par, green
+ * well above, six points either side being the ends of the scale.
+ */
+function Cell({ value, par, strong }: { value: number; par: number; strong?: boolean }) {
+  const t = Math.max(-1, Math.min(1, (value - par) / 6));
+  // Red 217,54,54 through white to green 111,154,18, mixed as a tint so the number stays readable.
+  const alpha = Math.abs(t) * 0.55;
+  const background = t < 0 ? `rgba(217, 54, 54, ${alpha})` : `rgba(111, 154, 18, ${alpha})`;
+  return (
+    <td className={`text-right nums ${strong ? "font-semibold" : ""}`} style={{ background }} title={`${value >= par ? "+" : ""}${(value - par).toFixed(1)} against par`}>
+      {value.toFixed(1)}
+    </td>
+  );
+}
 
 /** Every runner's category ratings, ranked on today's number. */
 export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boolean }) {
@@ -51,16 +67,16 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
                       <span className="font-medium truncate">{r.horseName}</span>
                     </div>
                   </td>
-                  <td className="text-right"><Points value={g.today} par={par} strong /></td>
-                  <td className="text-right"><Points value={g.class} par={par} /></td>
-                  <td className="text-right"><Points value={g.early} par={par} /></td>
-                  <td className="text-right"><Points value={g.mid} par={par} /></td>
-                  <td className="text-right"><Points value={g.late} par={par} /></td>
-                  <td className="text-right"><Points value={g.pressure} par={par} /></td>
-                  <td className="text-right"><Points value={g.tempo[tempoKey]} par={par} /></td>
-                  <td className="text-right"><Points value={g.going[race.going]} par={par} /></td>
-                  <td className="text-right"><Points value={g.distance} par={par} /></td>
-                  <td className="text-right"><Points value={g.track} par={par} /></td>
+                  <Cell value={g.today} par={par} strong />
+                  <Cell value={g.class} par={par} />
+                  <Cell value={g.early} par={par} />
+                  <Cell value={g.mid} par={par} />
+                  <Cell value={g.late} par={par} />
+                  <Cell value={g.pressure} par={par} />
+                  <Cell value={g.tempo[tempoKey]} par={par} />
+                  <Cell value={g.going[race.going]} par={par} />
+                  <Cell value={g.distance} par={par} />
+                  <Cell value={g.track} par={par} />
                   <td className="text-xs text-ink-secondary whitespace-nowrap">
                     {MAP_LABEL[g.map]}
                   </td>
@@ -72,7 +88,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
         </table>
       </div>
       <p className="border-t border-line bg-bg-soft px-4 py-2 text-xs text-ink-soft">
-        Ratings are in benchmark points on the same scale as the race class, so a 70 in a BM66 race is above par.
+        Ratings are in benchmark points on the same scale as the race class. Green is above par, red below, deeper the further from it.
       </p>
     </div>
   );
