@@ -35,8 +35,10 @@ export interface MoneyReport {
   totals: PlanFunnel;
   /** Estimated monthly recurring revenue from active subscriptions, cents. */
   mrr_cents: number;
+  /** Accounts made in the window, and how many confirmed their email. */
+  signups: { made: number; confirmed: number; trials: number; paying: number };
   /** Sign-ups in the window by where they came from. */
-  sources: { source: string; signups: number; paying: number; revenue_cents: number }[];
+  sources: { source: string; signups: number; confirmed: number; paying: number; revenue_cents: number }[];
   /** Bookie clicks in the window. */
   bookies: { bookie: string; clicks: number }[];
   /** Trial outcomes for trials that began in the window and have had time to end. */
@@ -125,12 +127,20 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const mrr_cents = live.reduce((a, m) => a + (planById(m.plan ?? undefined)?.price ?? 0) * 100, 0);
 
   const joined = members.filter((m) => m.created_at >= since);
-  const bySource = new Map<string, { signups: number; paying: number; revenue_cents: number }>();
+  const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && m.subscription_status === "active");
+  const signups = {
+    made: joined.length,
+    confirmed: joined.filter((m) => m.confirmed_at).length,
+    trials: joined.filter((m) => m.subscribed_since).length,
+    paying: joined.filter(paying).length,
+  };
+  const bySource = new Map<string, { signups: number; confirmed: number; paying: number; revenue_cents: number }>();
   for (const m of joined) {
     const key = (m.source ?? "signup").replace(/^affiliate:/, "affiliate ");
-    const cur = bySource.get(key) ?? { signups: 0, paying: 0, revenue_cents: 0 };
+    const cur = bySource.get(key) ?? { signups: 0, confirmed: 0, paying: 0, revenue_cents: 0 };
     cur.signups += 1;
-    if (m.access_until && new Date(m.access_until).getTime() > now && m.subscription_status === "active") cur.paying += 1;
+    if (m.confirmed_at) cur.confirmed += 1;
+    if (paying(m)) cur.paying += 1;
     cur.revenue_cents += m.total_spent_cents ?? 0;
     bySource.set(key, cur);
   }
@@ -169,5 +179,5 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     .slice(0, 50)
     .map((e) => ({ at: e.created_at, kind: e.kind, plan: e.plan, who: e.user_id ? (names.get(e.user_id) ?? "a member") : "a visitor", anonymous: !e.user_id }));
 
-  return { days, plans, totals, mrr_cents, sources, bookies, trials, byDay, byHour, byWeekday, recent };
+  return { days, plans, totals, mrr_cents, signups, sources, bookies, trials, byDay, byHour, byWeekday, recent };
 }

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { listMembers } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 
 /** The cookie that remembers which affiliate sent someone, 90 days. */
@@ -63,7 +64,9 @@ export interface AffiliateMember {
   id: string;
   email: string | null;
   created_at: string;
-  /** paying, trial, lapsed or free. */
+  /** When they confirmed their email, null if they never did. */
+  confirmed_at: string | null;
+  /** unconfirmed, free, trial, paying or lapsed. */
   status: string;
   plan: string | null;
   spent_cents: number;
@@ -84,7 +87,9 @@ export interface AffiliateStats extends Affiliate {
   lastClickAt: string | null;
   signups: number;
   signups30: number;
-  /** Sign-ups per hundred clicks. */
+  /** Sign-ups that confirmed their email. */
+  confirmed: number;
+  /** Confirmed sign-ups per hundred clicks. */
   conversion: number;
   paying: number;
   revenue_cents: number;
@@ -106,25 +111,23 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
   const today = sydneyDay(new Date(now).toISOString());
   const week = new Date(now - 7 * 86400_000).toISOString();
   const month = new Date(now - 30 * 86400_000).toISOString();
-  const [{ data: affs }, { data: clicks }, { data: members }] = await Promise.all([
+  const [{ data: affs }, { data: clicks }, everyone] = await Promise.all([
     db.from("affiliates").select("*").order("created_at", { ascending: false }),
     db.from("affiliate_clicks").select("affiliate_id, created_at, landing, referrer, user_agent").order("created_at", { ascending: false }),
-    db
-      .from("profiles")
-      .select("id, email, affiliate_id, total_spent_cents, access_until, subscription_status, plan, created_at, last_seen_at")
-      .not("affiliate_id", "is", null)
-      .order("created_at", { ascending: false }),
+    listMembers(),
   ]);
+  const members = everyone.filter((m) => m.affiliate_id);
   const window: string[] = [];
   for (let i = 0; i < 14; i++) window.push(sydneyDay(new Date(now - i * 86400_000).toISOString()));
   type Click = { affiliate_id: string; created_at: string; landing: string | null; referrer: string | null; user_agent: string | null };
-  type Member = { id: string; email: string | null; affiliate_id: string; total_spent_cents: number | null; access_until: string | null; subscription_status: string | null; plan: string | null; created_at: string; last_seen_at: string | null };
+  type Member = (typeof members)[number];
   return ((affs ?? []) as Affiliate[]).map((a) => {
     const mine = ((clicks ?? []) as Click[]).filter((c) => c.affiliate_id === a.id);
-    const people = ((members ?? []) as Member[]).filter((m) => m.affiliate_id === a.id);
+    const people = members.filter((m) => m.affiliate_id === a.id);
     const revenue = people.reduce((s, m) => s + (m.total_spent_cents ?? 0), 0);
     const live = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now);
-    const status = (m: Member) => (live(m) ? (m.subscription_status === "trialing" ? "trial" : "paying") : m.total_spent_cents ? "lapsed" : "free");
+    const status = (m: Member) => (!m.confirmed_at ? "unconfirmed" : live(m) ? (m.subscription_status === "trialing" ? "trial" : "paying") : m.total_spent_cents ? "lapsed" : "free");
+    const confirmed = people.filter((m) => m.confirmed_at);
     const clickDays = new Map<string, number>();
     const signupDays = new Map<string, number>();
     for (const c of mine) clickDays.set(sydneyDay(c.created_at), (clickDays.get(sydneyDay(c.created_at)) ?? 0) + 1);
@@ -138,7 +141,8 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
       lastClickAt: mine[0]?.created_at ?? null,
       signups: people.length,
       signups30: people.filter((m) => m.created_at >= month).length,
-      conversion: mine.length ? Math.round((people.length / mine.length) * 1000) / 10 : 0,
+      confirmed: confirmed.length,
+      conversion: mine.length ? Math.round((confirmed.length / mine.length) * 1000) / 10 : 0,
       paying: people.filter(live).length,
       revenue_cents: revenue,
       commission_cents: Math.round((revenue * Number(a.commission_pct)) / 100),
@@ -153,6 +157,7 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
         id: m.id,
         email: m.email,
         created_at: m.created_at,
+        confirmed_at: m.confirmed_at ?? null,
         status: status(m),
         plan: m.plan,
         spent_cents: m.total_spent_cents ?? 0,

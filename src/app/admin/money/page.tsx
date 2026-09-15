@@ -48,13 +48,26 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </div>
       </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
         <Tile n={money(r.mrr_cents)} label="monthly recurring" tone="bet" />
         <Tile n={money(t.revenue_cents)} label={`paid, ${n} days`} tone="bet" />
+        <Tile n={r.signups.made} label="accounts made" />
+        <Tile n={r.signups.confirmed} label="confirmed email" />
         <Tile n={t.clicks} label="plan clicks" />
         <Tile n={t.starts} label="trials and passes" />
         <Tile n={t.paid} label="paid" tone="prime" />
         <Tile n={t.cancelled} label="cancelled" />
+      </div>
+
+      <div className="card mb-6">
+        <h2 className="font-display font-extrabold">New accounts</h2>
+        <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the window, and how far they got.</p>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
+          <Step n={r.signups.made} label="signed up" />
+          <Step n={r.signups.confirmed} label="confirmed email" of={r.signups.made} />
+          <Step n={r.signups.trials} label="started a plan" of={r.signups.confirmed} />
+          <Step n={r.signups.paying} label="paying now" of={r.signups.trials} />
+        </div>
       </div>
 
       <div className="section mb-6">
@@ -139,7 +152,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           {r.sources.map((s) => (
             <div key={s.source} className="panel-row">
               <span>{s.source}</span>
-              <span className="nums text-ink-secondary">{s.signups} {s.signups === 1 ? "sign-up" : "sign-ups"}, {s.paying} paying, {money(s.revenue_cents)}</span>
+              <span className="nums text-ink-secondary">{s.signups} {s.signups === 1 ? "sign-up" : "sign-ups"}, {s.confirmed} confirmed, {s.paying} paying, {money(s.revenue_cents)}</span>
             </div>
           ))}
         </div>
@@ -177,6 +190,17 @@ function Bars({ title, values, labels }: { title: string; values: number[]; labe
         ))}
       </div>
     </figure>
+  );
+}
+
+/** One step of the account funnel: the count, and the share of the step before. */
+function Step({ n, label, of }: { n: number; label: string; of?: number }) {
+  return (
+    <div className="rounded-md bg-panel-alt py-3">
+      <div className="font-display text-2xl font-extrabold nums">{n}</div>
+      <div className="text-[10px] uppercase tracking-[0.06em] text-ink-soft font-bold">{label}</div>
+      {of !== undefined && <div className="nums text-xs text-ink-secondary mt-0.5">{of ? `${Math.round((n / of) * 100)}% of the step before` : "—"}</div>}
+    </div>
   );
 }
 

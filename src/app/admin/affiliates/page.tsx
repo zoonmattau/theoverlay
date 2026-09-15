@@ -84,7 +84,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
           <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={40} className="field-input w-24" /></label>
           <button className="btn btn-primary btn-sm" type="submit">Create</button>
         </form>
-        <p className="mt-2 text-xs text-ink-soft">One step. If the email has no account yet they get an invite to set a password. Their link is {site}/go/CODE, which lands on their page at /t/CODE, and they post tips from Your tips once they are in.</p>
+        <p className="mt-2 text-xs text-ink-soft">One step. If the email has no account yet they get an invite to set a password. Their link is {site}/go/CODE, which lands on sign-up with the code filled in and follows them as a tipster; they post tips from Your tips once they are in.</p>
       </div>
 
       <div className="space-y-4">
@@ -98,7 +98,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
               </span>
               <span className="nums text-sm text-ink-soft">
-                {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"} · {a.paying} paying · {money(a.commission_cents)} commission
+                {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"}, {a.confirmed} confirmed · {a.paying} paying · {money(a.commission_cents)} commission
               </span>
             </summary>
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
@@ -127,10 +127,11 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
               </div>
               <div>
                 <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold mb-1.5">Members</div>
-                <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-sm">
+                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 text-center text-sm">
                   <Stat n={a.signups} label="sign-ups" />
                   <Stat n={a.signups30} label="30 days" />
-                  <Stat n={`${a.conversion}%`} label="per click" />
+                  <Stat n={a.confirmed} label="confirmed" />
+                  <Stat n={`${a.conversion}%`} label="confirmed per click" />
                   <Stat n={a.paying} label="paying" tone="prime" />
                   <Stat n={money(a.revenue_cents)} label="revenue" tone="bet" />
                   <Stat n={money(a.commission_cents)} label="commission" />
@@ -173,13 +174,14 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
               ))}
               {show(sp, a.id) === "members" && (a.members.length === 0 ? <p className="text-xs text-ink-soft">No sign-ups yet.</p> : (
                 <table className="data-table text-xs">
-                  <thead><tr><th>Joined</th><th>Member</th><th>Status</th><th>Plan</th><th className="text-right">Spent</th><th>Last seen</th></tr></thead>
+                  <thead><tr><th>Joined</th><th>Confirmed</th><th>Member</th><th>Status</th><th>Plan</th><th className="text-right">Spent</th><th>Last seen</th></tr></thead>
                   <tbody>
                     {a.members.map((m) => (
                       <tr key={m.id}>
                         <td className="nums whitespace-nowrap">{when(m.created_at)}</td>
+                        <td className="nums whitespace-nowrap text-ink-secondary">{m.confirmed_at ? when(m.confirmed_at) : "not yet"}</td>
                         <td><Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.email ?? m.id}</Link></td>
-                        <td><span className={`badge ${m.status === "paying" ? "badge-prime" : m.status === "trial" ? "badge-ok" : "badge-muted"}`}>{m.status}</span></td>
+                        <td><span className={`badge ${m.status === "paying" ? "badge-prime" : m.status === "trial" ? "badge-ok" : m.status === "unconfirmed" ? "badge-warn" : "badge-muted"}`}>{m.status}</span></td>
                         <td className="text-ink-secondary">{m.plan ?? "—"}</td>
                         <td className="text-right nums">{m.spent_cents > 0 ? money(m.spent_cents) : "—"}</td>
                         <td className="nums whitespace-nowrap text-ink-secondary">{m.last_seen_at ? when(m.last_seen_at) : "—"}</td>
