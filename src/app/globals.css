@@ -1868,7 +1868,7 @@ body {
 .runner-detail > .runner-detail-col:nth-child(3) { grid-area: expect; }
 @media (min-width: 1400px) {
   .runner-detail {
-    grid-template-columns: minmax(200px, 1fr) minmax(640px, 2.6fr) minmax(240px, 1.2fr);
+    grid-template-columns: minmax(200px, 1fr) minmax(760px, 3fr) minmax(240px, 1.1fr);
     grid-template-areas: "horse runs expect";
   }
 }
@@ -1912,16 +1912,21 @@ body {
   text-align: right;
   font-weight: 600;
 }
-/* The runs column never spills into its neighbours; the table scrolls inside it if it must. */
+/* The runs column fits its table: small type, tight cells, and only a phone scrolls it. */
 .runner-detail-runs {
-  overflow-x: auto;
   min-width: 0;
+  overflow: visible;
+}
+@media (max-width: 700px) {
+  .runner-detail-runs {
+    overflow-x: auto;
+  }
 }
 .runs-table {
   width: 100%;
   table-layout: auto;
   border-collapse: collapse;
-  font-size: 0.78rem;
+  font-size: 0.74rem;
   white-space: nowrap;
 }
 .runs-table th:last-child,
@@ -1938,7 +1943,7 @@ body {
   padding: 0 8px 4px 0;
 }
 .runs-table td {
-  padding: 3px 6px 3px 0;
+  padding: 3px 5px 3px 0;
   border-top: 1px solid var(--color-line-soft);
 }
 .detail-lines {
