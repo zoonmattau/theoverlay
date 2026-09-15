@@ -191,6 +191,11 @@ export interface PastEvent {
   margin?: number;
   numRunners?: number;
   posSettling?: number;
+  /** The horse's own time for the race, milliseconds. */
+  timeInMillis?: number;
+  /** Its time over the final sectional, milliseconds, and how long that sectional was, metres. */
+  sectionalTimeInMillis?: number;
+  sectionalDistance?: number;
   pos1200m?: number;
   pos800m?: number;
   pos400m?: number;

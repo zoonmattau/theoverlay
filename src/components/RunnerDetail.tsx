@@ -8,6 +8,9 @@ import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/t
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+/** 93.14 as 1:33.14, under a minute as 58.20. */
+const clockTime = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}` : s.toFixed(2));
+
 const SEX: Record<string, string> = { M: "mare", G: "gelding", H: "horse", C: "colt", F: "filly", R: "rig" };
 
 /** What to expect today: position, tempo, finish, then the strongest facts from the form, each with a tone. */
@@ -134,6 +137,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                 <th className="tip" data-tip="The grade of the race: benchmark, class, maiden, listed or group.">Class</th>
                 <th className="tip" data-tip="Where it finished and the field size. Hover a result for the first four home.">Fin</th>
                 <th className="tip" data-tip="Lengths behind the winner.">Mgn</th>
+                <th className="tip" data-tip="The horse's own time for the race.">Time</th>
+                <th className="tip" data-tip="Its last 600m.">L600</th>
                 <th className="tip" data-tip="Weight carried, in kilograms.">Wgt</th>
                 <th className="tip" data-tip="Starting price, the odds at the jump.">SP</th>
                 <th className="tip" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
@@ -162,6 +167,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                     )}
                   </td>
                   <td>{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
+                  <td>{x.time ? clockTime(x.time) : "—"}</td>
+                  <td>{x.last600 ? x.last600.toFixed(2) : "—"}</td>
                   <td>{x.weight ?? "—"}</td>
                   <td>{x.sp ? price(x.sp) : "—"}</td>
                   <td>{x.map ?? "—"}</td>
@@ -169,7 +176,7 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                 </tr>
                 {x.met?.length && x.finish ? (
                   <tr className="met-row">
-                    <td colSpan={11}><Met run={x} race={race} /></td>
+                    <td colSpan={13}><Met run={x} race={race} /></td>
                   </tr>
                 ) : null}
                 </Fragment>

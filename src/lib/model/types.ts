@@ -91,6 +91,10 @@ export interface PublishedRun {
   weight?: number;
   sp?: number;
   map?: MapPosition;
+  /** The horse's own race time, seconds. */
+  time?: number;
+  /** Its last 600m, seconds, when Form King has it. */
+  last600?: number;
   /** What the run was worth on our scale. */
   points: number;
   /** Identifies the race, so runs can be matched across today's field. */
