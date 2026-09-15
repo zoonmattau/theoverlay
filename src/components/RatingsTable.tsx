@@ -1,4 +1,4 @@
-import { RankChip } from "./Badge";
+import { TipChip } from "./Badge";
 import { MAP_LABEL } from "./Ratings";
 import type { PublishedRace } from "@/lib/model/types";
 
@@ -63,7 +63,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
                   <td className="nums text-ink-soft">{r.tabNumber}</td>
                   <td>
                     <div className="flex items-center gap-2">
-                      {r.rank ? <RankChip rank={r.rank} /> : <span className="w-5" />}
+                      <TipChip r={r} />
                       <span className="font-medium truncate">{r.horseName}</span>
                     </div>
                   </td>
