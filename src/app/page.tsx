@@ -70,6 +70,12 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
     .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!))[0];
   const nextCall = next && released ? next.r.runners.find((x) => x.prime && !x.scratched) ?? next.r.runners.find((x) => x.signal === "back" && !x.scratched) ?? next.r.runners.find((x) => x.signal === "lay" && !x.scratched) : undefined;
 
+  // The day's calls, run or not, so the count never reads as empty late on.
+  const all = meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
+  const bets = all.filter((x) => x.signal === "back").length;
+  const lays = all.filter((x) => x.signal === "lay").length;
+  const plays = bets + lays;
+
   // The Prime Overlay of the day, and the race it is in.
   const primeSel = card.selections.find((s) => s.tag === "top_overlay") ?? card.selections.find((s) => s.tag === "prime_overlay");
   const primeRace = primeSel ? meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === primeSel.raceId) : undefined;
@@ -121,11 +127,17 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           </Tile>
         )}
 
-        {primeSel && primeRace ? (
+        {!open ? (
+          <Tile href="/pricing" label="Today's calls" tone="prime">
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none nums">{released ? `${plays} ${plays === 1 ? "play" : "plays"}` : `${RELEASE_HOUR}am`}</div>
+            <div className="mt-1 text-sm font-semibold nums">{released ? `${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}` : "Calls release on race morning"}</div>
+            <div className="text-xs text-ink-soft">{released ? "One race free today, the rest with a plan" : "Ratings, prices and calls"}</div>
+          </Tile>
+        ) : primeSel && primeRace ? (
           <Tile href={href(primeRace.m, primeRace.r)} label="Prime Overlay of the day" tone="prime">
-            <div className="font-display text-2xl font-extrabold tracking-tight leading-none truncate">{open ? primeSel.horseName : `${primeRace.m.track} R${primeRace.r.raceNumber}`}</div>
-            <div className="mt-1 text-sm font-semibold truncate">{open ? `${primeRace.m.track} R${primeRace.r.raceNumber}, ${jumpTime(primeRace.r.jumpTime)}` : jumpTime(primeRace.r.jumpTime)}</div>
-            <div className="text-xs text-ink-soft nums truncate">{open ? `${price(primeRunner?.marketPrice ?? primeSel.marketPrice)} in the market v our ${price(primeSel.ratedPrice)}, ${signedPercent(primeRunner?.edge ?? primeSel.edge)}` : "Our strongest call. Join to see it"}</div>
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none truncate">{primeSel.horseName}</div>
+            <div className="mt-1 text-sm font-semibold truncate">{primeRace.m.track} R{primeRace.r.raceNumber}, {jumpTime(primeRace.r.jumpTime)}</div>
+            <div className="text-xs text-ink-soft nums truncate">{price(primeRunner?.marketPrice ?? primeSel.marketPrice)} in the market v our {price(primeSel.ratedPrice)}, {signedPercent(primeRunner?.edge ?? primeSel.edge)}</div>
           </Tile>
         ) : (
           <Tile href="/pricing" label="Prime Overlay of the day" tone="prime">
