@@ -3,6 +3,7 @@ import "server-only";
 import { listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { PLANS, planById } from "@/lib/billing/plans";
+import type { Series } from "@/lib/reports";
 
 /** One plan's funnel over the window: from a click on the plan to money in. */
 export interface PlanFunnel {
@@ -40,6 +41,25 @@ export interface MoneyReport {
   bookies: { bookie: string; clicks: number }[];
   /** Trial outcomes for trials that began in the window and have had time to end. */
   trials: { started: number; converted: number; ended: number; open: number };
+  /** Clicks, checkouts, trials and payments by day, for the charts. */
+  byDay: Series[];
+  /** Plan clicks by hour of the day, Sydney time, 0 to 23. */
+  byHour: number[];
+  /** Plan clicks by day of the week, Monday first. */
+  byWeekday: number[];
+  /** The last 50 plan clicks and checkouts, newest first. */
+  recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean }[];
+}
+
+const sydneyDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+const sydneyHour = (iso: string) => Number(new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", hour12: false, timeZone: "Australia/Sydney" }).slice(0, 2)) % 24;
+const sydneyWeekday = (iso: string) => ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].indexOf(new Date(iso).toLocaleDateString("en-AU", { weekday: "short", timeZone: "Australia/Sydney" }));
+
+function daySeries(key: string, title: string, format: Series["format"], days: string[], events: Ev[], value: (e: Ev) => number): Series {
+  const byDay = new Map<string, number>();
+  for (const e of events) byDay.set(sydneyDay(e.created_at), (byDay.get(sydneyDay(e.created_at)) ?? 0) + value(e));
+  const points = days.map((date) => ({ date, value: Math.round((byDay.get(date) ?? 0) * 100) / 100 }));
+  return { key, title, format, points, total: Math.round(points.reduce((a, p) => a + p.value, 0) * 100) / 100 };
 }
 
 type Ev = { user_id: string | null; kind: string; plan: string | null; amount_cents: number | null; meta: Record<string, unknown> | null; created_at: string };
@@ -104,9 +124,9 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const live = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at && m.subscription_status === "active");
   const mrr_cents = live.reduce((a, m) => a + (planById(m.plan ?? undefined)?.price ?? 0) * 100, 0);
 
-  const recent = members.filter((m) => m.created_at >= since);
+  const joined = members.filter((m) => m.created_at >= since);
   const bySource = new Map<string, { signups: number; paying: number; revenue_cents: number }>();
-  for (const m of recent) {
+  for (const m of joined) {
     const key = (m.source ?? "signup").replace(/^affiliate:/, "affiliate ");
     const cur = bySource.get(key) ?? { signups: 0, paying: 0, revenue_cents: 0 };
     cur.signups += 1;
@@ -126,5 +146,28 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const open = started.filter((m) => m.subscription_status === "trialing").length;
   const trials = { started: started.length, converted, ended: started.length - converted - open, open };
 
-  return { days, plans, totals, mrr_cents, sources, bookies, trials };
+  const window: string[] = [];
+  for (let i = days - 1; i >= 0; i--) window.push(sydneyDay(new Date(now - i * 86400_000).toISOString()));
+  const one = () => 1;
+  const byDay = [
+    daySeries("clicks", "Plan clicks", "count", window, events.filter((e) => e.kind === "plan_click"), one),
+    daySeries("checkouts", "Checkouts opened", "count", window, events.filter((e) => e.kind === "checkout_started"), one),
+    daySeries("starts", "Trials and passes", "count", window, events.filter((e) => (e.kind === "subscription" && e.meta?.status === "trialing") || e.kind === "checkout_completed"), one),
+    daySeries("revenue", "Paid", "money", window, events.filter((e) => e.kind === "payment"), (e) => (e.amount_cents ?? 0) / 100),
+  ];
+  const byHour = Array<number>(24).fill(0);
+  const byWeekday = Array<number>(7).fill(0);
+  for (const e of events) {
+    if (e.kind !== "plan_click") continue;
+    byHour[sydneyHour(e.created_at)] += 1;
+    const wd = sydneyWeekday(e.created_at);
+    if (wd >= 0) byWeekday[wd] += 1;
+  }
+  const names = new Map(members.map((m) => [m.id, m.full_name || m.email || "a member"]));
+  const recent = events
+    .filter((e) => e.kind === "plan_click" || e.kind === "checkout_started" || e.kind === "checkout_completed")
+    .slice(0, 50)
+    .map((e) => ({ at: e.created_at, kind: e.kind, plan: e.plan, who: e.user_id ? (names.get(e.user_id) ?? "a member") : "a visitor", anonymous: !e.user_id }));
+
+  return { days, plans, totals, mrr_cents, sources, bookies, trials, byDay, byHour, byWeekday, recent };
 }

@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
+import { planById } from "@/lib/billing/plans";
 import { getViewer } from "@/lib/auth";
 import { bookieName } from "@/lib/bookies";
 import { moneyReport, type PlanFunnel } from "@/lib/money";
@@ -89,6 +91,37 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </p>
       </div>
 
+      <div className="card mb-6">
+        <h2 className="font-display font-extrabold mb-3">When</h2>
+        <div className="grid gap-6 md:grid-cols-2">
+          {r.byDay.map((s) => <DayChart key={s.key} s={s} />)}
+        </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs font-semibold text-ink-soft">The numbers</summary>
+          <div className="mt-2"><DayTable series={r.byDay} /></div>
+        </details>
+        <div className="mt-6 grid gap-6 md:grid-cols-2">
+          <Bars title="Plan clicks by hour, Sydney time" values={r.byHour} labels={r.byHour.map((_, h) => (h % 3 === 0 ? `${h % 12 || 12}${h < 12 ? "am" : "pm"}` : ""))} />
+          <Bars title="Plan clicks by weekday" values={r.byWeekday} labels={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]} />
+        </div>
+        <details className="mt-4">
+          <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Last {r.recent.length} clicks and checkouts</summary>
+          <table className="data-table text-xs mt-2">
+            <thead><tr><th>When</th><th>Who</th><th>What</th><th>Plan</th></tr></thead>
+            <tbody>
+              {r.recent.map((e, i) => (
+                <tr key={i}>
+                  <td className="nums whitespace-nowrap">{when(e.at)}</td>
+                  <td className={e.anonymous ? "text-ink-soft" : "font-semibold"}>{e.who}</td>
+                  <td>{e.kind === "plan_click" ? "clicked the plan" : e.kind === "checkout_started" ? "opened checkout" : "finished checkout"}</td>
+                  <td className="text-ink-secondary">{e.plan ? (planById(e.plan)?.name ?? e.plan) : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      </div>
+
       <div className="grid gap-6 md:grid-cols-3 mb-6">
         <div className="card">
           <h2 className="font-display font-extrabold">Trials</h2>
@@ -123,6 +156,27 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </div>
       </div>
     </>
+  );
+}
+
+const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
+
+/** A row of bars for hours or weekdays, the count above any bar that has one. */
+function Bars({ title, values, labels }: { title: string; values: number[]; labels: string[] }) {
+  const max = Math.max(1, ...values);
+  return (
+    <figure className="m-0">
+      <figcaption className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft mb-2">{title}</figcaption>
+      <div className="flex items-end gap-1 h-28">
+        {values.map((v, i) => (
+          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${labels[i] || i}: ${v}`}>
+            {v > 0 && <span className="nums text-[10px] text-ink-secondary">{v}</span>}
+            <div className="w-full rounded-sm bg-ink" style={{ height: `${Math.max(v ? 4 : 1, (v / max) * 80)}%`, opacity: v ? 1 : 0.15 }} />
+            <span className="mt-1 text-[10px] text-ink-soft nums h-3">{labels[i]}</span>
+          </div>
+        ))}
+      </div>
+    </figure>
   );
 }
 
