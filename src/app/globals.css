@@ -481,6 +481,20 @@ body {
   color: var(--color-ink);
   text-decoration: underline;
 }
+.price-box.is-back .bookie-link,
+.price-box.is-lay .bookie-link {
+  color: rgba(255, 255, 255, 0.85);
+}
+.price-box.is-back .bookie-link:hover,
+.price-box.is-lay .bookie-link:hover {
+  color: #fff;
+}
+.price-box.is-prime .bookie-link {
+  color: var(--color-ink-secondary);
+}
+.price-box.is-prime .bookie-link:hover {
+  color: var(--color-ink);
+}
 
 /* --- Buttons --- */
 .btn {
