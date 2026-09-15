@@ -97,8 +97,13 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 {!a.active && <span className="badge badge-warn ml-1">Off</span>}
                 {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
               </span>
-              <span className="nums text-sm text-ink-soft">
-                {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"}, {a.confirmed} confirmed · {a.paying} paying · {money(a.commission_cents)} commission
+              <span className="flex items-center gap-3">
+                <span className="nums text-sm text-ink-soft">
+                  {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"}, {a.confirmed} confirmed · {a.paying} paying · {money(a.commission_cents)} commission
+                </span>
+                {(a as { user_id?: string | null }).user_id && (
+                  <Link href={`/t/${a.code}`} className="btn btn-secondary btn-sm">Their tips</Link>
+                )}
               </span>
             </summary>
             <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
