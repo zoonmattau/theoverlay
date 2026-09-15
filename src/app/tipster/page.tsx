@@ -12,7 +12,7 @@ import { creatorTips, priceFlagged, tipsterForUser, tipsterMembers, tipsterRecor
 import { jumpTime, longDate, price } from "@/lib/format";
 import { getCard, getTodayCard, racingToday } from "@/lib/model/source";
 
-export const metadata: Metadata = { title: "Your tips", robots: { index: false } };
+export const metadata: Metadata = { title: "Your Tips", robots: { index: false } };
 
 /** Posting waits 90 seconds before emailing followers, so the function has to live that long. */
 export const maxDuration = 150;
@@ -39,7 +39,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
   if (!tipster) {
     return (
       <section className="py-10 max-w-lg">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Your tips</h1>
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">Your Tips</h1>
         <p className="mt-2 text-ink-secondary">
           {viewer.id ? "This account is not set up as a tipster. If it should be, email " : "Log in with your tipster account to post. Questions go to "}
           <a href="mailto:hello@theoverlay.com.au" className="text-blue">hello@theoverlay.com.au</a>.

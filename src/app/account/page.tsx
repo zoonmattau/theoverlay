@@ -164,7 +164,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
           <Card title="Tipster">
             {runs && (
               <p className="text-sm text-ink-secondary mb-3">
-                You post tips as <strong>{runs.name}</strong>. <Link href="/tipster" className="text-blue">Open Your tips</Link>.
+                You post tips as <strong>{runs.name}</strong>. <Link href="/tipster" className="text-blue">Open Your Tips</Link>.
               </p>
             )}
             {tipsters.length > 0 && (

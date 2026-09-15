@@ -4,16 +4,18 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { JsonLd, ORGANIZATION, WEBSITE } from "@/components/JsonLd";
-import { JumpTile } from "@/components/Countdown";
+import { JumpTile, Jumps } from "@/components/Countdown";
 import { LiveRefresh } from "@/components/LiveRefresh";
 
 import { NextToGo } from "@/components/NextToGo";
 import type { PublishedMeeting, PublishedRace } from "@/lib/model/types";
 import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
+import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
-import { jumpTime, longDate } from "@/lib/format";
+import { goingClass } from "@/components/RaceMatrix";
+import { jumpTime, longDate, price, signedPercent } from "@/lib/format";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -56,11 +58,27 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const card = await getCardFor(wanted, viewer.admin);
   const { meetings } = card;
   const released = card.released || viewer.admin;
-  const races = meetings.flatMap((m) => m.races);
-  const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
-  // Plays for the whole day, bets and lays, run or not, so the number never reads as empty late on.
-  const plays = races.flatMap((r) => r.runners).filter((r) => r.signal === "back" || r.signal === "lay").length;
-  const free = hasAccess(viewer, card.date) ? undefined : freeRaceOf(card);
+  const open = hasAccess(viewer, card.date);
+  const free = open ? undefined : freeRaceOf(card);
+  const href = (m: PublishedMeeting, r: PublishedRace) => `/racing/${card.date}/${m.meetingId}/${r.raceId}`;
+
+  // Next to jump: the first race still to run, and what we have on it.
+  const cutoff = now() - 10 * 60_000;
+  const next = meetings
+    .flatMap((m) => m.races.map((r) => ({ m, r })))
+    .filter(({ r }) => r.jumpTime && !r.result && new Date(r.jumpTime).getTime() > cutoff)
+    .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!))[0];
+  const nextCall = next && released ? next.r.runners.find((x) => x.prime && !x.scratched) ?? next.r.runners.find((x) => x.signal === "back" && !x.scratched) ?? next.r.runners.find((x) => x.signal === "lay" && !x.scratched) : undefined;
+
+  // The Prime Overlay of the day, and the race it is in.
+  const primeSel = card.selections.find((s) => s.tag === "top_overlay") ?? card.selections.find((s) => s.tag === "prime_overlay");
+  const primeRace = primeSel ? meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === primeSel.raceId) : undefined;
+  const primeRunner = primeRace?.r.runners.find((x) => x.tabNumber === primeSel!.tabNumber);
+
+  // The biggest move since the market opened, on a runner still to run.
+  const mover = meetings
+    .flatMap((m) => m.races.filter((r) => !r.result).flatMap((r) => r.runners.filter((x) => !x.scratched && x.marketPrice && x.marketOpen && x.marketOpen > 1.05).map((x) => ({ m, r, x, move: Math.abs(Math.log((x.marketPrice ?? 1) / (x.marketOpen ?? 1))) }))))
+    .sort((a, b) => b.move - a.move)[0];
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
@@ -88,25 +106,73 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
-        <Tile n={races.length} label="races rated today" />
-        <Tile n={runners} label="runners priced" />
-        {released ? (
-          <Tile n={plays} label={plays === 1 ? "play today" : "plays today"} accent />
+      <div className="grid grid-cols-2 gap-2 sm:gap-3">
+        {next ? (
+          <Tile href={href(next.m, next.r)} label="Next to jump" tone={nextCall?.prime ? "prime" : nextCall?.signal === "back" ? "bet" : nextCall?.signal === "lay" ? "lay" : undefined}>
+            <div className="font-display text-2xl font-extrabold tracking-tight nums leading-none"><Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} /></div>
+            <div className="mt-1 text-sm font-semibold truncate">{next.m.track} R{next.r.raceNumber}, {jumpTime(next.r.jumpTime)}</div>
+            <div className="text-xs text-ink-soft truncate">{nextCall ? `${nextCall.prime ? "Prime Overlay" : nextCall.signal === "back" ? "Bet" : "Lay"}: ${open ? `${nextCall.tabNumber}. ${nextCall.horseName}` : "join to see"}` : released ? "No call in this one" : `Calls release at ${RELEASE_HOUR}am`}</div>
+          </Tile>
         ) : (
-          <Tile n={`${RELEASE_HOUR}am`} label="today's calls release" accent />
+          <Tile href="#board" label="Next to jump">
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none">Done</div>
+            <div className="mt-1 text-sm font-semibold">Racing is over for today</div>
+            <div className="text-xs text-ink-soft">Tomorrow&apos;s board is up tonight</div>
+          </Tile>
         )}
+
+        {primeSel && primeRace ? (
+          <Tile href={href(primeRace.m, primeRace.r)} label="Prime Overlay of the day" tone="prime">
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none truncate">{open ? primeSel.horseName : `${primeRace.m.track} R${primeRace.r.raceNumber}`}</div>
+            <div className="mt-1 text-sm font-semibold truncate">{open ? `${primeRace.m.track} R${primeRace.r.raceNumber}, ${jumpTime(primeRace.r.jumpTime)}` : jumpTime(primeRace.r.jumpTime)}</div>
+            <div className="text-xs text-ink-soft nums truncate">{open ? `${price(primeRunner?.marketPrice ?? primeSel.marketPrice)} in the market v our ${price(primeSel.ratedPrice)}, ${signedPercent(primeRunner?.edge ?? primeSel.edge)}` : "Our strongest call. Join to see it"}</div>
+          </Tile>
+        ) : (
+          <Tile href="/pricing" label="Prime Overlay of the day" tone="prime">
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none">{released ? "None" : `${RELEASE_HOUR}am`}</div>
+            <div className="mt-1 text-sm font-semibold">{released ? "No Prime Overlay today" : "Calls release on race morning"}</div>
+            <div className="text-xs text-ink-soft">{released ? "The gap has to be wide, most days it is" : "Ratings, prices and calls"}</div>
+          </Tile>
+        )}
+
+        {mover ? (
+          <Tile href={href(mover.m, mover.r)} label="Biggest mover">
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none truncate">{mover.x.horseName}</div>
+            <div className="mt-1 text-sm font-semibold nums">{price(mover.x.marketOpen)} → {price(mover.x.marketPrice)}, {(mover.x.marketPrice ?? 0) < (mover.x.marketOpen ?? 0) ? "backed" : "drifting"}</div>
+            <div className="text-xs text-ink-soft truncate">{mover.m.track} R{mover.r.raceNumber}, {jumpTime(mover.r.jumpTime)}</div>
+          </Tile>
+        ) : (
+          <Tile href="#board" label="Biggest mover">
+            <div className="font-display text-2xl font-extrabold tracking-tight leading-none">Settling</div>
+            <div className="mt-1 text-sm font-semibold">No move worth a mention yet</div>
+            <div className="text-xs text-ink-soft">Prices refresh through the day</div>
+          </Tile>
+        )}
+
+        <Tile href="#board" label="Tracks today">
+          <div className="font-display text-2xl font-extrabold tracking-tight leading-none">{meetings.length} {meetings.length === 1 ? "meeting" : "meetings"}</div>
+          <ul className="mt-1.5 flex flex-wrap gap-x-3 gap-y-1 text-xs">
+            {meetings.map((m) => (
+              <li key={m.meetingId} className="flex items-center gap-1 font-semibold">
+                {m.track}
+                {m.trackCondition && <span className={`going-chip ${goingClass(m.trackCondition)}`}>{m.trackCondition}</span>}
+              </li>
+            ))}
+          </ul>
+        </Tile>
       </div>
     </section>
   );
 }
 
-function Tile({ n, label, accent }: { n: number | string; label: string; accent?: boolean }) {
+/** One hero tile: a small label, then whatever the tile has to say, the whole thing a link. */
+function Tile({ href, label, tone, children }: { href: string; label: string; tone?: "prime" | "bet" | "lay"; children: React.ReactNode }) {
+  const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : tone === "lay" ? "border-red bg-red-soft" : "";
   return (
-    <div className={`card text-center ${accent ? "border-lime bg-lime-soft" : ""}`}>
-      <div className="font-display text-3xl font-extrabold tracking-tight nums">{n}</div>
-      <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
-    </div>
+    <Link href={href} className={`card card-hover block min-w-0 ${cls}`}>
+      <div className="text-[10px] uppercase tracking-[0.1em] font-bold text-ink-soft mb-1.5">{label}</div>
+      {children}
+    </Link>
   );
 }
 

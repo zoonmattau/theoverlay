@@ -66,7 +66,7 @@ export async function NavUser({ links }: { links: { href: string; label: string 
       {nav}
       {viewer.tipster && (
         <Link href="/tipster" className="topbar-link">
-          Your tips
+          Your Tips
         </Link>
       )}
       {isAdmin(viewer) && (

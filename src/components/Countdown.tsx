@@ -141,6 +141,20 @@ export function NtgCountdown({
   );
 }
 
+/** Time to the jump as text, ticking: "42m", "1h 12m", "Now", "Run", or the clock when it is a day away. */
+export function Jumps({ iso, clock }: { iso?: string; clock: string }) {
+  const [label, setLabel] = useState(clock);
+  useEffect(() => {
+    if (!iso) return;
+    const jump = new Date(iso).getTime();
+    const tick = () => setLabel(countdown(jump - Date.now(), clock));
+    tick();
+    const id = setInterval(tick, 30_000);
+    return () => clearInterval(id);
+  }, [iso, clock]);
+  return <>{label}</>;
+}
+
 /**
  * Time to the jump as a stat tile, ticking: the time big, what it means
  * small. The server paints the clock time so the first render matches.
