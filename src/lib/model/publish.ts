@@ -48,6 +48,18 @@ const LAY_EDGE = -0.12;
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 
+/**
+ * Where a runner sits on our rating alone, 1 for the highest, so "rates top
+ * of the field" stays true whatever its place in the top four. Runners with
+ * no form have no rating and sit after the rest.
+ */
+export function ratingRank(runners: PublishedRunner[], runner: PublishedRunner): number {
+  const order = runners
+    .filter((x) => !x.scratched)
+    .sort((a, b) => Number(b.ratings.runs > 0) - Number(a.ratings.runs > 0) || b.ratings.today - a.ratings.today || b.ratedProbability - a.ratedProbability);
+  return order.indexOf(runner) + 1;
+}
+
 /** Signals from the last publish, keyed raceId:tab, so a call does not flicker off as prices move. */
 export type KeptSignals = Map<string, Signal>;
 
@@ -79,9 +91,27 @@ export function publishRace(
     }),
   );
   const priceByTab = new Map(priced.runners.map((r) => [r.key, r]));
+  const signalByTab = new Map(
+    priced.runners.map((p) => [p.key, signalFor(p.edge, p.marketPrice, p.probability, false, kept.get(`${race.raceId}:${p.key}`))]),
+  );
 
+  // Our top four: the bets first, best edge leading, then whoever we rate
+  // highest on our own numbers. A first starter has no number, so it sits
+  // after the exposed form on its market chance alone. The market never
+  // orders our four.
+  const formed = (k: string) => (ratedByTab.get(k)?.ratings.runs ?? 0) > 0;
   const ranked = [...priced.runners]
-    .sort((a, b) => b.probability - a.probability)
+    .sort((a, b) => {
+      const ab = signalByTab.get(a.key) === "back";
+      const bb = signalByTab.get(b.key) === "back";
+      if (ab !== bb) return ab ? -1 : 1;
+      if (ab && bb) return (b.edge ?? 0) - (a.edge ?? 0);
+      const af = formed(a.key);
+      const bf = formed(b.key);
+      if (af !== bf) return af ? -1 : 1;
+      if (af) return ratedByTab.get(b.key)!.ratings.today - ratedByTab.get(a.key)!.ratings.today;
+      return b.probability - a.probability;
+    })
     .slice(0, 4)
     .map((r) => r.key);
 
@@ -99,7 +129,7 @@ export function publishRace(
     const r = ratedByTab.get(key);
     const rank = ranked.indexOf(key);
     const ratings = r?.ratings ?? fallback;
-    const signal = signalFor(p?.edge, p?.marketPrice, p?.probability, e.scratched, kept.get(`${race.raceId}:${e.number}`));
+    const signal = e.scratched ? undefined : signalByTab.get(key);
     return {
       tabNumber: e.number,
       horseName: e.horse.name,
@@ -117,7 +147,6 @@ export function publishRace(
       edge: p?.edge,
       rank: rank >= 0 ? rank + 1 : null,
       signal,
-      why: rank >= 0 ? explain(ratings, rank + 1, { going, tempo: pace.tempo }, signal) : undefined,
       finishPosition: e.horseResult ? e.horseResult.finishPosition : undefined,
       horse: profileOf(e),
       runs: runsOf(e, points),
@@ -128,10 +157,8 @@ export function publishRace(
 
   // One lay a race at most: the one the market has most wrong.
   const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.edge ?? 0) - (b.edge ?? 0));
-  for (const extra of lays.slice(1)) {
-    extra.signal = undefined;
-    if (extra.rank) extra.why = explain(extra.ratings, extra.rank, { going, tempo: pace.tempo }, undefined);
-  }
+  for (const extra of lays.slice(1)) extra.signal = undefined;
+  for (const x of runners) if (x.rank) x.why = explain(x.ratings, ratingRank(runners, x), { going, tempo: pace.tempo }, x.signal);
 
   const top = ranked
     .map((k) => runners.find((x) => String(x.tabNumber) === k)!)

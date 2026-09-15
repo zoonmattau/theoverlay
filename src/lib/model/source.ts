@@ -10,7 +10,7 @@ import {
   getRace,
 } from "@/lib/formking/client";
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
-import { pickFreeRace, publishMeeting, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
+import { pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
@@ -233,7 +233,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
           fourth.why = undefined;
         }
         x.rank = 4;
-        x.why = explain(x.ratings, 4, { going: r.going, tempo: r.pace.tempo }, x.signal);
+        x.why = explain(x.ratings, ratingRank(r.runners, x), { going: r.going, tempo: r.pace.tempo }, x.signal);
       }
     }
   }
