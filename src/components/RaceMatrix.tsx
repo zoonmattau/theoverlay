@@ -19,10 +19,13 @@ export function RaceMatrix({
   meetings,
   selections,
   date,
+  freeRaceId,
 }: {
   meetings: PublishedMeeting[];
   selections: Selection[];
   date: string;
+  /** Marked in the grid for viewers who cannot open the rest. */
+  freeRaceId?: string;
 }) {
   const cols = Math.max(0, ...meetings.map((m) => m.races.length));
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => s.raceId));
@@ -77,6 +80,7 @@ export function RaceMatrix({
                       lays={lays}
                       prime={prime.has(race.raceId)}
                       group={groupOf(race.className, race.name)}
+                      free={race.raceId === freeRaceId}
                     />
                   </td>
                 );

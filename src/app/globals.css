@@ -601,6 +601,24 @@ body {
   border-radius: var(--radius-md);
   transition: all 150ms var(--ease);
 }
+/* The free race wears an ink tag so it reads on any cell colour. */
+.matrix-btn {
+  position: relative;
+}
+.matrix-free {
+  position: absolute;
+  top: -7px;
+  right: -4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: var(--color-ink);
+  color: var(--color-lime);
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  line-height: 1.5;
+}
 .matrix-btn:hover {
   border-color: var(--color-ink-soft);
   transform: translateY(-1px);

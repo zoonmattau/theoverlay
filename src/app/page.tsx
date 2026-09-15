@@ -7,11 +7,12 @@ import { FaqList, JsonLd, ORGANIZATION, WEBSITE, faqSchema, type Faq } from "@/c
 import { LiveRefresh } from "@/components/LiveRefresh";
 
 import { NextToGo } from "@/components/NextToGo";
+import type { PublishedMeeting, PublishedRace } from "@/lib/model/types";
 import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
-import { getViewer } from "@/lib/auth";
+import { getViewer, hasAccess } from "@/lib/auth";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
-import { longDate } from "@/lib/format";
+import { jumpTime, longDate, price } from "@/lib/format";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
@@ -66,6 +67,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const runners = races.flatMap((r) => r.runners.filter((x) => !x.scratched)).length;
   // Bets for the whole day, run or not, so the number never reads as empty late on.
   const bets = races.flatMap((r) => r.runners).filter((r) => r.signal === "back").length;
+  const free = hasAccess(viewer, card.date) ? undefined : freeRaceOf(card);
 
   return (
     <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
@@ -82,9 +84,15 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           <Link href="/pricing" className="btn btn-primary">
             Get today&apos;s tips
           </Link>
-          <a href="#board" className="btn btn-secondary">
-            See the board
-          </a>
+          {free ? (
+            <Link href={`/racing/${card.date}/${free.meeting.meetingId}/${free.race.raceId}`} className="btn btn-secondary">
+              See today&apos;s free race
+            </Link>
+          ) : (
+            <a href="#board" className="btn btn-secondary">
+              See the board
+            </a>
+          )}
         </div>
       </div>
       <div className="grid grid-cols-3 gap-2 sm:gap-3">
@@ -117,12 +125,16 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
   const previewing = viewer.admin && !card.released;
   const released = card.released || viewer.admin;
   keepFresh(date, card);
+  const access = hasAccess(viewer, date);
+  const free = access ? undefined : freeRaceOf(card);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
   const backs = upcoming.flatMap((r) => r.runners).filter((r) => r.signal === "back").length;
   const lays = upcoming.flatMap((r) => r.runners).filter((r) => r.signal === "lay").length;
 
   return (
     <>
+      {free && released && <FreeRace date={date} meeting={free.meeting} race={free.race} />}
+
       <NextToGo meetings={meetings} selections={selections} date={date} />
 
       <section className="mt-6" id="board">
@@ -147,10 +159,51 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
           </p>
         )}
 
-        <RaceMatrix meetings={meetings} selections={selections} date={date} />
+        <RaceMatrix meetings={meetings} selections={selections} date={date} freeRaceId={free?.race.raceId} />
       </section>
 
     </>
+  );
+}
+
+/** The free race and its meeting, when the card has one. */
+function freeRaceOf(card: { freeRaceId?: string; meetings: PublishedMeeting[] }) {
+  for (const meeting of card.meetings) {
+    const race = meeting.races.find((r) => r.raceId === card.freeRaceId);
+    if (race) return { meeting, race };
+  }
+  return undefined;
+}
+
+/**
+ * The free race, put in front of anyone without a plan so they do not have
+ * to find it in the matrix: the race, the jump, what we have on in it, and
+ * the way in.
+ */
+function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMeeting; race: PublishedRace }) {
+  const calls = race.runners.filter((x) => x.signal && !x.scratched);
+  const href = `/racing/${date}/${meeting.meetingId}/${race.raceId}`;
+  return (
+    <section className="card border-lime bg-lime-soft mt-2 flex flex-wrap items-center gap-x-5 gap-y-3">
+      <div>
+        <span className="badge badge-prime">Free race of the day</span>
+        <div className="mt-1.5 font-display text-xl font-extrabold tracking-tight">
+          {meeting.track} R{race.raceNumber}, {race.distance}m
+          <span className="ml-2 text-base font-bold text-ink-secondary nums">{race.result ? "Run" : jumpTime(race.jumpTime)}</span>
+        </div>
+      </div>
+      <ul className="flex flex-wrap gap-2 text-sm">
+        {calls.length === 0 && <li className="text-ink-secondary">Our top four and a rated price for every runner, free.</li>}
+        {calls.map((x) => (
+          <li key={x.tabNumber} className="flex items-center gap-2 rounded-md border border-line bg-panel px-2.5 py-1.5">
+            <span className={`badge ${x.prime ? "badge-prime" : x.signal === "back" ? "badge-back" : "badge-lay"}`}>{x.prime ? "Prime" : x.signal === "back" ? "Bet" : "Lay"}</span>
+            <span className="font-semibold">{x.tabNumber}. {x.horseName}</span>
+            <span className="nums text-ink-secondary">{price(x.marketPrice)} v {price(x.ratedPrice)}</span>
+          </li>
+        ))}
+      </ul>
+      <Link href={href} className="btn btn-primary ml-auto">See the free race</Link>
+    </section>
   );
 }
 
