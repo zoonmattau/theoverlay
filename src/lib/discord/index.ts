@@ -24,6 +24,7 @@ export const CHANNELS = {
   results: "results",
   free: "free-race",
   early: "early-look",
+  review: "saturday-review",
 } as const;
 export const MEMBER_ROLE = "Member";
 
@@ -184,6 +185,21 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
 }
 
 /** The day's ledger once every race has run. Posted once. */
+/** The public Saturday review, once, when an admin publishes it. */
+export async function postReview(review: { date: string; intro: string; storylines: { kind: string; text: string }[] }): Promise<void> {
+  if (!discordConfigured()) return;
+  try {
+    await once(review.date, "review", () =>
+      send(
+        CHANNELS.review,
+        [`**Saturday review, ${longDate(review.date)}.**`, review.intro, "", ...review.storylines.map((s) => `**${s.kind[0].toUpperCase()}${s.kind.slice(1)}.** ${s.text}`), "", `${SITE}/review/${review.date}`].join("\n"),
+      ),
+    );
+  } catch (err) {
+    console.error("[discord] review", err);
+  }
+}
+
 export async function postResults(date: string, card: StoredCard): Promise<void> {
   if (!discordConfigured()) return;
   const races = card.meetings.flatMap((m) => m.races);

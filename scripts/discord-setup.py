@@ -128,6 +128,7 @@ def setup():
         ("bets-and-lays", "Every call on the card. Members.", MEMBERS_READ),
         ("results", "How the day went, in units.", READ_ONLY),
         ("free-race", "The free race of the day, open to all.", READ_ONLY),
+        ("saturday-review", "How Saturday ran against our numbers, open to all.", READ_ONLY),
     ]:
         channel(n, calls, who, 0, t)
 

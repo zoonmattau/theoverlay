@@ -12,6 +12,8 @@ import type { PublishedMeeting, PublishedRace } from "@/lib/model/types";
 import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
 import { SocialLinks } from "@/components/SocialLinks";
+import { ReviewBanner } from "@/components/ReviewStory";
+import { bannerReview } from "@/lib/reviews";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
@@ -37,6 +39,10 @@ export default function Page({ searchParams }: PageProps<"/">) {
         <TodayCard searchParams={searchParams} />
       </Suspense>
 
+      <Suspense>
+        <FreshReview />
+      </Suspense>
+
       <section className="mt-6">
         <Record />
       </section>
@@ -45,6 +51,13 @@ export default function Page({ searchParams }: PageProps<"/">) {
       <JoinUs />
     </div>
   );
+}
+
+/** The Saturday review, on the home page for two days after it goes live. */
+async function FreshReview() {
+  await connection();
+  const review = await bannerReview();
+  return review ? <ReviewBanner review={review} /> : null;
 }
 
 /** The pitch, with today's numbers behind it so it never reads as empty. */

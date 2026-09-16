@@ -297,11 +297,27 @@ export interface TalkingPoint {
   runner: ReviewedRunner & { race: ReviewedRace };
 }
 
+/** A Group race and how our numbers went in it. */
+export interface FeatureRace {
+  race: ReviewedRace;
+  /** "Group 1", "Group 2", "Group 3". */
+  grade: string;
+  winner?: ReviewedRunner;
+  /** Our top-rated runner and where it finished. */
+  topRated?: ReviewedRunner;
+  /** The first three home with the mark we had them at and where we ranked them. */
+  placings: ReviewedRunner[];
+  calls: ReviewedRunner[];
+  units?: number;
+}
+
 export interface Review {
   date: string;
   builtAt: string;
   card: StoredCard;
   races: ReviewedRace[];
+  /** The Group races of the day, highest grade first. */
+  features: FeatureRace[];
   /** One row per meeting, fullest data first. */
   meetings: MeetingStats[];
   /** The day in sentences: the best run, the ones that slipped under the radar, the disappointments. */
@@ -399,6 +415,31 @@ function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): T
   return out;
 }
 const signedPoints = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(1)}`;
+
+const GRADE = /^group\s*([123])$/i;
+
+function featureRaces(races: ReviewedRace[]): FeatureRace[] {
+  return races
+    .map((race) => ({ race, m: GRADE.exec(race.race.className ?? "") }))
+    .filter((x): x is { race: ReviewedRace; m: RegExpExecArray } => Boolean(x.m))
+    .sort((a, b) => Number(a.m[1]) - Number(b.m[1]) || a.race.race.classPoints - b.race.race.classPoints)
+    .map(({ race, m }) => {
+      const winner = race.runners.find((r) => r.finish === 1);
+      const topRated = [...race.runners].sort((a, b) => b.runner.ratings.today - a.runner.ratings.today)[0];
+      const placings = race.runners.filter((r) => r.finish && r.finish <= 3).sort((a, b) => a.finish! - b.finish!);
+      const calls = race.runners.filter((r) => r.runner.signal && r.runner.marketPrice);
+      const settled = calls.filter((r) => r.finish !== undefined);
+      return {
+        race,
+        grade: `Group ${m[1]}`,
+        winner,
+        topRated,
+        placings,
+        calls,
+        units: settled.length ? round1(settled.reduce((a, r) => a + settle(r.runner.signal!, r.runner.marketPrice!, r.finish!), 0)) : undefined,
+      };
+    });
+}
 
 function meetingStats(races: ReviewedRace[], bets: LedgerRow[], lays: LedgerRow[]): MeetingStats[] {
   const byMeeting = new Map<string, ReviewedRace[]>();
@@ -540,6 +581,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
     card,
     races,
     meetings: meetingStats(races, bets, lays),
+    features: featureRaces(races),
     talking: talkingPoints(withRace),
     ranking: races.filter((r) => r.strength !== undefined).sort((a, b) => b.strength! - a.strength!),
     best: byVsClass.slice(0, 10),

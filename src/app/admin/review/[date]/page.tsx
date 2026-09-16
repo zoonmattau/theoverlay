@@ -8,7 +8,9 @@ import { getViewer } from "@/lib/auth";
 import { buildReview, type LedgerRow, type Review, type ReviewedRace, type ReviewedRunner } from "@/lib/model/review";
 import { Section } from "@/components/Section";
 import { ClickRow } from "../ClickRow";
+import { readPublishedReview } from "@/lib/reviews";
 import { FetchButton } from "../FetchButton";
+import { PublishButton } from "../PublishButton";
 import { dayLabel as label, finish, gapClass, price, raceLabel, reviewHref, signed, stageOf, Tag, unitsClass } from "../shared";
 
 export const metadata: Metadata = { title: "Weekly review", robots: { index: false } };
@@ -30,7 +32,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
   if (!isAdmin(viewer)) notFound();
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
-  const review = await buildReview(date);
+  const [review, published] = await Promise.all([buildReview(date), readPublishedReview(date)]);
   if (!review) notFound();
   const c = review.counts;
   const resulted = review.races.some((r) => r.race.result?.length);
@@ -45,7 +47,10 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
             {c.wanted} runners wanted: every NSW and VIC runner plus the ten best bets and ten best lays. {c.fetched} fetched, {c.full} with full benchmarks, {c.partial} partial, {c.missing} to go. {c.credits} credits spent.
           </p>
         </div>
-        {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
+        <div className="flex flex-col items-end gap-2">
+          {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
+          {c.fetched > 0 && <PublishButton date={date} published={published?.publishedAt} />}
+        </div>
       </section>
 
       {c.fetched === 0 ? (
@@ -55,6 +60,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
       ) : (
         <>
           <Talking review={review} />
+          <Features review={review} />
           <Meetings review={review} />
           <Ledger title="Our bets" rows={review.bets} date={date} />
           <Ledger title="Our lays" rows={review.lays} date={date} />
@@ -109,6 +115,38 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
             </ClickRow>
           ))}
           {rows.length === 0 && <tr><td colSpan={15} className="text-ink-soft">None on the card.</td></tr>}
+        </tbody>
+      </table>
+      </div>
+    </Section>
+  );
+}
+
+function Features({ review }: { review: Review }) {
+  if (review.features.length === 0) return null;
+  return (
+    <Section id="review-features" letter="G" title="Feature races" aside="Every Group race of the day: who won, where we had it, and how our calls went">
+      <div className="overflow-x-auto">
+      <table className="data-table w-full text-sm">
+        <thead>
+          <tr><th>Grade</th><th>Race</th><th>Winner</th><th className="text-right">Our #</th><th className="text-right">Ran to</th><th>Our top rated</th><th>Placings, our marks</th><th>Our calls</th><th className="text-right">Units</th><th className="text-right">Strength</th><th className="text-right">Benchmarked</th></tr>
+        </thead>
+        <tbody>
+          {review.features.map((f) => (
+            <ClickRow key={f.race.race.raceId} href={reviewHref(f.race, review.date)}>
+              <td className="font-semibold whitespace-nowrap">{f.grade}</td>
+              <td><Link href={reviewHref(f.race, review.date)} className="underline">{raceLabel(f.race)}</Link> <span className="text-ink-soft">{f.race.race.name}, {f.race.race.distance}m</span></td>
+              <td className="font-semibold">{f.winner ? `${f.winner.runner.tabNumber}. ${f.winner.runner.horseName}` : "—"}{f.winner?.sp ? <span className="text-ink-soft font-normal"> {price(f.winner.sp)}</span> : ""}</td>
+              <td className="text-right nums">{f.winner?.runner.rank ?? <span className="text-ink-soft">out</span>}</td>
+              <td className="text-right nums">{f.winner?.ranTo?.toFixed(1) ?? ""}</td>
+              <td>{f.topRated ? `${f.topRated.runner.horseName} ${f.topRated.runner.ratings.today.toFixed(1)}, ${finish(f.topRated) || "to run"}` : ""}</td>
+              <td className="text-xs">{f.placings.map((p) => `${p.finish}. ${p.runner.horseName} (${p.runner.ratings.today.toFixed(1)}${p.runner.rank ? `, our #${p.runner.rank}` : ""})`).join(" · ")}</td>
+              <td className="text-xs">{f.calls.length ? f.calls.map((x) => `${x.runner.signal === "lay" ? "Lay" : "Bet"} ${x.runner.horseName} ${finish(x)}`).join(", ") : <span className="text-ink-soft">none</span>}</td>
+              <td className={`text-right nums ${unitsClass(f.units)}`}>{f.units !== undefined ? signed(f.units, 2) : ""}</td>
+              <td className="text-right nums">{f.race.strength !== undefined ? `${signed(f.race.strength)}L` : ""}</td>
+              <td className="text-right nums">{f.race.full}/{f.race.runners.length}</td>
+            </ClickRow>
+          ))}
         </tbody>
       </table>
       </div>
