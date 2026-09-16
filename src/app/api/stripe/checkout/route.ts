@@ -25,7 +25,9 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }
   const chosen = plan ? plan.id : `passes_${bundle!.qty}`;
-  await logEvent({ user_id: viewer.id, kind: "plan_click", plan: chosen, amount_cents: null, meta: null });
+  // An admin poking at checkout is not a lead; keep the funnel to members and visitors.
+  const log = (e: Parameters<typeof logEvent>[0]) => (viewer.admin ? Promise.resolve() : logEvent(e));
+  await log({ user_id: viewer.id, kind: "plan_click", plan: chosen, amount_cents: null, meta: null });
 
   // One Stripe customer per user, created on first checkout.
   let customer = viewer.stripeCustomerId;
@@ -51,7 +53,7 @@ export async function POST(request: NextRequest) {
       metadata: { userId: viewer.id, passes: String(bundle.qty) },
       integration_identifier: integrationId("overlay_passes"),
     });
-    await logEvent({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: bundle.price * 100, meta: { session: session.id } });
+    await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: bundle.price * 100, meta: { session: session.id } });
     return NextResponse.json({ url: session.url });
   }
 
@@ -76,7 +78,7 @@ export async function POST(request: NextRequest) {
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),
   });
-  await logEvent({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled } });
+  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled } });
 
   return NextResponse.json({ url: session.url });
 }
