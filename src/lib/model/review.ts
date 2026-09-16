@@ -242,6 +242,9 @@ export interface ReviewedRace {
   /** Mean lengths vs class of the first three home, positive is a strong race. */
   strength?: number;
   winnerRanTo?: number;
+  /** Mean of ran-to minus our mark over the benchmarked runners, and the mean size of that gap. */
+  bias?: number;
+  spread?: number;
   /** The leader's first section against class, and the tempo that makes it. */
   leaderEarly?: number;
   tempo?: Tempo;
@@ -255,11 +258,46 @@ export interface LedgerRow extends ReviewedRunner {
   units?: number;
 }
 
+/** How the model went at one meeting, over the runners with a full benchmark. */
+export interface MeetingStats {
+  meeting: PublishedMeeting;
+  races: number;
+  runners: number;
+  /** Runners with a fully benchmarked run. */
+  full: number;
+  /** Mean of ran-to minus our mark: positive means the meeting ran above our marks. */
+  bias?: number;
+  /** Mean size of the gap, either way. */
+  spread?: number;
+  /** Pearson correlation of our mark with ran-to, over the benchmarked runners. */
+  fit?: number;
+  /** Races with a winner, and how many of those winners sat in our top four, or were our top-rated. */
+  resulted: number;
+  winnersInFour: number;
+  topRatedWon: number;
+  topRatedPlaced: number;
+  bets: number;
+  betUnits: number;
+  lays: number;
+  layUnits: number;
+}
+
+/** One sentence for the weekly write-up, with the runner behind it. */
+export interface TalkingPoint {
+  kind: "run of the day" | "under the radar" | "disappointing" | "improver" | "on the mark";
+  text: string;
+  runner: ReviewedRunner & { race: ReviewedRace };
+}
+
 export interface Review {
   date: string;
   builtAt: string;
   card: StoredCard;
   races: ReviewedRace[];
+  /** One row per meeting, fullest data first. */
+  meetings: MeetingStats[];
+  /** The day in sentences: the best run, the ones that slipped under the radar, the disappointments. */
+  talking: TalkingPoint[];
   /** Races with a benchmarked winner, strongest first. */
   ranking: ReviewedRace[];
   best: (ReviewedRunner & { race: ReviewedRace })[];
@@ -272,6 +310,120 @@ export interface Review {
 
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+function pearson(pairs: [number, number][]): number | undefined {
+  if (pairs.length < 4) return undefined;
+  const mx = mean(pairs.map((p) => p[0])), my = mean(pairs.map((p) => p[1]));
+  let sxy = 0, sxx = 0, syy = 0;
+  for (const [x, y] of pairs) { sxy += (x - mx) * (y - my); sxx += (x - mx) ** 2; syy += (y - my) ** 2; }
+  return sxx && syy ? sxy / Math.sqrt(sxx * syy) : undefined;
+}
+
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+const lengths = (n: number) => `${Math.abs(n).toFixed(1)} ${Math.abs(n) === 1 ? "length" : "lengths"}`;
+const money = (n?: number) => (n ? `$${n.toFixed(2)}` : "");
+
+/**
+ * The write-up. Run of the day is the highest run against class. Under the
+ * radar is a run in the top ten that finished out of the placings or went
+ * around at $10 or more, so the form guide will not show it. Disappointing
+ * is a horse we or the market fancied (our top four, or $5 or under) that
+ * ran three or more points below our mark. Improver is the biggest gap
+ * above our mark. On the mark is how many of the fancied runners ran
+ * within two points of the mark we had them at.
+ */
+function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): TalkingPoint[] {
+  const out: TalkingPoint[] = [];
+  const where = (r: ReviewedRunner & { race: ReviewedRace }) => `${r.race.meeting.track} R${r.race.race.raceNumber}`;
+  const result = (r: ReviewedRunner) => (r.finish === 1 ? "won" : r.finish ? `ran ${ordinal(r.finish)}${r.margin !== undefined ? `, beaten ${lengths(r.margin)}` : ""}` : "ran");
+  // A race whose first three all ran five lengths above class is a benchmark
+  // that has not settled, not five good horses: it stays out of the superlatives.
+  const sane = withRace.filter((r) => (r.race.strength ?? 0) < 5 && r.ranTo !== undefined);
+  const byVsClass = [...sane].sort((a, b) => b.run!.vsClass! - a.run!.vsClass!);
+  const top = byVsClass[0];
+  if (top && top.run!.vsClass! > 0) {
+    out.push({
+      kind: "run of the day",
+      runner: top,
+      text: `${top.runner.horseName} put up the run of the day at ${where(top)}: ${lengths(top.run!.vsClass!)} better than the class benchmark, a run worth ${top.ranTo?.toFixed(1)} against the ${top.runner.ratings.today.toFixed(1)} we had it at, and ${result(top)}${top.sp ? ` at ${money(top.sp)}` : ""}.`,
+    });
+  }
+  const seenRace = new Set<string>();
+  for (const r of byVsClass) {
+    if (r === top || seenRace.has(r.race.race.raceId)) continue;
+    if ((r.finish && r.finish > 3) || (r.sp && r.sp >= 10)) {
+      seenRace.add(r.race.race.raceId);
+      out.push({
+        kind: "under the radar",
+        runner: r,
+        text: `${r.runner.horseName} slipped under the radar: ${result(r)}${r.sp ? ` at ${money(r.sp)}` : ""} at ${where(r)}, but ran to ${r.ranTo?.toFixed(1)}, ${lengths(r.run!.vsClass!)} above class${r.gap !== undefined ? ` and ${Math.abs(r.gap).toFixed(1)} points ${r.gap >= 0 ? "above" : "below"} our mark` : ""}.`,
+      });
+      if (out.filter((t) => t.kind === "under the radar").length >= 3) break;
+    }
+  }
+  const fancied = sane.filter((r) => r.gap !== undefined && r.runner.ratings.runs >= 2 && (r.runner.rank || (r.sp && r.sp <= 5)));
+  for (const r of [...fancied].filter((r) => r.gap! <= -3).sort((a, b) => a.gap! - b.gap!).slice(0, 3)) {
+    out.push({
+      kind: "disappointing",
+      runner: r,
+      text: `${r.runner.horseName} was a disappointing runner at ${where(r)}: ${result(r)}${r.sp ? ` at ${money(r.sp)}` : ""} and ran to ${r.ranTo?.toFixed(1)}, ${Math.abs(r.gap!).toFixed(1)} points below the ${r.runner.ratings.today.toFixed(1)} we expected.`,
+    });
+  }
+  const improver = [...sane].filter((r) => r.gap !== undefined && r.runner.ratings.runs >= 2 && !out.some((t) => t.runner === r)).sort((a, b) => b.gap! - a.gap!)[0];
+  if (improver && improver.gap! >= 3) {
+    out.push({
+      kind: "improver",
+      runner: improver,
+      text: `${improver.runner.horseName} improved the most on our mark: ${improver.ranTo?.toFixed(1)} against the ${improver.runner.ratings.today.toFixed(1)} we had it at, ${result(improver)} at ${where(improver)}.`,
+    });
+  }
+  const onMark = fancied.filter((r) => Math.abs(r.gap!) <= 2);
+  if (fancied.length) {
+    const pick = onMark[0];
+    out.push({
+      kind: "on the mark",
+      runner: pick ?? fancied[0],
+      text: `${onMark.length} of the ${fancied.length} fancied runners with full benchmarks ran within two points of our mark${pick ? `, ${pick.runner.horseName} at ${where(pick)} the closest at ${signedPoints(pick.gap!)}` : ""}.`,
+    });
+  }
+  return out;
+}
+const signedPoints = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(1)}`;
+
+function meetingStats(races: ReviewedRace[], bets: LedgerRow[], lays: LedgerRow[]): MeetingStats[] {
+  const byMeeting = new Map<string, ReviewedRace[]>();
+  for (const r of races) byMeeting.set(r.meeting.meetingId, [...(byMeeting.get(r.meeting.meetingId) ?? []), r]);
+  return [...byMeeting.values()]
+    .map((rs) => {
+      const meeting = rs[0].meeting;
+      const runners = rs.flatMap((r) => r.runners);
+      const fullRunners = runners.filter((r) => isFull(r.run) && r.gap !== undefined);
+      const gaps = fullRunners.map((r) => r.gap!);
+      const resulted = rs.filter((r) => r.runners.some((x) => x.finish === 1));
+      const winners = resulted.map((r) => r.runners.find((x) => x.finish === 1)!);
+      const topRated = resulted.map((r) => [...r.runners].sort((a, b) => b.runner.ratings.today - a.runner.ratings.today)[0]);
+      const mine = (rows: LedgerRow[]) => rows.filter((b) => b.meeting.meetingId === meeting.meetingId && b.units !== undefined);
+      const b = mine(bets), l = mine(lays);
+      return {
+        meeting,
+        races: rs.length,
+        runners: runners.length,
+        full: fullRunners.length,
+        bias: gaps.length ? round1(mean(gaps)) : undefined,
+        spread: gaps.length ? round1(mean(gaps.map(Math.abs))) : undefined,
+        fit: pearson(fullRunners.map((r) => [r.runner.ratings.today, r.ranTo!] as [number, number])),
+        resulted: resulted.length,
+        winnersInFour: winners.filter((w) => w.runner.rank).length,
+        topRatedWon: topRated.filter((t) => t.finish === 1).length,
+        topRatedPlaced: topRated.filter((t) => t.finish && t.finish <= 3).length,
+        bets: b.length,
+        betUnits: round1(b.reduce((a, x) => a + x.units!, 0)),
+        lays: l.length,
+        layUnits: round1(l.reduce((a, x) => a + x.units!, 0)),
+      };
+    })
+    .sort((a, b) => b.full / Math.max(1, b.runners) - a.full / Math.max(1, a.runners) || b.full - a.full);
+}
 
 function firstSection(run?: ReviewRun | null): ReviewSection | undefined {
   const s = run?.sections;
@@ -325,6 +477,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
         })
         .sort((a, b) => (a.finish || 99) - (b.finish || 99) || a.runner.tabNumber - b.runner.tabNumber);
       const full = runners.filter((r) => isFull(r.run)).length;
+      const gaps = runners.filter((r) => isFull(r.run) && r.gap !== undefined).map((r) => r.gap!);
       const placed = runners.filter((r) => isFull(r.run) && r.finish && r.finish <= 3 && r.run?.vsClass !== undefined);
       const winner = runners.find((r) => r.finish === 1);
       const anyFirst = runners.map((r) => firstSection(r.run)).find(Boolean);
@@ -338,6 +491,8 @@ export async function buildReview(date: string): Promise<Review | undefined> {
         wanted: runners.some((r) => wanted.has(`${race.raceId}:${r.runner.tabNumber}`)),
         strength: placed.length ? round1(mean(placed.map((r) => r.run!.vsClass!))) : undefined,
         winnerRanTo: winner?.ranTo,
+        bias: gaps.length ? round1(mean(gaps)) : undefined,
+        spread: gaps.length ? round1(mean(gaps.map(Math.abs))) : undefined,
         leaderEarly,
         tempo,
       };
@@ -369,6 +524,8 @@ export async function buildReview(date: string): Promise<Review | undefined> {
     builtAt: stored.builtAt,
     card,
     races,
+    meetings: meetingStats(races, bets, lays),
+    talking: talkingPoints(withRace),
     ranking: races.filter((r) => r.strength !== undefined).sort((a, b) => b.strength! - a.strength!),
     best: byVsClass.slice(0, 10),
     worst: byVsClass.slice(-10).reverse(),
