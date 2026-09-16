@@ -149,8 +149,15 @@ async function Race({ params }: { params: Props["params"] }) {
           Admin preview. Members cannot see the calls for this race until {RELEASE_HOUR}am on the day.
         </p>
       )}
-      {viewer.admin && !race.result?.length && race.jumpTime && new Date(race.jumpTime).getTime() < now() && (
-        <SettleForm date={date} meetingId={meetingId} raceId={raceId} runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))} />
+      {viewer.admin && (!race.result?.length || race.handSettled) && race.jumpTime && new Date(race.jumpTime).getTime() < now() && (
+        <SettleForm
+          date={date}
+          meetingId={meetingId}
+          raceId={raceId}
+          current={race.result ?? []}
+          dividends={{ win: race.placings?.[0]?.win, place: [race.placings?.[0]?.place, race.placings?.[1]?.place, race.placings?.[2]?.place] }}
+          runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))}
+        />
       )}
       <NextToGo meetings={meetings} selections={selections} date={date} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}

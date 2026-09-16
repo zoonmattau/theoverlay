@@ -225,6 +225,8 @@ export interface PublishedRace {
   result?: number[];
   /** The first four with their dividends, once the race is resulted. */
   placings?: Placing[];
+  /** The result was entered by an admin and can be edited until the official one lands. */
+  handSettled?: boolean;
   /** Model confidence in this race, 0-1. Low = we are guessing. */
   confidence: number;
   /** One sentence on what decides the race. */

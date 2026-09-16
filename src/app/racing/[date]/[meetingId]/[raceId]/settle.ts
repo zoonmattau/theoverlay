@@ -19,10 +19,11 @@ export async function settleRace(_prev: SettleState, form: FormData): Promise<Se
   const raceId = String(form.get("raceId") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !raceId) return { error: "Bad race." };
   const order = ["first", "second", "third", "fourth"].map((k) => Number(form.get(k))).filter((n) => n > 0);
-  const r = await settleByHand(date, raceId, order);
+  const num = (k: string) => { const v = Number(form.get(k)); return v > 1 ? v : undefined; };
+  const r = await settleByHand(date, raceId, order, { win: num("win"), place: [num("place1"), num("place2"), num("place3")] });
   if (!r.ok) return { error: r.error };
   revalidatePath(`/racing/${date}/${form.get("meetingId")}/${raceId}`);
   revalidatePath("/tips");
   revalidatePath("/");
-  return { done: `${r.track} R${r.raceNumber} settled.` };
+  return { done: `${r.track} R${r.raceNumber} settled ${new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" })}.` };
 }

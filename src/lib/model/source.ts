@@ -143,6 +143,7 @@ function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace
     goingText: live.goingText,
     result: official ? live.result : previous.result,
     placings: official ? live.placings : previous.placings,
+    handSettled: official ? undefined : previous.handSettled,
     runners: previous.runners.map((x) => ({ ...x, finishPosition: official ? (finish.get(x.tabNumber) ?? x.finishPosition) : x.finishPosition })),
   };
 }
