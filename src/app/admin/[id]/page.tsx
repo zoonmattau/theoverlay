@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, unmakeTipster } from "@/app/admin/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
+import { AREA_LABEL, memberViews } from "@/lib/activity";
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
 import { arrivalSource } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
@@ -32,7 +33,8 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const { id } = await params;
-  const [m, events, invites, tipster] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id)]);
+  const [m, allEvents, invites, tipster, views] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id), memberViews(id)]);
+  const events = allEvents.filter((e) => e.kind !== "page_view");
   if (!m) notFound();
   const [aff, record] = tipster ? await Promise.all([tipsterMembers(tipster.id), tipsterRecord(tipster.id)]) : [undefined, undefined];
   const now = clock();
@@ -190,6 +192,24 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             </form>
           )}
         </div>
+      </div>
+
+      <div className="section">
+        <div className="section-bar">
+          <span className="section-letter">W</span>
+          <h2>Where they go</h2>
+          <span className="ml-auto text-xs text-ink-soft">{views.length ? `last ${views.length} pages` : ""}</span>
+        </div>
+        <ul className="divide-y divide-line-soft">
+          {views.length === 0 && <li className="p-4 text-sm text-ink-soft">No page views recorded yet.</li>}
+          {views.map((v) => (
+            <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-1.5 text-sm">
+              <span className="nums text-ink-soft w-40">{stamp(v.created_at)}</span>
+              <span className="badge badge-muted">{AREA_LABEL[v.meta?.area ?? "other"]}</span>
+              <span className="text-xs text-ink-soft">{v.meta?.path}</span>
+            </li>
+          ))}
+        </ul>
       </div>
 
       <div className="section">

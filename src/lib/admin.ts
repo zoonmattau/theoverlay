@@ -114,7 +114,8 @@ export async function memberEvents(id: string, limit = 50): Promise<Event[]> {
 
 export async function recentEvents(kind?: string, limit = 100): Promise<Event[]> {
   let q = supabaseAdmin().from("events").select("*").order("created_at", { ascending: false }).limit(limit);
-  if (kind) q = q.eq("kind", kind);
+  // Page views have their own page; they would drown everything else here.
+  q = kind ? q.eq("kind", kind) : q.neq("kind", "page_view");
   const { data } = await q;
   return (data ?? []) as Event[];
 }

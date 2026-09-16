@@ -7,6 +7,7 @@ import { Suspense } from "react";
 import Image from "next/image";
 import { LaunchOffer } from "@/components/LaunchOffer";
 import { HorseSearch } from "@/components/HorseSearch";
+import { PageView } from "@/components/PageView";
 import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
 import { SocialLinks } from "@/components/SocialLinks";
@@ -63,6 +64,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-full flex flex-col">
         <Suspense fallback={null}>
           <MetaPixel />
+          <PageView />
         </Suspense>
         <TopbarOffset />
         <header className="site-head">

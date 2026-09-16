@@ -1,0 +1,172 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Suspense } from "react";
+
+import { isAdmin } from "@/lib/admin";
+import { getViewer } from "@/lib/auth";
+import { activityReport, AREA_LABEL } from "@/lib/activity";
+
+export const metadata: Metadata = { title: "Activity", robots: { index: false } };
+
+export default function Page({ searchParams }: PageProps<"/admin/activity">) {
+  return (
+    <div className="page">
+      <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
+        <Activity searchParams={searchParams} />
+      </Suspense>
+    </div>
+  );
+}
+
+const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
+/** "caulfield-heath-20260916" and "CAUH_160926_6" read as "Caulfield Heath R6". */
+const raceName = (meetingId: string, raceId: string) => {
+  const track = meetingId.replace(/-\d{8}$/, "").split("-").map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
+  const n = raceId.match(/_(\d+)$/)?.[1];
+  return n ? `${track} R${n}` : `${track} ${raceId}`;
+};
+const dayLabel = (day: string) => new Date(`${day}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+
+function Bar({ n, max }: { n: number; max: number }) {
+  return (
+    <span className="inline-block h-2 rounded-full bg-lime align-middle" style={{ width: `${Math.max(2, (100 * n) / Math.max(1, max))}%`, maxWidth: 160 }} />
+  );
+}
+
+/** What people do on the site: where they go, which races and tipsters, who follows whom, who is most active. */
+async function Activity({ searchParams }: { searchParams: PageProps<"/admin/activity">["searchParams"] }) {
+  const viewer = await getViewer();
+  if (!isAdmin(viewer)) notFound();
+  const sp = await searchParams;
+  const days = [1, 7, 30].includes(Number(sp.days)) ? Number(sp.days) : 7;
+  const r = await activityReport(days);
+  const maxArea = Math.max(...r.byArea.map((a) => a.views), 1);
+  const maxDay = Math.max(...r.byDay.map((d) => d.views), 1);
+
+  return (
+    <>
+      <section className="py-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight">Activity</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            {r.views} page views in the last {days === 1 ? "day" : `${days} days`} from {r.members} signed-in {r.members === 1 ? "member" : "members"} and {r.visitors} {r.visitors === 1 ? "visitor" : "visitors"}. Admin views are not counted.
+          </p>
+        </div>
+        <div className="flex gap-1">
+          {[1, 7, 30].map((d) => (
+            <Link key={d} href={`/admin/activity?days=${d}`} className={`btn btn-sm ${d === days ? "btn-primary" : "btn-secondary"}`}>{d === 1 ? "Today" : `${d} days`}</Link>
+          ))}
+        </div>
+      </section>
+
+      {r.views === 0 ? (
+        <div className="card text-sm text-ink-soft">Nothing recorded yet. Views start counting from the next deploy; give it a day.</div>
+      ) : (
+        <>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <div className="card">
+              <h2 className="font-display font-extrabold mb-3">Where they go</h2>
+              <table className="data-table w-full text-sm">
+                <thead><tr><th>Area</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
+                <tbody>
+                  {r.byArea.map((a) => (
+                    <tr key={a.area}>
+                      <td>{AREA_LABEL[a.area] ?? a.area}</td>
+                      <td className="text-right nums">{a.views}</td>
+                      <td className="text-right nums">{a.people}</td>
+                      <td className="w-44"><Bar n={a.views} max={maxArea} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="card">
+              <h2 className="font-display font-extrabold mb-3">By day</h2>
+              <table className="data-table w-full text-sm">
+                <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
+                <tbody>
+                  {r.byDay.map((d) => (
+                    <tr key={d.day}>
+                      <td>{dayLabel(d.day)}</td>
+                      <td className="text-right nums">{d.views}</td>
+                      <td className="text-right nums">{d.people}</td>
+                      <td className="w-44"><Bar n={d.views} max={maxDay} /></td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="grid gap-4 lg:grid-cols-2 mt-4">
+            <div className="card">
+              <h2 className="font-display font-extrabold mb-3">Races they open</h2>
+              <table className="data-table w-full text-sm">
+                <thead><tr><th>Race</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
+                <tbody>
+                  {r.topRaces.map((x) => (
+                    <tr key={x.key}>
+                      <td><Link href={`/racing/${x.date}/${x.meetingId}/${x.raceId}`} className="underline">{raceName(x.meetingId, x.raceId)}</Link> <span className="text-ink-soft text-xs">{x.date}</span></td>
+                      <td className="text-right nums">{x.views}</td>
+                      <td className="text-right nums">{x.people}</td>
+                    </tr>
+                  ))}
+                  {r.topRaces.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No race page opened.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+            <div className="card">
+              <h2 className="font-display font-extrabold mb-3">Tipsters they look at</h2>
+              <table className="data-table w-full text-sm">
+                <thead><tr><th>Tipster</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
+                <tbody>
+                  {r.topTipsters.map((x) => (
+                    <tr key={x.code}><td>{x.code}</td><td className="text-right nums">{x.views}</td><td className="text-right nums">{x.people}</td></tr>
+                  ))}
+                  {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
+                </tbody>
+              </table>
+              <h2 className="font-display font-extrabold mt-6 mb-3">Who follows whom</h2>
+              <table className="data-table w-full text-sm">
+                <thead><tr><th>Member</th><th>Follows</th><th>Since</th></tr></thead>
+                <tbody>
+                  {r.follows.map((f, i) => (
+                    <tr key={i}><td>{f.follower}</td><td className="font-semibold">{f.tipster}</td><td className="text-ink-soft text-xs">{when(f.since)}</td></tr>
+                  ))}
+                  {r.follows.length === 0 && <tr><td colSpan={3} className="text-ink-soft">Nobody follows a tipster yet.</td></tr>}
+                </tbody>
+              </table>
+              {r.referrers.length > 0 && (
+                <>
+                  <h2 className="font-display font-extrabold mt-6 mb-3">Where they came from</h2>
+                  <table className="data-table w-full text-sm">
+                    <tbody>{r.referrers.map((x) => <tr key={x.host}><td>{x.host}</td><td className="text-right nums">{x.views}</td></tr>)}</tbody>
+                  </table>
+                </>
+              )}
+            </div>
+          </div>
+
+          <div className="card mt-4 overflow-x-auto">
+            <h2 className="font-display font-extrabold mb-3">Most active</h2>
+            <table className="data-table w-full text-sm whitespace-nowrap">
+              <thead><tr><th>Who</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
+              <tbody>
+                {r.people.map((p) => (
+                  <tr key={p.id}>
+                    <td>{p.email ? <Link href={`/admin/${p.id}`} className="underline">{p.email}</Link> : <span className="text-ink-soft">visitor {p.id.slice(2, 8)}</span>}</td>
+                    <td className="text-right nums">{p.views}</td>
+                    <td className="text-right nums">{p.races}</td>
+                    <td className="text-xs">{p.areas}</td>
+                    <td className="text-ink-soft text-xs">{when(p.last)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+    </>
+  );
+}
