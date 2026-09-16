@@ -157,6 +157,12 @@ function introOf(date: string, record: DayRecord): string {
   return `${day}, every runner's run against the mark we had it at.${where} The model's calls: ${record.bets} bets for ${units(record.betUnits)} units and ${record.lays} lays for ${units(record.layUnits)}, level stakes.`;
 }
 
+/** The review as it would be published now, for the admin preview: nothing stored, nothing posted. */
+export function previewReview(review: Review): PublishedReview {
+  const record = recordOf(review);
+  return { date: review.date, publishedAt: "", intro: introOf(review.date, record), storylines: storylinesOf(review), features: featuresOf(review), record };
+}
+
 /** Builds, stores and announces the review for a date. Publishing again replaces the storylines and posts nothing new. */
 export async function publishReview(date: string): Promise<PublishedReview> {
   const review = await buildReview(date);
