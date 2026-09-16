@@ -4,8 +4,11 @@ import { Jumps } from "./Countdown";
 import { Outcome } from "./SelectionCard";
 import { SocialLinks } from "./SocialLinks";
 import { priceFlagged, type CreatorTip, type Tipster, type TipsterRecord } from "@/lib/creators";
+import { getViewer } from "@/lib/auth";
 import { jumpTime, price } from "@/lib/format";
 import { getCard } from "@/lib/model/source";
+import { reactionsFor } from "@/lib/reactions";
+import { ReactionBar } from "./ReactionBar";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
 
@@ -25,6 +28,8 @@ export async function TipsterTips({ tipster, tips, record, date, compact }: { ti
     }
   }
   if (tips.length === 0 && compact) return null;
+  const viewer = await getViewer();
+  const reactions = await reactionsFor(tips.map((t) => t.id), viewer.id);
   const settled = tips.filter((t) => t.settled_at);
   const total = settled.reduce((a, t) => a + Number(t.units), 0);
   return (
@@ -61,6 +66,7 @@ export async function TipsterTips({ tipster, tips, record, date, compact }: { ti
                   <Outcome position={t.settled_at ? (t.finish_position ?? 0) : undefined} />
                 </span>
                 {t.comment && <p className="basis-full text-sm text-ink-secondary">{t.comment}</p>}
+                <ReactionBar tipId={t.id} counts={reactions.get(t.id)?.counts ?? { fire: 0, nod: 0, target: 0, eyes: 0 }} mine={reactions.get(t.id)?.mine ?? []} signedIn={Boolean(viewer.id)} />
               </li>
             ))}
           </ul>

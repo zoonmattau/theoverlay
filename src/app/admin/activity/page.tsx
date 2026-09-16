@@ -127,16 +127,28 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                   {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
                 </tbody>
               </table>
-              <h2 className="font-display font-extrabold mt-6 mb-3">Who follows whom</h2>
-              <table className="data-table w-full text-sm">
-                <thead><tr><th>Member</th><th>Follows</th><th>Since</th></tr></thead>
-                <tbody>
-                  {r.follows.map((f, i) => (
-                    <tr key={i}><td>{f.follower}</td><td className="font-semibold">{f.tipster}</td><td className="text-ink-soft text-xs">{when(f.since)}</td></tr>
-                  ))}
-                  {r.follows.length === 0 && <tr><td colSpan={3} className="text-ink-soft">Nobody follows a tipster yet.</td></tr>}
-                </tbody>
-              </table>
+              <h2 className="font-display font-extrabold mt-6 mb-3">Followers by tipster</h2>
+              {r.follows.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
+              {Object.entries(
+                r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
+                  (acc[f.tipster] ??= []).push(f);
+                  return acc;
+                }, {}),
+              )
+                .sort((a, b) => b[1].length - a[1].length)
+                .map(([tipster, list]) => (
+                  <details key={tipster} className="group border-b border-line py-2">
+                    <summary className="cursor-pointer flex items-baseline justify-between gap-3 text-sm">
+                      <span className="font-semibold"><span className="inline-block w-4 text-ink-soft group-open:rotate-90 transition-transform">›</span> {tipster}</span>
+                      <span className="nums">{list.length} {list.length === 1 ? "follower" : "followers"}</span>
+                    </summary>
+                    <ul className="mt-2 ml-4 space-y-1 text-sm">
+                      {list.map((f, i) => (
+                        <li key={i} className="flex justify-between gap-3"><span>{f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
+                      ))}
+                    </ul>
+                  </details>
+                ))}
               {r.referrers.length > 0 && (
                 <>
                   <h2 className="font-display font-extrabold mt-6 mb-3">Where they came from</h2>
