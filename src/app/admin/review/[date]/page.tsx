@@ -152,7 +152,7 @@ function Meetings({ review }: { review: Review }) {
     <div className="card mb-4 overflow-x-auto">
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
         <h2 className="font-display font-extrabold">By meeting</h2>
-        <span className="text-sm text-ink-soft">Over the runners with a full benchmark. Bias is ran-to minus our mark, which mostly reads the race's par against our marks. Vs field takes that out: how far runners strayed from their place in our order. Fit is how well our order matched the run (1 is perfect).</span>
+        <span className="text-sm text-ink-soft">Over the runners with a full benchmark. Bias is ran-to minus our mark, which mostly reads the race&apos;s par against our marks. Vs field takes that out: how far runners strayed from their place in our order. Fit is how well our order matched the run (1 is perfect).</span>
       </div>
       <table className="data-table w-full text-sm">
         <thead>
