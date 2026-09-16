@@ -58,6 +58,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
   return (
     <>
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
+      {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
       {sp.discord === "failed" && <Notice>Discord did not link. Try again.</Notice>}
@@ -111,9 +112,10 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
                 {viewer.accessUntil ? `, renews ${longDate(viewer.accessUntil.slice(0, 10))}` : ""}.
               </p>
               {viewer.paused && <p className="mt-1 text-sm text-red font-semibold">Paused, nothing is charged and the board is closed until it resumes.</p>}
-              <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap items-center gap-2">
                 {viewer.stripeCustomerId && <PortalButton />}
                 <Link href="/pricing" className="btn btn-secondary btn-sm">Change plan</Link>
+                {viewer.stripeCustomerId && <Link href="/account/cancel" className="text-xs text-ink-soft underline ml-1">Cancel plan</Link>}
               </div>
             </>
           ) : (
