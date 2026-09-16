@@ -134,14 +134,16 @@ function mergeLive(form: RaceSummary, live?: RaceSummary): RaceSummary {
  */
 function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace {
   if (!previous || !(live.result?.length || hasJumped(undefined, live.jumpTime))) return live;
+  // A result settled by hand stands until the feed brings the official one.
+  const official = Boolean(live.result?.length);
   const finish = new Map(live.runners.map((x) => [x.tabNumber, x.finishPosition]));
   return {
     ...previous,
     going: live.going,
     goingText: live.goingText,
-    result: live.result,
-    placings: live.placings,
-    runners: previous.runners.map((x) => ({ ...x, finishPosition: finish.get(x.tabNumber) ?? x.finishPosition })),
+    result: official ? live.result : previous.result,
+    placings: official ? live.placings : previous.placings,
+    runners: previous.runners.map((x) => ({ ...x, finishPosition: official ? (finish.get(x.tabNumber) ?? x.finishPosition) : x.finishPosition })),
   };
 }
 

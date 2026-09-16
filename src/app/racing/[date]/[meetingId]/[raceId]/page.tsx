@@ -5,6 +5,7 @@ import type { Metadata } from "next";
 
 import { AnalysisRow } from "@/components/AnalysisRow";
 import { Locked } from "@/components/Locked";
+import { SettleForm } from "@/components/SettleForm";
 import { NtgCountdown } from "@/components/Countdown";
 import { PaceGrid } from "@/components/PaceGrid";
 import { Rankings } from "@/components/Rankings";
@@ -146,6 +147,9 @@ async function Race({ params }: { params: Props["params"] }) {
         <p className="border border-lime bg-lime-soft px-3 py-2 text-xs rounded-md font-semibold">
           Admin preview. Members cannot see the calls for this race until {RELEASE_HOUR}am on the day.
         </p>
+      )}
+      {viewer.admin && !race.result?.length && race.jumpTime && new Date(race.jumpTime).getTime() < Date.now() && (
+        <SettleForm date={date} meetingId={meetingId} raceId={raceId} runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))} />
       )}
       <NextToGo meetings={meetings} selections={selections} date={date} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}
