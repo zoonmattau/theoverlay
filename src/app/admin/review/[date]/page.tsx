@@ -6,8 +6,10 @@ import { Suspense } from "react";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { buildReview, type LedgerRow, type Review, type ReviewedRace, type ReviewedRunner } from "@/lib/model/review";
+import { Section } from "@/components/Section";
+import { ClickRow } from "../ClickRow";
 import { FetchButton } from "../FetchButton";
-import { dayLabel as label, finish, gapClass, price, raceHref, raceLabel, reviewHref, signed, stageOf, Tag, unitsClass } from "../shared";
+import { dayLabel as label, finish, gapClass, price, raceLabel, reviewHref, signed, stageOf, Tag, unitsClass } from "../shared";
 
 export const metadata: Metadata = { title: "Weekly review", robots: { index: false } };
 /** A fetch batch runs for minutes. */
@@ -76,13 +78,8 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
   const gaps = rows.map((r) => r.gap).filter((g): g is number => g !== undefined);
   const meanGap = gaps.length ? gaps.reduce((a, b) => a + b, 0) / gaps.length : undefined;
   return (
-    <div className="card mb-4 overflow-x-auto">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
-        <h2 className="font-display font-extrabold">{title}</h2>
-        <span className="nums text-sm text-ink-soft">
-          {rows.length} calls, {won} of {settled.length} won, {signed(units)}u{meanGap !== undefined ? `, ran ${signed(meanGap)} against our marks on average` : ""}
-        </span>
-      </div>
+    <Section id={`review-${title.toLowerCase().replace(/\s+/g, "-")}`} letter={title.includes("lay") ? "L" : "B"} title={title} aside={`${rows.length} calls, ${won} of ${settled.length} won, ${signed(units)}u${meanGap !== undefined ? `, ran ${signed(meanGap)} against our marks on average` : ""}`}>
+      <div className="overflow-x-auto">
       <table className="data-table w-full text-sm">
         <thead>
           <tr>
@@ -93,8 +90,8 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={`${r.race.raceId}:${r.runner.tabNumber}`}>
-              <td><Link href={`/racing/${date}/${r.meeting.meetingId}/${r.race.raceId}`} className="underline">{r.meeting.track} R{r.race.raceNumber}</Link></td>
+            <ClickRow key={`${r.race.raceId}:${r.runner.tabNumber}`} href={`/admin/review/${date}/${r.race.raceId}`}>
+              <td><Link href={`/admin/review/${date}/${r.race.raceId}`} className="underline">{r.meeting.track} R{r.race.raceNumber}</Link></td>
               <td className="font-semibold">{r.runner.tabNumber}. {r.runner.horseName}</td>
               <td><Tag tag={r.tag} side={r.side} prime={r.runner.prime} /></td>
               <td className="text-right nums">{r.runner.edge !== undefined ? `${signed(r.runner.edge * 100, 0)}%` : ""}</td>
@@ -109,12 +106,13 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
               <td className="text-right nums">{signed(r.late)}{r.lateRank ? ` (${r.lateRank})` : ""}</td>
               <td className={`text-right nums ${r.units !== undefined && r.units > 0 ? "text-emerald-700" : r.units !== undefined && r.units < 0 ? "text-red-700" : ""}`}>{signed(r.units, 2)}</td>
               <td className="text-ink-soft text-xs">{stageOf(r)}</td>
-            </tr>
+            </ClickRow>
           ))}
           {rows.length === 0 && <tr><td colSpan={15} className="text-ink-soft">None on the card.</td></tr>}
         </tbody>
       </table>
-    </div>
+      </div>
+    </Section>
   );
 }
 
@@ -129,11 +127,7 @@ const KIND_CLASS: Record<string, string> = {
 function Talking({ review }: { review: Review }) {
   if (review.talking.length === 0) return null;
   return (
-    <div className="card mb-4">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
-        <h2 className="font-display font-extrabold">Talking points</h2>
-        <span className="text-sm text-ink-soft">Over the runs with a full benchmark, leaving out races whose first three all ran five lengths above class.</span>
-      </div>
+    <Section id="review-talking" letter="T" title="Talking points" aside="Over the runs with a full benchmark, leaving out races whose first three all ran five lengths above class">
       <ul className="space-y-2 text-sm">
         {review.talking.map((t, i) => (
           <li key={i} className="flex flex-wrap items-baseline gap-2">
@@ -143,17 +137,14 @@ function Talking({ review }: { review: Review }) {
           </li>
         ))}
       </ul>
-    </div>
+    </Section>
   );
 }
 
 function Meetings({ review }: { review: Review }) {
   return (
-    <div className="card mb-4 overflow-x-auto">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
-        <h2 className="font-display font-extrabold">By meeting</h2>
-        <span className="text-sm text-ink-soft">Over the runners with a full benchmark. Bias is ran-to minus our mark, which mostly reads the race&apos;s par against our marks. Vs field takes that out: how far runners strayed from their place in our order. Fit is how well our order matched the run (1 is perfect).</span>
-      </div>
+    <Section id="review-meetings" letter="M" title="By meeting" aside="Bias reads the race's par against our marks; vs field is how far runners strayed from their place in our order; fit is how well our order matched the run">
+      <div className="overflow-x-auto">
       <table className="data-table w-full text-sm">
         <thead>
           <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right">Bias</th><th className="text-right">Spread</th><th className="text-right">Vs field</th><th className="text-right">Fit</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
@@ -180,17 +171,15 @@ function Meetings({ review }: { review: Review }) {
           })}
         </tbody>
       </table>
-    </div>
+      </div>
+    </Section>
   );
 }
 
 function Ranking({ review }: { review: Review }) {
   return (
-    <div className="card mb-4 overflow-x-auto">
-      <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
-        <h2 className="font-display font-extrabold">Races by how strongly they were run</h2>
-        <span className="text-sm text-ink-soft">Strength is the first three home against the class benchmark, in lengths. Tempo is the leader&apos;s first section against class.</span>
-      </div>
+    <Section id="review-ranking" letter="S" title="Races by how strongly they were run" aside="Strength is the first three home against the class benchmark, in lengths; tempo is the leader's first section against class" defaultOpen={false}>
+      <div className="overflow-x-auto">
       <table className="data-table w-full text-sm">
         <thead>
           <tr><th>#</th><th>Race</th><th>Class</th><th className="text-right">Par</th><th className="text-right">Strength</th><th className="text-right">Winner ran to</th><th>Winner</th><th>Tempo</th><th className="text-right">Leader early</th><th>Our call</th><th className="text-right">Benchmarked</th></tr>
@@ -200,9 +189,9 @@ function Ranking({ review }: { review: Review }) {
             const winner = r.runners.find((x) => x.finish === 1);
             const ours = r.runners.filter((x) => x.runner.signal);
             return (
-              <tr key={r.race.raceId}>
+              <ClickRow key={r.race.raceId} href={reviewHref(r, review.date)}>
                 <td className="nums">{i + 1}</td>
-                <td><Link href={raceHref(r, review.date)} className="underline">{raceLabel(r)}</Link> <span className="text-ink-soft">{r.race.name}</span></td>
+                <td><Link href={reviewHref(r, review.date)} className="underline">{raceLabel(r)}</Link> <span className="text-ink-soft">{r.race.name}</span></td>
                 <td>{r.race.className ?? ""} {r.race.distance}m</td>
                 <td className="text-right nums">{r.race.classPoints}</td>
                 <td className="text-right nums font-semibold">{signed(r.strength)}L</td>
@@ -212,13 +201,14 @@ function Ranking({ review }: { review: Review }) {
                 <td className="text-right nums">{signed(r.leaderEarly)}L</td>
                 <td className="text-xs">{ours.map((x) => `${x.runner.signal === "lay" ? "Lay" : "Bet"} ${x.runner.horseName} ${finish(x)}`).join(", ")}</td>
                 <td className="text-right nums">{r.full}/{r.runners.length}</td>
-              </tr>
+              </ClickRow>
             );
           })}
           {review.ranking.length === 0 && <tr><td colSpan={11} className="text-ink-soft">No race has a benchmarked placegetter yet.</td></tr>}
         </tbody>
       </table>
-    </div>
+      </div>
+    </Section>
   );
 }
 
@@ -228,21 +218,22 @@ function Runs({ title, rows, date, late }: { title: string; rows: (ReviewedRunne
       <h2 className="font-display font-extrabold mb-3">{title}</h2>
       <table className="data-table w-full text-sm">
         <thead>
-          <tr><th>Horse</th><th>Race</th><th>Result</th><th className="text-right">{late ? "Last 600" : "Vs class"}</th><th className="text-right">Ran to</th><th className="text-right">Our mark</th><th className="text-right">Gap</th></tr>
+          <tr><th>Horse</th><th>Race</th><th>Result</th><th className="text-right">{late ? "Last 600" : "Vs class"}</th><th className="text-right">Ran to</th><th className="text-right">Our mark</th><th className="text-right">Gap</th><th className="text-right">Vs field</th></tr>
         </thead>
         <tbody>
           {rows.map((r) => (
-            <tr key={`${r.race.race.raceId}:${r.runner.tabNumber}`}>
+            <ClickRow key={`${r.race.race.raceId}:${r.runner.tabNumber}`} href={reviewHref(r.race, date)}>
               <td className="font-semibold">{r.runner.horseName}{r.runner.signal ? <span className="text-ink-soft text-xs"> {r.runner.signal === "lay" ? "lay" : "bet"}</span> : ""}</td>
-              <td><Link href={raceHref(r.race, date)} className="underline">{raceLabel(r.race)}</Link></td>
+              <td><Link href={reviewHref(r.race, date)} className="underline">{raceLabel(r.race)}</Link></td>
               <td className="nums">{finish(r)}</td>
               <td className="text-right nums font-semibold">{signed(late ? r.late : r.run?.vsClass)}L{late && r.run?.last600 ? <span className="text-ink-soft font-normal"> {r.run.last600.toFixed(2)}s</span> : ""}</td>
               <td className="text-right nums">{r.ranTo?.toFixed(1) ?? ""}</td>
               <td className="text-right nums">{r.runner.ratings.today.toFixed(1)}</td>
               <td className={`text-right nums ${gapClass(r.gap)}`}>{signed(r.gap)}</td>
-            </tr>
+              <td className={`text-right nums ${gapClass(r.relGap)}`}>{signed(r.relGap)}</td>
+            </ClickRow>
           ))}
-          {rows.length === 0 && <tr><td colSpan={7} className="text-ink-soft">Nothing benchmarked yet.</td></tr>}
+          {rows.length === 0 && <tr><td colSpan={8} className="text-ink-soft">Nothing benchmarked yet.</td></tr>}
         </tbody>
       </table>
     </div>
@@ -260,11 +251,11 @@ function Races({ review }: { review: Review }) {
   const order = new Map(review.meetings.map((m, i) => [m.meeting.meetingId, i]));
   return (
     <>
-      <h2 className="font-display text-xl font-extrabold mt-8 mb-3">Races by meeting</h2>
+      <Section id="review-races" letter="R" title="Races by meeting" aside="Click a race for the race as a whole">
       {[...meetings.values()]
         .sort((a, b) => (order.get(a[0].meeting.meetingId) ?? 99) - (order.get(b[0].meeting.meetingId) ?? 99))
         .map((races) => (
-          <section key={races[0].meeting.meetingId} id={`m-${races[0].meeting.meetingId}`} className="card mb-3 overflow-x-auto scroll-mt-20">
+          <section key={races[0].meeting.meetingId} id={`m-${races[0].meeting.meetingId}`} className="mb-5 overflow-x-auto scroll-mt-40">
             <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
               <h3 className="font-display font-extrabold">{races[0].meeting.track} <span className="text-ink-soft font-normal text-sm">{races[0].meeting.state}</span></h3>
               <span className="nums text-sm text-ink-soft">{races.reduce((a, r) => a + r.full, 0)} of {races.reduce((a, r) => a + r.runners.length, 0)} runners benchmarked</span>
@@ -278,7 +269,7 @@ function Races({ review }: { review: Review }) {
                   const winner = r.runners.find((x) => x.finish === 1);
                   const ours = r.runners.filter((x) => x.runner.signal);
                   return (
-                    <tr key={r.race.raceId}>
+                    <ClickRow key={r.race.raceId} href={reviewHref(r, review.date)}>
                       <td><Link href={reviewHref(r, review.date)} className="underline font-semibold">R{r.race.raceNumber}</Link> <span className="text-ink-soft">{r.race.name}</span></td>
                       <td>{r.race.className ?? ""} {r.race.distance}m</td>
                       <td className="text-right nums">{r.race.classPoints}</td>
@@ -291,13 +282,14 @@ function Races({ review }: { review: Review }) {
                       <td className="text-right nums">{r.spread?.toFixed(1) ?? ""}</td>
                       <td className="text-xs">{ours.map((x) => `${x.runner.signal === "lay" ? "Lay" : "Bet"} ${x.runner.horseName} ${finish(x)}`).join(", ")}</td>
                       <td className="text-right nums">{r.full}/{r.runners.length}</td>
-                    </tr>
+                    </ClickRow>
                   );
                 })}
               </tbody>
             </table>
           </section>
         ))}
+      </Section>
     </>
   );
 }

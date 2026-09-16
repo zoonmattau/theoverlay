@@ -7,7 +7,9 @@ import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { buildReview } from "@/lib/model/review";
 import { settle } from "@/lib/tips";
-import { dayLabel, finish, gapClass, price, raceHref, RunnerTable, signed, Tag, unitsClass } from "../../shared";
+import { Section } from "@/components/Section";
+import { RaceStrip, type StripRace } from "../../RaceStrip";
+import { dayLabel, finish, gapClass, price, raceHref, reviewHref, RunnerTable, signed, Tag, unitsClass } from "../../shared";
 
 export const metadata: Metadata = { title: "Race review", robots: { index: false } };
 
@@ -47,9 +49,25 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
   const units = settled.reduce((a, x) => a + settle(x.runner.signal!, x.runner.marketPrice!, x.finish!), 0);
   const ours = r.runners.filter((x) => x.runner.rank).sort((a, b) => a.runner.rank! - b.runner.rank!);
   const talking = review.talking.filter((t) => t.runner.race.race.raceId === raceId);
+  // Every race the review wants, in meeting order, for the strip.
+  const order = new Map(review.meetings.map((m, i) => [m.meeting.meetingId, i]));
+  const strip: StripRace[] = review.races
+    .filter((x) => x.wanted || x.race.raceId === raceId)
+    .sort((a, b) => (order.get(a.meeting.meetingId) ?? 99) - (order.get(b.meeting.meetingId) ?? 99) || a.race.raceNumber - b.race.raceNumber)
+    .map((x) => ({
+      raceId: x.race.raceId,
+      href: reviewHref(x, date),
+      track: x.meeting.track,
+      raceNumber: x.race.raceNumber,
+      name: x.race.name,
+      full: x.full,
+      runners: x.runners.length,
+      fetched: x.runners.filter((y) => y.run !== undefined).length,
+    }));
 
   return (
     <>
+      <RaceStrip races={strip} current={raceId} />
       <section className="py-6">
         <p className="text-xs uppercase tracking-[0.1em] text-ink-soft font-bold">
           <Link href="/admin/review" className="underline">Weekly review</Link> · <Link href={`/admin/review/${date}`} className="underline">{dayLabel(date)}</Link> ·{" "}
@@ -85,8 +103,8 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
         </div>
       )}
 
-      <div className="card mb-4 overflow-x-auto">
-        <h2 className="font-display font-extrabold mb-2">Our top four and calls</h2>
+      <Section id="review-race-ours" letter="O" title="Our top four and calls" aside="Rated against the market, and how each went">
+        <div className="overflow-x-auto">
         <table className="data-table w-full text-sm">
           <thead>
             <tr><th>#</th><th>Horse</th><th>Call</th><th className="text-right">Our mark</th><th className="text-right">Rated</th><th className="text-right">Market</th><th className="text-right">Edge</th><th>Result</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th className="text-right">Vs field</th><th>Why</th></tr>
@@ -110,12 +128,14 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      </Section>
 
-      <div className="card mb-4 overflow-x-auto">
-        <h2 className="font-display font-extrabold mb-2">Every runner against its run</h2>
-        <RunnerTable r={r} />
-      </div>
+      <Section id="review-race-runners" letter="E" title="Every runner against its run" aside={`${r.full} of ${r.runners.length} with a full benchmark`}>
+        <div className="overflow-x-auto">
+          <RunnerTable r={r} />
+        </div>
+      </Section>
     </>
   );
 }
