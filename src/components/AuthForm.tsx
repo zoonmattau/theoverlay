@@ -117,7 +117,7 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
             <span className="h-px flex-1 bg-line" />
           </div>
           {social.includes("google") && (
-            <button type="submit" formAction={googleAction} className="btn btn-secondary w-full" disabled={busy}>
+            <button type="submit" formAction={googleAction} formNoValidate className="btn btn-secondary w-full" disabled={busy}>
               <GoogleMark />
               {gpending ? "One moment" : "Continue with Google"}
             </button>
