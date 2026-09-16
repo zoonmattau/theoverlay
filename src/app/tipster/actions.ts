@@ -7,6 +7,7 @@ import { clean } from "@/components/SocialLinks";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { tipsterForUser } from "@/lib/creators";
+import { postTipsterCall } from "@/lib/discord";
 import { notifyFollowers } from "@/lib/email/tipster";
 import { getCard } from "@/lib/model/source";
 
@@ -40,6 +41,7 @@ export async function postTip(form: FormData): Promise<void> {
   // Nothing goes out after the jump. Admins can, for testing and for a call missed by the refresh.
   if (!viewer.admin && race.jumpTime && new Date(race.jumpTime).getTime() < Date.now()) return;
 
+  const { data: existing } = await supabaseAdmin().from("creator_tips").select("id").eq("affiliate_id", tipster.id).eq("race_id", raceId).eq("tab_number", tab).maybeSingle();
   await supabaseAdmin().from("creator_tips").upsert(
     {
       affiliate_id: tipster.id, date, meeting_id: meeting.meetingId, race_id: raceId, race_number: race.raceNumber, track: meeting.track,
@@ -50,6 +52,13 @@ export async function postTip(form: FormData): Promise<void> {
     { onConflict: "affiliate_id,race_id,tab_number" },
   );
   paths();
+  after(() =>
+    postTipsterCall(
+      { name: tipster.name, code: tipster.code },
+      { track: meeting.track, race_number: race.raceNumber, tab_number: tab, horse_name: runner.horseName, side, price, comment, bookie },
+      { date, meetingId: meeting.meetingId, raceId, jumpTime: race.jumpTime, update: Boolean(existing) },
+    ),
+  );
   after(async () => {
     await new Promise((r) => setTimeout(r, NOTIFY_DELAY_MS));
     await notifyFollowers(tipster.id);

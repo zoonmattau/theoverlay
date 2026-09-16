@@ -26,6 +26,7 @@ export const CHANNELS = {
   early: "early-look",
   review: "saturday-review",
   winners: "winners",
+  tipsters: "tipster-calls",
 } as const;
 export const MEMBER_ROLE = "Member";
 /** Tipster accounts carry this as well, which opens tipster-calls to post in and the lounge to see. */
@@ -262,6 +263,24 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
 }
 
 const ordinal = (n: number) => (n === 0 ? "last" : `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`);
+
+/**
+ * A tipster's call, the moment it is saved on the site, so their followers
+ * on Discord get it without the tipster posting twice. A call edited
+ * before the jump posts again as an update.
+ */
+export async function postTipsterCall(tipster: { name: string; code: string }, tip: { track: string; race_number: number; tab_number: number; horse_name: string; side: "back" | "lay"; price: number; comment: string | null; bookie: string | null }, opts: { date: string; meetingId: string; raceId: string; jumpTime?: string; update?: boolean }): Promise<void> {
+  if (!discordConfigured()) return;
+  try {
+    const square = tip.side === "lay" ? "🟥" : "🟦";
+    const side = tip.side === "lay" ? "Lay" : "Bet";
+    const head = `${square} **${tipster.name}**${opts.update ? " (updated)" : ""}: ${tip.track} R${tip.race_number} ${clock(opts.jumpTime)}  **${tip.tab_number}. ${tip.horse_name}**  ${side} ${price(tip.price)}${tip.bookie ? ` at ${tip.bookie}` : ""}`;
+    const body = [head, ...(tip.comment ? [`> ${tip.comment}`] : []), `${SITE}/t/${tipster.code}`];
+    await send(CHANNELS.tipsters, body.join("\n"));
+  } catch (err) {
+    console.error("[discord] tipster call", err);
+  }
+}
 
 /** The public Saturday review, once, when an admin publishes it. */
 export async function postReview(review: { date: string; intro: string; storylines: { kind: string; text: string }[] }): Promise<void> {
