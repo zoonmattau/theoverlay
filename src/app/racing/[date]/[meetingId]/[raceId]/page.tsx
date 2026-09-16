@@ -155,7 +155,6 @@ async function Race({ params }: { params: Props["params"] }) {
           meetingId={meetingId}
           raceId={raceId}
           current={race.result ?? []}
-          dividends={{ win: race.placings?.[0]?.win, place: [race.placings?.[0]?.place, race.placings?.[1]?.place, race.placings?.[2]?.place] }}
           runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))}
         />
       )}

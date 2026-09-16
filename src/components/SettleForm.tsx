@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 
-import { settleRace, type SettleState } from "@/app/racing/[date]/[meetingId]/[raceId]/settle";
+import { fetchResult, settleRace, type SettleState } from "@/app/racing/[date]/[meetingId]/[raceId]/settle";
 
 const PLACES = [
   { name: "first", label: "1st" },
@@ -12,9 +12,11 @@ const PLACES = [
 ] as const;
 
 /** Admin only: the first four home by saddlecloth number, for a race that has jumped and has no result yet. */
-export function SettleForm({ date, meetingId, raceId, runners, current = [], dividends = {} }: { date: string; meetingId: string; raceId: string; runners: { tab: number; name: string }[]; current?: number[]; dividends?: { win?: number; place?: (number | undefined)[] } }) {
+export function SettleForm({ date, meetingId, raceId, runners, current = [] }: { date: string; meetingId: string; raceId: string; runners: { tab: number; name: string }[]; current?: number[] }) {
   const [state, action, pending] = useActionState(settleRace, {} as SettleState);
+  const [fstate, fetchAction, fetching] = useActionState(fetchResult, {} as SettleState);
   const settled = current.length > 0;
+  if (fstate.done) return <p className="card border-lime bg-lime-soft py-2 text-sm font-semibold">{fstate.done}</p>;
   return (
     <form action={action} className="card py-2">
       <input type="hidden" name="date" value={date} />
@@ -23,7 +25,7 @@ export function SettleForm({ date, meetingId, raceId, runners, current = [], div
       <div className="grid grid-cols-2 gap-x-3 gap-y-2 items-center lg:grid-cols-[auto_repeat(4,minmax(0,1fr))_auto]">
         <div className="col-span-2 lg:col-span-1 lg:pr-2 leading-tight">
           <span className="font-display font-extrabold text-sm">{settled ? "Settled by hand" : "Settle by hand"}</span>
-          <span className="block text-[11px] text-ink-soft">{state.done ?? (settled ? "Change it or add a place. The official result replaces it." : "First four home. The official result replaces it.")}</span>
+          <span className="block text-[11px] text-ink-soft">{state.done ?? (settled ? "Change it or add a place." : "First four home, winner is enough.")}</span>
         </div>
         {PLACES.map((p, i) => (
           <label key={p.name} className="flex items-center gap-1.5 min-w-0">
@@ -38,26 +40,16 @@ export function SettleForm({ date, meetingId, raceId, runners, current = [], div
             </select>
           </label>
         ))}
-        <button type="submit" className="btn btn-primary btn-sm h-8 col-span-2 lg:col-span-1" disabled={pending}>
+        <button type="submit" className="btn btn-primary btn-sm h-8 col-span-2 lg:col-span-1" disabled={pending || fetching}>
           {pending ? "Saving" : settled ? "Update result" : "Settle race"}
         </button>
       </div>
-      <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-2 items-center lg:grid-cols-[auto_repeat(4,minmax(0,1fr))_auto]">
-        <span className="col-span-2 lg:col-span-1 text-[11px] text-ink-soft lg:pr-2">Dividends: win, then the places</span>
-        {[
-          { name: "win", label: "Win", value: dividends.win },
-          { name: "place1", label: "1st", value: dividends.place?.[0] },
-          { name: "place2", label: "2nd", value: dividends.place?.[1] },
-          { name: "place3", label: "3rd", value: dividends.place?.[2] },
-        ].map((d) => (
-          <label key={d.name} className="flex items-center gap-1.5 min-w-0">
-            <span className="w-7 shrink-0 text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft">{d.label}</span>
-            <span className="relative w-full">
-              <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-ink-soft">$</span>
-              <input name={d.name} type="number" step="0.01" min="1.01" defaultValue={d.value ?? ""} placeholder="0.00" className="h-8 w-full rounded-md border border-line bg-bg pl-5 pr-2 text-sm nums" />
-            </span>
-          </label>
-        ))}
+      <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-[11px] text-ink-soft">
+        <span>{settled ? "Official dividends, margins and starting prices come with the feed's result." : "Placings settle every call; dividends come with the feed's result."}</span>
+        <button type="submit" formAction={fetchAction} formNoValidate className="underline hover:text-ink" disabled={pending || fetching}>
+          {fetching ? "Asking Form King…" : "Check for it now (2 credits)"}
+        </button>
+        {fstate.error && <span className="text-red font-semibold">{fstate.error}</span>}
       </div>
       {state.error && <p className="mt-2 text-sm text-red font-semibold">{state.error}</p>}
     </form>
