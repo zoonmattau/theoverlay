@@ -97,6 +97,13 @@ async function rerate(date: string) {
   // Keep the order the card had.
   const order = new Map(stored.card.meetings.map((m, i) => [m.meetingId, i]));
   published.sort((a, b) => (order.get(a.meetingId) ?? 99) - (order.get(b.meetingId) ?? 99));
+  // Missing race form would write an empty card over a real one.
+  const storedRaces = stored.card.meetings.reduce((a, m) => a + m.races.length, 0);
+  const gotRaces = published.reduce((a, m) => a + m.races.length, 0);
+  if (gotRaces < storedRaces * 0.8) {
+    console.log(`${date}: only ${gotRaces} of ${storedRaces} races have form in the cache, leaving the card as it is`);
+    return;
+  }
   const selections = selectBestBets(published);
   const primes = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   for (const m of published) for (const r of m.races) for (const x of r.runners) if (primes.has(`${r.raceId}:${x.tabNumber}`)) x.prime = true;
