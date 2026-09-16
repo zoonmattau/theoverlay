@@ -1,9 +1,10 @@
 import { cookies } from "next/headers";
-import { NextResponse, type NextRequest } from "next/server";
+import { after, NextResponse, type NextRequest } from "next/server";
 
 import type { Arrival } from "@/lib/arrival";
 import { OAUTH_COOKIE } from "@/lib/social";
 import { attributeSignup } from "@/lib/affiliates";
+import { sendTodaysTipsTo } from "@/lib/email/tips";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { applyReferral } from "@/lib/referrals";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -22,7 +23,7 @@ export async function GET(request: NextRequest) {
       // An invite is honoured once the email is confirmed, never before.
       const ref = data.user?.user_metadata?.ref;
       if (data.user && typeof ref === "string" && ref) await applyReferral(data.user.id, ref);
-      if (data.user) await finishProviderSignup(data.user.id, data.user.user_metadata ?? {});
+      if (data.user) await finishProviderSignup(data.user.id, data.user.user_metadata ?? {}, data.user.email);
       return NextResponse.redirect(`${origin}${safe}`);
     }
   }
@@ -35,7 +36,7 @@ export async function GET(request: NextRequest) {
  * account that has not accepted the terms yet. A returning user has
  * already, so nothing changes for them.
  */
-async function finishProviderSignup(userId: string, meta: Record<string, unknown>): Promise<void> {
+async function finishProviderSignup(userId: string, meta: Record<string, unknown>, email?: string): Promise<void> {
   const jar = await cookies();
   const raw = jar.get(OAUTH_COOKIE)?.value;
   if (!raw) return;
@@ -62,4 +63,5 @@ async function finishProviderSignup(userId: string, meta: Record<string, unknown
     .eq("id", userId);
   if (stash.aff) await attributeSignup(userId, stash.aff);
   if (stash.ref) await applyReferral(userId, stash.ref);
+  if (email) after(() => sendTodaysTipsTo(userId, email, Boolean(stash.marketing)));
 }

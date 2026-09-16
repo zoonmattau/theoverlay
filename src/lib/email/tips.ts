@@ -6,7 +6,8 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { bestBookie, type Bookie } from "@/lib/bookies";
 import { longDate, price, priceWithChance } from "@/lib/format";
 import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
-import type { StoredCard } from "@/lib/model/store";
+import { readStoredCard, type StoredCard } from "@/lib/model/store";
+import { racingToday, released } from "@/lib/model/source";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
 import { tipsterTable } from "./tipster";
@@ -164,4 +165,33 @@ export async function sendMorningTips(date: string, card: StoredCard, force = fa
   }
   await logEvent({ user_id: null, kind: "tips_email", plan: null, amount_cents: null, meta: { date, sent, recipients: to.length } });
   return { sent, skipped: "" };
+}
+
+/**
+ * Today's email for someone who signed up after it went out, so a Saturday
+ * sign-up at 10:05 is not waiting until Sunday. Sends only when the morning
+ * send has already gone (else the cron will include them), the card is
+ * released, a race is still to run, and they ticked tips emails. Never
+ * throws: a missed email must not break a sign-up.
+ */
+export async function sendTodaysTipsTo(userId: string, email: string, optedIn: boolean): Promise<boolean> {
+  try {
+    if (!optedIn) return false;
+    const date = racingToday();
+    if (!released(date)) return false;
+    const db = supabaseAdmin();
+    const { data: sent } = await db.from("events").select("id").eq("kind", "tips_email").contains("meta", { date }).gt("meta->>sent", "0").limit(1);
+    if (!sent || sent.length === 0) return false;
+    const stored = await readStoredCard(date);
+    if (!stored) return false;
+    const toRun = stored.card.meetings.some((m) => m.races.some((r) => !r.result && r.jumpTime && new Date(r.jumpTime).getTime() > Date.now()));
+    if (!toRun) return false;
+    return await sendEmail(email, morningTipsEmail(date, stored.card, userId), {
+      "List-Unsubscribe": `<${unsubscribeUrl(userId)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    });
+  } catch (err) {
+    console.error("[tips] sign-up send", err);
+    return false;
+  }
 }
