@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { AnalysisRow } from "@/components/AnalysisRow";
 import { Locked } from "@/components/Locked";
 import { SettleForm } from "@/components/SettleForm";
+import { now } from "@/lib/admin";
 import { NtgCountdown } from "@/components/Countdown";
 import { PaceGrid } from "@/components/PaceGrid";
 import { Rankings } from "@/components/Rankings";
@@ -148,7 +149,7 @@ async function Race({ params }: { params: Props["params"] }) {
           Admin preview. Members cannot see the calls for this race until {RELEASE_HOUR}am on the day.
         </p>
       )}
-      {viewer.admin && !race.result?.length && race.jumpTime && new Date(race.jumpTime).getTime() < Date.now() && (
+      {viewer.admin && !race.result?.length && race.jumpTime && new Date(race.jumpTime).getTime() < now() && (
         <SettleForm date={date} meetingId={meetingId} raceId={raceId} runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))} />
       )}
       <NextToGo meetings={meetings} selections={selections} date={date} />
