@@ -47,6 +47,19 @@ const OUTLIER_SCALE = Number(process.env.OVERLAY_OUTLIER_SCALE ?? 1.5);
  * scripts/sweep-lay-meld.ts.
  */
 const LAY_OUTLIER_WEIGHT = Number(process.env.OVERLAY_LAY_OUTLIER_WEIGHT ?? 0.8);
+/**
+ * Short favourites are where the form knows least and the market most: over
+ * the resulted races in the cache the horses under $2 won 55 where the meld
+ * said 43 and the market itself said 48. So on the lay side the market's
+ * ceiling climbs with the market's own chance, from the lay ceiling at
+ * SHORT_FROM to SHORT_WEIGHT at SHORT_TO and above. Set with
+ * scripts/sweep-short.ts.
+ */
+const SHORT_WEIGHT = Number(process.env.OVERLAY_SHORT_WEIGHT ?? 0.8);
+/** Sharpening on the de-vigged market for the favourite-longshot bias, 1 for none. Set with scripts/sweep-short.ts. */
+const FL_POWER = Number(process.env.OVERLAY_FL_POWER ?? 1);
+const SHORT_FROM = 0.25;
+const SHORT_TO = 0.5;
 
 export interface RateInput {
   key: string;
@@ -108,7 +121,10 @@ export function rateRace(
     // when we have it longer, the lay side, where the form is right about
     // the direction more often than about the size.
     const gap = logit(model) - logit(market);
-    const ceiling = gap >= 0 ? outlierWeight : layOutlierWeight;
+    // The lay-side ceiling climbs toward SHORT_WEIGHT as the market's chance climbs toward SHORT_TO.
+    const short = Math.min(1, Math.max(0, (market - SHORT_FROM) / (SHORT_TO - SHORT_FROM)));
+    const layCeiling = layOutlierWeight + (Math.max(layOutlierWeight, SHORT_WEIGHT) - layOutlierWeight) * short;
+    const ceiling = gap >= 0 ? outlierWeight : layCeiling;
     const w = weight === 0 ? 0 : weight + (ceiling - weight) * (1 - Math.exp(-Math.abs(gap) / outlierScale));
     return sigmoid(w * logit(market) + (1 - w) * logit(model));
   });
@@ -181,7 +197,11 @@ export function devig(prices: (number | undefined)[]): (number | undefined)[] {
     else hi = k;
   }
 
-  const fair = raw.map((p) => Math.pow(p, k));
+  // The overround out, then the favourite-longshot bias: punters underbet
+  // short favourites and overbet roughies, so the fair market still has the
+  // $1.60 shot winning more often than it says. A power a little over one
+  // moves that chance back where it belongs.
+  const fair = raw.map((p) => Math.pow(Math.pow(p, k), FL_POWER));
   const total = fair.reduce((a, b) => a + b, 0);
 
   const out: (number | undefined)[] = prices.map(() => undefined);
