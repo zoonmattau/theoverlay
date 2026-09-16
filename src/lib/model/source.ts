@@ -14,7 +14,7 @@ import { hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zo
 import { explain } from "./ratings";
 import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
-import { postCallChanges, postResults } from "@/lib/discord";
+import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
 import { recordTips } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace } from "./types";
@@ -300,7 +300,10 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     if (opts.revalidate !== false) {
       revalidateTag(`card-${date}`, "max");
       // Calls that came or went since the last card, then once every race has run the day's ledger, once.
-      if (date === racingToday()) await postCallChanges(date, before, card);
+      if (date === racingToday()) {
+        await postCallChanges(date, before, card);
+        await postWinners(date, before, card);
+      }
       await postResults(date, card);
     }
   }

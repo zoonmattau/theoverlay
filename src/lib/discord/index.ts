@@ -25,6 +25,7 @@ export const CHANNELS = {
   free: "free-race",
   early: "early-look",
   review: "saturday-review",
+  winners: "winners",
 } as const;
 export const MEMBER_ROLE = "Member";
 
@@ -227,6 +228,38 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
     console.error("[discord] call changes", err);
   }
 }
+
+/**
+ * Winners as they land: a race whose result arrived with this rebuild posts
+ * every call that came off in it, a bet that won at its price or a lay that
+ * held, with the day's running total. Losers stay off this channel; the
+ * results post at the end of the day carries the lot.
+ */
+export async function postWinners(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
+  if (!discordConfigured() || before.size === 0) return;
+  try {
+    const landed = callsOn(card).filter((c) => c.r.result?.length && !before.get(c.r.raceId)?.result?.length && c.x.finishPosition !== undefined);
+    const won = landed.filter((c) => (c.x.signal === "back" ? c.x.finishPosition === 1 : c.x.finishPosition !== 1));
+    if (won.length === 0) return;
+    // The day so far, over every call in a race that has run.
+    let units = 0;
+    for (const c of callsOn(card)) {
+      if (!c.r.result?.length || c.x.finishPosition === undefined || !c.x.marketPrice) continue;
+      const w = c.x.finishPosition === 1;
+      units += c.x.signal === "back" ? (w ? c.x.marketPrice - 1 : -1) : w ? -(c.x.marketPrice - 1) : 1;
+    }
+    const lines = won.map((c) => {
+      const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
+      if (c.x.signal === "back") return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(c.x.marketPrice)}${prime ? ", a Prime" : ""}. +${((c.x.marketPrice ?? 1) - 1).toFixed(2)}u`;
+      return `✅ Lay held: **${c.x.horseName}** ran ${ordinal(c.x.finishPosition!)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(c.x.marketPrice)}. +1.00u`;
+    });
+    await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
+  } catch (err) {
+    console.error("[discord] winners", err);
+  }
+}
+
+const ordinal = (n: number) => (n === 0 ? "last" : `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`);
 
 /** The public Saturday review, once, when an admin publishes it. */
 export async function postReview(review: { date: string; intro: string; storylines: { kind: string; text: string }[] }): Promise<void> {
