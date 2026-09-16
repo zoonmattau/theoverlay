@@ -94,8 +94,8 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
           <Ledger title="Our bets" rows={review.bets} date={date} />
           <Ledger title="Our lays" rows={review.lays} date={date} />
           <Ranking review={review} />
-          <Section id="review-runs" letter="W" title="Runs of the day" aside="Best and worst against class, and the fastest last 600" defaultOpen={false}>
-            <div className="grid gap-4 lg:grid-cols-3">
+          <Section className="mb-4" id="review-runs" letter="W" title="Runs of the day" aside="Best and worst against class, and the fastest last 600" defaultOpen={false}>
+            <div className="section-body grid gap-4 lg:grid-cols-3">
               <Runs title="Best runs against class" rows={review.best} date={date} />
               <Runs title="Worst runs against class" rows={review.worst} date={date} />
               <Runs title="Fastest last 600 against class" rows={review.closers} date={date} late />
@@ -125,13 +125,14 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
   const meanRel = rel.length ? rel.reduce((a, b) => a + b, 0) / rel.length : undefined;
   return (
     <Section
+      className="mb-4"
       id={`review-${title.toLowerCase().replace(/\s+/g, "-")}`}
       letter={title.includes("lay") ? "L" : "B"}
       title={title}
       aside={`${rows.length} calls, ${won} of ${settled.length} won, ${signed(units)}u${meanRel !== undefined ? `, ran ${signed(meanRel)} against their place in our order on average` : ""}`}
       defaultOpen={false}
     >
-      <div className="overflow-x-auto">
+      <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm whitespace-nowrap">
           <thead>
             <tr>
@@ -170,8 +171,8 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
 function Features({ review }: { review: Review }) {
   if (review.features.length === 0) return null;
   return (
-    <Section id="review-features" letter="G" title="Feature races" aside="Every Group race of the day: who won, where we had it, and how our calls went">
-      <div className="overflow-x-auto">
+    <Section className="mb-4" id="review-features" letter="G" title="Feature races" aside="Every Group race of the day: who won, where we had it, and how our calls went">
+      <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm">
           <thead>
             <tr><th>Grade</th><th>Race</th><th>Winner</th><th className="text-right">Our #</th><th className="text-right">Ran to</th><th>Our top rated</th><th>Placings, our marks</th><th>Our calls</th><th className="text-right">Units</th><th className="text-right">Strength</th><th className="text-right">Data</th></tr>
@@ -213,15 +214,17 @@ const KIND_CLASS: Record<string, string> = {
 function Talking({ review }: { review: Review }) {
   if (review.talking.length === 0) return null;
   return (
-    <Section id="review-talking" letter="T" title="Talking points" aside="Over the runs with a full benchmark, leaving out races whose first three all ran five lengths above class">
-      <ul className="space-y-2 text-sm leading-relaxed">
+    <Section className="mb-4" id="review-talking" letter="T" title="Talking points" aside="Over the runs with a full benchmark, leaving out races whose first three all ran five lengths above class">
+      <ul className="section-body space-y-3 text-sm leading-relaxed">
         {review.talking.map((t, i) => (
-          <li key={i}>
-            <span className={`badge ${KIND_CLASS[t.kind] ?? ""} mr-2 align-middle`}>{t.kind}</span>
-            {t.text}{" "}
-            <Link href={reviewHref(t.runner.race, review.date)} className="underline text-ink-soft whitespace-nowrap">
-              {raceLabel(t.runner.race)} →
-            </Link>
+          <li key={i} className="grid grid-cols-[9.5rem_1fr] gap-3 items-start">
+            <span className={`badge ${KIND_CLASS[t.kind] || "badge-muted"} justify-self-start whitespace-nowrap`}>{t.kind}</span>
+            <span>
+              {t.text}{" "}
+              <Link href={reviewHref(t.runner.race, review.date)} className="underline text-ink-soft whitespace-nowrap">
+                {raceLabel(t.runner.race)} →
+              </Link>
+            </span>
           </li>
         ))}
       </ul>
@@ -233,8 +236,8 @@ function Meetings({ review }: { review: Review }) {
   const withData = review.meetings.filter((m) => m.full > 0);
   const without = review.meetings.filter((m) => m.full === 0);
   return (
-    <Section id="review-meetings" letter="M" title="By meeting" aside="Bias reads the race's par against our marks; vs field is how far runners strayed from their place in our order; fit is how well our order matched the run">
-      <div className="overflow-x-auto">
+    <Section className="mb-4" id="review-meetings" letter="M" title="By meeting" aside="Bias reads the race's par against our marks; vs field is how far runners strayed from their place in our order; fit is how well our order matched the run">
+      <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm whitespace-nowrap">
           <thead>
             <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right">Bias</th><th className="text-right">Spread</th><th className="text-right">Vs field</th><th className="text-right">Fit</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
@@ -263,7 +266,7 @@ function Meetings({ review }: { review: Review }) {
         </table>
       </div>
       {without.length > 0 && (
-        <p className="mt-3 text-xs text-ink-soft">
+        <p className="px-4 pb-4 text-xs text-ink-soft">
           No benchmarks yet: {without.map((m) => `${m.meeting.track} (${m.bets ? `${m.bets} bets ${signed(m.betUnits, 2)}` : "no bets"}${m.lays ? `, ${m.lays} lays ${signed(m.layUnits, 2)}` : ""})`).join(", ")}.
         </p>
       )}
@@ -273,8 +276,8 @@ function Meetings({ review }: { review: Review }) {
 
 function Ranking({ review }: { review: Review }) {
   return (
-    <Section id="review-ranking" letter="S" title="Races by how strongly they were run" aside="Strength is the first three home against the class benchmark, in lengths; tempo is the leader's first section against class" defaultOpen={false}>
-      <div className="overflow-x-auto">
+    <Section className="mb-4" id="review-ranking" letter="S" title="Races by how strongly they were run" aside="Strength is the first three home against the class benchmark, in lengths; tempo is the leader's first section against class" defaultOpen={false}>
+      <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm whitespace-nowrap">
           <thead>
             <tr><th>#</th><th>Race</th><th>Class</th><th className="text-right">Par</th><th className="text-right">Strength</th><th className="text-right">Winner ran to</th><th>Winner</th><th>Tempo</th><th className="text-right">Leader early</th><th>Our call</th><th className="text-right">Data</th></tr>
@@ -344,7 +347,8 @@ function Races({ review }: { review: Review }) {
   }
   const order = new Map(review.meetings.map((m, i) => [m.meeting.meetingId, i]));
   return (
-    <Section id="review-races" letter="R" title="Races by meeting" aside="Open a meeting, then click a race for the race as a whole">
+    <Section className="mb-4" id="review-races" letter="R" title="Races by meeting" aside="Open a meeting, then click a race for the race as a whole">
+      <div className="section-body">
       {[...meetings.values()]
         .sort((a, b) => (order.get(a[0].meeting.meetingId) ?? 99) - (order.get(b[0].meeting.meetingId) ?? 99))
         .map((races) => {
@@ -390,6 +394,7 @@ function Races({ review }: { review: Review }) {
             </details>
           );
         })}
+      </div>
     </Section>
   );
 }

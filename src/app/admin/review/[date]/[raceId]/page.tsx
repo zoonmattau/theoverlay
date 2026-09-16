@@ -103,8 +103,8 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
         </div>
       )}
 
-      <Section id="review-race-ours" letter="O" title="Our top four and calls" aside="Rated against the market, and how each went">
-        <div className="overflow-x-auto">
+      <Section className="mb-4" id="review-race-ours" letter="O" title="Our top four and calls" aside="Rated against the market, and how each went">
+        <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm">
           <thead>
             <tr><th>#</th><th>Horse</th><th>Call</th><th className="text-right">Our mark</th><th className="text-right">Rated</th><th className="text-right">Market</th><th className="text-right">Edge</th><th>Result</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th className="text-right">Vs field</th><th>Why</th></tr>
@@ -131,8 +131,8 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
         </div>
       </Section>
 
-      <Section id="review-race-runners" letter="E" title="Every runner against its run" aside={`${r.full} of ${r.runners.length} with a full benchmark`}>
-        <div className="overflow-x-auto">
+      <Section className="mb-4" id="review-race-runners" letter="E" title="Every runner against its run" aside={`${r.full} of ${r.runners.length} with a full benchmark`}>
+        <div className="section-body overflow-x-auto">
           <RunnerTable r={r} />
         </div>
       </Section>
