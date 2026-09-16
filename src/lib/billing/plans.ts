@@ -56,6 +56,11 @@ export const PLANS: Plan[] = [
 
 export const planById = (id: string | undefined) => PLANS.find((p) => p.id === id);
 
+/** The monthly price said by the week, the way a punter counts: $49 a month is $11.30 a week. */
+export const weekly = (monthly: number) => Math.round(((monthly * 12) / 52) * 10) / 10;
+/** "$11.30" or "$4.40", never "$11.3". */
+export const weeklyLabel = (monthly: number) => `$${weekly(monthly).toFixed(2).replace(/0$/, "0")}`;
+
 /** Does this plan open the card for a given racing date (yyyy-mm-dd)? */
 export function planCovers(planId: string | undefined, date: string): boolean {
   if (planId === "open") return true;

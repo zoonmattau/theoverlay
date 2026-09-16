@@ -6,7 +6,7 @@ export const ABOUT_FAQ: Faq[] = [
   { q: "What is an overlay in horse racing?", a: "An overlay is a horse whose market price is longer than its true chance, so a $5 horse we rate a $4 chance is an overlay and worth a bet." },
   { q: "When are the tips released?", a: "Tips are published at 8:00am AEST on each race day and prices refresh through the day until the jump." },
   { q: "Which races are covered?", a: "Every TAB flat meeting in Australia, every state, with one race a day free and the rest open to members." },
-  { q: "How much does it cost?", a: "Saturday tips are $19 a month, Saturday plus Wednesday $29, every day $49, all with a 7-day free trial, or day passes from $10 each." },
+  { q: "How much does it cost?", a: "Saturday tips are $4.40 a week, Saturday plus Wednesday $6.70, every day $11.30, billed monthly at $19, $29 and $49, all with a 7-day free trial, or day passes from $10 each." },
 ];
 
 export const RATINGS_FAQ: Faq[] = [

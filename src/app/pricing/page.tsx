@@ -7,7 +7,7 @@ import { CheckoutButton } from "@/components/CheckoutButton";
 import { FaqList, JsonLd, SITE_URL, faqSchema } from "@/components/JsonLd";
 import { PLANS_FAQ } from "@/lib/faq";
 import { getViewer } from "@/lib/auth";
-import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS } from "@/lib/billing/plans";
+import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS, weeklyLabel } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -97,9 +97,12 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
               <h3 className="font-display text-xl font-extrabold">{p.name}</h3>
               <p className="text-sm text-ink-soft">{p.blurb}</p>
             </div>
-            <div className="flex items-baseline gap-1">
-              <span className="font-display text-4xl font-extrabold tracking-tight nums">${p.price}</span>
-              <span className="text-sm text-ink-soft">per month</span>
+            <div>
+              <div className="flex items-baseline gap-1">
+                <span className="font-display text-4xl font-extrabold tracking-tight nums">{weeklyLabel(p.price)}</span>
+                <span className="text-sm text-ink-soft">a week</span>
+              </div>
+              <div className="text-sm text-ink-secondary nums">Billed ${p.price} a month, cancel any time.</div>
             </div>
             <ul className="space-y-1.5 text-sm text-ink-secondary flex-1">
               {p.features.map((f) => (
