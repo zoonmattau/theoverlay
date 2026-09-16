@@ -214,7 +214,7 @@ const KIND_CLASS: Record<string, string> = {
 function Talking({ review }: { review: Review }) {
   if (review.talking.length === 0) return null;
   return (
-    <Section className="mb-4" id="review-talking" letter="T" title="Talking points" aside="Over the runs with a full benchmark, leaving out races whose first three all ran five lengths above class">
+    <Section className="mb-4" id="review-talking" letter="T" title="Talking points" aside="Over the runs with a full benchmark, leaving out races whose benchmark cannot be trusted">
       <ul className="section-body space-y-3 text-sm leading-relaxed">
         {review.talking.map((t, i) => (
           <li key={i} className="grid grid-cols-[9.5rem_1fr] gap-3 items-start">
@@ -292,7 +292,7 @@ function Ranking({ review }: { review: Review }) {
                   <td><Link href={reviewHref(r, review.date)} className="underline">{raceLabel(r)}</Link> <span className="text-ink-soft">{r.race.name}</span></td>
                   <td>{r.race.className ?? ""} {r.race.distance}m</td>
                   <td className="text-right nums">{r.race.classPoints}</td>
-                  <td className="text-right nums font-semibold">{signed(r.strength)}L{(r.strength ?? 0) >= 5 && <span className="badge badge-lay ml-1">suspect</span>}</td>
+                  <td className="text-right nums font-semibold">{signed(r.strength)}L{r.suspect && <span className="badge badge-lay ml-1">suspect</span>}</td>
                   <td className="text-right nums">{r.winnerRanTo?.toFixed(1) ?? ""}</td>
                   <td>{winner ? `${winner.runner.tabNumber}. ${winner.runner.horseName}` : ""}{winner?.runner.rank ? <span className="text-ink-soft"> (our #{winner.runner.rank})</span> : ""}</td>
                   <td>{r.tempo ?? ""}</td>
@@ -376,7 +376,7 @@ function Races({ review }: { review: Review }) {
                           <td><Link href={reviewHref(r, review.date)} className="underline font-semibold">R{r.race.raceNumber}</Link> <span className="text-ink-soft">{r.race.name}</span></td>
                           <td>{r.race.className ?? ""} {r.race.distance}m</td>
                           <td className="text-right nums">{r.race.classPoints}</td>
-                          <td className="text-right nums font-semibold">{r.strength !== undefined ? `${signed(r.strength)}L` : ""}{(r.strength ?? 0) >= 5 && <span className="badge badge-lay ml-1" title="The first three all ran five lengths or more above class: the benchmark has not settled">suspect</span>}</td>
+                          <td className="text-right nums font-semibold">{r.strength !== undefined ? `${signed(r.strength)}L` : ""}{r.suspect && <span className="badge badge-lay ml-1" title="The first three all ran five lengths above class, or a runner has a 200m sector no horse could run: the timing, not the horses">suspect</span>}</td>
                           <td>{r.tempo ?? ""}</td>
                           <td className="text-right nums">{r.leaderEarly !== undefined ? `${signed(r.leaderEarly)}L` : ""}</td>
                           <td>{winner ? `${winner.runner.tabNumber}. ${winner.runner.horseName}` : ""}{winner?.runner.rank ? <span className="text-ink-soft"> (our #{winner.runner.rank})</span> : ""}</td>

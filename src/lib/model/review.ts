@@ -251,6 +251,12 @@ export interface ReviewedRace {
   /** Mean of ran-to minus our mark over the benchmarked runners, and the mean size of that gap. */
   bias?: number;
   spread?: number;
+  /**
+   * The benchmark cannot be trusted: the first three all ran five lengths
+   * above class, or a placegetter has a single 200m sector more than six
+   * lengths above it, which no horse does and a misplaced timing point does.
+   */
+  suspect: boolean;
   /** The leader's first section against class, and the tempo that makes it. */
   leaderEarly?: number;
   tempo?: Tempo;
@@ -335,6 +341,26 @@ export interface Review {
 const round1 = (n: number) => Math.round(n * 10) / 10;
 const mean = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
+/**
+ * Lengths above class in one 200m sector beyond which the timing, not the
+ * horse, is the story. Only the fast side: a tired horse runs its last 200m
+ * ten lengths slow all the time, nothing runs a 200m sector six lengths fast.
+ */
+const SECTOR_LIMIT = 6;
+const SECTOR = /^(\d+)-(\d+|F)$/;
+
+/** Whether a run has a 200m sector no horse could run: a misplaced timing point. */
+function impossibleSector(run?: ReviewRun | null): boolean {
+  for (const [name, sec] of Object.entries(run?.sections ?? {})) {
+    const m = SECTOR.exec(name);
+    if (!m) continue;
+    const from = Number(m[1]), to = m[2] === "F" ? 0 : Number(m[2]);
+    if (from - to !== 2) continue;
+    if (sec.vsClass > SECTOR_LIMIT) return true;
+  }
+  return false;
+}
+
 function pearson(pairs: [number, number][]): number | undefined {
   if (pairs.length < 4) return undefined;
   const mx = mean(pairs.map((p) => p[0])), my = mean(pairs.map((p) => p[1]));
@@ -362,7 +388,7 @@ function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): T
   const result = (r: ReviewedRunner) => (r.finish === 1 ? "won" : r.finish ? `ran ${ordinal(r.finish)}${r.margin !== undefined ? `, beaten ${lengths(r.margin)}` : ""}` : "ran");
   // A race whose first three all ran five lengths above class is a benchmark
   // that has not settled, not five good horses: it stays out of the superlatives.
-  const sane = withRace.filter((r) => (r.race.strength ?? 0) < 5 && r.ranTo !== undefined);
+  const sane = withRace.filter((r) => !r.race.suspect && r.ranTo !== undefined);
   const byVsClass = [...sane].sort((a, b) => b.run!.vsClass! - a.run!.vsClass!);
   const top = byVsClass[0];
   if (top && top.run!.vsClass! > 0) {
@@ -448,7 +474,7 @@ function meetingStats(races: ReviewedRace[], bets: LedgerRow[], lays: LedgerRow[
     .map((rs) => {
       const meeting = rs[0].meeting;
       const runners = rs.flatMap((r) => r.runners);
-      const fullRunners = runners.filter((r) => isFull(r.run) && r.gap !== undefined);
+      const fullRunners = rs.filter((r) => !r.suspect).flatMap((r) => r.runners).filter((r) => isFull(r.run) && r.gap !== undefined);
       const gaps = fullRunners.map((r) => r.gap!);
       const resulted = rs.filter((r) => r.runners.some((x) => x.finish === 1));
       const winners = resulted.map((r) => r.runners.find((x) => x.finish === 1)!);
@@ -535,6 +561,8 @@ export async function buildReview(date: string): Promise<Review | undefined> {
         for (const r of runners) if (isFull(r.run) && r.gap !== undefined) r.relGap = round1(r.gap - raceBias);
       }
       const placed = runners.filter((r) => isFull(r.run) && r.finish && r.finish <= 3 && r.run?.vsClass !== undefined);
+      const strength = placed.length ? round1(mean(placed.map((r) => r.run!.vsClass!))) : undefined;
+      const suspect = (strength ?? 0) >= 5 || placed.some((r) => impossibleSector(r.run));
       const winner = runners.find((r) => r.finish === 1);
       const anyFirst = runners.map((r) => firstSection(r.run)).find(Boolean);
       const leaderEarly = anyFirst ? round1(anyFirst.vsClass - anyFirst.vsLeader) : undefined;
@@ -545,7 +573,8 @@ export async function buildReview(date: string): Promise<Review | undefined> {
         runners,
         full,
         wanted: runners.some((r) => wanted.has(`${race.raceId}:${r.runner.tabNumber}`)),
-        strength: placed.length ? round1(mean(placed.map((r) => r.run!.vsClass!))) : undefined,
+        strength,
+        suspect,
         winnerRanTo: winner?.ranTo,
         bias: gaps.length ? round1(mean(gaps)) : undefined,
         spread: gaps.length ? round1(mean(gaps.map(Math.abs))) : undefined,
@@ -572,8 +601,8 @@ export async function buildReview(date: string): Promise<Review | undefined> {
   lays.sort((a, b) => (a.runner.edge ?? 0) - (b.runner.edge ?? 0));
 
   const withRace = races.flatMap((race) => race.runners.filter((r) => isFull(r.run) && r.run?.vsClass !== undefined).map((r) => ({ ...r, race })));
-  const byVsClass = [...withRace].sort((a, b) => b.run!.vsClass! - a.run!.vsClass!);
-  const closers = withRace.filter((r) => r.late !== undefined).sort((a, b) => b.late! - a.late!);
+  const byVsClass = withRace.filter((r) => !r.race.suspect).sort((a, b) => b.run!.vsClass! - a.run!.vsClass!);
+  const closers = withRace.filter((r) => !r.race.suspect && r.late !== undefined).sort((a, b) => b.late! - a.late!);
   const fetched = [...runs.values()];
   return {
     date,

@@ -83,7 +83,7 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
       </section>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-4">
-        <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub={(r.strength ?? 0) >= 5 ? "first three vs class: benchmark suspect" : "first three vs class"} className={(r.strength ?? 0) >= 5 ? "text-red-700" : ""} />
+        <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub={r.suspect ? "first three vs class: benchmark suspect, left out of the stats" : "first three vs class"} className={r.suspect ? "text-red-700" : ""} />
         <Stat label="Tempo" value={r.tempo ?? ""} sub={r.leaderEarly !== undefined ? `leader ${signed(r.leaderEarly)}L early` : undefined} />
         <Stat label="Winner ran to" value={r.winnerRanTo?.toFixed(1) ?? ""} sub={winner ? `${winner.runner.horseName}${winner.runner.rank ? `, our #${winner.runner.rank}` : ", not in our four"}` : undefined} />
         <Stat label="Bias" value={signed(r.bias)} sub="the race's par against our marks" className={gapClass(r.bias)} />
