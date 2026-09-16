@@ -3,7 +3,6 @@ import "server-only";
 import { logEvent } from "@/lib/admin";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { planCovers } from "@/lib/billing/plans";
 import { bestBookie, type Bookie } from "@/lib/bookies";
 import { longDate, price, priceWithChance } from "@/lib/format";
 import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
@@ -28,19 +27,23 @@ interface Row {
 }
 
 /** Members whose access covers the date and who ticked tips emails. */
-async function recipients(date: string): Promise<Row[]> {
-  const { data } = await supabaseAdmin()
-    .from("profiles")
-    .select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin")
-    .eq("marketing_opt_in", true)
-    .not("email", "is", null);
-  const now = Date.now();
+/**
+ * Everyone with an email who has not unsubscribed or paused, confirmed or
+ * not, paying or not: the morning email is how the day's calls reach the
+ * whole list. Admins always; tipster accounts never, their calls are their
+ * own.
+ */
+async function recipients(): Promise<Row[]> {
+  const db = supabaseAdmin();
+  const [{ data }, { data: tipsters }] = await Promise.all([
+    db.from("profiles").select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin").eq("marketing_opt_in", true).not("email", "is", null),
+    db.from("affiliates").select("user_id").not("user_id", "is", null),
+  ]);
+  const tipster = new Set(((tipsters ?? []) as { user_id: string }[]).map((t) => t.user_id));
   return ((data ?? []) as Row[]).filter((r) => {
     if (r.paused_at) return false;
     if (r.is_admin || isAdminEmail(r.email)) return true;
-    const pro = r.access_until && new Date(r.access_until).getTime() > now;
-    if (pro && planCovers(r.plan ?? undefined, date)) return true;
-    return Boolean(r.bonus_until && new Date(r.bonus_until).getTime() > now);
+    return !tipster.has(r.id);
   });
 }
 
@@ -138,7 +141,7 @@ export async function sendMorningTips(date: string, card: StoredCard, force = fa
     const { data } = await db.from("events").select("id").eq("kind", "tips_email").contains("meta", { date }).limit(1);
     if (data && data.length > 0) return { sent: 0, skipped: "already sent" };
   }
-  const to = await recipients(date);
+  const to = await recipients();
   // Who follows whom, and each tipster's calls for the day, fetched once.
   const { data: followRows } = await db.from("follows").select("user_id, tipster_id").in("user_id", to.map((r) => r.id));
   const followsOf = new Map<string, string[]>();
