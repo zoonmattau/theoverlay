@@ -35,7 +35,7 @@ const LONG_MIN_PRICE = 8;
  * disagreements toward the market: about two bets in three races, and a
  * lay in one race in four.
  */
-const MIN_EDGE = 0.025;
+export const MIN_EDGE = 0.025;
 /** A Prime Overlay is a bet with a wide gap on a horse we give a real chance. */
 const PRIME_EDGE = 0.05;
 const PRIME_MIN_PROB = 0.15;
@@ -45,7 +45,7 @@ const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /** Market shorter than our price by this much, on a runner we can lay. */
-const LAY_EDGE = -0.14;
+export const LAY_EDGE = -0.14;
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 

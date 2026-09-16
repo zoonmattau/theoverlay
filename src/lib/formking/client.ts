@@ -206,8 +206,8 @@ export function getMeetingsByDate(date: string | Date, states?: string[]) {
 }
 
 /** Full meeting with fields and the last 12 runs per horse, no benchmarks. 5 credits. */
-export function getMeeting(meetingId: string, opts: { ttlMs?: number } = {}) {
-  return cached("meeting", meetingId, () => request<MeetingSummary>(`/b2c/meetings/${meetingId}`), { ttlMs: opts.ttlMs });
+export function getMeeting(meetingId: string, opts: { ttlMs?: number; accept?: (m: MeetingSummary) => boolean } = {}) {
+  return cached("meeting", meetingId, () => request<MeetingSummary>(`/b2c/meetings/${meetingId}`), { ttlMs: opts.ttlMs, accept: opts.accept });
 }
 
 /** Full race form with sectional benchmarks. 2 credits at five benchmarks. */

@@ -63,11 +63,26 @@ const NEAR_TTL_MS = Number(process.env.OVERLAY_NEAR_MIN ?? 15) * 60_000;
 const NEAR_WINDOW_MS = 60 * 60_000;
 const DONE_TTL_MS = 24 * 60 * 60_000;
 
+const raceDone = (r: { status?: string; result?: unknown[] }) => Boolean(r.result?.length) || /result|abandon/i.test(r.status ?? "");
+
+function meetingDone(lite: MeetingSummaryLite): boolean {
+  const races = (lite.races ?? []).filter((r) => !r.raceType || r.raceType === "Flat");
+  return races.length === 0 || races.every(raceDone);
+}
+
+/**
+ * The index and the summary are cached apart, so when the index says the
+ * meeting is over a summary bought mid-meeting must not stand in for the
+ * last results: only one that carries every result is kept.
+ */
+function meetingAccept(lite: MeetingSummaryLite): (m: MeetingSummary) => boolean {
+  if (!meetingDone(lite)) return () => true;
+  return (m) => (m.races ?? []).filter((r) => !r.raceType || r.raceType === "Flat").every(raceDone);
+}
+
 function meetingTtl(lite: MeetingSummaryLite): number {
   const races = (lite.races ?? []).filter((r) => !r.raceType || r.raceType === "Flat");
-  if (races.length === 0) return DONE_TTL_MS;
-  const allDone = races.every((r) => /result|abandon/i.test(r.status ?? ""));
-  if (allDone) return DONE_TTL_MS;
+  if (meetingDone(lite)) return DONE_TTL_MS;
   const jumps = races.map((r) => jumpMillis(lite.date, r.startTime, lite.state)).filter((j): j is number => j !== undefined);
   if (jumps.length === 0) return NEAR_TTL_MS;
   const first = Math.min(...jumps);
@@ -350,7 +365,7 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
       if (forms.length === 0) return forms;
       let live: MeetingSummary | undefined;
       try {
-        live = await getMeeting(lite.id, { ttlMs: meetingTtl(lite) });
+        live = await getMeeting(lite.id, { ttlMs: meetingTtl(lite), accept: meetingAccept(lite) });
       } catch (err) {
         console.error("[card] meeting summary failed", lite.id, err);
       }
