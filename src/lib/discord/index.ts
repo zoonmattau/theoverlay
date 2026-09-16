@@ -28,6 +28,8 @@ export const CHANNELS = {
   winners: "winners",
 } as const;
 export const MEMBER_ROLE = "Member";
+/** Tipster accounts carry this as well, which opens tipster-calls to post in and the lounge to see. */
+export const TIPSTER_ROLE = "Tipster";
 
 export const discordConfigured = () => Boolean(process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID);
 export const discordLinkConfigured = () => discordConfigured() && Boolean(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET);
@@ -363,21 +365,28 @@ function memberNow(p: MemberRow, tipster: boolean): boolean {
 
 /**
  * Puts the linked Discord account in the server if it is not there (needs
- * the access token from linking) and gives or takes the Member role.
+ * the access token from linking) and gives or takes the Member role, and
+ * the Tipster role for a tipster account.
  */
-async function applyRole(discordId: string, member: boolean, accessToken?: string): Promise<void> {
-  const roleId = (await roles()).get(MEMBER_ROLE);
-  if (!roleId) throw new Error("No Member role on the server.");
+async function applyRole(discordId: string, member: boolean, accessToken?: string, tipster = false): Promise<void> {
+  const ids = await roles();
+  const memberId = ids.get(MEMBER_ROLE);
+  if (!memberId) throw new Error("No Member role on the server.");
+  const tipsterId = ids.get(TIPSTER_ROLE);
   const base = `/guilds/${guild()}/members/${discordId}`;
   if (accessToken) {
     // Joins them, or is a no-op when they are in already.
-    await api("PUT", base, { access_token: accessToken, ...(member ? { roles: [roleId] } : {}) });
+    const give = [...(member ? [memberId] : []), ...(tipster && tipsterId ? [tipsterId] : [])];
+    await api("PUT", base, { access_token: accessToken, ...(give.length ? { roles: give } : {}) });
   }
-  try {
-    await api(member ? "PUT" : "DELETE", `${base}/roles/${roleId}`);
-  } catch (err) {
-    // Not in the server: nothing to give the role to.
-    if (!/404/.test(String(err))) throw err;
+  const wanted: [string, boolean][] = [[memberId, member], ...(tipsterId ? [[tipsterId, tipster] as [string, boolean]] : [])];
+  for (const [roleId, on] of wanted) {
+    try {
+      await api(on ? "PUT" : "DELETE", `${base}/roles/${roleId}`);
+    } catch (err) {
+      // Not in the server: nothing to give the role to.
+      if (!/404/.test(String(err))) throw err;
+    }
   }
 }
 
@@ -401,7 +410,7 @@ export async function syncDiscordMember(userId: string, accessToken?: string): P
   ]);
   if (!p?.discord_id) return;
   try {
-    await applyRole(p.discord_id, memberNow(p as MemberRow, Boolean(aff)), accessToken);
+    await applyRole(p.discord_id, memberNow(p as MemberRow, Boolean(aff)), accessToken, Boolean(aff));
   } catch (err) {
     console.error("[discord] sync", userId, err);
   }
@@ -418,10 +427,11 @@ export async function syncDiscordMembers(): Promise<{ linked: number; members: n
   const tipsters = new Set((affs ?? []).map((a) => String(a.user_id)));
   let members = 0;
   for (const p of (rows ?? []) as MemberRow[]) {
-    const member = memberNow(p, tipsters.has(p.id));
+    const tipster = tipsters.has(p.id);
+    const member = memberNow(p, tipster);
     if (member) members++;
     try {
-      await applyRole(p.discord_id!, member);
+      await applyRole(p.discord_id!, member, undefined, tipster);
     } catch (err) {
       console.error("[discord] sweep", p.id, err);
     }
