@@ -118,6 +118,18 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   }
 }
 
+/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen and the units once settled. */
+export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number }>> {
+  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, market_price, units, settled_at").eq("date", date).eq("source", "model");
+  if (error) console.error("[tips]", error.message);
+  return new Map(
+    ((data ?? []) as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null }[]).map((r) => [
+      `${r.race_id}:${r.tab_number}`,
+      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined },
+    ]),
+  );
+}
+
 const empty = (): SideStats => ({ n: 0, hit: 0, units: 0, roi: 0 });
 
 function tally(rows: { side: Signal; units: number; finish_position: number }[]): { bets: SideStats; lays: SideStats } {

@@ -14,6 +14,7 @@ import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
 import { TakeBet } from "@/components/TakeBet";
 import { TipsterTips } from "@/components/TipsterTips";
 import { myBets, type MyBet } from "@/lib/mybets";
+import { ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls, tipsterRecord } from "@/lib/creators";
@@ -39,7 +40,8 @@ export default function Page({ searchParams }: PageProps<"/tips">) {
 }
 
 /**
- * Level stakes, one unit a call, settled at the last price we saw. A bet
+ * Level stakes, one unit a call, settled at the best price the call was up
+ * at, which the ledger keeps so this page and the record agree. A bet
  * returns price minus one when it wins and loses the unit otherwise; a lay
  * keeps the unit when the horse loses and pays price minus one when it wins.
  * Undefined until the race has run or when there is no price to settle at.
@@ -61,6 +63,8 @@ interface Call {
   resulted: boolean;
   runner: PublishedRunner;
   prime: boolean;
+  /** The price the call settles at: the best seen while it was live, else the live one. */
+  price?: number;
   /** Units won or lost once the race has run. */
   profit?: number;
   /** The member's own record of taking this call. */
@@ -77,7 +81,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   keepFresh(date, card);
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
-  const mine = await myBets(viewer.id, date);
+  const [mine, ledger] = await Promise.all([myBets(viewer.id, date), ledgerFor(date)]);
   // A follower sees their tipsters' calls above ours, whether or not they have paid.
   const followed = await followedCalls(viewer, date);
   const records = await Promise.all(followed.map((f) => tipsterRecord(f.tipster.id)));
@@ -87,22 +91,25 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
       m.races.flatMap((r) =>
         r.runners
           .filter((x) => x.signal && !x.scratched)
-          .map((x) => ({
-            meeting: m,
-            raceId: r.raceId,
-            raceNumber: r.raceNumber,
-            jumpTime: r.jumpTime,
-            resulted: Boolean(r.result),
-            runner: x,
-            prime: prime.has(`${r.raceId}:${x.tabNumber}`),
-            profit: profit(x.signal!, x.marketPrice, r.result ? x.finishPosition : undefined),
-            mine: mine.get(`${r.raceId}:${x.tabNumber}`),
-            myProfit: (() => {
-              const b = mine.get(`${r.raceId}:${x.tabNumber}`);
-              const p = b ? profit(x.signal!, b.price ?? x.marketPrice, r.result ? x.finishPosition : undefined) : undefined;
-              return p === undefined ? undefined : p * (b?.stake ?? 1);
-            })(),
-          })),
+          .map((x) => {
+            const row = ledger.get(`${r.raceId}:${x.tabNumber}`);
+            const at = row?.price ?? x.marketPrice;
+            const b = mine.get(`${r.raceId}:${x.tabNumber}`);
+            const my = b ? profit(x.signal!, b.price ?? x.marketPrice, r.result ? x.finishPosition : undefined) : undefined;
+            return {
+              meeting: m,
+              raceId: r.raceId,
+              raceNumber: r.raceNumber,
+              jumpTime: r.jumpTime,
+              resulted: Boolean(r.result),
+              runner: x,
+              prime: prime.has(`${r.raceId}:${x.tabNumber}`),
+              price: at,
+              profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined),
+              mine: b,
+              myProfit: my === undefined ? undefined : my * (b?.stake ?? 1),
+            };
+          }),
       ),
     )
     .sort((a, b) => (a.jumpTime ?? "").localeCompare(b.jumpTime ?? ""));
@@ -289,7 +296,7 @@ function CallTable({
                   </td>
                   <td className="text-right">
                     <MarketHover r={c.runner} className="market-right">
-                      <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.runner.marketPrice)}</span>
+                      <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : c.runner.marketPrice)}</span>
                     </MarketHover>
                     <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />
                   </td>
