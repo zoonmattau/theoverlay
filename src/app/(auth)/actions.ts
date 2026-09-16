@@ -12,6 +12,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendTodaysTipsTo } from "@/lib/email/tips";
+import { finishProviderSignup } from "@/lib/provider-signup";
 import { applyReferral } from "@/lib/referrals";
 import { supabaseConfigured, supabaseServer } from "@/lib/supabase/server";
 
@@ -64,6 +65,47 @@ export async function signInWithProvider(provider: Provider, _prev: AuthState, f
   });
   if (error || !data.url) return { error: error?.message ?? `${PROVIDERS[provider]} is not available right now.` };
   redirect(data.url);
+}
+
+/**
+ * Sign in with Google done on our own domain: Google's button hands the
+ * browser an ID token, Supabase verifies it and opens the session, and
+ * Google's consent screen names The Overlay rather than a supabase.co host.
+ * On sign up the age and terms boxes have to be ticked first, and what the
+ * form said is stamped straight onto a new account.
+ */
+export async function signInWithGoogleToken(input: {
+  credential: string;
+  nonce: string;
+  mode: "login" | "signup";
+  age: boolean;
+  privacy: boolean;
+  marketing: boolean;
+  aff: string;
+  ref: string;
+  next: string;
+}): Promise<AuthState> {
+  if (!supabaseConfigured()) return { error: "Accounts are not set up yet." };
+  const signup = input.mode === "signup";
+  if (signup && !input.age) return { error: "You need to be 18 or over." };
+  if (signup && !input.privacy) return { error: "Please accept the terms and privacy policy." };
+  const jar = await cookies();
+  const aff = codeFromInput(input.aff) || jar.get(AFF_COOKIE)?.value || "";
+  const ref = String(input.ref ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
+  const wanted = safeNext(input.next);
+  const next = wanted === "/" && aff ? "/pricing" : wanted;
+  const supabase = await supabaseServer();
+  const { data, error } = await supabase.auth.signInWithIdToken({ provider: "google", token: input.credential, nonce: input.nonce });
+  if (error || !data.user) return { error: error?.message ?? "Google did not sign you in, try again." };
+  if (signup) {
+    await finishProviderSignup(
+      data.user.id,
+      data.user.user_metadata ?? {},
+      { terms: true, marketing: input.marketing, aff, ref, provider: "google", arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) },
+      data.user.email,
+    );
+  }
+  redirect(next);
 }
 
 export async function signIn(_prev: AuthState, form: FormData): Promise<AuthState> {

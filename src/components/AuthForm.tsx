@@ -5,6 +5,7 @@ import { useActionState } from "react";
 
 import { requestReset, signIn, signInWithProvider, signUp, updatePassword, type AuthState } from "@/app/(auth)/actions";
 import type { Provider } from "@/lib/social";
+import { GoogleButton } from "./GoogleButton";
 
 const EMPTY: AuthState = {};
 
@@ -24,6 +25,9 @@ function GoogleMark() {
     </svg>
   );
 }
+
+/** Google's own button needs the OAuth client id in the browser; without it the redirect flow stands. */
+const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mode: Mode; next?: string; refCode?: string; affCode?: string; providers?: Provider[] }) {
   const [state, formAction, pending] = useActionState(ACTIONS[mode], EMPTY);
@@ -116,11 +120,15 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
             or
             <span className="h-px flex-1 bg-line" />
           </div>
-          {social.includes("google") && (
-            <button type="submit" formAction={googleAction} formNoValidate className="btn btn-secondary w-full" disabled={busy}>
-              <GoogleMark />
-              {gpending ? "One moment" : "Continue with Google"}
-            </button>
+          {social.includes("google") && googleClientId && mode !== "forgot" && mode !== "reset" ? (
+            <GoogleButton clientId={googleClientId} mode={mode} next={next ?? "/"} refCode={refCode} />
+          ) : (
+            social.includes("google") && (
+              <button type="submit" formAction={googleAction} formNoValidate className="btn btn-secondary w-full" disabled={busy}>
+                <GoogleMark />
+                {gpending ? "One moment" : "Continue with Google"}
+              </button>
+            )
           )}
           {mode === "signup" && <p className="text-xs text-ink-soft text-center -mt-1">Tick the boxes above first, they apply either way.</p>}
         </>
