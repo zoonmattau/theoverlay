@@ -12,7 +12,7 @@
  */
 
 import type { BenchmarkedRun, PastEvent, RaceEntry, Speedmap } from "@/lib/formking/types";
-import { barrierFactor, freshFactor, weightFactor } from "./factors";
+import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, weightFactor } from "./factors";
 import type {
   Factor,
   GoingBand,
@@ -182,10 +182,10 @@ export function rateEntries(
     const factors: Partial<Record<Factor, number>> = {
       going: WEIGHTS.going * (r.going[race.going] - r.class),
       tempo: WEIGHTS.tempo * (tempoFit - r.class),
-      distance: WEIGHTS.distance * (r.distance - r.class),
+      distance: WEIGHTS.distance * (r.distance - r.class) + distanceGapFactor(runDistances(e), race.distance),
       track: WEIGHTS.track * (r.track - r.class),
       weight: weightFactor(e),
-      fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age, race.date)),
+      fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age, race.date)) + layoffFactor(e),
       jockey: clamp(((e.jockeyForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.06, -CAP.jockey, CAP.jockey),
       trainer: clamp(((e.trainerForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.04, -CAP.trainer, CAP.trainer),
       barrier: barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, mapOf(ppir, n, coLeaders), race.distance),
@@ -208,15 +208,20 @@ export function rateEntries(
   return { rated, pace };
 }
 
+/** The last runs the rating is built on: real races, most recent first. */
+function recentRuns(e: RaceEntry) {
+  return (e.pastEvents ?? [])
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
+    .sort((a, b) => b.date - a.date)
+    .slice(0, RUN_WEIGHTS.length);
+}
+
 function rateOne(
   e: RaceEntry,
   race: RaceContext,
   fkZ: number,
 ): Omit<RunnerRatings, "today" | "factors" | "ppir" | "map"> {
-  const runs = (e.pastEvents ?? [])
-    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
-    .sort((a, b) => b.date - a.date)
-    .slice(0, RUN_WEIGHTS.length);
+  const runs = recentRuns(e);
 
   // No form to go on: the official rating if there is one, else just under
   // today's par, and let Form King's view separate it from the others.
@@ -284,6 +289,9 @@ function rateOne(
     runs: runs.length,
   };
 }
+
+/** The distances of the runs the rating is built on. */
+const runDistances = (e: RaceEntry) => recentRuns(e).map((r) => r.distance).filter((d): d is number => typeof d === "number" && d > 0);
 
 const sameTrack = (a?: string, b?: string) =>
   Boolean(a && b) && a!.trim().toLowerCase() === b!.trim().toLowerCase();

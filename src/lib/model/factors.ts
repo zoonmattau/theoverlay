@@ -65,6 +65,39 @@ export function freshFactor(e: RaceEntry, cls: number, runPoints: (p: NonNullabl
   return clamp(out, -CAP.fresh, CAP.fresh);
 }
 
+/**
+ * A layoff of a year or more. Over the resulted races in the cache, horses
+ * off 365 days or more won a fifth as often as their form price said, where
+ * 180 to 365 days was on the money, so the penalty ramps in from 300 days to
+ * its full size at 450. Sweepable from the env for scripts/sweep-layoff.ts.
+ */
+const LAYOFF_POINTS = Number(process.env.OVERLAY_LAYOFF_POINTS ?? 10);
+const LAYOFF_FROM = 300;
+const LAYOFF_FULL = 450;
+
+export function layoffFactor(e: RaceEntry): number {
+  const days = e.daysSinceLastRace ?? 0;
+  if (days <= LAYOFF_FROM) return 0;
+  return -LAYOFF_POINTS * clamp((days - LAYOFF_FROM) / (LAYOFF_FULL - LAYOFF_FROM), 0, 1);
+}
+
+/**
+ * No run near today's distance. The distance category shrinks to Class
+ * when nothing is within 200m, which read as neutral; over the cache such
+ * horses won about three quarters as often as their form price said, and
+ * worse the further today's trip sits from anything they have done. Points
+ * per 100m beyond the 200m band, capped. Sweepable from the env.
+ */
+const DISTANCE_GAP_RATE = Number(process.env.OVERLAY_DISTANCE_GAP_RATE ?? 1.5);
+const DISTANCE_GAP_CAP = 5;
+
+export function distanceGapFactor(runDistances: number[], distance: number): number {
+  if (runDistances.length === 0) return 0;
+  const nearest = Math.min(...runDistances.map((d) => Math.abs(d - distance)));
+  if (nearest <= 200) return 0;
+  return -Math.min(DISTANCE_GAP_CAP, (DISTANCE_GAP_RATE * (nearest - 200)) / 100);
+}
+
 /** Which run of the preparation this is: 1 first up, 2 second up and so on, 0 when unknown. */
 export function prepStage(e: RaceEntry): number {
   const days = e.daysSinceLastRace ?? 0;
