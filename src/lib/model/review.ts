@@ -223,6 +223,12 @@ export interface ReviewedRunner {
   ranTo?: number;
   /** ranTo minus the mark we priced off. */
   gap?: number;
+  /**
+   * The gap less the race's mean gap: how the horse ran against its place in
+   * our order, with the race's own par taken out. A field marked in the 70s
+   * that all ran to a Listed par shows a big gap and a small relative one.
+   */
+  relGap?: number;
   finish?: number;
   margin?: number;
   sp?: number;
@@ -269,6 +275,8 @@ export interface MeetingStats {
   bias?: number;
   /** Mean size of the gap, either way. */
   spread?: number;
+  /** Mean size of the relative gap: how far runners strayed from their place in our order. */
+  relSpread?: number;
   /** Pearson correlation of our mark with ran-to, over the benchmarked runners. */
   fit?: number;
   /** Races with a winner, and how many of those winners sat in our top four, or were our top-rated. */
@@ -361,29 +369,31 @@ function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): T
       if (out.filter((t) => t.kind === "under the radar").length >= 3) break;
     }
   }
-  const fancied = sane.filter((r) => r.gap !== undefined && r.runner.ratings.runs >= 2 && (r.runner.rank || (r.sp && r.sp <= 5)));
-  for (const r of [...fancied].filter((r) => r.gap! <= -3).sort((a, b) => a.gap! - b.gap!).slice(0, 3)) {
+  // Against the field: the relative gap takes the race's par out, so a
+  // horse that ran to its place in our order reads as zero whatever the grade.
+  const fancied = sane.filter((r) => r.relGap !== undefined && r.runner.ratings.runs >= 2 && (r.runner.rank || (r.sp && r.sp <= 5)));
+  for (const r of [...fancied].filter((r) => r.relGap! <= -3).sort((a, b) => a.relGap! - b.relGap!).slice(0, 3)) {
     out.push({
       kind: "disappointing",
       runner: r,
-      text: `${r.runner.horseName} was a disappointing runner at ${where(r)}: ${result(r)}${r.sp ? ` at ${money(r.sp)}` : ""} and ran to ${r.ranTo?.toFixed(1)}, ${Math.abs(r.gap!).toFixed(1)} points below the ${r.runner.ratings.today.toFixed(1)} we expected.`,
+      text: `${r.runner.horseName} was a disappointing runner at ${where(r)}: ${result(r)}${r.sp ? ` at ${money(r.sp)}` : ""}, ${Math.abs(r.relGap!).toFixed(1)} points below where we had it against the field.`,
     });
   }
-  const improver = [...sane].filter((r) => r.gap !== undefined && r.runner.ratings.runs >= 2 && !out.some((t) => t.runner === r)).sort((a, b) => b.gap! - a.gap!)[0];
-  if (improver && improver.gap! >= 3) {
+  const improver = [...sane].filter((r) => r.relGap !== undefined && r.runner.ratings.runs >= 2 && !out.some((t) => t.runner === r)).sort((a, b) => b.relGap! - a.relGap!)[0];
+  if (improver && improver.relGap! >= 3) {
     out.push({
       kind: "improver",
       runner: improver,
-      text: `${improver.runner.horseName} improved the most on our mark: ${improver.ranTo?.toFixed(1)} against the ${improver.runner.ratings.today.toFixed(1)} we had it at, ${result(improver)} at ${where(improver)}.`,
+      text: `${improver.runner.horseName} improved the most on where we had it: ${improver.relGap!.toFixed(1)} points above its place in our order, ${result(improver)}${improver.sp ? ` at ${money(improver.sp)}` : ""} at ${where(improver)}.`,
     });
   }
-  const onMark = fancied.filter((r) => Math.abs(r.gap!) <= 2);
+  const onMark = fancied.filter((r) => Math.abs(r.relGap!) <= 2);
   if (fancied.length) {
-    const pick = onMark[0];
+    const pick = [...onMark].sort((a, b) => Math.abs(a.relGap!) - Math.abs(b.relGap!))[0];
     out.push({
       kind: "on the mark",
       runner: pick ?? fancied[0],
-      text: `${onMark.length} of the ${fancied.length} fancied runners with full benchmarks ran within two points of our mark${pick ? `, ${pick.runner.horseName} at ${where(pick)} the closest at ${signedPoints(pick.gap!)}` : ""}.`,
+      text: `${onMark.length} of the ${fancied.length} fancied runners with full benchmarks ran within two points of their place in our order${pick ? `, ${pick.runner.horseName} at ${where(pick)} the closest at ${signedPoints(pick.relGap!)}` : ""}.`,
     });
   }
   return out;
@@ -411,6 +421,7 @@ function meetingStats(races: ReviewedRace[], bets: LedgerRow[], lays: LedgerRow[
         full: fullRunners.length,
         bias: gaps.length ? round1(mean(gaps)) : undefined,
         spread: gaps.length ? round1(mean(gaps.map(Math.abs))) : undefined,
+        relSpread: gaps.length ? round1(mean(fullRunners.map((r) => Math.abs(r.relGap ?? 0)))) : undefined,
         fit: pearson(fullRunners.map((r) => [r.runner.ratings.today, r.ranTo!] as [number, number])),
         resulted: resulted.length,
         winnersInFour: winners.filter((w) => w.runner.rank).length,
@@ -478,6 +489,10 @@ export async function buildReview(date: string): Promise<Review | undefined> {
         .sort((a, b) => (a.finish || 99) - (b.finish || 99) || a.runner.tabNumber - b.runner.tabNumber);
       const full = runners.filter((r) => isFull(r.run)).length;
       const gaps = runners.filter((r) => isFull(r.run) && r.gap !== undefined).map((r) => r.gap!);
+      if (gaps.length) {
+        const raceBias = mean(gaps);
+        for (const r of runners) if (isFull(r.run) && r.gap !== undefined) r.relGap = round1(r.gap - raceBias);
+      }
       const placed = runners.filter((r) => isFull(r.run) && r.finish && r.finish <= 3 && r.run?.vsClass !== undefined);
       const winner = runners.find((r) => r.finish === 1);
       const anyFirst = runners.map((r) => firstSection(r.run)).find(Boolean);

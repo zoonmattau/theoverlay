@@ -35,7 +35,7 @@ export function RunnerTable({ r }: { r: ReviewedRace }) {
   return (
     <table className="data-table w-full text-sm">
       <thead>
-        <tr><th>Result</th><th>Horse</th><th>Ours</th><th className="text-right">Our mark</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th className="text-right">Vs class</th><th className="text-right">Early</th><th className="text-right">Last 600</th><th className="text-right">Fin. speed</th><th className="text-right">Settled</th><th className="text-right">Rated</th><th className="text-right">SP</th><th>Data</th></tr>
+        <tr><th>Result</th><th>Horse</th><th>Ours</th><th className="text-right">Our mark</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th className="text-right">Vs field</th><th className="text-right">Vs class</th><th className="text-right">Early</th><th className="text-right">Last 600</th><th className="text-right">Fin. speed</th><th className="text-right">Settled</th><th className="text-right">Rated</th><th className="text-right">SP</th><th>Data</th></tr>
       </thead>
       <tbody>
         {r.runners.map((x) => (
@@ -46,6 +46,7 @@ export function RunnerTable({ r }: { r: ReviewedRace }) {
             <td className="text-right nums">{x.runner.ratings.today.toFixed(1)}</td>
             <td className="text-right nums">{x.ranTo?.toFixed(1) ?? ""}</td>
             <td className={`text-right nums ${gapClass(x.gap)}`}>{signed(x.gap)}</td>
+            <td className={`text-right nums ${gapClass(x.relGap)}`}>{signed(x.relGap)}</td>
             <td className="text-right nums">{signed(x.run?.vsClass)}</td>
             <td className="text-right nums">{signed(x.early)}</td>
             <td className="text-right nums">{signed(x.late)}{x.lateRank ? ` (${x.lateRank})` : ""}{x.run?.last600 ? <span className="text-ink-soft"> {x.run.last600.toFixed(2)}</span> : ""}</td>

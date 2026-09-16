@@ -65,10 +65,10 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
       </section>
 
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-7 mb-4">
-        <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub="first three vs class" />
+        <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub={(r.strength ?? 0) >= 5 ? "first three vs class: benchmark suspect" : "first three vs class"} className={(r.strength ?? 0) >= 5 ? "text-red-700" : ""} />
         <Stat label="Tempo" value={r.tempo ?? ""} sub={r.leaderEarly !== undefined ? `leader ${signed(r.leaderEarly)}L early` : undefined} />
         <Stat label="Winner ran to" value={r.winnerRanTo?.toFixed(1) ?? ""} sub={winner ? `${winner.runner.horseName}${winner.runner.rank ? `, our #${winner.runner.rank}` : ", not in our four"}` : undefined} />
-        <Stat label="Bias" value={signed(r.bias)} sub="ran-to minus our mark" className={gapClass(r.bias)} />
+        <Stat label="Bias" value={signed(r.bias)} sub="the race's par against our marks" className={gapClass(r.bias)} />
         <Stat label="Spread" value={r.spread?.toFixed(1) ?? ""} sub="mean gap either way" />
         <Stat label="Top rated" value={topRated ? finish(topRated) : ""} sub={topRated ? `${topRated.runner.horseName} at ${topRated.runner.ratings.today.toFixed(1)}` : undefined} />
         <Stat label="Our calls" value={settled.length ? signed(units, 2) : ""} sub={calls.length ? `${calls.length} ${calls.length === 1 ? "call" : "calls"}, level stakes` : "none"} className={unitsClass(settled.length ? units : undefined)} />
@@ -89,7 +89,7 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
         <h2 className="font-display font-extrabold mb-2">Our top four and calls</h2>
         <table className="data-table w-full text-sm">
           <thead>
-            <tr><th>#</th><th>Horse</th><th>Call</th><th className="text-right">Our mark</th><th className="text-right">Rated</th><th className="text-right">Market</th><th className="text-right">Edge</th><th>Result</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th>Why</th></tr>
+            <tr><th>#</th><th>Horse</th><th>Call</th><th className="text-right">Our mark</th><th className="text-right">Rated</th><th className="text-right">Market</th><th className="text-right">Edge</th><th>Result</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th className="text-right">Vs field</th><th>Why</th></tr>
           </thead>
           <tbody>
             {ours.map((x) => (
@@ -104,6 +104,7 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
                 <td className="nums">{finish(x)}</td>
                 <td className="text-right nums">{x.ranTo?.toFixed(1) ?? ""}</td>
                 <td className={`text-right nums ${gapClass(x.gap)}`}>{signed(x.gap)}</td>
+                <td className={`text-right nums ${gapClass(x.relGap)}`}>{signed(x.relGap)}</td>
                 <td className="text-xs text-ink-soft">{x.runner.why ?? ""}</td>
               </tr>
             ))}

@@ -152,11 +152,11 @@ function Meetings({ review }: { review: Review }) {
     <div className="card mb-4 overflow-x-auto">
       <div className="flex flex-wrap items-baseline justify-between gap-3 mb-3">
         <h2 className="font-display font-extrabold">By meeting</h2>
-        <span className="text-sm text-ink-soft">Over the runners with a full benchmark. Bias is ran-to minus our mark, spread the size of that gap either way, fit how well our order matched the run (1 is perfect).</span>
+        <span className="text-sm text-ink-soft">Over the runners with a full benchmark. Bias is ran-to minus our mark, which mostly reads the race's par against our marks. Vs field takes that out: how far runners strayed from their place in our order. Fit is how well our order matched the run (1 is perfect).</span>
       </div>
       <table className="data-table w-full text-sm">
         <thead>
-          <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right">Bias</th><th className="text-right">Spread</th><th className="text-right">Fit</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
+          <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right">Bias</th><th className="text-right">Spread</th><th className="text-right">Vs field</th><th className="text-right">Fit</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
         </thead>
         <tbody>
           {review.meetings.map((m) => {
@@ -168,6 +168,7 @@ function Meetings({ review }: { review: Review }) {
                 <td className="text-right nums">{m.full}/{m.runners} <span className="text-ink-soft">({share}%)</span></td>
                 <td className={`text-right nums ${gapClass(m.bias)}`}>{signed(m.bias)}</td>
                 <td className="text-right nums">{m.spread?.toFixed(1) ?? ""}</td>
+                <td className="text-right nums">{m.relSpread?.toFixed(1) ?? ""}</td>
                 <td className="text-right nums">{m.fit?.toFixed(2) ?? ""}</td>
                 <td className="text-right nums">{m.resulted ? `${m.winnersInFour}/${m.resulted}` : ""}</td>
                 <td className="text-right nums">{m.resulted ? `${m.topRatedWon}/${m.resulted}` : ""}</td>
@@ -281,7 +282,7 @@ function Races({ review }: { review: Review }) {
                       <td><Link href={reviewHref(r, review.date)} className="underline font-semibold">R{r.race.raceNumber}</Link> <span className="text-ink-soft">{r.race.name}</span></td>
                       <td>{r.race.className ?? ""} {r.race.distance}m</td>
                       <td className="text-right nums">{r.race.classPoints}</td>
-                      <td className="text-right nums font-semibold">{r.strength !== undefined ? `${signed(r.strength)}L` : ""}</td>
+                      <td className="text-right nums font-semibold">{r.strength !== undefined ? `${signed(r.strength)}L` : ""}{(r.strength ?? 0) >= 5 && <span className="badge badge-lay ml-1" title="The first three all ran five lengths or more above class: the benchmark has not settled">suspect</span>}</td>
                       <td>{r.tempo ?? ""}</td>
                       <td className="text-right nums">{r.leaderEarly !== undefined ? `${signed(r.leaderEarly)}L` : ""}</td>
                       <td>{winner ? `${winner.runner.tabNumber}. ${winner.runner.horseName}` : ""}{winner?.runner.rank ? <span className="text-ink-soft"> (our #{winner.runner.rank})</span> : ""}</td>
