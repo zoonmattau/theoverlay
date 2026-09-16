@@ -209,3 +209,9 @@ export async function bannerReview(): Promise<PublishedReview | undefined> {
   const latest = await latestPublishedReview();
   return latest && Date.now() - new Date(latest.publishedAt).getTime() < REVIEW_BANNER_MS ? latest : undefined;
 }
+
+/** Dates with a published review. */
+export async function publishedDates(): Promise<string[]> {
+  const { data } = await supabaseAdmin().from("reviews").select("date");
+  return ((data ?? []) as { date: string }[]).map((r) => r.date);
+}

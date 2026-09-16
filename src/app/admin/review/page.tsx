@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { publishedDates } from "@/lib/reviews";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -27,7 +28,8 @@ const dayOf = (date: string) => DAY[new Date(`${date}T12:00:00+10:00`).getDay()]
 async function Index() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [dates, reviewed] = await Promise.all([listStoredDates(120), reviewedDates()]);
+  const [dates, reviewed, publishedRows] = await Promise.all([listStoredDates(120), reviewedDates(), publishedDates()]);
+  const published = new Set(publishedRows);
   // Saturdays, and any other day that has been reviewed.
   const rows = dates.filter((d) => dayOf(d) === "Saturday" || reviewed.has(d));
   return (
@@ -39,7 +41,7 @@ async function Index() {
       <div className="card overflow-x-auto">
         <table className="data-table w-full">
           <thead>
-            <tr><th>Day</th><th>Date</th><th className="text-right">Runs fetched</th><th></th></tr>
+            <tr><th>Day</th><th>Date</th><th className="text-right">Runs fetched</th><th>Review</th><th>Public</th></tr>
           </thead>
           <tbody>
             {rows.map((d) => (
@@ -47,10 +49,11 @@ async function Index() {
                 <td>{dayOf(d)}</td>
                 <td><Link href={`/admin/review/${d}`} className="font-semibold underline">{label(d)}</Link></td>
                 <td className="text-right nums">{reviewed.get(d) ?? 0}</td>
-                <td className="text-ink-soft">{reviewed.has(d) ? "Reviewed" : "Not yet"}</td>
+                <td className="text-ink-soft">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>
+                <td>{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
               </tr>
             ))}
-            {rows.length === 0 && <tr><td colSpan={4} className="text-ink-soft">No Saturdays on file yet.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={5} className="text-ink-soft">No Saturdays on file yet.</td></tr>}
           </tbody>
         </table>
       </div>

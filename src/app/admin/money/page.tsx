@@ -125,7 +125,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
               {r.recent.map((e, i) => (
                 <tr key={i}>
                   <td className="nums whitespace-nowrap">{when(e.at)}</td>
-                  <td className={e.anonymous ? "text-ink-soft" : "font-semibold"}>{e.who}</td>
+                  <td className={e.anonymous ? "text-ink-soft" : "font-semibold"}>{e.userId ? <Link href={`/admin/${e.userId}`} className="hover:text-blue">{e.who}</Link> : e.who}</td>
                   <td>{e.kind === "plan_click" ? "clicked the plan" : e.kind === "checkout_started" ? "opened checkout" : "finished checkout"}</td>
                   <td className="text-ink-secondary">{e.plan ? (planById(e.plan)?.name ?? e.plan) : "—"}</td>
                 </tr>

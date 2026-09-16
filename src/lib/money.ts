@@ -52,7 +52,7 @@ export interface MoneyReport {
   /** Plan clicks by day of the week, Monday first. */
   byWeekday: number[];
   /** The last 50 plan clicks and checkouts, newest first. */
-  recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean }[];
+  recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean; userId?: string }[];
 }
 
 const sydneyDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -183,7 +183,7 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const recent = events
     .filter((e) => e.kind === "plan_click" || e.kind === "checkout_started" || e.kind === "checkout_completed")
     .slice(0, 50)
-    .map((e) => ({ at: e.created_at, kind: e.kind, plan: e.plan, who: e.user_id ? (names.get(e.user_id) ?? "a member") : "a visitor", anonymous: !e.user_id }));
+    .map((e) => ({ at: e.created_at, kind: e.kind, plan: e.plan, who: e.user_id ? (names.get(e.user_id) ?? "a member") : "a visitor", anonymous: !e.user_id, userId: e.user_id ?? undefined }));
 
   return { days, plans, totals, mrr_cents, signups, sources, bookies, trials, byDay, byHour, byWeekday, recent };
 }

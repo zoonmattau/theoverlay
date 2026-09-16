@@ -1,14 +1,17 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
 import { ActionButton } from "@/components/ActionButton";
 import { ActivityFeed } from "@/components/ActivityFeed";
-import { isAdmin, listMembers, overview, recentEvents } from "@/lib/admin";
+import { isAdmin, listMembers, now, overview, recentEvents } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
+import { longDate } from "@/lib/format";
+import { todayFacts } from "@/lib/today";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
@@ -32,16 +35,20 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
   const sp = await searchParams;
   const activity = typeof sp.activity === "string" && ["money", "members", "admin"].includes(sp.activity) ? sp.activity : "all";
   const members = await listMembers();
-  const [stats, events, card] = await Promise.all([overview(members), recentEvents(undefined, 80), getTodayCard()]);
+  const [stats, events, card, facts] = await Promise.all([overview(members), recentEvents(undefined, 80), getTodayCard(), todayFacts()]);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
+  const nextCall = card.meetings
+    .flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched).map((x) => ({ m, r, x }))))
+    .filter(({ r }) => !r.result?.length && r.jumpTime && new Date(r.jumpTime).getTime() > now())
+    .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!))[0];
   const lastMail = events.find((e) => e.kind === "tips_email");
   return (
     <>
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Admin</h1>
-          <p className="mt-1 text-sm text-ink-soft">Members, money and what people click.</p>
+          <p className="mt-1 text-sm text-ink-soft">The day at a glance. Every number opens the page behind it.</p>
         </div>
       </section>
 
@@ -74,37 +81,48 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
         </form>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-6 gap-3 mb-6">
-        <Tile n={stats.members} label="members" />
-        <Tile n={stats.active} label="active access" tone="prime" />
-        <Tile n={stats.trialling} label="on trial" />
-        <Tile n={stats.signupsWeek} label="sign-ups, 7 days" />
-        <Tile n={money(stats.revenue)} label="revenue, all time" tone="bet" />
-        <Tile n={Object.values(stats.clicksByPlan).reduce((a, b) => a + b, 0)} label="plan clicks, 7 days" />
-      </div>
-
-
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
-        <div className="card">
-          <h2 className="font-display font-extrabold mb-2">Active by plan</h2>
-          {Object.entries(stats.byPlan).length === 0 && <p className="text-sm text-ink-soft">Nobody yet.</p>}
-          {Object.entries(stats.byPlan).map(([p, n]) => (
-            <div key={p} className="panel-row">
-              <span>{planById(p)?.name ?? p}</span>
-              <span className="nums font-bold">{n}</span>
-            </div>
-          ))}
-        </div>
-        <div className="card">
-          <h2 className="font-display font-extrabold mb-2">Plan clicks, last 7 days</h2>
-          {Object.entries(stats.clicksByPlan).length === 0 && <p className="text-sm text-ink-soft">None yet.</p>}
-          {Object.entries(stats.clicksByPlan).map(([p, n]) => (
-            <div key={p} className="panel-row">
-              <span>{planById(p)?.name ?? p}</span>
-              <span className="nums font-bold">{n}</span>
-            </div>
-          ))}
-        </div>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
+        <Panel title="Racing" href="/tips" cta="Today's card">
+          <Fact n={`${calls.filter((x) => x.signal === "back").length} · ${calls.filter((x) => x.signal === "lay").length}`} label="bets · lays on the card" />
+          <Fact n={facts.bets.settled ? units(facts.bets.units) : "—"} label={`bets settled ${facts.bets.won} of ${facts.bets.settled}`} tone={facts.bets.units} />
+          <Fact n={facts.lays.settled ? units(facts.lays.units) : "—"} label={`lays held ${facts.lays.held} of ${facts.lays.settled}`} tone={facts.lays.units} />
+          {nextCall ? (
+            <Link href={`/racing/${card.date}/${nextCall.m.meetingId}/${nextCall.r.raceId}`} className="block text-xs underline mt-1">
+              Next call: {nextCall.m.track} R{nextCall.r.raceNumber} {jump(nextCall.r.jumpTime)}, {nextCall.x.horseName}
+            </Link>
+          ) : (
+            <span className="block text-xs text-ink-soft mt-1">No call still to run.</span>
+          )}
+          <div className="flex flex-wrap gap-x-3 mt-2 text-xs">
+            <Link href="/admin/reports" className="underline">Record</Link>
+            {facts.review && (
+              <Link href={`/admin/review/${facts.review.date}`} className="underline">
+                Review {longDate(facts.review.date).replace(/, \d{4}$/, "")}: {facts.review.published ? "published" : facts.review.runs ? `${facts.review.runs} runs, not published` : "not fetched"}
+              </Link>
+            )}
+          </div>
+        </Panel>
+        <Panel title="People" href="/admin/members" cta="Members">
+          <Fact n={stats.members} label="accounts" />
+          <Fact n={stats.active} label={`with access, ${stats.trialling} on trial`} />
+          <Fact n={stats.signupsWeek} label="sign-ups, 7 days" />
+          <Link href="/admin/activity" className="block text-xs underline mt-1">
+            {facts.views} page views today from {facts.people} {facts.people === 1 ? "person" : "people"}
+          </Link>
+        </Panel>
+        <Panel title="Tipsters" href="/admin/affiliates" cta="Tipsters and affiliates">
+          <Fact n={facts.tipsterCalls} label="calls posted today" />
+          <Fact n={facts.follows} label="follows in total" />
+          <Link href="/admin/activity#follows" className="block text-xs underline mt-1">Who follows whom</Link>
+          <Link href="/tipsters" className="block text-xs underline">The tipsters page as members see it</Link>
+        </Panel>
+        <Panel title="Money" href="/admin/money" cta="Money">
+          <Fact n={money(stats.revenue)} label="revenue, all time" />
+          <Fact n={Object.values(stats.clicksByPlan).reduce((a, b) => a + b, 0)} label="plan clicks, 7 days" />
+          <div className="mt-1 text-xs text-ink-soft">
+            {Object.entries(stats.byPlan).length === 0 ? "Nobody on a plan yet." : Object.entries(stats.byPlan).map(([p, n]) => `${planById(p)?.name ?? p} ${n}`).join(" · ")}
+          </div>
+        </Panel>
       </div>
 
       <ActivityFeed events={events} members={members} filter={activity} base="/admin" />
@@ -112,12 +130,28 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
   );
 }
 
-function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "prime" | "bet" }) {
-  const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : "";
+const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(2)}u`;
+
+/** One banner of the overview: a heading that opens its page, a few facts, and links sideways. */
+function Panel({ title, href, cta, children }: { title: string; href: string; cta: string; children: React.ReactNode }) {
   return (
-    <div className={`card text-center ${cls}`}>
-      <div className="font-display text-2xl font-extrabold tracking-tight nums">{n}</div>
-      <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
+    <div className="card flex flex-col gap-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <h2 className="font-display font-extrabold">{title}</h2>
+        <Link href={href} className="text-xs underline text-ink-soft whitespace-nowrap">{cta} →</Link>
+      </div>
+      {children}
     </div>
   );
 }
+
+function Fact({ n, label, tone }: { n: number | string; label: string; tone?: number }) {
+  const cls = tone === undefined ? "" : tone > 0 ? "text-accent" : tone < 0 ? "text-red" : "";
+  return (
+    <div className="flex items-baseline gap-2">
+      <span className={`font-display text-xl font-extrabold tracking-tight nums ${cls}`}>{n}</span>
+      <span className="text-[11px] uppercase tracking-[0.06em] font-bold text-ink-soft">{label}</span>
+    </div>
+  );
+}
+

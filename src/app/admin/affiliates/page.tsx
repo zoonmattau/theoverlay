@@ -102,7 +102,10 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                   {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"}, {a.confirmed} confirmed · {a.paying} paying · {money(a.commission_cents)} commission
                 </span>
                 {(a as { user_id?: string | null }).user_id && (
-                  <Link href={`/t/${a.code}`} className="btn btn-secondary btn-sm">Their tips</Link>
+                  <>
+                    <Link href={`/admin/${(a as { user_id?: string | null }).user_id}`} className="text-xs underline text-ink-soft">Their account</Link>
+                    <Link href={`/t/${a.code}`} className="btn btn-secondary btn-sm">Their tips</Link>
+                  </>
                 )}
               </span>
             </summary>

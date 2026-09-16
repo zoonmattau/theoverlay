@@ -66,7 +66,7 @@ export interface ActivityReport {
   topTipsters: { code: string; views: number; people: number }[];
   /** The most active people: members by email, visitors by id. */
   people: { id: string; email: string | null; views: number; last: string; areas: string; races: number }[];
-  follows: { follower: string; tipster: string; since: string }[];
+  follows: { follower: string; followerId: string; tipster: string; tipsterCode?: string; since: string }[];
   referrers: { host: string; views: number }[];
 }
 
@@ -84,6 +84,7 @@ export async function activityReport(days = 7): Promise<ActivityReport> {
   const views = (rows ?? []) as ViewRow[];
   const email = new Map(((profiles ?? []) as { id: string; email: string | null }[]).map((p) => [p.id, p.email]));
   const tipsterName = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.id, t.name]));
+  const tipsterCode = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.id, t.code]));
   const tipsterByCode = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.code, t.name]));
 
   const tally = <K extends string>(key: (v: ViewRow) => K | undefined) => {
@@ -146,7 +147,7 @@ export async function activityReport(days = 7): Promise<ActivityReport> {
     topTipsters,
     people,
     follows: ((follows ?? []) as { user_id: string; tipster_id: string; created_at: string }[])
-      .map((f) => ({ follower: email.get(f.user_id) ?? f.user_id, tipster: tipsterName.get(f.tipster_id) ?? f.tipster_id, since: f.created_at }))
+      .map((f) => ({ follower: email.get(f.user_id) ?? f.user_id, followerId: f.user_id, tipster: tipsterName.get(f.tipster_id) ?? f.tipster_id, tipsterCode: tipsterCode.get(f.tipster_id), since: f.created_at }))
       .sort((a, b) => b.since.localeCompare(a.since)),
     referrers,
   };

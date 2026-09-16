@@ -127,7 +127,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                   {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
                 </tbody>
               </table>
-              <h2 className="font-display font-extrabold mt-6 mb-3">Followers by tipster</h2>
+              <h2 id="follows" className="font-display font-extrabold mt-6 mb-3 scroll-mt-20">Followers by tipster</h2>
               {r.follows.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
               {Object.entries(
                 r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
@@ -139,12 +139,12 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                 .map(([tipster, list]) => (
                   <details key={tipster} className="group border-b border-line py-2">
                     <summary className="cursor-pointer flex items-baseline justify-between gap-3 text-sm">
-                      <span className="font-semibold"><span className="inline-block w-4 text-ink-soft group-open:rotate-90 transition-transform">›</span> {tipster}</span>
+                      <span className="font-semibold"><span className="inline-block w-4 text-ink-soft group-open:rotate-90 transition-transform">›</span> {tipster}{list[0]?.tipsterCode && <Link href={`/t/${list[0].tipsterCode}`} className="ml-2 text-xs font-normal underline text-ink-soft">their page</Link>}</span>
                       <span className="nums">{list.length} {list.length === 1 ? "follower" : "followers"}</span>
                     </summary>
                     <ul className="mt-2 ml-4 space-y-1 text-sm">
                       {list.map((f, i) => (
-                        <li key={i} className="flex justify-between gap-3"><span>{f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
+                        <li key={i} className="flex justify-between gap-3"><span>{f.followerId ? <Link href={`/admin/${f.followerId}`} className="underline">{f.follower}</Link> : f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
                       ))}
                     </ul>
                   </details>

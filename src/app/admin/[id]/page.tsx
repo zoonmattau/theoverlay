@@ -55,7 +55,10 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             Joined {stamp(m.created_at)} · {m.marketing_opt_in ? "emails on" : "emails off"} · invite code {m.referral_code ?? "none"} · {invites} {invites === 1 ? "friend" : "friends"} joined
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <Link href="/admin/members" className="text-xs underline text-ink-soft mr-2">← Members</Link>
+          {tipster && <Link href={`/t/${tipster.code}`} className="text-xs underline text-ink-soft mr-2">Their tips page</Link>}
+          {m.stripe_customer_id && <a className="text-xs underline text-ink-soft mr-2" href={`https://dashboard.stripe.com/customers/${m.stripe_customer_id}`} target="_blank" rel="noreferrer">Stripe</a>}
           {state === "invited" && <span className="badge badge-warn">Invited, not accepted</span>}
           {state === "unconfirmed" && <span className="badge badge-warn">Email not confirmed</span>}
           {m.is_admin && <span className="badge badge-prime">Admin</span>}
