@@ -6,7 +6,7 @@
 process.env.OVERLAY_REPLAY = "1";
 import { readdirSync, readFileSync } from "node:fs";
 import type { RaceSummary } from "../src/lib/formking/types";
-import { publishRace } from "../src/lib/model/publish";
+import { LAY_EDGE, MIN_EDGE, publishRace } from "../src/lib/model/publish";
 import { wasJuvenile } from "../src/lib/model/ratings";
 
 const drop = process.env.OVERLAY_JUVENILE_DROP ?? "0 (default)";
@@ -45,9 +45,9 @@ const record = (xs: Row[], lay = false) => {
   const units = xs.reduce((a, x) => a + (lay ? (x.won ? -(x.market - 1) : 1) : x.won ? x.market - 1 : -1), 0);
   return `${String(xs.length).padStart(4)} ${lay ? "lays" : "bets"} ${String(won).padStart(3)} won ${units.toFixed(1).padStart(7)} units ${((100 * units) / Math.max(1, xs.length)).toFixed(0).padStart(4)}% roi`;
 };
-const bets = (xs: Row[]) => xs.filter((x) => x.confidence >= 0.35 && x.edge >= 0.025 && x.rated >= 0.08 && x.market <= 26);
+const bets = (xs: Row[]) => xs.filter((x) => x.confidence >= 0.35 && x.edge >= MIN_EDGE && x.rated >= 0.08 && x.market <= 26);
 const primes = (xs: Row[]) => xs.filter((x) => x.confidence >= 0.35 && x.edge >= 0.05 && x.rated >= 0.15 && x.market <= 26);
-const lays = (xs: Row[]) => xs.filter((x) => x.confidence >= 0.35 && x.edge <= -0.14 && x.market <= 12);
+const lays = (xs: Row[]) => xs.filter((x) => x.confidence >= 0.35 && x.edge <= LAY_EDGE && x.market <= 12);
 
 const touchedRows = rows.filter((x) => x.touched);
 const juv = rows.filter((x) => x.juvenile);

@@ -32,8 +32,10 @@ const LONG_MIN_PRICE = 8;
  * Bet and lay thresholds in points of win chance, ours against the
  * market's. Set with scripts/sweep.ts over the resulted races in the local
  * cache, with the market weight at 0.5 and the meld pulling our biggest
- * disagreements toward the market: about two bets in three races, and a
- * lay in one race in four.
+ * disagreements toward the market: about two bets in three races. The lay
+ * threshold was reset with scripts/sweep-lay-meld.ts once the meld reached
+ * the lay side too: eight points there is a wider raw disagreement than
+ * fourteen was, and lands a lay in about one race in two.
  */
 export const MIN_EDGE = 0.025;
 /** A Prime Overlay is a bet with a wide gap on a horse we give a real chance. */
@@ -45,7 +47,7 @@ const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /** Market shorter than our price by this much, on a runner we can lay. */
-export const LAY_EDGE = -0.14;
+export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.08);
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 

@@ -38,6 +38,15 @@ const DEFAULT_MARKET_WEIGHT = Number(process.env.OVERLAY_MARKET_WEIGHT ?? 0.5);
  */
 const OUTLIER_WEIGHT = Number(process.env.OVERLAY_OUTLIER_WEIGHT ?? 0.8);
 const OUTLIER_SCALE = Number(process.env.OVERLAY_OUTLIER_SCALE ?? 1.5);
+/**
+ * The same ramp on the lay side, where we have the horse longer than the
+ * market. The form is right about the direction there and wrong about the
+ * size: over the resulted races in the cache the horses we laid won 67 where
+ * we said 48 and the market said 74, and the chance we took off them landed
+ * on the rest of the field as edge that did not pay. Set with
+ * scripts/sweep-lay-meld.ts.
+ */
+const LAY_OUTLIER_WEIGHT = Number(process.env.OVERLAY_LAY_OUTLIER_WEIGHT ?? 0.8);
 
 export interface RateInput {
   key: string;
@@ -67,11 +76,12 @@ export interface RateResult {
 
 export function rateRace(
   inputs: RateInput[],
-  opts: { temperature?: number; marketWeight?: number; outlierWeight?: number; outlierScale?: number } = {},
+  opts: { temperature?: number; marketWeight?: number; outlierWeight?: number; layOutlierWeight?: number; outlierScale?: number } = {},
 ): RateResult {
   const temperature = opts.temperature ?? DEFAULT_TEMPERATURE;
   const marketWeight = opts.marketWeight ?? DEFAULT_MARKET_WEIGHT;
   const outlierWeight = Math.max(marketWeight, opts.outlierWeight ?? OUTLIER_WEIGHT);
+  const layOutlierWeight = Math.max(marketWeight, opts.layOutlierWeight ?? LAY_OUTLIER_WEIGHT);
   const outlierScale = opts.outlierScale ?? OUTLIER_SCALE;
 
   const live = inputs.filter((r) => !r.scratched);
@@ -93,12 +103,13 @@ export function rateRace(
     if (market === undefined) return model;
     // A runner we could not rate is priced off the market alone.
     if (r.rating === undefined) return market;
-    // The market's say grows with the size of the disagreement, but only
-    // when we have the horse shorter than the market: that is the side the
-    // market is usually right about. Where we have it longer (the lay side)
-    // the base weight stands, because that is where the form has been right.
-    const gap = Math.max(0, logit(model) - logit(market));
-    const w = weight === 0 ? 0 : weight + (outlierWeight - weight) * (1 - Math.exp(-gap / outlierScale));
+    // The market's say grows with the size of the disagreement, toward one
+    // ceiling when we have the horse shorter than the market and another
+    // when we have it longer, the lay side, where the form is right about
+    // the direction more often than about the size.
+    const gap = logit(model) - logit(market);
+    const ceiling = gap >= 0 ? outlierWeight : layOutlierWeight;
+    const w = weight === 0 ? 0 : weight + (ceiling - weight) * (1 - Math.exp(-Math.abs(gap) / outlierScale));
     return sigmoid(w * logit(market) + (1 - w) * logit(model));
   });
 
