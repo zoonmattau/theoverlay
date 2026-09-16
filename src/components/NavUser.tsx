@@ -70,16 +70,16 @@ export async function NavUser({ links }: { links: { href: string; label: string 
           Your Tips
         </Link>
       )}
-      {isAdmin(viewer) && (
-        <Link href="/admin" className="topbar-link">
-          Admin
-        </Link>
-      )}
       {passButton}
       <Link href="/account" className="topbar-link flex items-center gap-2">
         {viewer.pro && <span className="badge badge-prime">Member</span>}
         Account
       </Link>
+      {isAdmin(viewer) && (
+        <Link href="/admin" className="topbar-link">
+          Admin
+        </Link>
+      )}
     </>
   );
 }
