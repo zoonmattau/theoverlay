@@ -185,6 +185,49 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
 }
 
 /** The day's ledger once every race has run. Posted once. */
+/**
+ * Calls that appeared or went since the last card, posted as they happen
+ * once the morning post has gone, so a member who is not on the site hears
+ * about a bet the market drifted into at lunchtime. A race that has jumped
+ * is left alone, and a call that only changed price is not news.
+ */
+export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
+  if (!discordConfigured() || before.size === 0) return;
+  try {
+    const { data: morning } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).eq("kind", "calls").not("message_id", "is", null).maybeSingle();
+    if (!morning) return;
+    const now = Date.now();
+    const fresh: Call[] = [];
+    const gone: { c: Call; was: "back" | "lay" }[] = [];
+    for (const c of callsOn(card)) {
+      if (c.r.result || (c.r.jumpTime && new Date(c.r.jumpTime).getTime() < now)) continue;
+      const prev = before.get(c.r.raceId)?.runners.find((x) => x.tabNumber === c.x.tabNumber);
+      if (prev && prev.signal === c.x.signal) continue;
+      fresh.push(c);
+    }
+    for (const m of card.meetings) {
+      for (const r of m.races) {
+        if (r.result || (r.jumpTime && new Date(r.jumpTime).getTime() < now)) continue;
+        const prevRace = before.get(r.raceId);
+        if (!prevRace) continue;
+        for (const p of prevRace.runners) {
+          if (!p.signal || p.scratched) continue;
+          const x = r.runners.find((y) => y.tabNumber === p.tabNumber);
+          if (x && !x.signal && !x.scratched) gone.push({ c: { m, r, x }, was: p.signal });
+        }
+      }
+    }
+    if (fresh.length === 0 && gone.length === 0) return;
+    const at = new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }).replace(" ", "");
+    const parts: string[] = [];
+    if (fresh.length) parts.push([`**${fresh.length === 1 ? "New call" : "New calls"}, ${at}.**`, ...fresh.map((c) => line(c, true))].join("\n"));
+    if (gone.length) parts.push(`**Off, ${at}.** ${gone.map(({ c, was }) => `${c.m.track} R${c.r.raceNumber} ${c.x.tabNumber}. ${c.x.horseName} is no longer a ${was === "lay" ? "lay" : "bet"} at ${price(c.x.marketPrice)}`).join("; ")}.`);
+    await send(CHANNELS.calls, parts.join("\n\n"));
+  } catch (err) {
+    console.error("[discord] call changes", err);
+  }
+}
+
 /** The public Saturday review, once, when an admin publishes it. */
 export async function postReview(review: { date: string; intro: string; storylines: { kind: string; text: string }[] }): Promise<void> {
   if (!discordConfigured()) return;
