@@ -22,19 +22,19 @@ export function SettleForm({ date, meetingId, raceId, runners }: { date: string;
     );
   }
   return (
-    <form action={action} className="card py-3 flex flex-wrap items-center gap-x-5 gap-y-3">
+    <form action={action} className="card py-3">
       <input type="hidden" name="date" value={date} />
       <input type="hidden" name="meetingId" value={meetingId} />
       <input type="hidden" name="raceId" value={raceId} />
-      <div className="min-w-0">
-        <div className="font-display font-extrabold leading-tight">Settle by hand</div>
-        <div className="text-xs text-ink-soft">The first four home, in order. Only the winner is needed.</div>
+      <div className="flex flex-wrap items-baseline gap-x-3">
+        <span className="font-display font-extrabold">Settle by hand</span>
+        <span className="text-xs text-ink-soft">The first four home, in order. Only the winner is needed. The official result replaces it when it lands.</span>
       </div>
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="mt-3 grid grid-cols-2 gap-3 items-end lg:grid-cols-[repeat(4,minmax(0,1fr))_auto]">
         {PLACES.map((p, i) => (
-          <label key={p.name} className="flex items-center gap-2 text-sm">
-            <span className="w-7 text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft">{p.label}</span>
-            <select name={p.name} required={i === 0} defaultValue="" className="h-9 w-44 rounded-md border border-line bg-bg px-2 text-sm">
+          <label key={p.name} className="flex flex-col gap-1 min-w-0">
+            <span className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft">{p.label}</span>
+            <select name={p.name} required={i === 0} defaultValue="" className="h-9 w-full rounded-md border border-line bg-bg px-2 text-sm">
               <option value="">{i === 0 ? "Winner" : "Not needed"}</option>
               {runners.map((r) => (
                 <option key={r.tab} value={r.tab}>
@@ -44,11 +44,11 @@ export function SettleForm({ date, meetingId, raceId, runners }: { date: string;
             </select>
           </label>
         ))}
+        <button type="submit" className="btn btn-primary h-9 col-span-2 lg:col-span-1" disabled={pending}>
+          {pending ? "Settling" : "Settle race"}
+        </button>
       </div>
-      <button type="submit" className="btn btn-primary btn-sm" disabled={pending}>
-        {pending ? "Settling" : "Settle race"}
-      </button>
-      {state.error && <p className="basis-full text-sm text-red font-semibold">{state.error}</p>}
+      {state.error && <p className="mt-2 text-sm text-red font-semibold">{state.error}</p>}
     </form>
   );
 }
