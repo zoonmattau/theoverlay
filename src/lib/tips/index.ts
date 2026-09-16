@@ -8,9 +8,11 @@ import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./sta
 export type { Period, RecordStats, SideStats, TipSource } from "./stats";
 
 /**
- * The tips ledger. A call is written the first time it appears on a card, at
- * that day's publish price, and settled once the race has a result. Nothing
- * is ever removed or re-priced, so the record on the home page is the record.
+ * The tips ledger. A call is written the first time it appears on a card and
+ * settled once the race has a result, at the best price it was up at: a
+ * member could have taken any price while the call was live, so each rebuild
+ * lifts a bet's price to the market's high and drops a lay's to its low.
+ * Nothing is ever removed, so the record on the home page is the record.
  */
 
 export interface TipRow {
@@ -33,6 +35,9 @@ export interface TipRow {
   units?: number | null;
   settled_at?: string | null;
 }
+
+/** The price a member would rather have had: longer for a bet, shorter for a lay. */
+export const betterPrice = (side: Signal, a: number, b: number) => (side === "back" ? Math.max(a, b) : Math.min(a, b));
 
 /** Level stakes, one unit, at the published price. */
 export function settle(side: Signal, price: number, finish: number): number {
@@ -77,33 +82,39 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
 
 /**
  * Called after every card build. New calls are inserted at today's price;
- * calls already on the ledger keep theirs and only pick up a result.
+ * calls already on the ledger move to the better price when the market has
+ * offered one, and pick up a result.
  */
 export async function recordTips(date: string, card: StoredCard): Promise<void> {
   const db = supabaseAdmin();
   const rows = rowsFor(date, card);
   if (rows.length === 0) return;
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at, market_price").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
   }
-  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, Boolean(e.settled_at)]));
+  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price) }]));
   const fresh = rows.filter((r) => !seen.has(`${r.race_id}:${r.tab_number}`));
   if (fresh.length) {
     const { error: e } = await db.from("tips").insert(fresh);
     if (e) console.error("[tips] insert", e.message);
   }
-  // Settle what has run and is not settled yet. Runners scratched after
-  // publish never get a result and stay open; they count for nothing.
-  for (const r of rows.filter((r) => r.settled_at && seen.get(`${r.race_id}:${r.tab_number}`) === false)) {
-    const { error: e } = await db
-      .from("tips")
-      .update({ finish_position: r.finish_position, sp: r.sp, units: r.units, settled_at: r.settled_at })
-      .eq("race_id", r.race_id)
-      .eq("tab_number", r.tab_number)
-      .eq("source", "model");
-    if (e) console.error("[tips] settle", e.message);
+  // Open calls follow the best price seen, and settle at it once the race
+  // has run. Runners scratched after publish never get a result and stay
+  // open; they count for nothing.
+  for (const r of rows) {
+    const was = seen.get(`${r.race_id}:${r.tab_number}`);
+    if (!was || was.settled) continue;
+    const price = betterPrice(r.side, was.price, r.market_price);
+    const change = r.settled_at
+      ? { market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position ?? 0), settled_at: r.settled_at }
+      : price !== was.price
+        ? { market_price: price }
+        : undefined;
+    if (!change) continue;
+    const { error: e } = await db.from("tips").update(change).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
+    if (e) console.error("[tips] update", e.message);
   }
 }
 
