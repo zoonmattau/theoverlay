@@ -101,10 +101,14 @@ export function publishRace(
   // A backtest replays run races on purpose: OVERLAY_REPLAY=1 lets it.
   const jumpTime = jumpIso(meeting.date ?? race.date, race.startTime, race.date, meeting.state);
   const jumped = process.env.OVERLAY_REPLAY !== "1" && hasJumped(race.status, jumpTime);
+  // Below the confidence floor the model is guessing and no call is made,
+  // on the runner as well as in the day's selections, so the race page and
+  // the home page count agree with the email.
+  const guessing = priced.confidence < MIN_CONFIDENCE;
   const signalByTab = new Map(
     priced.runners.map((p) => {
       const held = kept.get(`${race.raceId}:${p.key}`);
-      return [p.key, jumped ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held)];
+      return [p.key, jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held)];
     }),
   );
 
