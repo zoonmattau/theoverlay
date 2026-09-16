@@ -72,8 +72,11 @@ const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
 
 function funnel(id: string, name: string, price: number, events: Ev[], members: Member[], now: number): PlanFunnel {
   const mine = events.filter((e) => (id === "passes" ? e.plan?.startsWith("passes") : e.plan === id));
-  const clicks = mine.filter((e) => e.kind === "plan_click").length;
-  const checkouts = mine.filter((e) => e.kind === "checkout_started").length;
+  // One person is one click and one checkout however many times they press it: signed in by
+  // account, signed out by the day they did it, which is as close to a person as we can get.
+  const people = (kind: string) => new Set(mine.filter((e) => e.kind === kind).map((e) => e.user_id ?? `anon:${sydneyDay(e.created_at)}:${e.plan}`)).size;
+  const clicks = people("plan_click");
+  const checkouts = people("checkout_started");
   const starts =
     id === "passes"
       ? mine.filter((e) => e.kind === "checkout_completed").length
