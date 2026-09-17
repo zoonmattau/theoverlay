@@ -16,8 +16,9 @@ type Props = PageProps<"/t/[code]">;
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { code } = await params;
-  const t = await tipsterByCode(code);
+  const t = await tipsterByCode(code, { unlisted: true });
   if (!t) return { title: "Tipster not found", robots: { index: false } };
+  if (!t.listed) return { title: `${t.name}'s tips`, robots: { index: false } };
   return { title: `${t.name}'s tips`, description: t.blurb ?? `${t.name}'s racing tips on The Overlay, every call settled.`, alternates: { canonical: `/t/${t.code}` } };
 }
 
@@ -37,9 +38,10 @@ const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).t
 async function TipsterPage({ params }: { params: Props["params"] }) {
   await connection();
   const { code } = await params;
-  const tipster = await tipsterByCode(code);
-  if (!tipster) notFound();
+  const tipster = await tipsterByCode(code, { unlisted: true });
   const viewer = await getViewer();
+  // An unlisted tipster's page is theirs and the admin's to see, nobody else's.
+  if (!tipster || (!tipster.listed && !viewer.admin && tipster.user_id !== viewer.id)) notFound();
   const { date } = await getTodayCard(viewer.admin);
   const [tips, record, followingList] = await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id), followedTipsters(viewer)]);
   const following = followingList.find((t) => t.id === tipster.id);
@@ -52,6 +54,7 @@ async function TipsterPage({ params }: { params: Props["params"] }) {
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">{tipster.name}</h1>
             <SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="mt-1" />
             {tipster.blurb && <p className="mt-2 text-ink-secondary">{tipster.blurb}</p>}
+            {!tipster.listed && <p className="mt-2 text-sm text-ink-soft">Not public yet: only you and the admins can see this page.</p>}
           </div>
           <span className="flex items-center gap-2">
             {tipster.user_id === viewer.id && <Link href="/tipster" className="btn btn-secondary">Post a call</Link>}

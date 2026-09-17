@@ -88,6 +88,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
         <p className="mt-2 text-ink-secondary">
           Post your calls for {longDate(date)}. Your followers see them next to the model&apos;s, and every call settles at the price you post.
         </p>
+        {!tipster.listed && <p className="mt-2 text-sm text-ink-soft">Your page is not public yet: your calls settle and build your record, and members see them once an admin lists you.</p>}
         <div className="mt-3 flex gap-2">
           <Link href="/tipster" className={`btn btn-sm ${wantTomorrow ? "btn-secondary" : "btn-primary"}`}>Today, {longDate(today)}</Link>
           <Link href="/tipster?day=tomorrow" className={`btn btn-sm ${wantTomorrow ? "btn-primary" : "btn-secondary"}`}>Tomorrow, {longDate(tomorrow)}</Link>

@@ -30,7 +30,7 @@ async function removeFromList(id: string) {
 async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [members, tipsters, { data: affiliates }] = await Promise.all([listMembers(), allTipsters(), supabaseAdmin().from("affiliates").select("id, code")]);
+  const [members, tipsters, { data: affiliates }] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code")]);
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
   const codeOf = new Map((affiliates ?? []).map((a) => [a.id as string, a.code as string]));
   const now = clock();

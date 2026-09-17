@@ -83,6 +83,15 @@ export async function toggleAffiliate(id: string, active: boolean): Promise<void
   revalidatePath("/admin/affiliates");
 }
 
+/** Shows a tipster to members, or takes them off public view while they still post. */
+export async function toggleListed(id: string, listed: boolean): Promise<void> {
+  await requireAdmin();
+  const { data } = await supabaseAdmin().from("affiliates").update({ listed }).eq("id", id).select("code").maybeSingle();
+  revalidatePath("/admin/affiliates");
+  revalidatePath("/tipsters");
+  if (data?.code) revalidatePath(`/t/${data.code}`);
+}
+
 export async function updateAffiliate(id: string, form: FormData): Promise<void> {
   await requireAdmin();
   const pct = Math.min(100, Math.max(0, Number(form.get("pct") ?? 20) || 0));

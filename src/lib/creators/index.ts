@@ -54,19 +54,24 @@ export async function tipsterForUser(userId: string | undefined): Promise<Tipste
   return (data as Tipster | null) ?? undefined;
 }
 
-export async function tipsterById(id: string): Promise<Tipster | undefined> {
+/** A tipster as members see them: unlisted ones come back only when asked for. */
+export async function tipsterById(id: string, opts: { unlisted?: boolean } = {}): Promise<Tipster | undefined> {
   const { data } = await supabaseAdmin().from("affiliates").select("*").eq("id", id).eq("active", true).maybeSingle();
-  return (data as Tipster | null) ?? undefined;
+  const t = (data as Tipster | null) ?? undefined;
+  return t && (t.listed || opts.unlisted) ? t : undefined;
 }
 
-export async function tipsterByCode(code: string): Promise<Tipster | undefined> {
+export async function tipsterByCode(code: string, opts: { unlisted?: boolean } = {}): Promise<Tipster | undefined> {
   const aff = await affiliateByCode(code);
-  return aff && (aff as Tipster).user_id ? (aff as Tipster) : undefined;
+  const t = aff && (aff as Tipster).user_id ? (aff as Tipster) : undefined;
+  return t && (t.listed || opts.unlisted) ? t : undefined;
 }
 
-/** Every tipster with a linked account, for the picker in Account. */
-export async function allTipsters(): Promise<Tipster[]> {
-  const { data } = await supabaseAdmin().from("affiliates").select("*").eq("active", true).not("user_id", "is", null).order("name");
+/** Every tipster with a linked account, for the directory and the picker in Account; admin asks for the unlisted too. */
+export async function allTipsters(opts: { unlisted?: boolean } = {}): Promise<Tipster[]> {
+  let q = supabaseAdmin().from("affiliates").select("*").eq("active", true).not("user_id", "is", null);
+  if (!opts.unlisted) q = q.eq("listed", true);
+  const { data } = await q.order("name");
   return (data ?? []) as Tipster[];
 }
 
@@ -82,7 +87,8 @@ export async function followedTipsters(viewer: Viewer): Promise<Tipster[]> {
     const { data } = await supabaseAdmin().from("follows").select("tipster_id").eq("user_id", viewer.id).order("created_at");
     const ids = (data ?? []).map((r) => r.tipster_id as string);
     if (ids.length === 0) return [];
-    const { data: rows } = await supabaseAdmin().from("affiliates").select("*").in("id", ids).eq("active", true).not("user_id", "is", null);
+    // A follow of an unlisted tipster keeps, and shows again the day they are listed.
+    const { data: rows } = await supabaseAdmin().from("affiliates").select("*").in("id", ids).eq("active", true).eq("listed", true).not("user_id", "is", null);
     const byId = new Map(((rows ?? []) as Tipster[]).map((t) => [t.id, t]));
     return ids.map((id) => byId.get(id)).filter((t): t is Tipster => Boolean(t));
   }

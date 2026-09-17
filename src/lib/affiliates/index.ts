@@ -15,6 +15,8 @@ export interface Affiliate {
   commission_pct: number;
   notes: string | null;
   active: boolean;
+  /** For a tipster: members can see them. Off keeps them posting in private until an admin lists them. */
+  listed: boolean;
   created_at: string;
 }
 

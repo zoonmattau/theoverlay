@@ -52,6 +52,8 @@ export async function postTip(form: FormData): Promise<void> {
     { onConflict: "affiliate_id,race_id,tab_number" },
   );
   paths();
+  // Off public view, the call stays on the site for the tipster and the admins: no Discord, no email.
+  if (!tipster.listed) return;
   after(() =>
     postTipsterCall(
       { name: tipster.name, code: tipster.code },

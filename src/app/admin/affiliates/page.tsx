@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { createAffiliate, deleteAffiliate, markPaid, toggleAffiliate, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { createAffiliate, deleteAffiliate, markPaid, toggleAffiliate, toggleListed, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyLink } from "@/components/CopyLink";
 import { isAdmin } from "@/lib/admin";
@@ -95,6 +95,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
               <span className="font-display font-extrabold text-lg">
                 {a.name} <span className="badge badge-muted ml-1 nums">{a.code}</span>
                 {!a.active && <span className="badge badge-warn ml-1">Off</span>}
+                {(a as { user_id?: string | null }).user_id && !a.listed && <span className="badge badge-warn ml-1" title="Members cannot see this tipster; they still post">Hidden</span>}
                 {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
               </span>
               <span className="flex items-center gap-3">
@@ -115,6 +116,13 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 {new Date(a.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}
               </p>
               <div className="flex gap-2">
+                {(a as { user_id?: string | null }).user_id && (
+                  <form action={toggleListed.bind(null, a.id, !a.listed)}>
+                    <button className="btn btn-secondary btn-sm" type="submit" title="Hidden means no directory entry, no page and no calls next to the model's; they still post">
+                      {a.listed ? "Hide from members" : "Show to members"}
+                    </button>
+                  </form>
+                )}
                 <form action={toggleAffiliate.bind(null, a.id, !a.active)}>
                   <button className="btn btn-secondary btn-sm" type="submit">{a.active ? "Turn off" : "Turn on"}</button>
                 </form>
