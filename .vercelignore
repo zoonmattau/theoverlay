@@ -1,4 +1,6 @@
-.formking-cache
-scripts/out
-ds-bundle
-/*.png
+marketing/
+logos/
+ds-bundle/
+scripts/out/
+*.png
+*.webm
