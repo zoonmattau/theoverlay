@@ -326,7 +326,18 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
   const live = book.races[race.raceId];
   if (!live) return race;
   const at = Date.parse(live.at);
-  const entries = race.entries.map((e): RaceEntry => {
+  // BetWatch's result, until Form King's official one (margins, dividends) replaces it: the placed
+  // horses by position, everyone else unplaced, Betfair's starting price on each.
+  const official = race.entries.some((e) => e.horseResult);
+  const position = new Map<number, number>();
+  if (live.result && !official) live.result.placings.forEach((tabs, i) => tabs.forEach((t) => position.set(t, i + 1)));
+  const settled = (e: RaceEntry): RaceEntry => {
+    if (position.size === 0 || e.scratched) return e;
+    const pos = position.get(e.number) ?? position.size + 1;
+    return { ...e, horseResult: { finishPosition: pos, startingPrice: 0, betfairStartingPrice: live.result!.bsp[String(e.number)] ?? 0 } };
+  };
+  const status = position.size > 0 ? "Resulted" : race.status;
+  const entries = race.entries.map(settled).map((e): RaceEntry => {
     const p = live.runners[String(e.number)];
     if (!p) return e;
     if (e.odds?.timestamp && Number(e.odds.timestamp) > at) return e;
@@ -348,7 +359,7 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
       },
     };
   });
-  return { ...race, entries };
+  return { ...race, status, entries };
 }
 
 /**

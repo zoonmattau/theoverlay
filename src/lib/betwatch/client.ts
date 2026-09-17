@@ -66,6 +66,8 @@ export interface BetwatchMarket {
   number: number;
   name: string;
   scratched: boolean;
+  /** Betfair's starting price, once the race has run. */
+  bsp?: number;
   /** Each bookmaker's fixed win price now, by our code. */
   bookies: Record<string, { price: number; at?: string }>;
   exchange?: { back?: number; backSize?: number; lay?: number; laySize?: number; matched?: number };
@@ -77,15 +79,19 @@ interface RawRunner {
   number: number;
   scratchedTime?: string | null;
   bookmakerMarkets?: { bookmaker: string; fixedWin?: { price?: number | null; lastUpdated?: string | null } | null }[] | null;
-  betfairMarkets?: { marketName?: string | null; back?: { price?: number; size?: number }[] | { price?: number; size?: number } | null; lay?: { price?: number; size?: number }[] | { price?: number; size?: number } | null; totalMatched?: number | null }[] | null;
+  betfairMarkets?: { marketName?: string | null; back?: { price?: number; size?: number }[] | { price?: number; size?: number } | null; lay?: { price?: number; size?: number }[] | { price?: number; size?: number } | null; totalMatched?: number | null; sp?: number | null }[] | null;
 }
 
 const first = <T>(x: T[] | T | null | undefined): T | undefined => (Array.isArray(x) ? x[0] : (x ?? undefined));
 
-/** One race's markets now: every bookmaker's win price and the exchange's best back and lay. */
-export async function betwatchMarkets(id: string): Promise<{ status: string; runners: BetwatchMarket[] }> {
-  const d = await query<{ race: { status: string; runners: RawRunner[] } | null }>(
-    `query($id:ID!,$b:[String!]){ race(id:$id){ status runners{ id name number scratchedTime bookmakerMarkets(bookmakers:$b){ bookmaker fixedWin{ price lastUpdated } } betfairMarkets{ marketName back{ price size } lay{ price size } totalMatched } } } }`,
+/**
+ * One race's markets now: every bookmaker's win price and the exchange's
+ * best back and lay; once it has run, the placings (tab numbers by
+ * position, a dead heat sharing one) and Betfair's starting prices.
+ */
+export async function betwatchMarkets(id: string): Promise<{ status: string; results?: number[][]; runners: BetwatchMarket[] }> {
+  const d = await query<{ race: { status: string; results?: number[][] | null; runners: RawRunner[] } | null }>(
+    `query($id:ID!,$b:[String!]){ race(id:$id){ status results runners{ id name number scratchedTime bookmakerMarkets(bookmakers:$b){ bookmaker fixedWin{ price lastUpdated } } betfairMarkets{ marketName back{ price size } lay{ price size } totalMatched sp } } } }`,
     { id, b: Object.keys(BOOKMAKERS) },
   );
   if (!d.race) throw new Error(`BetWatch: race ${id} missing`);
@@ -101,7 +107,9 @@ export async function betwatchMarkets(id: string): Promise<{ status: string; run
     const exchange = win
       ? { back: back?.price, backSize: back?.size, lay: lay?.price, laySize: lay?.size, matched: win.totalMatched ?? undefined }
       : undefined;
-    return { number: r.number, name: r.name, scratched: Boolean(r.scratchedTime), bookies, exchange: exchange?.lay || exchange?.back ? exchange : undefined };
+    const bsp = win?.sp && win.sp > 1 ? Math.round(win.sp * 100) / 100 : undefined;
+    return { number: r.number, name: r.name, scratched: Boolean(r.scratchedTime), bsp, bookies, exchange: exchange?.lay || exchange?.back ? exchange : undefined };
   });
-  return { status: d.race.status, runners };
+  const results = d.race.results?.filter((p) => Array.isArray(p) && p.length > 0);
+  return { status: d.race.status, results: results?.length ? results : undefined, runners };
 }

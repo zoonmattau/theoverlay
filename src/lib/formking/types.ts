@@ -266,7 +266,8 @@ export interface BenchmarkedRun {
 export interface HorseResult {
   /** Official finishing position, 0 when the horse did not finish. */
   finishPosition: number;
-  margin: number;
+  /** Lengths behind the winner; unknown until the official result. */
+  margin?: number;
   startingPrice: number;
   betfairStartingPrice: number;
   bestToteWin?: number;

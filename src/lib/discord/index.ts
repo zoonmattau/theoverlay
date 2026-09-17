@@ -260,7 +260,7 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
     const lines = won.map((c) => {
       const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
       if (c.x.signal === "back") return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp))}${prime ? ", a Prime" : ""}. +${(settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp) - 1).toFixed(2)}u`;
-      return `✅ Lay held: **${c.x.horseName}** ran ${ordinal(c.x.finishPosition!)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(callPrice(c.x)!)}. +1.00u`;
+      return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(callPrice(c.x)!)}. +1.00u`;
     });
     await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
   } catch (err) {
@@ -269,6 +269,8 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
 }
 
 const ordinal = (n: number) => (n === 0 ? "last" : `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`);
+/** Where a runner finished; behind the placings on BetWatch's result, which names only the placed, it is unplaced until the official one lands. */
+const ran = (c: Call) => (c.x.finishPosition! > (c.r.placings?.length ?? 4) && c.r.placings?.every((p) => p.margin === undefined) ? "unplaced" : ordinal(c.x.finishPosition!));
 
 /**
  * A tipster's call, the moment it is saved on the site, so their followers
@@ -322,7 +324,7 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
       const lays = rows.filter((r) => r.c.x.signal === "lay");
       const sum = (xs: typeof rows) => xs.reduce((a, r) => a + r.units, 0);
       const fmt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
-      const finish = (c: Call) => (c.x.finishPosition === 1 ? "won" : c.x.finishPosition === 0 ? "did not finish" : `${c.x.finishPosition}${["th", "st", "nd", "rd"][c.x.finishPosition && c.x.finishPosition < 4 ? c.x.finishPosition : 0]}`);
+      const finish = (c: Call) => (c.x.finishPosition === 1 ? "won" : c.x.finishPosition === 0 ? "did not finish" : ran(c));
       const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : "Bet"} ${price(callPrice(c.x)!)}, ${finish(c)}, ${fmt(units)}`).join("\n");
       return send(
         CHANNELS.results,

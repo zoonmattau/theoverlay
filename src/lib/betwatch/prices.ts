@@ -32,6 +32,8 @@ export interface RacePrices {
   at: string;
   status?: string;
   runners: Record<string, LivePrice>;
+  /** Once run: tab numbers by finishing position (a dead heat shares one) and Betfair's starting price by tab. */
+  result?: { placings: number[][]; bsp: Record<string, number>; at: string };
 }
 
 export interface PriceBook {
@@ -47,6 +49,8 @@ const KIND = "bw";
 /** How long before the jump prices start being polled, and how often. */
 export const PRICE_WINDOW_MS = Number(process.env.OVERLAY_PRICE_WINDOW_MIN ?? 120) * 60_000;
 export const PRICE_EVERY_MS = Number(process.env.OVERLAY_PRICE_EVERY_SEC ?? 300) * 1000;
+/** How long after the jump a result is waited for. */
+const RESULT_WINDOW_MS = 4 * 60 * 60_000;
 /** Races fetched at once; each takes a few seconds. */
 const IN_FLIGHT = 6;
 
@@ -101,17 +105,34 @@ export function racesToPrice(meetings: PublishedMeeting[], now = Date.now()): { 
   return out;
 }
 
+/** The races on a card that have jumped and have no result yet. */
+export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number] }[] {
+  const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number] }[] = [];
+  for (const meeting of meetings) {
+    for (const race of meeting.races) {
+      if (race.result?.length || !race.jumpTime) continue;
+      const since = now - Date.parse(race.jumpTime);
+      if (since < 60_000 || since > RESULT_WINDOW_MS) continue;
+      out.push({ meeting, race });
+    }
+  }
+  return out;
+}
+
 /**
  * One round: every race inside the window whose prices are older than the
- * poll interval is fetched and the book written. Returns how many races
- * were refreshed; the caller rebuilds the card when that is more than none.
+ * poll interval is fetched, and every race run and unresulted is asked for
+ * its result, and the book written. Returns how many races were refreshed;
+ * the caller rebuilds the card when that is more than none.
  */
 export async function pollPrices(date: string, meetings: PublishedMeeting[]): Promise<number> {
   if (!betwatchConfigured()) return 0;
   const now = Date.now();
-  const due = racesToPrice(meetings, now);
+  const due = [...racesToPrice(meetings, now), ...racesToSettle(meetings, now)];
   if (due.length === 0) return 0;
   const book = await readPriceBook(date);
+  // A result already in the book is only waiting for the card to be rebuilt.
+  if (due.some(({ race }) => book.races[race.raceId]?.result)) return 1;
   // Whoever polled inside the interval has this round.
   if (book.polledAt && now - Date.parse(book.polledAt) < PRICE_EVERY_MS * 0.8) return 0;
   book.polledAt = new Date(now).toISOString();
@@ -155,7 +176,13 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[]): Pr
               scratched: r.scratched || undefined,
             };
           }
-          book.races[race.raceId] = { betwatchId: book.ids[race.raceId], at: new Date().toISOString(), status: m.status, runners };
+          const entry: RacePrices = { betwatchId: book.ids[race.raceId], at: new Date().toISOString(), status: m.status, runners };
+          if (/resulted/i.test(m.status) && m.results) {
+            const bsp: Record<string, number> = {};
+            for (const r of m.runners) if (r.bsp) bsp[String(r.number)] = r.bsp;
+            entry.result = { placings: m.results, bsp, at: entry.at };
+          }
+          book.races[race.raceId] = entry;
           refreshed++;
         } catch (err) {
           console.error("[betwatch] race", race.raceId, err instanceof Error ? err.message : err);
