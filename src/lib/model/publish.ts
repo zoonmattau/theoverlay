@@ -52,8 +52,8 @@ const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
-/** Below this trust in the rating there is no call either way. Set with scripts/sweep-caps.ts. */
-const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0);
+/** Below this trust in the rating there is no call either way: 0.4 keeps a horse on one run (trust 0.35) out, two runs (0.55) in. */
+const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0.4);
 /** Market shorter than our price by this much, on a runner we can lay. */
 export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 /** Laying at long prices is all liability, so cap it. */
