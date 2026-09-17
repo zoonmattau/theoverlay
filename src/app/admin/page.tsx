@@ -83,9 +83,8 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
         <Panel title="Racing" href="/tips" cta="Today's card">
-          <Fact n={`${calls.filter((x) => x.signal === "back").length} · ${calls.filter((x) => x.signal === "lay").length}`} label="bets · lays on the card" />
-          <Fact n={facts.bets.settled ? units(facts.bets.units) : "—"} label={`bets settled ${facts.bets.won} of ${facts.bets.settled}`} tone={facts.bets.units} />
-          <Fact n={facts.lays.settled ? units(facts.lays.units) : "—"} label={`lays held ${facts.lays.held} of ${facts.lays.settled}`} tone={facts.lays.units} />
+          <Fact n={calls.filter((x) => x.signal === "back").length} label={facts.bets.settled ? `bets, ${facts.bets.won} of ${facts.bets.settled} won, ${units(facts.bets.units)}, ${facts.bets.calls - facts.bets.settled} to run` : "bets on the card"} tone={facts.bets.settled ? facts.bets.units : undefined} />
+          <Fact n={calls.filter((x) => x.signal === "lay").length} label={facts.lays.settled ? `lays, ${facts.lays.held} of ${facts.lays.settled} held, ${units(facts.lays.units)}, ${facts.lays.calls - facts.lays.settled} to run` : "lays on the card"} tone={facts.lays.settled ? facts.lays.units : undefined} />
           {nextCall ? (
             <Link href={`/racing/${card.date}/${nextCall.m.meetingId}/${nextCall.r.raceId}`} className="block text-xs underline mt-1">
               Next call: {nextCall.m.track} R{nextCall.r.raceNumber} {jump(nextCall.r.jumpTime)}, {nextCall.x.horseName}
