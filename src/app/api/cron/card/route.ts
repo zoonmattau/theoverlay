@@ -11,7 +11,7 @@ import { readStoredCard } from "@/lib/model/store";
 export const maxDuration = 300;
 
 /**
- * The morning run, 10am Sydney so the prices have settled. Vercel calls
+ * The morning run, 11am Sydney so the prices have settled and the card has been looked at. Vercel calls
  * this on the schedule in vercel.json (UTC, so it drifts an hour with
  * daylight saving); it builds today's card (every Form King call for the
  * day) and emails the calls to members who asked for them. Protected by

@@ -217,7 +217,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
           <form action={setTipsEmails} className="flex flex-wrap items-center gap-3 text-sm">
             <input type="hidden" name="on" value={viewer.tipsEmails ? "0" : "1"} />
             <span className="text-ink-secondary">
-              Morning tips email is <strong>{viewer.tipsEmails ? "on" : "off"}</strong>, sent at 10am on your race days.
+              Morning tips email is <strong>{viewer.tipsEmails ? "on" : "off"}</strong>, sent at 11am on your race days.
             </span>
             <button type="submit" className="btn btn-secondary btn-sm">{viewer.tipsEmails ? "Turn off" : "Turn on"}</button>
           </form>
