@@ -2141,8 +2141,24 @@ body {
   overflow: visible;
 }
 @media (max-width: 700px) {
+  /* On a phone the runs fit the width: weight, SP and settling position go (hide-sm), the track and class are clipped, the going is its number. */
   .runner-detail-runs {
     overflow-x: auto;
+  }
+  .runs-table {
+    font-size: 0.68rem;
+  }
+  .runs-table th {
+    padding-right: 5px;
+  }
+  .runs-table td {
+    padding-right: 4px;
+  }
+  .runs-table .runs-track {
+    max-width: 62px;
+  }
+  .runs-table .runs-class {
+    max-width: 72px;
   }
 }
 .runs-table {

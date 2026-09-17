@@ -245,9 +245,9 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
                 <th className="tip" data-tip="Lengths behind the winner.">Mgn</th>
                 <th className="tip" data-tip="The horse's own time for the race.">Time</th>
                 <th className="tip" data-tip="Its last 600m.">L600</th>
-                <th className="tip" data-tip="Weight carried, in kilograms.">Wgt</th>
-                <th className="tip" data-tip="Starting price, the odds at the jump.">SP</th>
-                <th className="tip" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
+                <th className="tip hide-sm" data-tip="Weight carried, in kilograms.">Wgt</th>
+                <th className="tip hide-sm" data-tip="Starting price, the odds at the jump.">SP</th>
+                <th className="tip hide-sm" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
                 <th className="text-right tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock.">Pts</th>
               </tr>
             </thead>
@@ -256,10 +256,10 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
                 <Fragment key={`${x.date}-${x.track}`}>
                 <tr>
                   <td>{day(x.date)}</td>
-                  <td className="truncate max-w-[110px]">{x.track ?? "—"}</td>
+                  <td className="truncate max-w-[110px] runs-track">{x.track ?? "—"}</td>
                   <td>{x.distance}</td>
-                  <td>{x.going ?? "—"}</td>
-                  <td>{x.className ?? "—"}</td>
+                  <td className="runs-going">{x.going ?? "—"}</td>
+                  <td className="truncate runs-class">{x.className ?? "—"}</td>
                   <td className={x.finish === 1 ? "font-bold text-accent" : ""}>
                     {x.finish ? (
                       <span
@@ -275,9 +275,9 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
                   <td>{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
                   <td>{x.time ? <span className={x.vsBench !== undefined ? `tip cursor-help ${bench(x.vsBench)}` : ""} data-tip={x.vsBench !== undefined ? benchTip(x.vsBench) : undefined}>{clockTime(x.time)}</span> : "—"}</td>
                   <td>{x.last600 ? <span className={x.vsBench600 !== undefined ? `tip cursor-help ${bench(x.vsBench600)}` : ""} data-tip={x.vsBench600 !== undefined ? benchTip(x.vsBench600) : undefined}>{x.last600.toFixed(2)}</span> : "—"}</td>
-                  <td>{x.weight ?? "—"}</td>
-                  <td>{x.sp ? price(x.sp) : "—"}</td>
-                  <td>{x.map ?? "—"}</td>
+                  <td className="hide-sm">{x.weight ?? "—"}</td>
+                  <td className="hide-sm">{x.sp ? price(x.sp) : "—"}</td>
+                  <td className="hide-sm">{x.map ?? "—"}</td>
                   <td className="text-right font-semibold">{x.points.toFixed(1)}</td>
                 </tr>
                 {x.met?.length && x.finish ? (
