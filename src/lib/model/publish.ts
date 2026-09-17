@@ -25,7 +25,7 @@ import type {
 import { callEdge, callPrice } from "./types";
 import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
-import { rateRace } from "./rate";
+import { rateRace, roundPrice } from "./rate";
 
 /** A long overlay has to actually pay something. */
 const LONG_MIN_PRICE = 8;
@@ -273,6 +273,18 @@ function classLabel(restrictions: string | undefined, points: number): string {
  * wins; the printed start time is local to the track and only a fallback.
  */
 /** Whether the race has been run: Form King says so, or its jump time has passed. */
+/**
+ * The strict price on a call: the shortest a bet is still worth taking
+ * (our chance less the edge a bet needs) and the longest a lay is still
+ * worth laying (our chance plus the edge a lay needs). Beyond it the call
+ * is off.
+ */
+export function callLimit(x: { signal?: Signal; ratedProbability: number }): number | undefined {
+  if (x.signal === "back") return x.ratedProbability > MIN_EDGE ? roundPrice(1 / (x.ratedProbability - MIN_EDGE)) : undefined;
+  if (x.signal === "lay") return roundPrice(1 / (x.ratedProbability - LAY_EDGE));
+  return undefined;
+}
+
 export function hasJumped(status?: string, jumpTime?: string, now = Date.now()): boolean {
   if (/result|abandon|closed|interim/i.test(status ?? "")) return true;
   return Boolean(jumpTime && new Date(jumpTime).getTime() <= now);

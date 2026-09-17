@@ -5,6 +5,7 @@ import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
 import type { StoredCard } from "@/lib/model/store";
 import { callPrice } from "@/lib/model/types";
+import { callLimit } from "@/lib/model/publish";
 import { settledAt } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRunner } from "@/lib/model/types";
 
@@ -143,7 +144,9 @@ function line(c: Call, withTrack = false): string {
   const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : "🟦";
   const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : "Bet";
-  return `${square} ${withTrack ? `${c.m.track} ` : ""}R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}`;
+  const limit = callLimit(c.x);
+  const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
+  return `${square} ${withTrack ? `${c.m.track} ` : ""}R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}`;
 }
 
 /** Every call, a heading per meeting and a blank line between meetings, races in jump order. */
