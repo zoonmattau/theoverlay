@@ -14,11 +14,15 @@ export function NextToGo({
   meetings,
   selections,
   date,
+  tipsters,
 }: {
   meetings: PublishedMeeting[];
   selections: Selection[];
   date: string;
+  /** The tipsters the viewer follows, each with the races they have called, for the badge the board carries. */
+  tipsters?: { name: string; raceIds: string[] }[];
 }) {
+  const initialsFor = (raceId: string) => (tipsters ?? []).filter((t) => t.raceIds.includes(raceId)).map((t) => t.name.trim()[0]?.toUpperCase() ?? "?");
   const prime = new Map(
     selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => [s.raceId, s]),
   );
@@ -62,6 +66,7 @@ export function NextToGo({
             label={`${m.track} R${r.raceNumber}`}
             tip={tip}
             tag={tag}
+            tipsters={initialsFor(r.raceId)}
           />
         );
       })}

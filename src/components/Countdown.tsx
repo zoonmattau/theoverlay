@@ -108,6 +108,7 @@ export function NtgCountdown({
   label,
   tip,
   tag,
+  tipsters,
 }: {
   href: string;
   iso?: string;
@@ -115,6 +116,8 @@ export function NtgCountdown({
   label: string;
   tip?: "prime" | "back" | "lay";
   tag?: string;
+  /** Initials of the tipsters the viewer follows who have a call in this race, badged like the board. */
+  tipsters?: string[];
 }) {
   const [state, setState] = useState<{ label: string; status: string; gone: boolean }>({
     label: clock,
@@ -138,6 +141,9 @@ export function NtgCountdown({
 
   return (
     <Link href={href} className={`ntg-item ${state.status} ${tip ? `tip-${tip}` : ""}`}>
+      {tipsters && tipsters.length > 0 && (
+        <span className="matrix-tipsters" title="A tipster you follow has a call in this race">{tipsters.slice(0, 3).map((t, i) => <span key={i} className="matrix-tipster">{t}</span>)}</span>
+      )}
       <span className="ntg-head">
         <span className="ntg-track">{label}</span>
         <span className="ntg-time nums">{state.label}</span>

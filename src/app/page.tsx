@@ -168,7 +168,7 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
 
   return (
     <>
-      <NextToGo meetings={meetings} selections={selections} date={date} />
+      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={tipsters} />
 
       {free && released && <FreeRace date={date} meeting={free.meeting} race={free.race} />}
 

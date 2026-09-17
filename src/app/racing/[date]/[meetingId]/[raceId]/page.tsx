@@ -163,7 +163,7 @@ async function Race({ params }: { params: Props["params"] }) {
           runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))}
         />
       )}
-      <NextToGo meetings={meetings} selections={selections} date={date} />
+      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }))} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}
       <header className="section !overflow-visible">
         <div className="section-body flex flex-wrap items-center gap-x-4 gap-y-3">
