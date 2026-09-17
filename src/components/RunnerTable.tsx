@@ -20,7 +20,7 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
   const runners = race.runners.filter((r) => !r.scratched);
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
-  const cols = locked ? 8 : 11;
+  const cols = locked ? 8 : 12;
 
   // A shared link like #runner-7 opens that runner on arrival.
   useEffect(() => {
@@ -40,7 +40,7 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
   return (
     <Section id="market" letter="M" title="Market" aside={<span className="nums">{runners.length} runners</span>}>
       <div className="overflow-x-auto lg:overflow-visible">
-        <table className="data-table sm:min-w-[760px] text-sm">
+        <table className="data-table sm:min-w-[820px] text-sm">
           <thead>
             <tr>
               <th className="w-8">#</th>
@@ -54,6 +54,7 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
               {!locked && <th className="text-right">Rated</th>}
               {!locked && <th className="hide-sm text-right">Win</th>}
               {!locked && <th className="text-right">Edge</th>}
+              {!locked && <th className="hide-sm text-right tip tip-right cursor-help" data-tip="The exchange price a lay is struck at, and our chance against it: the more negative, the better the lay.">Lay</th>}
             </tr>
           </thead>
           <tbody>
@@ -97,6 +98,16 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
                         <span className={r.prime ? "text-accent font-semibold" : r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
                           {signedPercent(r.edge)}
                         </span>
+                      </td>
+                    )}
+                    {!locked && (
+                      <td className="hide-sm text-right nums whitespace-nowrap">
+                        {r.layPrice ? (
+                          <>
+                            <span className="text-ink-secondary">{price(r.layPrice)}</span>{" "}
+                            <span className={r.signal === "lay" ? "text-red font-semibold" : (r.layEdge ?? 0) <= -0.06 ? "text-red" : "text-muted"}>{signedPercent(r.layEdge)}</span>
+                          </>
+                        ) : "—"}
                       </td>
                     )}
                   </tr>
