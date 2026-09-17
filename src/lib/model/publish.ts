@@ -367,7 +367,7 @@ function profileOf(e: RaceEntry): HorseProfile {
 function sectionsOf(p: PastEvent, today: number): { early?: number; mid?: number; late?: number; earlyPts?: number; midPts?: number; latePts?: number } {
   if (!p.benchmark) return {};
   const s = splitOf(p.benchmark);
-  const pts = sectionPoints(s, p.distance, today);
+  const pts = sectionPoints(s, p.distance, today, goingBand(p.going));
   const r = (v?: number) => (v === undefined ? undefined : Math.round(v * 10) / 10);
   return { early: r(s.early), mid: r(s.mid), late: r(s.late), earlyPts: r(pts.early), midPts: r(pts.mid), latePts: r(pts.late) };
 }

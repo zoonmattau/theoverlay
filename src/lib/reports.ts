@@ -109,3 +109,65 @@ export async function tipsterTipSeries(n: number): Promise<{ all: Series[]; byTi
     byTipster: ((affs ?? []) as { id: string; name: string; code: string }[]).map((a) => ({ name: a.name, code: a.code, series: build(rows.filter((r) => r.affiliate_id === a.id)) })),
   };
 }
+
+/** How the model is going against the results, a day at a time. */
+export interface HealthDay {
+  date: string;
+  races: number;
+  /** Market favourites that won, and how many the form said would. */
+  favWon: number;
+  favSaid: number;
+  /** The form's top pick: how many won, how many the form said would. */
+  topWon: number;
+  topSaid: number;
+  /** Favourites the form ranked fourth or worse. */
+  favLow: number;
+  bets: number;
+  betUnits: number;
+  lays: number;
+  layUnits: number;
+}
+
+/**
+ * The model against the results over the window, from the stored cards and
+ * the ledger: is the form calibrated on its own pick, is it still
+ * under-rating the favourite, and are the bets and lays paying at the price
+ * they settle at. The numbers the 17 Sep 2026 recalibration was judged on,
+ * so it can be judged again out of sample.
+ */
+export async function modelHealth(n: number): Promise<{ days: HealthDay[]; total: HealthDay }> {
+  const window = days(n);
+  const db = supabaseAdmin();
+  const [{ data: cards }, { data: tips }] = await Promise.all([
+    db.from("cards").select("date, card").gte("date", window[0]).order("date"),
+    db.from("tips").select("date, side, units, settled_at").eq("source", "model").gte("date", window[0]).not("settled_at", "is", null),
+  ]);
+  const blank = (date: string): HealthDay => ({ date, races: 0, favWon: 0, favSaid: 0, topWon: 0, topSaid: 0, favLow: 0, bets: 0, betUnits: 0, lays: 0, layUnits: 0 });
+  const byDay = new Map<string, HealthDay>();
+  type Runner = { scratched?: boolean; marketPrice?: number; formPrice?: number; finishPosition?: number; ratings: { today: number; runs: number } };
+  for (const c of (cards ?? []) as { date: string; card: { meetings: { races: { result?: number[]; runners: Runner[] }[] }[] } }[]) {
+    const d = byDay.get(c.date) ?? blank(c.date);
+    for (const m of c.card.meetings) for (const r of m.races) {
+      if (!r.result?.length) continue;
+      const live = r.runners.filter((x) => !x.scratched && x.marketPrice && x.formPrice && x.ratings.runs > 0);
+      if (live.length < 4) continue;
+      d.races++;
+      const formSum = live.reduce((a, x) => a + 1 / x.formPrice!, 0);
+      const said = (x: Runner) => 1 / x.formPrice! / formSum;
+      const fav = [...live].sort((a, b) => a.marketPrice! - b.marketPrice!)[0];
+      const byForm = [...live].sort((a, b) => b.ratings.today - a.ratings.today);
+      d.favSaid += said(fav); if (fav.finishPosition === 1) d.favWon++;
+      d.topSaid += said(byForm[0]); if (byForm[0].finishPosition === 1) d.topWon++;
+      if (byForm.indexOf(fav) >= 3) d.favLow++;
+    }
+    byDay.set(c.date, d);
+  }
+  for (const t of (tips ?? []) as { date: string; side: "back" | "lay"; units: number | null }[]) {
+    const d = byDay.get(t.date) ?? blank(t.date);
+    if (t.side === "back") { d.bets++; d.betUnits += Number(t.units ?? 0); } else { d.lays++; d.layUnits += Number(t.units ?? 0); }
+    byDay.set(t.date, d);
+  }
+  const list = [...byDay.values()].filter((d) => d.races > 0 || d.bets > 0 || d.lays > 0).sort((a, b) => b.date.localeCompare(a.date));
+  const total = list.reduce((a, d) => ({ ...a, races: a.races + d.races, favWon: a.favWon + d.favWon, favSaid: a.favSaid + d.favSaid, topWon: a.topWon + d.topWon, topSaid: a.topSaid + d.topSaid, favLow: a.favLow + d.favLow, bets: a.bets + d.bets, betUnits: a.betUnits + d.betUnits, lays: a.lays + d.lays, layUnits: a.layUnits + d.layUnits }), blank("total"));
+  return { days: list, total };
+}

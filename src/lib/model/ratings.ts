@@ -407,7 +407,7 @@ function rateOne(
   // slowly run 2400m does not read as thirteen lengths of early speed.
   const splits = runs
     .filter((r) => r.benchmark)
-    .map((r) => { const sp = splitOf(r.benchmark!); return { tempo: sp.tempo, ...sectionPoints(sp, r.distance, race.distance) }; });
+    .map((r) => { const sp = splitOf(r.benchmark!); return { tempo: sp.tempo, ...sectionPoints(sp, r.distance, race.distance, goingBand(r.going)) }; });
 
   const section = (pick: (s: { early?: number; mid?: number; late?: number }) => number | undefined) => {
     const ps = splits.map(pick).filter((d): d is number => d !== undefined);
@@ -595,6 +595,21 @@ const EARLY_SAY = Number(process.env.OVERLAY_EARLY_SAY ?? 0);
 const EARLY_SAY_NOMAP = Number(process.env.OVERLAY_EARLY_SAY_NOMAP ?? 0);
 /** 1 builds the closing figure from the last 600 against the field in that race, on the sprint scale, instead of against class. */
 const LATE_FIELD = Number(process.env.OVERLAY_LATE_FIELD ?? 1) === 1;
+/**
+ * The ground's mark on a section, lengths against class over the cache
+ * (scripts/out/section-bias.ts): on heavy the early section runs 1.5
+ * lengths better than on good and the last 600 a length worse, soft is
+ * within a fifth of good. 1 takes the ground's mark off before the section
+ * counts, so wet-track sectionals read as they would on good. Off: neutral
+ * over a cache that is mostly dry Saturdays (0.3100 v 0.3099); try again
+ * with a wet winter in the cache.
+ */
+const SECTION_GOING = Number(process.env.OVERLAY_SECTION_GOING ?? 0) === 1;
+const GOING_MARK: Record<GoingBand, { early: number; mid: number; late: number }> = {
+  good: { early: 0, mid: 0, late: 0 },
+  soft: { early: 0.2, mid: -0.1, late: 0.1 },
+  heavy: { early: 1.5, mid: -0.4, late: -1.0 },
+};
 
 const bandOf = (distance: number) => SECTION_BANDS.find((b) => distance < b.to) ?? SECTION_BANDS[SECTION_BANDS.length - 1];
 
@@ -605,12 +620,14 @@ const bandOf = (distance: number) => SECTION_BANDS.find((b) => distance < b.to) 
  * sprint's (mode 2), so a slow first 1200m in an Oaks is an ordinary early
  * section for a 2400m race and not eleven points of missing speed.
  */
-export function sectionPoints(split: Split, distance: number, today = distance): { early?: number; mid?: number; late?: number } {
+export function sectionPoints(split: Split, distance: number, today = distance, going?: GoingBand): { early?: number; mid?: number; late?: number } {
   const band = bandOf(distance);
   const target = SECTION_NORM === 3 ? bandOf(today) : SECTION_BANDS[0];
   const per = clockPoints(distance);
-  const one = (v: number | undefined, key: "early" | "mid" | "late") => {
-    if (v === undefined) return undefined;
+  const mark = SECTION_GOING && going ? GOING_MARK[going] : undefined;
+  const one = (raw: number | undefined, key: "early" | "mid" | "late") => {
+    if (raw === undefined) return undefined;
+    const v = mark ? raw - mark[key] : raw;
     if (SECTION_NORM === 1) return (v - band[key][0]) * per;
     if (SECTION_NORM >= 2) return (((v - band[key][0]) * target[key][1]) / band[key][1]) * (SECTION_NORM === 3 ? clockPoints(today) : POINTS_PER_LENGTH);
     return v * per;

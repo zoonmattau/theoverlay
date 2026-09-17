@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { growthSeries, modelTipSeries, tipsterTipSeries, type Series } from "@/lib/reports";
+import { growthSeries, modelHealth, modelTipSeries, tipsterTipSeries, type HealthDay, type Series } from "@/lib/reports";
 
 export const metadata: Metadata = { title: "Reports", robots: { index: false } };
 
@@ -104,11 +104,47 @@ async function Growth({ n }: { n: number }) {
   return <Group series={series} />;
 }
 
+/** The model against the results: calibration on the favourite and on its own pick, and the record at settled prices. */
+async function Health({ n }: { n: number }) {
+  const { days, total } = await modelHealth(n);
+  if (days.length === 0) return null;
+  const u = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}`;
+  const pct = (a: number, b: number) => (b ? `${((100 * a) / b).toFixed(0)}%` : "—");
+  const Row = ({ d, strong }: { d: HealthDay; strong?: boolean }) => (
+    <tr className={strong ? "font-semibold" : ""}>
+      <td className="whitespace-nowrap">{d.date === "total" ? `${days.length} days` : d.date.slice(5)}</td>
+      <td className="text-right nums">{d.races}</td>
+      <td className="text-right nums">{d.favWon} <span className="text-ink-soft">/ {d.favSaid.toFixed(1)}</span></td>
+      <td className="text-right nums">{pct(d.favLow, d.races)}</td>
+      <td className="text-right nums">{d.topWon} <span className="text-ink-soft">/ {d.topSaid.toFixed(1)}</span></td>
+      <td className="text-right nums">{pct(d.topWon, d.races)}</td>
+      <td className={`text-right nums ${d.betUnits > 0 ? "text-accent" : d.betUnits < 0 ? "text-red" : ""}`}>{d.bets} <span className="text-ink-soft">{u(d.betUnits)}u</span></td>
+      <td className={`text-right nums ${d.layUnits > 0 ? "text-accent" : d.layUnits < 0 ? "text-red" : ""}`}>{d.lays} <span className="text-ink-soft">{u(d.layUnits)}u</span></td>
+    </tr>
+  );
+  return (
+    <div className="card mb-4">
+      <h2 className="font-display font-extrabold mb-1">The model against the results</h2>
+      <p className="text-xs text-ink-soft mb-3">Won / form said: winners against the winners the form's own prices added up to, on the market favourite and on the form's top pick. A form that is right says as many as win. Fav 4th+ is how often the favourite sat outside the form's top three. Units settle at the price the call was struck at.</p>
+      <div className="overflow-x-auto">
+        <table className="data-table text-sm">
+          <thead><tr><th>Day</th><th className="text-right">Races</th><th className="text-right">Fav won / said</th><th className="text-right">Fav 4th+</th><th className="text-right">Top pick won / said</th><th className="text-right">Top pick %</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr></thead>
+          <tbody>
+            <Row d={total} strong />
+            {days.map((d) => <Row key={d.date} d={d} />)}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
 async function ModelTips({ n }: { n: number }) {
   const series = await modelTipSeries(n);
   const units = series.find((s) => s.key === "units")!;
   return (
     <>
+      <Health n={n} />
       <Group series={series} />
       <Group title="Units, running total" series={[units]} cumulativeKeys={["units"]} />
     </>
