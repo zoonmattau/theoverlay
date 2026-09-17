@@ -22,6 +22,8 @@ import { jumpTime, longDate } from "@/lib/format";
 import { BRAND_SOCIAL } from "@/lib/social";
 
 export const metadata: Metadata = {
+  title: { absolute: "The Overlay: Australian horse racing tips today, a rated price for every runner" },
+  description: "Today's Australian horse racing tips: a benchmark rating and a rated price for every runner in every race, the bets and lays where the market has it wrong, and one race free every day.",
   alternates: { canonical: "/" },
 };
 
@@ -102,8 +104,8 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           <span className="bg-lime px-2 box-decoration-clone">We have the data.</span>
         </h1>
         <p className="mt-4 text-ink-secondary text-base max-w-xl">
-          Every runner in every race gets a benchmark rating and a rated price, then we
-          tell you where the market has it wrong.
+          Australian horse racing tips for today, every race, every runner. Each one gets a benchmark rating and a rated price, then we
+          tell you where the market has it wrong: the bets, the lays and the Overlay of the Day, with one race free every day.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/pricing" className="btn btn-primary">

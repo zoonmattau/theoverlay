@@ -34,7 +34,7 @@ export const metadata: Metadata = {
     template: "%s · The Overlay",
   },
   description:
-    "Benchmark ratings, a pace map and a rated price for every runner in Australian racing.",
+    "Australian horse racing tips for today: benchmark ratings, a pace map and a rated price for every runner in every race, and the bets and lays where the market has it wrong.",
   openGraph: {
     title: "The Overlay",
     description: "The market has an opinion. We have the data.",
