@@ -46,7 +46,7 @@ export interface PriceBook {
 const KIND = "bw";
 /** How long before the jump prices start being polled, and how often. */
 export const PRICE_WINDOW_MS = Number(process.env.OVERLAY_PRICE_WINDOW_MIN ?? 120) * 60_000;
-export const PRICE_EVERY_MS = Number(process.env.OVERLAY_PRICE_EVERY_SEC ?? 90) * 1000;
+export const PRICE_EVERY_MS = Number(process.env.OVERLAY_PRICE_EVERY_SEC ?? 300) * 1000;
 /** Races fetched at once; each takes a few seconds. */
 const IN_FLIGHT = 6;
 
