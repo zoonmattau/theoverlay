@@ -45,12 +45,12 @@ for (const r of races) {
 const ll = (xs: Row[], p: (x: Row) => number) => -xs.reduce((a, x) => a + Math.log(Math.min(0.999, Math.max(0.001, x.won ? p(x) : 1 - p(x)))), 0) / Math.max(1, xs.length);
 const calib = (xs: Row[]) => `${xs.length} runners, ${xs.filter((x) => x.won).length} won, form said ${xs.reduce((a, x) => a + x.form, 0).toFixed(0)}, market ${xs.reduce((a, x) => a + 1 / x.market, 0).toFixed(0)}`;
 const bets = rows.filter((x) => x.conf >= 0.35 && x.edge >= 0.025 && x.rated >= 0.08 && x.market <= 26);
-const LAY = Number(process.env.OVERLAY_LAY_EDGE ?? -0.1);
+const LAY = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 const lays = rows.filter((x) => x.conf >= 0.35 && x.layEdge <= LAY && x.layPrice <= 12);
 const betU = bets.reduce((a, x) => a + (x.won ? x.market - 1 : -1), 0);
 // A lay settles at the exchange price, less 5% commission on a win.
 const layU = lays.reduce((a, x) => a + (x.won ? -(x.layPrice - 1) : 0.95), 0);
-const tag = `lay ${LAY} say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
+const tag = `own ${process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0}/${process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0} trust ${process.env.OVERLAY_NO_TRUST_CEILING ?? 0.8}/${process.env.OVERLAY_TRUST_FLOOR ?? 0} lay ${LAY} say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
 console.log(
   `${tag}: logloss form ${ll(rows, (x) => x.form).toFixed(4)} rated ${ll(rows, (x) => x.rated).toFixed(4)} market ${ll(rows, (x) => x.fair).toFixed(4)} | ${favN} races, fav won ${favWon}, form top won ${formTopWon}, fav ranked 4th+ ${favRankLow}, lay races ${layRaces}` +
   `\n   fav: ${calib(rows.filter((x) => x.fav))}\n   form top: ${calib(rows.filter((x) => x.formTop))}\n   slow-run: ${calib(rows.filter((x) => x.slow))}\n   class drop: ${calib(rows.filter((x) => x.classDrop))}\n   ohr 8+ over par: ${calib(rows.filter((x) => x.ohrAbove))}` +

@@ -52,6 +52,8 @@ const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
+/** Below this trust in the rating there is no call either way. Set with scripts/sweep-caps.ts. */
+const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0);
 /** Market shorter than our price by this much, on a runner we can lay. */
 export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 /** Laying at long prices is all liability, so cap it. */
@@ -94,6 +96,7 @@ export function publishRace(
         key: String(e.number),
         // No runs means no opinion: the market, which has seen the trials, is our number.
         rating: r && r.runs > 0 ? r.today : undefined,
+        trust: r?.trust,
         marketPrice: e.odds?.bestNow,
         scratched: e.scratched,
       };
@@ -115,7 +118,8 @@ export function publishRace(
       const held = kept.get(`${race.raceId}:${p.key}`);
       // No runs means no opinion, and no opinion is never a call, held or new:
       // its price is the market's, moved only by the field normalising around it.
-      if ((ratedByTab.get(p.key)?.ratings.runs ?? 0) === 0) return [p.key, undefined];
+      const g = ratedByTab.get(p.key)?.ratings;
+      if ((g?.runs ?? 0) === 0 || (g?.trust ?? 1) < TRUST_FLOOR) return [p.key, undefined];
       return [p.key, jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice)];
     }),
   );
@@ -145,7 +149,7 @@ export function publishRace(
     tempo: { fast: points, slow: points },
     going: { good: points, soft: points, heavy: points },
     distance: points, track: points,
-    today: points, factors: {}, runs: 0, ppir: 0, map: "midfield" as const,
+    today: points, factors: {}, runs: 0, trust: 0, ppir: 0, map: "midfield" as const,
   };
 
   const runners: PublishedRunner[] = race.entries.map((e) => {

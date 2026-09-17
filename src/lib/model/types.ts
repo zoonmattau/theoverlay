@@ -74,6 +74,8 @@ export interface RunnerRatings {
    * Keys: going, tempo, distance, track, weight, fresh, jockey, trainer, market.
    */
   factors: Partial<Record<Factor, number>>;
+  /** How much the rating can be trusted, 0-1: runs behind it, sectionals among them, ground they were on, the break since. Decides how far the price leans on the market. */
+  trust: number;
   /** Runs behind the numbers. */
   runs: number;
   /** Predicted settling position, 1 = leads. */

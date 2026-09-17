@@ -30,6 +30,7 @@ const SAMPLE: RunnerRatings = {
   today: 74.2,
   factors: { going: 0.5, tempo: 0.7, distance: 0.6, weight: 1.2, jockey: -0.2 },
   runs: 5,
+  trust: 1,
   ppir: 3,
   map: "on pace",
 };

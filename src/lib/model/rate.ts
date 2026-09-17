@@ -67,11 +67,22 @@ const SHORT_TO = 0.5;
  * lay's price is the fair price plus this, and its edge is read against it.
  */
 const LAY_OVER_FAIR = Number(process.env.OVERLAY_LAY_OVER_FAIR ?? 1.04);
+/**
+ * Where the market's ceiling goes for a rating with no trust at all: the
+ * meld's ceiling climbs from the usual one toward this as the trust falls.
+ * At the usual ceiling (0.8) the trust does nothing. 0.95 from
+ * scripts/sweep-caps.ts on 17 Sep 2026: the rated price's log loss falls
+ * from 0.2803 to 0.2801 and keeps falling to 1.0, so a rating on nothing
+ * should be the market; bets 228 at +14% to 208 at +14%, lays 193 to 177.
+ */
+const NO_TRUST_CEILING = Number(process.env.OVERLAY_NO_TRUST_CEILING ?? 0.95);
 
 export interface RateInput {
   key: string;
   /** Our rating for today, in benchmark points. See ratings.ts. */
   rating?: number;
+  /** How much that rating can be trusted, 0-1; 1 when absent. */
+  trust?: number;
   /** Best available market price at publish time. */
   marketPrice?: number;
   scratched?: boolean;
@@ -135,7 +146,10 @@ export function rateRace(
     // The lay-side ceiling climbs toward SHORT_WEIGHT as the market's chance climbs toward SHORT_TO.
     const short = Math.min(1, Math.max(0, (market - SHORT_FROM) / (SHORT_TO - SHORT_FROM)));
     const layCeiling = layOutlierWeight + (Math.max(layOutlierWeight, SHORT_WEIGHT) - layOutlierWeight) * short;
-    const ceiling = gap >= 0 ? outlierWeight : layCeiling;
+    const base = gap >= 0 ? outlierWeight : layCeiling;
+    // A rating we cannot trust leans harder on the market, up to NO_TRUST_CEILING with no trust at all.
+    const trust = r.trust ?? 1;
+    const ceiling = base + Math.max(0, NO_TRUST_CEILING - base) * (1 - trust);
     const w = weight === 0 ? 0 : weight + (ceiling - weight) * (1 - Math.exp(-Math.abs(gap) / outlierScale));
     return sigmoid(w * logit(market) + (1 - w) * logit(model));
   });

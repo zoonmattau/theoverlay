@@ -12,6 +12,7 @@
  */
 
 import type { BenchmarkedRun, PastEvent, RaceEntry, Speedmap } from "@/lib/formking/types";
+import { ownClock } from "./standards";
 import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, weightFactor } from "./factors";
 import type {
   Factor,
@@ -146,6 +147,20 @@ export const toFeedScale = (points: number) => (RR_PAR ? RR_A + RR_B * points : 
  */
 const CLOCK_SCALE = Number(process.env.OVERLAY_CLOCK_SCALE ?? 1);
 const CLOCK_BY_TRIP = Number(process.env.OVERLAY_CLOCK_BY_TRIP ?? 1) === 1;
+/**
+ * Our own clock beside the feed's: a run's time against our standard for
+ * that track, distance and going (standards.ts). OWN_CLOCK_BLEND is its
+ * share of the clock where the feed has a benchmark too; where the feed has
+ * none, our clock stands in for the margin at OWN_CLOCK_ALONE of full
+ * weight. Both 0 after the sweep of 17 Sep 2026: a quarter blend took the
+ * form log loss from 0.3099 to 0.3123, because our standard is class-blind
+ * (the typical time of every run at that track and trip) and the feed's
+ * carries the class. Standing in for the margin was neutral. The standards
+ * belong as a going and track adjustment on the feed's benchmark, not in
+ * its place.
+ */
+const OWN_CLOCK_BLEND = Number(process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0);
+const OWN_CLOCK_ALONE = Number(process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0);
 export const clockPoints = (distance?: number) => POINTS_PER_LENGTH * CLOCK_SCALE * (CLOCK_BY_TRIP && distance ? Math.max(1 / 3, Math.min(1, 1200 / distance)) : 1);
 /**
  * Points below today's par a run as a two-year-old starts from, before the
@@ -164,6 +179,21 @@ export const RUN_WEIGHTS = [0.35, 0.25, 0.2, 0.12, 0.08];
 const SHRINK = 2;
 /** How far a within-field Form King edge can move a runner. */
 const FK_NUDGE = 1.5;
+/**
+ * How much a rating can be trusted, 0-1. A rating on two runs, one of them
+ * on a bog, after a year off, is a guess dressed as a number; the price
+ * should lean on the market for it. Runs count most (one run a third, five
+ * runs in full), then how many of those carried sectionals, how many were on
+ * heavy ground, and a break of 300 days or more. Sweep in scripts/sweep-caps.ts.
+ */
+function trustOf(runs: PastEvent[], daysSince?: number): number {
+  if (runs.length === 0) return 0;
+  const byRuns = [0, 0.35, 0.55, 0.75, 0.9, 1][Math.min(5, runs.length)];
+  const withSections = runs.filter((r) => r.benchmark?.sections).length / runs.length;
+  const heavy = runs.filter((r) => goingBand(r.going) === "heavy").length / runs.length;
+  const fresh = daysSince !== undefined && daysSince >= 300 ? 0.7 : 1;
+  return round2(clamp(byRuns * (0.7 + 0.3 * withSections) * (1 - 0.4 * heavy) * fresh, 0, 1));
+}
 /** Leader early lengths vs class that make a run's tempo fast or slow. */
 export const TEMPO_LENGTHS = 1.5;
 
@@ -356,6 +386,7 @@ function rateOne(
       distance: c,
       track: c,
       runs: 0,
+      trust: 0,
     };
   }
 
@@ -413,6 +444,7 @@ function rateOne(
     distance: round1(subset((r) => Math.abs(r.distance - race.distance) <= 200)),
     track: round1(subset((r) => sameTrack(r.track, race.track))),
     runs: runs.length,
+    trust: trustOf(runs, e.daysSinceLastRace),
   };
 }
 
@@ -463,9 +495,12 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   // its lengths against class count for half.
   const trust = r.benchmark?.dataStage === "OVERALL_TIME_ONLY" ? TIME_ONLY_WEIGHT : 1;
   const byMargin = par - Math.min(15, (r.margin ?? ((r.finishPosition ?? 6) - 1) * 1.2) * POINTS_PER_LENGTH * MARGIN_WEIGHT);
+  const own = OWN_CLOCK_BLEND > 0 || OWN_CLOCK_ALONE > 0 ? ownClock(r) : undefined;
   const raw = r.benchmark
-    ? Math.max(par + r.benchmark.vsClass * clockPoints(r.distance) * trust, byMargin - CLOCK_FLOOR * POINTS_PER_LENGTH)
-    : byMargin;
+    ? Math.max(par + (own !== undefined ? (1 - OWN_CLOCK_BLEND) * r.benchmark.vsClass + OWN_CLOCK_BLEND * own : r.benchmark.vsClass) * clockPoints(r.distance) * trust, byMargin - CLOCK_FLOOR * POINTS_PER_LENGTH)
+    : own !== undefined && OWN_CLOCK_ALONE > 0
+      ? par + own * clockPoints(r.distance) * OWN_CLOCK_ALONE
+      : byMargin;
   return clamp(raw, par - 25, par + (juvenile ? 8 : 15));
 }
 
