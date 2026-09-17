@@ -170,3 +170,48 @@ export async function memberViews(userId: string, limit = 40): Promise<ViewRow[]
   const { data } = await supabaseAdmin().from("events").select("id, user_id, created_at, meta").eq("kind", "page_view").eq("user_id", userId).order("created_at", { ascending: false }).limit(limit);
   return (data ?? []) as ViewRow[];
 }
+
+export interface LivePage {
+  path: string;
+  label: string;
+  people: { id: string; email: string | null; ago: number }[];
+}
+
+/** A path as a person would say it. */
+function pageLabel(path: string): string {
+  if (path === "/") return "Home";
+  const race = path.match(/^\/racing\/\d{4}-\d{2}-\d{2}\/([a-z0-9-]+)-\d{8}\/[A-Z]+_\d+_(\d+)/);
+  if (race) return `${race[1].split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")} R${race[2]}`;
+  const tipster = path.match(/^\/t\/(.+)$/);
+  if (tipster) return `Tipster ${tipster[1]}`;
+  return AREA_LABEL[areaOf(path).area] === "Other" ? path : `${AREA_LABEL[areaOf(path).area]}${path.split("/").length > 2 ? ` · ${path.split("/").slice(2).join("/")}` : ""}`;
+}
+
+/**
+ * Who is on the site right now: everyone with a page view in the last few
+ * minutes, on the page they were last seen on. A member by email, a visitor
+ * by cookie.
+ */
+export async function liveNow(minutes = 5): Promise<{ pages: LivePage[]; people: number }> {
+  const since = new Date(Date.now() - minutes * 60_000).toISOString();
+  const db = supabaseAdmin();
+  const { data: rows } = await db.from("events").select("id, user_id, created_at, meta").eq("kind", "page_view").gte("created_at", since).order("created_at", { ascending: false }).limit(2000);
+  const views = (rows ?? []) as ViewRow[];
+  const ids = [...new Set(views.map((v) => v.user_id).filter((u): u is string => Boolean(u)))];
+  const { data: profiles } = ids.length ? await db.from("profiles").select("id, email").in("id", ids) : { data: [] };
+  const email = new Map(((profiles ?? []) as { id: string; email: string | null }[]).map((p) => [p.id, p.email]));
+  // Newest first, so the first view seen for a person is where they are now.
+  const seen = new Set<string>();
+  const byPath = new Map<string, LivePage>();
+  const now = Date.now();
+  for (const v of views) {
+    const id = who(v);
+    if (id === "?" || seen.has(id)) continue;
+    seen.add(id);
+    const path = v.meta?.path ?? "/";
+    const page = byPath.get(path) ?? { path, label: pageLabel(path), people: [] };
+    page.people.push({ id, email: id.startsWith("v:") ? null : (email.get(id) ?? null), ago: Math.round((now - new Date(v.created_at).getTime()) / 1000) });
+    byPath.set(path, page);
+  }
+  return { pages: [...byPath.values()].sort((a, b) => b.people.length - a.people.length), people: seen.size };
+}

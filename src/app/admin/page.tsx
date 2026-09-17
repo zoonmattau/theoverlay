@@ -12,6 +12,8 @@ import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
 import { todayFacts } from "@/lib/today";
+import { LiveNow } from "@/components/LiveNow";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
@@ -124,6 +126,8 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
         </Panel>
       </div>
 
+      <LiveRefresh seconds={30} />
+      <LiveNow />
       <ActivityFeed events={events} members={members} filter={activity} base="/admin" />
     </>
   );

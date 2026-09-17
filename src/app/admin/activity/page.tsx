@@ -6,6 +6,8 @@ import { Suspense } from "react";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { type Area, activityReport, AREA_LABEL } from "@/lib/activity";
+import { LiveNow } from "@/components/LiveNow";
+import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
 
@@ -61,6 +63,8 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
         </div>
       </section>
 
+      <LiveRefresh seconds={30} />
+      <LiveNow />
       {r.views === 0 ? (
         <div className="card text-sm text-ink-soft">Nothing recorded yet. Views start counting from the next deploy; give it a day.</div>
       ) : (
