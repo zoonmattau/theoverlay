@@ -16,6 +16,8 @@ import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type St
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
+import { betwatchConfigured } from "@/lib/betwatch/client";
+import { pollPrices, racesToPrice, readPriceBook, type PriceBook } from "@/lib/betwatch/prices";
 import { recordTips } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace } from "./types";
 
@@ -239,7 +241,7 @@ export async function getCard(date: string, preview = false): Promise<Card> {
 }
 
 /** Builds the card from Form King (or fixtures) and, with a store, saves it. */
-export async function buildCard(date: string, opts: { revalidate?: boolean } = {}): Promise<{ card: StoredCard; seconds: number }> {
+export async function buildCard(date: string, opts: { revalidate?: boolean; reprice?: boolean } = {}): Promise<{ card: StoredCard; seconds: number }> {
   const started = Date.now();
   // Calls already on the stored card carry over while they keep half their edge.
   const kept: KeptSignals = new Map();
@@ -258,8 +260,8 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     }
   }
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
-  // Every runner joins the horse store, so the compare and fantasy pages know it.
-  if (storeConfigured() && usingLiveData()) {
+  // Every runner joins the horse store, so the compare and fantasy pages know it. A price refresh skips it: nothing about the horses moved.
+  if (storeConfigured() && usingLiveData() && !opts.reprice) {
     for (const { meeting, races } of raw) {
       try {
         await rememberHorses(meeting, races);
@@ -311,6 +313,73 @@ export async function buildCard(date: string, opts: { revalidate?: boolean } = {
     }
   }
   return { card, seconds };
+}
+
+/**
+ * A race's entries priced from the BetWatch book when it has looked since
+ * Form King did: the best bookmaker price and who holds it, the average,
+ * and the exchange's back and lay. Open and move stay Form King's, which
+ * has watched since the market opened. A scratching BetWatch knows first
+ * counts too.
+ */
+function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
+  const live = book.races[race.raceId];
+  if (!live) return race;
+  const at = Date.parse(live.at);
+  const entries = race.entries.map((e): RaceEntry => {
+    const p = live.runners[String(e.number)];
+    if (!p) return e;
+    if (e.odds?.timestamp && Number(e.odds.timestamp) > at) return e;
+    const best = p.best ?? e.odds?.bestNow;
+    if (!best) return { ...e, scratched: e.scratched || Boolean(p.scratched) };
+    return {
+      ...e,
+      scratched: e.scratched || Boolean(p.scratched),
+      odds: {
+        avgOpen: e.odds?.avgOpen ?? 0,
+        firmOrDrift: e.odds?.firmOrDrift ?? 0,
+        ...e.odds,
+        bestNow: best,
+        bestBookies: p.best ? (p.bookies ?? []) : (e.odds?.bestBookies ?? []),
+        avgNow: p.avg ?? e.odds?.avgNow ?? best,
+        timestamp: at,
+        exchange: p.lay || p.back ? { back: p.back, backSize: p.backSize, lay: p.lay, laySize: p.laySize, matched: p.matched } : undefined,
+        source: p.best ? "betwatch" : "formking",
+      },
+    };
+  });
+  return { ...race, entries };
+}
+
+/**
+ * Call from a page after reading a card: when a race is inside the price
+ * window BetWatch is asked for its prices after the response has gone out,
+ * and when any moved the card is rebuilt on them. The cron does the same
+ * every minute; this keeps the board moving between its calls.
+ */
+export function keepPrices(date: string, card: Card): void {
+  if (!storeConfigured() || !usingLiveData() || !betwatchConfigured()) return;
+  if (date !== racingToday() || racesToPrice(card.meetings).length === 0) return;
+  after(() => refreshPrices(date, card));
+}
+
+/** One poll of BetWatch and, when it brought new prices, one rebuild on them. */
+export async function refreshPrices(date: string, card?: { meetings: PublishedMeeting[] }): Promise<{ refreshed: number; rebuilt: boolean }> {
+  const meetings = card?.meetings ?? (await readStoredCard(date))?.card.meetings ?? [];
+  let refreshed = 0;
+  try {
+    refreshed = await pollPrices(date, meetings);
+  } catch (err) {
+    console.error("[betwatch] poll failed", err);
+  }
+  if (refreshed === 0 || !(await claimRefresh(date))) return { refreshed, rebuilt: false };
+  try {
+    await buildCard(date, { reprice: true });
+    return { refreshed, rebuilt: true };
+  } catch (err) {
+    console.error("[card] reprice failed", err);
+    return { refreshed, rebuilt: false };
+  }
 }
 
 /**
@@ -379,6 +448,11 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
       return forms.map((f) => mergeLive(f, live?.races?.find((x) => x.raceId === f.raceId)));
     }),
   );
+  // BetWatch's prices, wherever they are fresher than Form King's.
+  if (storeConfigured() && betwatchConfigured()) {
+    const book = await readPriceBook(date);
+    for (const races of loaded) for (let i = 0; i < races.length; i++) races[i] = withLivePrices(races[i], book);
+  }
   const out: FixtureMeeting[] = [];
   for (const [i, lite] of wanted.entries()) {
     const races: RaceSummary[] = loaded[i];

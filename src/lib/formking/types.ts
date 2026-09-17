@@ -156,6 +156,10 @@ export interface RaceEntryOdds {
   /** Percentage-point change in implied chance since open, negative is a drift. */
   firmOrDrift: number;
   timestamp: Millis;
+  /** The exchange, from BetWatch when it is fresher than Form King: best back and lay on offer and the money at each. */
+  exchange?: { back?: number; backSize?: number; lay?: number; laySize?: number; matched?: number };
+  /** Where the best price came from: BetWatch's live feed, else Form King's. */
+  source?: "betwatch" | "formking";
 }
 
 export interface RaceEntryRatings {

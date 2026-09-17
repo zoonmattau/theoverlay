@@ -83,6 +83,8 @@ export interface RateInput {
   rating?: number;
   /** How much that rating can be trusted, 0-1; 1 when absent. */
   trust?: number;
+  /** The exchange's best lay on offer now, when BetWatch has it; a lay is struck here instead of the estimate. */
+  layQuote?: number;
   /** Best available market price at publish time. */
   marketPrice?: number;
   scratched?: boolean;
@@ -166,7 +168,7 @@ export function rateRace(
     const edge =
       r.marketPrice !== undefined ? round4(probability - 1 / r.marketPrice) : undefined;
     const fair = marketProbs[i];
-    const layPrice = fair !== undefined && fair > 0 ? roundPrice(LAY_OVER_FAIR / fair) : undefined;
+    const layPrice = r.layQuote && r.layQuote > 1 ? r.layQuote : fair !== undefined && fair > 0 ? roundPrice(LAY_OVER_FAIR / fair) : undefined;
     const layEdge = layPrice !== undefined ? round4(probability - 1 / layPrice) : undefined;
     // The form alone, before the market had a say.
     const modelPrice = r.rating === undefined ? undefined : roundPrice(modelTotal / modelProbs[i]);

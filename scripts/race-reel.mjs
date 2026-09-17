@@ -56,7 +56,7 @@ if (await r2.count()) {
   await r2.scrollIntoViewIfNeeded(); await r2.click(); await still.waitForTimeout(1000);
   const y = await r2.evaluate((el) => el.getBoundingClientRect().top + window.scrollY - 12);
   await shot("4-lay-runner", y);
-  await shot("5-runs", y + 900);
+  await shot("5-runs", y + 560);
 }
 await shot("6-what-to-watch", await at("What to watch"));
 await browser.close();

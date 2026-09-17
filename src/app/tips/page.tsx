@@ -19,7 +19,7 @@ import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
-import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
+import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
 import { callPrice } from "@/lib/model/types";
 
@@ -80,6 +80,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const card = await getCardFor(typeof sp.date === "string" ? sp.date : undefined, viewer.admin);
   const { date, meetings, selections, released } = card;
   keepFresh(date, card);
+  keepPrices(date, card);
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   const [mine, ledger] = await Promise.all([myBets(viewer.id, date), ledgerFor(date)]);

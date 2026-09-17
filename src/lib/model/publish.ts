@@ -97,6 +97,7 @@ export function publishRace(
         // No runs means no opinion: the market, which has seen the trials, is our number.
         rating: r && r.runs > 0 ? r.today : undefined,
         trust: r?.trust,
+        layQuote: e.odds?.exchange?.lay,
         marketPrice: e.odds?.bestNow,
         scratched: e.scratched,
       };
@@ -183,6 +184,9 @@ export function publishRace(
       marketAt: e.odds?.timestamp ? new Date(e.odds.timestamp).toISOString() : undefined,
       edge: p?.edge,
       layPrice: p?.layPrice,
+      laySize: e.odds?.exchange?.lay ? e.odds.exchange.laySize : undefined,
+      exchangeBack: e.odds?.exchange?.back,
+      priceSource: e.odds?.source,
       layEdge: p?.layEdge,
       rank: rank >= 0 ? rank + 1 : null,
       signal,

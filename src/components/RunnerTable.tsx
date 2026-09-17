@@ -54,7 +54,7 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
               {!locked && <th className="text-right">Rated</th>}
               {!locked && <th className="hide-sm text-right">Win</th>}
               {!locked && <th className="text-right tip tip-right cursor-help" data-tip="Our chance less the chance the best bookmaker price implies, in points. A bet needs +2.5 or more.">Back edge</th>}
-              {!locked && <th className="hide-sm text-right tip tip-right cursor-help" data-tip="The exchange price a lay would be struck at, and our chance less the chance it implies. A lay needs −6 or more, at $12 or under.">Lay at</th>}
+              {!locked && <th className="hide-sm text-right tip tip-right cursor-help" data-tip="Betfair's best lay on offer now, and our chance less the chance it implies. A lay needs −6 or more, at $12 or under.">Lay at</th>}
             </tr>
           </thead>
           <tbody>

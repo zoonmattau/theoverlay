@@ -26,7 +26,7 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 import { NextToGo } from "@/components/NextToGo";
 import { RaceNav } from "@/components/RaceNav";
 import { groupOf } from "@/components/RaceMatrix";
-import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
+import { getRaceCard, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 import { DatahubStrip } from "@/components/DatahubStrip";
@@ -86,6 +86,7 @@ async function Race({ params }: { params: Props["params"] }) {
   if (!card) notFound();
   const { meeting, race, meetings, selections, free } = card;
   keepFresh(date, card.card);
+  keepPrices(date, card.card);
   const released = card.card.released || viewer.admin;
   const idx = meeting.races.findIndex((r) => r.raceId === raceId);
   const raceHref = (r: { raceId: string } | undefined) => (r ? `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(r.raceId)}` : undefined);

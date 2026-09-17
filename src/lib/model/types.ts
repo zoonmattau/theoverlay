@@ -176,6 +176,12 @@ export interface PublishedRunner {
   layPrice?: number;
   /** Our chance against the lay price; a lay is called on this. */
   layEdge?: number;
+  /** Money waiting at the lay price on the exchange, when the lay price is the exchange's own. */
+  laySize?: number;
+  /** The exchange's best back on offer. */
+  exchangeBack?: number;
+  /** Where the prices came from: BetWatch's live feed, else Form King's. */
+  priceSource?: "betwatch" | "formking";
   /** Best market price we saw at publish time. */
   marketPrice?: number;
   /** Form King's codes for the bookmakers holding that price. */

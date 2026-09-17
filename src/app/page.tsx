@@ -17,7 +17,7 @@ import { bannerReview } from "@/lib/reviews";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
-import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
+import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { jumpTime, longDate } from "@/lib/format";
 import { BRAND_SOCIAL } from "@/lib/social";
 
@@ -158,6 +158,7 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
   const previewing = viewer.admin && !card.released;
   const released = card.released || viewer.admin;
   keepFresh(date, card);
+  keepPrices(date, card);
   // The tipsters this viewer follows, and which races each has called today.
   const tipsters = (await followedCalls(viewer, date)).map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }));
   const access = hasAccess(viewer, date);
