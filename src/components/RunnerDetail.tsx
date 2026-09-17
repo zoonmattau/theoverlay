@@ -12,7 +12,7 @@ const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 1
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
 /** Faster than the class benchmark reads lime, slower red, within half a length plain. */
 const bench = (v: number) => (v >= 0.5 ? "text-accent font-semibold" : v <= -0.5 ? "text-red font-semibold" : "");
-const benchTip = (v: number, what: string) => (Math.abs(v) < 0.05 ? `Ran ${what} right on the class benchmark.` : `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "length" : "lengths"} ${v > 0 ? "faster" : "slower"} than the class benchmark over ${what}.`);
+const benchTip = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}L v benchmark`;
 
 /** 93.14 as 1:33.14, under a minute as 58.20. */
 const clockTime = (s: number) => (s >= 60 ? `${Math.floor(s / 60)}:${(s % 60).toFixed(2).padStart(5, "0")}` : s.toFixed(2));
@@ -43,12 +43,23 @@ const SECTION_WHAT: Record<string, string> = {
   Late: "the last 600m, what it has left when the race is on",
 };
 
-function SectionalBar({ label, value, avg }: { label: string; value: number; avg: number }) {
+/** The runs a sectional rating is built on, one line each: the section is class plus each counted run's lengths at what a length was worth over that trip. */
+function sectionLines(runs: PublishedRun[], cls: number, pick: (run: PublishedRun) => number | undefined, points: (run: PublishedRun) => number | undefined): string {
+  const used = runs.filter((run) => run.counted && pick(run) !== undefined && points(run) !== undefined);
+  if (used.length === 0) return `\nNo sectionals in its last ${Math.min(5, runs.length)} runs, so it sits at its class rating of ${cls.toFixed(1)}.`;
+  const signed = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}L`;
+  const pts = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
+  const lines = used.map((run) => `${day(run.date)} ${run.track ?? ""} ${run.distance}m${run.finish ? `, ${ord(run.finish)}` : ""}: ${signed(pick(run)!)} v benchmark, worth ${pts(points(run)!)} read for the trip`);
+  const mean = used.reduce((a, run) => a + points(run)!, 0) / used.length;
+  return `\nClass ${cls.toFixed(1)} plus the average over ${used.length} of its last ${Math.min(5, runs.length)} runs, ${pts(mean)}:\n${lines.join("\n")}`;
+}
+
+function SectionalBar({ label, value, avg, runs, cls, pick, points }: { label: string; value: number; avg: number; runs: PublishedRun[]; cls: number; pick: (run: PublishedRun) => number | undefined; points: (run: PublishedRun) => number | undefined }) {
   const diff = value - avg;
   const pct = Math.min(100, Math.max(0, 50 + diff * 5));
   const verdict =
     diff >= 2 ? "well above this field" : diff >= 0.5 ? "a little above this field" : diff <= -2 ? "well below this field" : diff <= -0.5 ? "a little below this field" : "about the field average";
-  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${value.toFixed(1)} against a field average of ${avg.toFixed(1)}, so ${verdict}.`;
+  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${value.toFixed(1)} against a field average of ${avg.toFixed(1)}, so ${verdict}.${sectionLines(runs, cls, pick, points)}`;
   return (
     <div className="sec-row tip" data-tip={tip}>
       <span className="sec-label">{label}</span>
@@ -106,8 +117,19 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
     tempo: race.pace.tempo === "even" ? "An even tempo is expected, which favours nobody." : `A ${race.pace.tempo} tempo is expected. Its runs at that tempo rate ${(race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow).toFixed(1)}, class ${g.class.toFixed(1)}.`,
     fresh: freshWhy(),
     barrier: `Barrier ${r.barrier}, ${ord(race.runners.filter((x) => !x.scratched && x.barrier < r.barrier).length + 1)} from the rail of ${race.runners.filter((x) => !x.scratched).length} once scratchings are out, for a runner that ${MAP_LABEL[g.map].toLowerCase()}, over ${race.distance}m. ${g.map === "leader" || g.map === "on pace" ? "A wide gate means working early to hold a spot; an inside one saves that." : "Back in the field the draw matters less, though a very wide gate costs cover and a rail draw in a big field can mean being held up."}`,
+    sections: race.pace.tempo === "fast" ? `A fast tempo is expected, so its late sectional under pressure counts: ${g.pressure.toFixed(1)}, class ${g.class.toFixed(1)}, ${gap(g.pressure - g.class)}.` : race.pace.tempo === "slow" ? `A slow tempo is expected, so its early speed counts: ${g.early.toFixed(1)}, class ${g.class.toFixed(1)}, ${gap(g.early - g.class)}.` : `An even tempo is expected, so its whole sectional profile counts: ${((g.early + g.mid + g.late) / 3).toFixed(1)}, class ${g.class.toFixed(1)}, ${gap((g.early + g.mid + g.late) / 3 - g.class)}.`,
+    shape: shapeWhy(),
     market: "Form King's own view of this runner against the rest of the field.",
   };
+  function shapeWhy(): string {
+    const front = g.map === "leader" || g.map === "on pace";
+    const where = front ? "settles on the speed" : "settles off the speed";
+    const lead = race.pace.leaderGap === undefined ? "" : race.pace.leaderGap < 1 ? " The lead is contested, the two best beginners within a point of each other, which costs the horses on the speed." : race.pace.leaderGap >= 3 && g.map === "leader" ? " It is the lone speed, three points clear on early sectionals, and gets the lead to itself." : "";
+    const closes = `It closes ${gap(g.late - avg.late)} the field's average`;
+    if (race.pace.tempo === "even") return `An even tempo is expected, so where it settles is no edge either way.${front ? lead : ""}`;
+    if (race.pace.tempo === "slow") return front ? `A slow tempo is expected and it ${where}: an easy time up front, hard to run down.${lead}` : `A slow tempo is expected and it ${where}: it has to make its own ground. ${closes}, and the better it closes the more a crawl costs it.`;
+    return front ? `A fast tempo is expected and it ${where}: it gets tested up front, unless its record under pressure says it holds on.${lead}` : `A fast tempo is expected and it ${where}: the leaders come back to it. ${closes}, and the better it closes the more a hot race gives it.`;
+  }
   function weightWhy(): string {
     const v = g.factors.weight ?? 0;
     const today = r.weight;
@@ -216,8 +238,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
                     )}
                   </td>
                   <td>{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
-                  <td>{x.time ? <span className={x.vsBench !== undefined ? `tip cursor-help ${bench(x.vsBench)}` : ""} data-tip={x.vsBench !== undefined ? benchTip(x.vsBench, "the race") : undefined}>{clockTime(x.time)}</span> : "—"}</td>
-                  <td>{x.last600 ? <span className={x.vsBench600 !== undefined ? `tip cursor-help ${bench(x.vsBench600)}` : ""} data-tip={x.vsBench600 !== undefined ? benchTip(x.vsBench600, "the last 600") : undefined}>{x.last600.toFixed(2)}</span> : "—"}</td>
+                  <td>{x.time ? <span className={x.vsBench !== undefined ? `tip cursor-help ${bench(x.vsBench)}` : ""} data-tip={x.vsBench !== undefined ? benchTip(x.vsBench) : undefined}>{clockTime(x.time)}</span> : "—"}</td>
+                  <td>{x.last600 ? <span className={x.vsBench600 !== undefined ? `tip cursor-help ${bench(x.vsBench600)}` : ""} data-tip={x.vsBench600 !== undefined ? benchTip(x.vsBench600) : undefined}>{x.last600.toFixed(2)}</span> : "—"}</td>
                   <td>{x.weight ?? "—"}</td>
                   <td>{x.sp ? price(x.sp) : "—"}</td>
                   <td>{x.map ?? "—"}</td>
@@ -244,9 +266,9 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
       <div className="runner-detail-col">
         <h4>Sectionals against the field</h4>
         <div className="sec-bars">
-          <SectionalBar label="Early" value={g.early} avg={avg.early} />
-          <SectionalBar label="Mid" value={g.mid} avg={avg.mid} />
-          <SectionalBar label="Late" value={g.late} avg={avg.late} />
+          <SectionalBar label="Early" value={g.early} avg={avg.early} runs={runs} cls={g.class} pick={(run) => run.early} points={(run) => run.earlyPts} />
+          <SectionalBar label="Mid" value={g.mid} avg={avg.mid} runs={runs} cls={g.class} pick={(run) => run.mid} points={(run) => run.midPts} />
+          <SectionalBar label="Late" value={g.late} avg={avg.late} runs={runs} cls={g.class} pick={(run) => run.late} points={(run) => run.latePts} />
         </div>
         <div className="cond-tiles">
           {tile(`${race.going} track`, g.going[race.going], `Its record on ${race.going} ground`)}

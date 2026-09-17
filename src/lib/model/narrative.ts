@@ -157,11 +157,17 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
 
   // Class move from the last start.
   const lastClass = classNumber(last?.className);
-  if (lastClass !== undefined) {
-    const move = lastClass - race.classPoints;
+  const todayClass = classNumber(race.className);
+  if (lastClass !== undefined && todayClass !== undefined) {
+    const move = lastClass - todayClass;
     if (move >= 6) out.push({ weight: 4, tone: 1, text: pick(r, [`drops in class from a ${last!.className}`, `comes back in grade from a ${last!.className}`, `eases in class off a ${last!.className}`]) });
     else if (move <= -6) out.push({ weight: 3, tone: -1, text: pick(r, [`steps up in class from a ${last!.className}`, `rises in grade off a ${last!.className}`]) });
   }
+
+  // The fight for the lead.
+  const front = g.map === "leader" || g.map === "on pace";
+  if (front && race.pace.leaderGap !== undefined && race.pace.leaderGap < 1) out.push({ weight: 4, tone: -1, text: "has company for the lead, the two best beginners are within a point" });
+  else if (g.map === "leader" && race.pace.leaderGap !== undefined && race.pace.leaderGap >= 3) out.push({ weight: 4, tone: 1, text: "is the lone speed, three points clear on early sectionals" });
 
   // Last start.
   if (last?.finish === 1) out.push({ weight: 3, tone: 1, text: pick(r, ["won last start", "comes off a win", "is a last-start winner"]) });
@@ -190,7 +196,6 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   }
 
   // The draw, said with where it settles; the points come from the barrier factor.
-  const front = g.map === "leader" || g.map === "on pace";
   const draw = g.factors.barrier ?? 0;
   if (draw >= 0.5) out.push({ weight: 2, tone: 1, text: `${pick(r, ["draws to get the run of the race", "has the inside draw to hold its spot"])}, ${pts(draw)} up` });
   else if (draw <= -0.5) out.push({ weight: 2, tone: -1, text: `${front ? "has to work early from the wide gate" : field >= 12 && r.barrier <= 2 ? "risks being held up from the inside gate" : "goes back from the wide draw"}, ${pts(draw)} off` });

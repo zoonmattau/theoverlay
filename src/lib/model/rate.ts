@@ -17,7 +17,7 @@
  * a live card (scripts/calibrate.ts) so the model's spread matches the
  * market's; 8 points is roughly 2.7x the odds.
  */
-const DEFAULT_TEMPERATURE = 8;
+const DEFAULT_TEMPERATURE = Number(process.env.OVERLAY_TEMPERATURE ?? 8);
 
 /**
  * How much we trust the market over the model, 0-1.

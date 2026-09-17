@@ -3,7 +3,7 @@ import "server-only";
 import { getHorse } from "@/lib/formking/client";
 import type { PastEvent, SectionKey } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { POINTS_PER_LENGTH, TEMPO_LENGTHS } from "./ratings";
+import { clockPoints, TEMPO_LENGTHS } from "./ratings";
 import { readStoredCard, type StoredCard } from "./store";
 import type { PublishedMeeting, PublishedRace, PublishedRunner, Tempo } from "./types";
 import { settle } from "@/lib/tips";
@@ -537,7 +537,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
           const key = `${race.raceId}:${runner.tabNumber}`;
           const run = byRunner.get(key)?.run;
           const placing = race.placings?.find((p) => p.tabNumber === runner.tabNumber);
-          const ranTo = run?.vsClass !== undefined ? round1(par + run.vsClass * POINTS_PER_LENGTH) : undefined;
+          const ranTo = run?.vsClass !== undefined ? round1(par + run.vsClass * clockPoints(race.distance)) : undefined;
           const early = firstSection(run);
           const late = lastSection(run);
           return {

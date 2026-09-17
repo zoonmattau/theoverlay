@@ -25,6 +25,8 @@ export type Factor =
   | "jockey"
   | "trainer"
   | "barrier"
+  | "sections"
+  | "shape"
   | "market";
 
 export const FACTOR_LABEL: Record<Factor, string> = {
@@ -37,6 +39,8 @@ export const FACTOR_LABEL: Record<Factor, string> = {
   jockey: "Jockey",
   trainer: "Trainer",
   barrier: "Barrier",
+  sections: "Sectionals",
+  shape: "Shape",
   market: "Field",
 };
 
@@ -102,6 +106,16 @@ export interface PublishedRun {
   vsBench600?: number;
   /** What the run was worth on our scale. */
   points: number;
+  /** Lengths faster (+) or slower (-) than the class benchmark in the first section, the middle of the race and the last 600, when the run has sectionals. */
+  early?: number;
+  mid?: number;
+  late?: number;
+  /** What each of those was worth in points once read for the trip, the way the ratings count it. */
+  earlyPts?: number;
+  midPts?: number;
+  latePts?: number;
+  /** One of the runs the ratings are built on: the last five. */
+  counted?: boolean;
   /** Identifies the race, so runs can be matched across today's field. */
   raceKey?: string;
   /** Form King's ids, so the run can link to that race's page when we hold a card for the day. */
@@ -203,6 +217,8 @@ export interface RacePace {
   tempo: Tempo;
   /** 0-1, how much early speed is in the race. */
   pressure: number;
+  /** Points between the two best early sectional ratings in the field: under 1 is a contested lead, 3 and over a lone leader. */
+  leaderGap?: number;
 }
 
 export interface PublishedRace {

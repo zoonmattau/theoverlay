@@ -11,7 +11,7 @@
  * deliberately, and check it against api-terms first.
  */
 
-import type { MeetingSummary, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
+import type { MeetingSummary, PastEvent, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import type {
   HorseProfile,
   PublishedMeeting,
@@ -22,7 +22,7 @@ import type {
   SelectionTag,
   Signal,
 } from "./types";
-import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, runPoints, verdict } from "./ratings";
+import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace } from "./rate";
 
@@ -108,6 +108,9 @@ export function publishRace(
   const signalByTab = new Map(
     priced.runners.map((p) => {
       const held = kept.get(`${race.raceId}:${p.key}`);
+      // No runs means no opinion, and no opinion is never a call, held or new:
+      // its price is the market's, moved only by the field normalising around it.
+      if ((ratedByTab.get(p.key)?.ratings.runs ?? 0) === 0) return [p.key, undefined];
       return [p.key, jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held)];
     }),
   );
@@ -174,7 +177,7 @@ export function publishRace(
       signal,
       finishPosition: e.horseResult ? e.horseResult.finishPosition : undefined,
       horse: profileOf(e),
-      runs: runsOf(e, points, race.date),
+      runs: runsOf(e, points, race.distance, race.date),
     };
   });
 
@@ -218,7 +221,8 @@ export function publishRace(
     name: race.name,
     distance: race.distance,
     className: classLabel(race.restrictions, points),
-    classPoints: points,
+    // The par on the page sits on the ratings' scale, so a runner reads against it.
+    classPoints: toFeedScale(points),
     going,
     goingText: goingLabel(race.going, race.goingNumber),
     jumpTime,
@@ -344,14 +348,24 @@ function profileOf(e: RaceEntry): HorseProfile {
   };
 }
 
+/** The run's early, mid and late lengths against class, the same split the ratings use. */
+function sectionsOf(p: PastEvent, today: number): { early?: number; mid?: number; late?: number; earlyPts?: number; midPts?: number; latePts?: number } {
+  if (!p.benchmark) return {};
+  const s = splitOf(p.benchmark);
+  const pts = sectionPoints(s, p.distance, today);
+  const r = (v?: number) => (v === undefined ? undefined : Math.round(v * 10) / 10);
+  return { early: r(s.early), mid: r(s.mid), late: r(s.late), earlyPts: r(pts.early), midPts: r(pts.mid), latePts: r(pts.late) };
+}
+
 /** The last ten starts, most recent first, plus our points for each. */
-function runsOf(e: RaceEntry, todayPar: number, asOf?: number): PublishedRun[] {
+function runsOf(e: RaceEntry, todayPar: number, todayDistance: number, asOf?: number): PublishedRun[] {
   return (e.pastEvents ?? [])
     .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
     .sort((a, b) => b.date - a.date)
     .slice(0, 10)
-    .map((p) => ({
+    .map((p, i) => ({
       date: new Date(p.date).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }),
+      counted: i < RUN_WEIGHTS.length,
       track: p.track,
       distance: p.distance,
       going: goingLabel(p.going),
@@ -366,6 +380,7 @@ function runsOf(e: RaceEntry, todayPar: number, asOf?: number): PublishedRun[] {
       last600: p.sectionalTimeInMillis && p.sectionalDistance === 600 ? Math.round(p.sectionalTimeInMillis / 10) / 100 : undefined,
       vsBench: p.benchmark ? Math.round(p.benchmark.vsClass * 10) / 10 : undefined,
       vsBench600: p.benchmark?.sections?.["6-F"]?.vsClass !== undefined ? Math.round(p.benchmark.sections["6-F"]!.vsClass * 10) / 10 : undefined,
+      ...sectionsOf(p, todayDistance),
       points: Math.round(runPoints(p, todayPar, e.horse.age, asOf) * 10) / 10,
       raceKey: p.raceId ?? `${new Date(p.date).toISOString().slice(0, 10)}:${p.track ?? ""}:${p.raceNumber}`,
       raceId: p.raceId,
