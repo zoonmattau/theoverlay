@@ -53,8 +53,8 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
               <th className="text-right">Live</th>
               {!locked && <th className="text-right">Rated</th>}
               {!locked && <th className="hide-sm text-right">Win</th>}
-              {!locked && <th className="text-right">Edge</th>}
-              {!locked && <th className="hide-sm text-right tip tip-right cursor-help" data-tip="The exchange price a lay is struck at, and our chance against it: the more negative, the better the lay.">Lay</th>}
+              {!locked && <th className="text-right tip tip-right cursor-help" data-tip="Our chance against the market's, in points. Positive is a back edge against the best bookmaker price; negative is a lay edge against the exchange price, the one a lay is struck at.">Edge</th>}
+              {!locked && <th className="hide-sm text-right tip tip-right cursor-help" data-tip="The exchange price a lay would be struck at: the fair price plus the exchange's margin.">Lay at</th>}
             </tr>
           </thead>
           <tbody>
@@ -96,20 +96,11 @@ export function RunnerTable({ race, locked, people }: { race: PublishedRace; loc
                     {!locked && (
                       <td className="text-right nums">
                         <span className={r.prime ? "text-accent font-semibold" : r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
-                          {signedPercent(r.edge)}
+                          {signedPercent((r.edge ?? 0) >= 0 ? r.edge : (r.layEdge ?? r.edge))}
                         </span>
                       </td>
                     )}
-                    {!locked && (
-                      <td className="hide-sm text-right nums whitespace-nowrap">
-                        {r.layPrice ? (
-                          <>
-                            <span className="text-ink-secondary">{price(r.layPrice)}</span>{" "}
-                            <span className={r.signal === "lay" ? "text-red font-semibold" : (r.layEdge ?? 0) <= -0.06 ? "text-red" : "text-muted"}>{signedPercent(r.layEdge)}</span>
-                          </>
-                        ) : "—"}
-                      </td>
-                    )}
+                    {!locked && <td className="hide-sm text-right nums text-ink-secondary">{r.layPrice ? price(r.layPrice) : "—"}</td>}
                   </tr>
                   {isOpen && !locked && (
                     <tr className="runner-detail-row">
