@@ -4,6 +4,7 @@ import { cacheLife } from "next/cache";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { DISTANCE_BANDS, PERIODS, type HubFilter } from "./filters";
 import { personKey } from "./people";
+import { readSnapshot, writeSnapshot } from "./snapshot";
 export type { HubFilter } from "./filters";
 export { PERIODS } from "./filters";
 
@@ -96,8 +97,11 @@ const rawSums = (rows: Record<string, unknown>[]) => {
   return t;
 };
 async function calibration(): Promise<Calibration> {
-  "use cache";
-  cacheLife("hours");
+  const snap = await readSnapshot<Calibration>("calibration");
+  if (snap) return snap;
+  return calibrationLive();
+}
+async function calibrationLive(): Promise<Calibration> {
   const t = rawSums(await rpcAll("hub_people", { p_kind: "jockey" }));
   return { bsp: t.eb > 0 ? t.wb / t.eb : 1, sp: t.es > 0 ? t.ws / t.es : 1 };
 }
@@ -135,8 +139,23 @@ const person = (r: Record<string, unknown>, c: Calibration): Person => {
 export async function hubPeople(kind: "jockey" | "trainer", filter: HubFilter = {}): Promise<Person[]> {
   "use cache";
   cacheLife("hours");
+  if (!Object.values(filter).some((v) => (Array.isArray(v) ? v.length : v))) {
+    const snap = await readSnapshot<Person[]>(`people:${kind}`);
+    if (snap) return snap;
+  }
+  return peopleLive(kind, filter);
+}
+
+async function peopleLive(kind: "jockey" | "trainer", filter: HubFilter): Promise<Person[]> {
   const [rows, c] = await Promise.all([rpcAll("hub_people", { p_kind: kind, ...rpcFilter(filter) }), calibration()]);
   return rows.map((r) => person(r, c)).sort((a, b) => b.power - a.power || b.wins - a.wins);
+}
+
+/** Written by the card cron: the all-time rankings and the standard times, the answers a race page needs. */
+export async function writeHubSnapshots(): Promise<void> {
+  await writeSnapshot("calibration", await calibrationLive());
+  const [jockeys, trainers, tracks] = await Promise.all([peopleLive("jockey", {}), peopleLive("trainer", {}), trackDistancesRaw()]);
+  await Promise.all([writeSnapshot("people:jockey", jockeys), writeSnapshot("people:trainer", trainers), writeSnapshot("track-distances", tracks)]);
 }
 
 export interface Combo {
@@ -335,7 +354,7 @@ async function trackDistancesRaw(): Promise<TrackDistance[]> {
 export async function hubTrackDistances(): Promise<TrackDistance[]> {
   "use cache";
   cacheLife("hours");
-  return trackDistancesRaw();
+  return (await readSnapshot<TrackDistance[]>("track-distances")) ?? trackDistancesRaw();
 }
 
 export interface Track {

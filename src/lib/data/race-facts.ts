@@ -55,29 +55,18 @@ export interface PersonPower {
   wins: number;
   rank: number;
   of: number;
-  here?: { power: number; rides: number; wins: number };
 }
 
 const brief = (p: Person, i: number, of: number): PersonPower => ({ key: p.key, power: p.power, rides: p.rides, wins: p.wins, rank: i + 1, of });
 
-/** Power for every jockey and trainer in a race, all time and at the track, keyed by person key. */
-export async function racePeople(trackName: string, names: { jockeys: (string | undefined)[]; trainers: (string | undefined)[] }): Promise<Record<string, PersonPower>> {
-  const tracks = await hubTracks();
-  const t = tracks.find((x) => norm(x.track) === norm(trackName));
-  const [jockeys, trainers, jockeysHere, trainersHere] = await Promise.all([
-    hubPeople("jockey"), hubPeople("trainer"),
-    t ? hubPeople("jockey", { tracks: [t.track] }) : Promise.resolve([] as Person[]),
-    t ? hubPeople("trainer", { tracks: [t.track] }) : Promise.resolve([] as Person[]),
-  ]);
+/** Power for every jockey and trainer in a race, keyed by person key, from the daily snapshot. */
+export async function racePeople(names: { jockeys: (string | undefined)[]; trainers: (string | undefined)[] }): Promise<Record<string, PersonPower>> {
+  const [jockeys, trainers] = await Promise.all([hubPeople("jockey"), hubPeople("trainer")]);
   const out: Record<string, PersonPower> = {};
-  const add = (list: Person[], here: Person[], wanted: Set<string>) => {
-    list.forEach((p, i) => {
-      if (!wanted.has(p.key)) return;
-      const h = here.find((x) => x.key === p.key);
-      out[p.key] = { ...brief(p, i, list.length), here: h && h.rides >= 5 ? { power: h.power, rides: h.rides, wins: h.wins } : undefined };
-    });
+  const add = (list: Person[], wanted: Set<string>) => {
+    list.forEach((p, i) => { if (wanted.has(p.key)) out[p.key] = brief(p, i, list.length); });
   };
-  add(jockeys, jockeysHere, new Set(names.jockeys.map(personKey).filter((k): k is string => Boolean(k))));
-  add(trainers, trainersHere, new Set(names.trainers.map(personKey).filter((k): k is string => Boolean(k))));
+  add(jockeys, new Set(names.jockeys.map(personKey).filter((k): k is string => Boolean(k))));
+  add(trainers, new Set(names.trainers.map(personKey).filter((k): k is string => Boolean(k))));
   return out;
 }

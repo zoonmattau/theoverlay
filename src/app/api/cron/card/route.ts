@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { postCalls, postResults, syncDiscordMembers } from "@/lib/discord";
 import { buildCard, racingToday } from "@/lib/model/source";
 import { readStoredCard } from "@/lib/model/store";
+import { writeHubSnapshots } from "@/lib/data/hub";
 
 export const maxDuration = 300;
 
@@ -40,8 +41,9 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ date, error: message }, { status: 500 });
   }
   const { card, seconds } = built;
-  // Raw feed responses older than three days are no use to anyone.
-  await supabaseAdmin().from("fk_cache").delete().lt("at", new Date(Date.now() - 3 * 86400_000).toISOString());
+  // Raw feed responses are kept 45 days: the form behind each card is what a
+  // backtest needs to re-run a changed model over that day (scripts/harvest-cache.ts).
+  await supabaseAdmin().from("fk_cache").delete().lt("at", new Date(Date.now() - 45 * 86400_000).toISOString());
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   if (races === 0 && date === today) {
     for (const to of admins) await sendEmail(to, EMAILS.cronFailed(date, "The build finished but found no races."));
@@ -59,6 +61,8 @@ export async function GET(request: NextRequest) {
     const done = await readStoredCard(today);
     if (done) await postResults(today, done.card);
   }
+  // The Datahub's snapshots for the race pages: the rankings and the standard times, once a day is enough.
+  try { await writeHubSnapshots(); } catch (err) { console.error("[cron] hub snapshots", err); }
   return NextResponse.json({ date, meetings: card.meetings.length, races, selections: card.selections.length, seconds, mail, discord });
 }
 

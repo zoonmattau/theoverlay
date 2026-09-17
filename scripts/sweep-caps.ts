@@ -12,7 +12,15 @@ import { classPoints } from "../src/lib/model/ratings";
 const races = readdirSync(".formking-cache")
   .filter((f) => f.startsWith("race-"))
   .map((f) => JSON.parse(readFileSync(`.formking-cache/${f}`, "utf8")).data as RaceSummary)
-  .filter((r) => r.entries.some((e) => e.horseResult) && r.entries.some((e) => e.odds));
+  .filter((r) => r.entries.some((e) => e.horseResult) && r.entries.some((e) => e.odds))
+  // OVERLAY_SWEEP_DAYS=midweek keeps only days other than Saturday; =saturday the reverse; a yyyy-mm-dd prefix keeps that period.
+  .filter((r) => {
+    const want = process.env.OVERLAY_SWEEP_DAYS;
+    if (!want) return true;
+    const d = new Date(Number(r.date) + 10 * 3600_000);
+    const sat = d.getUTCDay() === 6;
+    return want === "midweek" ? !sat : want === "saturday" ? sat : d.toISOString().startsWith(want);
+  });
 
 interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
 const rows: Row[] = [];
@@ -50,7 +58,7 @@ const lays = rows.filter((x) => x.conf >= 0.35 && x.layEdge <= LAY && x.layPrice
 const betU = bets.reduce((a, x) => a + (x.won ? x.market - 1 : -1), 0);
 // A lay settles at the exchange price, less 5% commission on a win.
 const layU = lays.reduce((a, x) => a + (x.won ? -(x.layPrice - 1) : 0.95), 0);
-const tag = `own ${process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0}/${process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0} trust ${process.env.OVERLAY_NO_TRUST_CEILING ?? 0.8}/${process.env.OVERLAY_TRUST_FLOOR ?? 0} lay ${LAY} say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
+const tag = `${process.env.OVERLAY_SWEEP_DAYS ?? "all"} own ${process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0}/${process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0} trust ${process.env.OVERLAY_NO_TRUST_CEILING ?? 0.8}/${process.env.OVERLAY_TRUST_FLOOR ?? 0} lay ${LAY} say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
 console.log(
   `${tag}: logloss form ${ll(rows, (x) => x.form).toFixed(4)} rated ${ll(rows, (x) => x.rated).toFixed(4)} market ${ll(rows, (x) => x.fair).toFixed(4)} | ${favN} races, fav won ${favWon}, form top won ${formTopWon}, fav ranked 4th+ ${favRankLow}, lay races ${layRaces}` +
   `\n   fav: ${calib(rows.filter((x) => x.fav))}\n   form top: ${calib(rows.filter((x) => x.formTop))}\n   slow-run: ${calib(rows.filter((x) => x.slow))}\n   class drop: ${calib(rows.filter((x) => x.classDrop))}\n   ohr 8+ over par: ${calib(rows.filter((x) => x.ohrAbove))}` +

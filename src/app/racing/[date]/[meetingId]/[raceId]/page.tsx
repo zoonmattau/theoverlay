@@ -31,6 +31,7 @@ import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 import { DatahubStrip } from "@/components/DatahubStrip";
 import { racePeople, raceFacts } from "@/lib/data/race-facts";
+import type { GoingBand } from "@/lib/model/types";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
 
@@ -92,12 +93,9 @@ async function Race({ params }: { params: Props["params"] }) {
   const nextHref = raceHref(meeting.races[idx + 1]);
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
-  // The Datahub's read of the track and trip, and every jockey's and trainer's standing, for members.
-  const [followed, facts, people] = await Promise.all([
-    followedCalls(viewer, date),
-    open ? raceFacts(meeting.track, race.distance, race.going).catch(() => undefined) : Promise.resolve(undefined),
-    open ? racePeople(meeting.track, { jockeys: race.runners.map((r) => r.jockey), trainers: race.runners.map((r) => r.trainer) }).catch(() => ({})) : Promise.resolve({}),
-  ]);
+  const followed = await followedCalls(viewer, date);
+  // The Datahub's standing of every jockey and trainer here, for members: not awaited, the runner table resolves it as it streams.
+  const people = open ? racePeople({ jockeys: race.runners.map((r) => r.jockey), trainers: race.runners.map((r) => r.trainer) }).catch(() => ({})) : undefined;
   const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
   const initialsFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => f.tipster.name.trim()[0]?.toUpperCase() ?? "?").join("");
 
@@ -227,10 +225,10 @@ async function Race({ params }: { params: Props["params"] }) {
             )}
           </div>
         </div>
-        {open && facts && (
-          <div className="border-t border-line-soft px-4 py-2">
-            <DatahubStrip f={facts} />
-          </div>
+        {open && (
+          <Suspense fallback={null}>
+            <DatahubLine track={meeting.track} distance={race.distance} going={race.going} />
+          </Suspense>
         )}
       </header>
 
@@ -287,7 +285,7 @@ async function Race({ params }: { params: Props["params"] }) {
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
-      <RunnerTable race={race} locked={!open} people={open ? people : undefined} />
+      <RunnerTable race={race} locked={!open} people={people} />
 
       {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} />}
     </div>
@@ -301,6 +299,17 @@ function RaceSkeleton() {
       <div className="skeleton h-64" />
       <div className="skeleton h-40" />
       <div className="skeleton h-96" />
+    </div>
+  );
+}
+
+/** The Datahub's line under the header, streamed in after the page so it never holds the race up. */
+async function DatahubLine({ track, distance, going }: { track: string; distance: number; going: GoingBand }) {
+  const facts = await raceFacts(track, distance, going).catch(() => undefined);
+  if (!facts) return null;
+  return (
+    <div className="border-t border-line-soft px-4 py-2">
+      <DatahubStrip f={facts} />
     </div>
   );
 }

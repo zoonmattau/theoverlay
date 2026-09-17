@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Fragment } from "react";
+import { Fragment, Suspense, use } from "react";
 
 import { BookieLink } from "./BookieLink";
 import { Factors } from "./Factors";
@@ -101,20 +101,28 @@ function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
   );
 }
 
-/** A jockey's or trainer's Power from the Datahub, all time and at this track, under their name. */
-function Standing({ p, what }: { p?: PersonPower; what: string }) {
+/** A jockey's or trainer's Power from the Datahub under their name, resolved as the standings stream in. */
+function Standing({ people, name, what }: { people?: Promise<Record<string, PersonPower>>; name?: string; what: string }) {
+  if (!people || !name) return null;
+  return (
+    <Suspense fallback={null}>
+      <StandingLine people={people} name={name} what={what} />
+    </Suspense>
+  );
+}
+function StandingLine({ people, name, what }: { people: Promise<Record<string, PersonPower>>; name: string; what: string }) {
+  const p = use(people)[personKey(name) ?? ""];
   if (!p) return null;
-  const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}`;
+  const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "\u2212" : ""}${Math.abs(v).toFixed(1)}`;
   const tone = (v: number) => (v > 0.5 ? "text-accent" : v < -0.5 ? "text-red" : "text-ink-soft");
   return (
-    <span className="block text-xs nums tip cursor-help" data-tip={`Power: winners over what the market expected per hundred ${what}, all time on the form we hold; ranked ${p.rank} of ${p.of}.${p.here ? ` At this track ${p.here.wins} from ${p.here.rides}.` : ""}`}>
+    <span className="block text-xs nums tip cursor-help" data-tip={`Power: winners over what the market expected per hundred ${what}, all time on the form we hold; ranked ${p.rank} of ${p.of}.`}>
       <span className={tone(p.power)}>Power {signed(p.power)}</span> <span className="text-ink-soft">#{p.rank}</span>
-      {p.here && <span className={`ml-1.5 ${tone(p.here.power)}`}>here {signed(p.here.power)} <span className="text-ink-soft">({p.here.rides})</span></span>}
     </span>
   );
 }
 
-export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: PublishedRace; people?: Record<string, PersonPower> }) {
+export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: PublishedRace; people?: Promise<Record<string, PersonPower>> }) {
   const h = r.horse;
   const runs = r.runs ?? [];
   const avg = fieldAverage(race);
@@ -203,8 +211,8 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
         <dl className="detail-list">
           <div><dt>Profile</dt><dd>{[h?.age ? `${h.age}yo` : null, h?.sex ? SEX[h.sex] ?? h.sex : null].filter(Boolean).join(" ") || "—"}</dd></div>
           <div><dt>Breeding</dt><dd>{h?.sire ? `${h.sire} × ${h.dam ?? "?"}` : "—"}</dd></div>
-          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}{fx("trainer")}<Standing p={people?.[personKey(r.trainer) ?? ""]} what="runners" /></dd></div>
-          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}<Standing p={people?.[personKey(r.jockey) ?? ""]} what="rides" /></dd></div>
+          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}{fx("trainer")}<Standing people={people} name={r.trainer} what="runners" /></dd></div>
+          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}<Standing people={people} name={r.jockey} what="rides" /></dd></div>
           <div><dt>Barrier</dt><dd className="nums">{r.barrier}{fx("barrier")}</dd></div>
           <div><dt>Weight</dt><dd className="nums">{r.weight ?? "—"}kg{fx("weight")}</dd></div>
           <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}<span className="factor is-base nums ml-1.5" title={`Class rating from its runs, the base every factor moves. Today ${g.today.toFixed(1)}.`}>{g.class.toFixed(1)}</span></dd></div>

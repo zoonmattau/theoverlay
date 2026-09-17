@@ -16,7 +16,7 @@ import type { PublishedRace } from "@/lib/model/types";
  * back or lay alert where the gap is big enough to act on. Click a runner for
  * the horse, its last runs, what to expect and our call.
  */
-export function RunnerTable({ race, locked, people }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Record<string, PersonPower> }) {
+export function RunnerTable({ race, locked, people }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Promise<Record<string, PersonPower>> }) {
   const runners = race.runners.filter((r) => !r.scratched);
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
