@@ -272,12 +272,12 @@ const ordinal = (n: number) => (n === 0 ? "last" : `${n}${n % 100 >= 11 && n % 1
  * on Discord get it without the tipster posting twice. A call edited
  * before the jump posts again as an update.
  */
-export async function postTipsterCall(tipster: { name: string; code: string }, tip: { track: string; race_number: number; tab_number: number; horse_name: string; side: "back" | "lay"; price: number; comment: string | null; bookie: string | null }, opts: { date: string; meetingId: string; raceId: string; jumpTime?: string; update?: boolean }): Promise<void> {
+export async function postTipsterCall(tipster: { name: string; code: string }, tip: { track: string; race_number: number; tab_number: number; horse_name: string; side: "back" | "lay"; price: number; bookie_price?: number | null; comment: string | null; bookie: string | null }, opts: { date: string; meetingId: string; raceId: string; jumpTime?: string; update?: boolean }): Promise<void> {
   if (!discordConfigured()) return;
   try {
     const square = tip.side === "lay" ? "🟥" : "🟦";
     const side = tip.side === "lay" ? "Lay" : "Bet";
-    const head = `${square} **${tipster.name}**${opts.update ? " (updated)" : ""}: ${tip.track} R${tip.race_number} ${clock(opts.jumpTime)}  **${tip.tab_number}. ${tip.horse_name}**  ${side} ${price(tip.price)}${tip.bookie ? ` at ${tip.bookie}` : ""}`;
+    const head = `${square} **${tipster.name}**${opts.update ? " (updated)" : ""}: ${tip.track} R${tip.race_number} ${clock(opts.jumpTime)}  **${tip.tab_number}. ${tip.horse_name}**  ${side} ${price(tip.bookie_price && tip.bookie_price > 1 ? tip.bookie_price : tip.price)}${tip.bookie ? ` at ${tip.bookie}` : ""}`;
     const body = [head, ...(tip.comment ? [`> ${tip.comment}`] : []), `${SITE}/t/${tipster.code}`];
     await send(CHANNELS.tipsters, body.join("\n"));
   } catch (err) {

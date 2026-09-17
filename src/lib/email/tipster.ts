@@ -2,7 +2,7 @@ import "server-only";
 
 import { logEvent } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { followerIds, priceFlagged, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
+import { followerIds, priceFlagged, struckAt, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { longDate, price } from "@/lib/format";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
@@ -24,7 +24,7 @@ export function tipsterTable(tips: CreatorTip[]): string {
       const where = t.bookie || t.bookie_price ? `<span style="color:#6b716a"> ${t.bookie_price ? price(Number(t.bookie_price)) : ""}${t.bookie ? ` at ${esc(t.bookie)}` : ""}</span>` : "";
       const flag = priceFlagged(t) ? ` <span style="color:#c47d0a;font-size:12px">(over the market price we saw)</span>` : "";
       const why = t.comment ? `<div style="margin-top:3px;font:400 13px ${FONT};color:#454a44">${esc(t.comment)}</div>` : "";
-      return `<tr>${cell(`<a href="${url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(t.track)} R${t.race_number}</a>`)}${cell(`<strong>${t.tab_number}. ${esc(t.horse_name)}</strong>${why}`)}${cell(`<strong style="color:${colour}">${price(Number(t.price))}</strong>${where}${flag}`, "white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
+      return `<tr>${cell(`<a href="${url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(t.track)} R${t.race_number}</a>`)}${cell(`<strong>${t.tab_number}. ${esc(t.horse_name)}</strong>${why}`)}${cell(`<strong style="color:${colour}">${price(struckAt(t))}</strong>${where}${flag}`, "white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
     })
     .join("");
   const head = (s: string, extra = "") => `<th style="padding:0 6px 6px;text-align:left;font:700 11px ${FONT};color:#8b918a;text-transform:uppercase;letter-spacing:.06em;${extra}">${s}</th>`;
@@ -36,7 +36,7 @@ function newTipsEmail(tipster: Tipster, tips: CreatorTip[], userId: string): Ema
   const n = tips.length;
   return {
     subject: `${tipster.name}: ${n} new ${n === 1 ? "tip" : "tips"} for ${longDate(date)}`,
-    preheader: tips.map((t) => `${t.horse_name} ${price(Number(t.price))}`).join(", "),
+    preheader: tips.map((t) => `${t.horse_name} ${price(struckAt(t))}`).join(", "),
     heading: `${tipster.name} just posted.`,
     paragraphs: [
       `${n === 1 ? "One new call" : `${n} new calls`} for ${longDate(date)}, at the price ${tipster.name} says is on offer.`,

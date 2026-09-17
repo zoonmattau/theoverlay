@@ -129,8 +129,8 @@ export function TipsterMatrix({ meetings, date, action, late }: { meetings: Matr
             <label className="field"><span>Call</span>
               <select name="side" className="field-input" id={`side-${race.r.raceId}`}><option value="back">Bet</option><option value="lay">Lay</option></select>
             </label>
-            <label className="field"><span>Your price</span><input name="price" id={`price-${race.r.raceId}`} type="number" step="0.01" min="1.01" required placeholder="4.50" className="field-input w-28" /></label>
-            <label className="field"><span>Bookie price</span><input name="bookiePrice" id={`bookieprice-${race.r.raceId}`} type="number" step="0.01" min="1.01" placeholder="4.20" className="field-input w-28" /></label>
+            <label className="field"><span>Your rated price</span><input name="price" id={`price-${race.r.raceId}`} type="number" step="0.01" min="1.01" required placeholder="4.50" className="field-input w-28" /></label>
+            <label className="field"><span>Price you took</span><input name="bookiePrice" id={`bookieprice-${race.r.raceId}`} type="number" step="0.01" min="1.01" placeholder="4.20" className="field-input w-28" /></label>
             <label className="field"><span>Bookie</span><input name="bookie" id={`bookie-${race.r.raceId}`} maxLength={40} className="field-input w-36" placeholder="Sportsbet" /></label>
             <label className="field sm:col-span-4"><span>Why, one or two sentences</span><input name="comment" id={`why-${race.r.raceId}`} maxLength={280} className="field-input w-full" placeholder="Maps to lead on a track that favours leaders, and drops back in class." /></label>
             <button className="btn btn-primary btn-sm" type="submit">Post</button>

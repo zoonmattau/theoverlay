@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Jumps } from "./Countdown";
 import { Outcome } from "./SelectionCard";
 import { SocialLinks } from "./SocialLinks";
-import { priceFlagged, type CreatorTip, type Tipster, type TipsterRecord } from "@/lib/creators";
+import { priceFlagged, type CreatorTip, type Tipster, type TipsterRecord, struckAt } from "@/lib/creators";
 import { getViewer } from "@/lib/auth";
 import { jumpTime, price } from "@/lib/format";
 import { getCard } from "@/lib/model/source";
@@ -59,7 +59,7 @@ export async function TipsterTips({ tipster, tips, record, date, compact }: { ti
                 {!t.settled_at && jumps.get(t.race_id) && (
                   <span className="badge badge-muted nums"><Jumps iso={jumps.get(t.race_id)} clock={jumpTime(jumps.get(t.race_id))} /></span>
                 )}
-                <span className="nums text-sm">{price(Number(t.price))}{t.bookie || t.bookie_price ? <span className="text-ink-soft"> {t.bookie_price ? price(Number(t.bookie_price)) : ""}{t.bookie ? ` at ${t.bookie}` : ""}</span> : null}</span>
+                <span className="nums text-sm">{price(struckAt(t))}{t.bookie ? <span className="text-ink-soft"> at {t.bookie}</span> : null}{t.bookie_price && Number(t.bookie_price) !== Number(t.price) ? <span className="text-ink-soft" title="The tipster's own price for the horse"> · rates {price(Number(t.price))}</span> : null}</span>
                 {priceFlagged(t) && <span className="badge badge-warn" title={`Best price we saw when posted was ${price(Number(t.market_at_post))}`}>over market</span>}
                 <span className="ml-auto flex items-center gap-2">
                   {t.settled_at && <span className="nums text-sm font-semibold">{units(Number(t.units))}</span>}

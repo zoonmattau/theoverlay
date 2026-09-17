@@ -117,6 +117,9 @@ export async function tipsterCallCounts(date: string): Promise<Map<string, numbe
   return out;
 }
 
+/** The price a call is struck at, and settles at: the bookmaker price the tipster took where they gave one, else the price they quoted. */
+export const struckAt = (t: { price: number; bookie_price?: number | null }) => (t.bookie_price && Number(t.bookie_price) > 1 ? Number(t.bookie_price) : Number(t.price));
+
 /** More than a fifth above the best price we could see when posted. */
 export const OVER_MARKET = 0.2;
 export const priceFlagged = (t: { price: number; market_at_post: number | null }) => Boolean(t.market_at_post && Number(t.price) > Number(t.market_at_post) * (1 + OVER_MARKET));
@@ -150,10 +153,10 @@ export async function tipsterRecord(affiliateId: string): Promise<TipsterRecord>
 /** Settles every tipster's calls for a date from the card's results. Called after each card build. */
 export async function settleCreatorTips(date: string, card: StoredCard): Promise<void> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("creator_tips").select("id, race_id, tab_number, side, price").eq("date", date).is("settled_at", null);
+  const { data, error } = await db.from("creator_tips").select("id, race_id, tab_number, side, price, bookie_price").eq("date", date).is("settled_at", null);
   if (error || !data?.length) return;
   const races = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
-  for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number }[]) {
+  for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number; bookie_price: number | null }[]) {
     const r = races.get(t.race_id);
     if (!r?.result?.length) continue;
     const x = r.runners.find((y) => y.tabNumber === t.tab_number);
@@ -161,7 +164,7 @@ export async function settleCreatorTips(date: string, card: StoredCard): Promise
     const finish = x.finishPosition ?? 0;
     await db
       .from("creator_tips")
-      .update({ finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === t.tab_number)?.sp ?? null, units: settle(t.side, Number(t.price), finish), settled_at: new Date().toISOString() })
+      .update({ finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === t.tab_number)?.sp ?? null, units: settle(t.side, struckAt(t), finish), settled_at: new Date().toISOString() })
       .eq("id", t.id);
   }
 }
