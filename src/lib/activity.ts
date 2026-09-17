@@ -66,15 +66,17 @@ export interface ActivityReport {
   byDay: { day: string; views: number; people: number }[];
   topRaces: { key: string; date: string; meetingId: string; raceId: string; views: number; people: number }[];
   topTipsters: { code: string; views: number; people: number }[];
-  /** The most active people: members by email, visitors by id. */
-  people: { id: string; email: string | null; views: number; last: string; areas: string; races: number }[];
+  /** The people behind the count: members by email, visitors by id and where they came from. Every one of them when a cut is asked for, else the forty most active. */
+  people: { id: string; email: string | null; from: string | null; views: number; last: string; areas: string; races: number }[];
+  /** The cut the people list is for, if any. */
+  cut?: { area?: Area; day?: string };
   follows: { follower: string; followerId: string; tipster: string; tipsterCode?: string; since: string }[];
   referrers: { host: string; views: number }[];
 }
 
 const who = (v: ViewRow) => v.user_id ?? (v.meta?.vid ? `v:${v.meta.vid}` : "?");
 
-export async function activityReport(days = 7): Promise<ActivityReport> {
+export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}): Promise<ActivityReport> {
   const db = supabaseAdmin();
   const since = new Date(Date.now() - days * 86400_000).toISOString();
   const [{ data: rows }, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
@@ -115,12 +117,18 @@ export async function activityReport(days = 7): Promise<ActivityReport> {
   const topTipsters = tally((v) => v.meta?.code).slice(0, 10).map((x) => ({ code: tipsterByCode.get(x.key) ?? x.key, views: x.views, people: x.people }));
   const referrers = tally((v) => v.meta?.referrer).slice(0, 10).map((x) => ({ host: x.key, views: x.views }));
 
-  const perPerson = new Map<string, { views: number; last: string; areas: Map<string, number>; races: Set<string> }>();
+  // The people list: everyone who viewed the cut asked for (an area, a day), else everyone, forty most active shown.
+  const inCut = (v: ViewRow) => (!cut.area || v.meta?.area === cut.area) && (!cut.day || new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) === cut.day);
+  const cutIds = new Set(views.filter(inCut).map(who));
+  const perPerson = new Map<string, { views: number; last: string; first: string; from: string | null; areas: Map<string, number>; races: Set<string> }>();
   for (const v of views) {
     const id = who(v);
-    const e = perPerson.get(id) ?? { views: 0, last: v.created_at, areas: new Map(), races: new Set() };
+    if (!cutIds.has(id)) continue;
+    const e = perPerson.get(id) ?? { views: 0, last: v.created_at, first: v.created_at, from: null, areas: new Map(), races: new Set() };
     e.views++;
     if (v.created_at > e.last) e.last = v.created_at;
+    // Where they came from: the referrer on their earliest view in the window.
+    if (v.created_at <= e.first) { e.first = v.created_at; e.from = v.meta?.referrer ?? e.from; }
     const a = v.meta?.area ?? "other";
     e.areas.set(a, (e.areas.get(a) ?? 0) + 1);
     if (v.meta?.raceId) e.races.add(v.meta.raceId);
@@ -130,16 +138,18 @@ export async function activityReport(days = 7): Promise<ActivityReport> {
     .map(([id, e]) => ({
       id,
       email: id.startsWith("v:") ? null : (email.get(id) ?? null),
+      from: e.from,
       views: e.views,
       last: e.last,
       areas: [...e.areas.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4).map(([a, n]) => `${AREA_LABEL[a as Area] ?? a} ${n}`).join(", "),
       races: e.races.size,
     }))
     .sort((a, b) => b.views - a.views)
-    .slice(0, 40);
+    .slice(0, cut.area || cut.day ? 1000 : 40);
 
   return {
     days,
+    cut: cut.area || cut.day ? cut : undefined,
     views: views.length,
     members: new Set(views.filter((v) => v.user_id).map((v) => v.user_id)).size,
     visitors: new Set(views.filter((v) => !v.user_id && v.meta?.vid).map((v) => v.meta!.vid)).size,
