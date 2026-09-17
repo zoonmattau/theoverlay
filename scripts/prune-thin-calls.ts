@@ -22,7 +22,7 @@ async function prune(date: string) {
     for (const r of m.races) {
       for (const x of r.runners) {
         if (!x.signal || x.edge === undefined) continue;
-        const thin = x.signal === "back" ? x.edge < MIN_EDGE : x.edge > LAY_EDGE;
+        const thin = x.signal === "back" ? x.edge < MIN_EDGE : (x.layEdge ?? x.edge) > LAY_EDGE;
         if (!thin) continue;
         console.log(` ${date} ${m.track} R${r.raceNumber} ${x.signal} ${x.horseName}, ${(x.edge * 100).toFixed(1)} points`);
         keys.add(`${r.raceId}:${x.tabNumber}`);

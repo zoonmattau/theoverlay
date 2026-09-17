@@ -21,6 +21,7 @@ import { followedCalls, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
+import { callPrice } from "@/lib/model/types";
 
 export const metadata: Metadata = {
   title: "Today's tips",
@@ -93,9 +94,10 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
           .filter((x) => x.signal && !x.scratched)
           .map((x) => {
             const row = ledger.get(`${r.raceId}:${x.tabNumber}`);
-            const at = row?.price ?? x.marketPrice;
+            const struck = callPrice(x) ?? x.marketPrice;
+            const at = row?.price ?? struck;
             const b = mine.get(`${r.raceId}:${x.tabNumber}`);
-            const my = b ? profit(x.signal!, b.price ?? x.marketPrice, r.result ? x.finishPosition : undefined) : undefined;
+            const my = b ? profit(x.signal!, b.price ?? struck, r.result ? x.finishPosition : undefined) : undefined;
             return {
               meeting: m,
               raceId: r.raceId,
@@ -296,9 +298,9 @@ function CallTable({
                   </td>
                   <td className="text-right">
                     <MarketHover r={c.runner} className="market-right">
-                      <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : c.runner.marketPrice)}</span>
+                      <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : callPrice(c.runner) ?? c.runner.marketPrice)}</span>
                     </MarketHover>
-                    <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />
+                    {side === "lay" ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
                   </td>
                   <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
                   <td className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>

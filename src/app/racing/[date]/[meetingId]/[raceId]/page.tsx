@@ -29,6 +29,8 @@ import { groupOf } from "@/components/RaceMatrix";
 import { getRaceCard, keepFresh, RELEASE_HOUR } from "@/lib/model/source";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
+import { DatahubStrip } from "@/components/DatahubStrip";
+import { racePeople, raceFacts } from "@/lib/data/race-facts";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
 
@@ -90,7 +92,12 @@ async function Race({ params }: { params: Props["params"] }) {
   const nextHref = raceHref(meeting.races[idx + 1]);
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
-  const followed = await followedCalls(viewer, date);
+  // The Datahub's read of the track and trip, and every jockey's and trainer's standing, for members.
+  const [followed, facts, people] = await Promise.all([
+    followedCalls(viewer, date),
+    open ? raceFacts(meeting.track, race.distance, race.going).catch(() => undefined) : Promise.resolve(undefined),
+    open ? racePeople(meeting.track, { jockeys: race.runners.map((r) => r.jockey), trainers: race.runners.map((r) => r.trainer) }).catch(() => ({})) : Promise.resolve({}),
+  ]);
   const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
   const initialsFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => f.tipster.name.trim()[0]?.toUpperCase() ?? "?").join("");
 
@@ -220,6 +227,11 @@ async function Race({ params }: { params: Props["params"] }) {
             )}
           </div>
         </div>
+        {open && facts && (
+          <div className="border-t border-line-soft px-4 py-2">
+            <DatahubStrip f={facts} />
+          </div>
+        )}
       </header>
 
       <Results race={race} />
@@ -275,7 +287,7 @@ async function Race({ params }: { params: Props["params"] }) {
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
-      <RunnerTable race={race} locked={!open} />
+      <RunnerTable race={race} locked={!open} people={open ? people : undefined} />
 
       {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} />}
     </div>

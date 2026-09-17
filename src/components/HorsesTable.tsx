@@ -54,7 +54,7 @@ export function HorsesTable({ rows, chosen, total, query, canPick }: { rows: Hor
   const router = useRouter();
   const hrefFor = (id: string) => {
     const p = new URLSearchParams({ ...query, h: [...chosen.filter((x) => x !== id), id].join(",") });
-    return `/horses?${p}`;
+    return `/data/horses?${p}`;
   };
   const [q, setQ] = useState("");
   const [state, setState] = useState("all");

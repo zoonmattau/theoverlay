@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Fragment } from "react";
 
 import { BookieLink } from "./BookieLink";
@@ -5,6 +6,8 @@ import { Factors } from "./Factors";
 import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
 import { MAP_LABEL } from "./Ratings";
+import { personKey } from "@/lib/data/people";
+import type { PersonPower } from "@/lib/data/race-facts";
 import { callLine, finishFit, observations, settles, tempoFit, type Tone } from "@/lib/model/narrative";
 import type { PublishedRace, PublishedRun, PublishedRunner } from "@/lib/model/types";
 
@@ -98,7 +101,20 @@ function Met({ run, race }: { run: PublishedRun; race: PublishedRace }) {
   );
 }
 
-export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedRace }) {
+/** A jockey's or trainer's Power from the Datahub, all time and at this track, under their name. */
+function Standing({ p, what }: { p?: PersonPower; what: string }) {
+  if (!p) return null;
+  const signed = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}`;
+  const tone = (v: number) => (v > 0.5 ? "text-accent" : v < -0.5 ? "text-red" : "text-ink-soft");
+  return (
+    <span className="block text-xs nums tip cursor-help" data-tip={`Power: winners over what the market expected per hundred ${what}, all time on the form we hold; ranked ${p.rank} of ${p.of}.${p.here ? ` At this track ${p.here.wins} from ${p.here.rides}.` : ""}`}>
+      <span className={tone(p.power)}>Power {signed(p.power)}</span> <span className="text-ink-soft">#{p.rank}</span>
+      {p.here && <span className={`ml-1.5 ${tone(p.here.power)}`}>here {signed(p.here.power)} <span className="text-ink-soft">({p.here.rides})</span></span>}
+    </span>
+  );
+}
+
+export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: PublishedRace; people?: Record<string, PersonPower> }) {
   const h = r.horse;
   const runs = r.runs ?? [];
   const avg = fieldAverage(race);
@@ -154,10 +170,21 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
     if (v < 0) return stage >= 6 && !rec ? `${lead} Deep into a campaign with nothing in its past to say it holds its form this far in, so it may be past its best for now.` : `${lead} It has not gone well at this stage before, its past runs ${stageName} rate below its class, so it may need the run or be past its peak.${rec}`;
     return `${lead} Its past runs at this stage are in line with its class, so it is neither here nor there.${rec}`;
   }
+  // A chip that opens the Datahub lands on this jockey, trainer, track or trip in its ranking.
+  const hub: Partial<Record<keyof typeof g.factors, string | undefined>> = {
+    jockey: personKey(r.jockey) ? `/data/jockeys/${encodeURIComponent(personKey(r.jockey)!)}` : undefined,
+    trainer: personKey(r.trainer) ? `/data/trainers/${encodeURIComponent(personKey(r.trainer)!)}` : undefined,
+    // The meeting id is the track's slug, "illawarra-grange-20260917"; the hub matches it on letters alone.
+    track: `/data/tracks/${encodeURIComponent(race.meetingId.replace(/-\d{8}$/, ""))}`,
+    distance: `/data/distances/${race.distance}`,
+  };
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;
     const cls = !v ? "" : v > 0 ? "is-up" : "is-down";
-    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={why[key]}>{v > 0 ? "+" : ""}{v.toFixed(1)}</span>;
+    const text = `${v > 0 ? "+" : ""}${v.toFixed(1)}`;
+    const href = hub[key];
+    if (href) return <Link href={href} className={`factor nums ml-1.5 tip cursor-pointer ${cls}`} data-tip={`${why[key]} Click for the profile.`}>{text}</Link>;
+    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={why[key]}>{text}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
     const gap = value - g.class;
@@ -176,8 +203,8 @@ export function RunnerDetail({ r, race }: { r: PublishedRunner; race: PublishedR
         <dl className="detail-list">
           <div><dt>Profile</dt><dd>{[h?.age ? `${h.age}yo` : null, h?.sex ? SEX[h.sex] ?? h.sex : null].filter(Boolean).join(" ") || "—"}</dd></div>
           <div><dt>Breeding</dt><dd>{h?.sire ? `${h.sire} × ${h.dam ?? "?"}` : "—"}</dd></div>
-          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}{fx("trainer")}</dd></div>
-          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}</dd></div>
+          <div><dt>Trainer</dt><dd>{r.trainer ?? "—"}{fx("trainer")}<Standing p={people?.[personKey(r.trainer) ?? ""]} what="runners" /></dd></div>
+          <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}<Standing p={people?.[personKey(r.jockey) ?? ""]} what="rides" /></dd></div>
           <div><dt>Barrier</dt><dd className="nums">{r.barrier}{fx("barrier")}</dd></div>
           <div><dt>Weight</dt><dd className="nums">{r.weight ?? "—"}kg{fx("weight")}</dd></div>
           <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}<span className="factor is-base nums ml-1.5" title={`Class rating from its runs, the base every factor moves. Today ${g.today.toFixed(1)}.`}>{g.class.toFixed(1)}</span></dd></div>

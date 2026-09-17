@@ -105,6 +105,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               <Link href="/method" className="hover:text-ink-secondary">How it works</Link>
               <Link href="/faq" className="hover:text-ink-secondary">Questions</Link>
               <Link href="/tipsters" className="hover:text-ink-secondary">Tipsters</Link>
+              <Link href="/data" className="hover:text-ink-secondary">Datahub</Link>
               <Link href="/responsible-gambling" className="hover:text-ink-secondary">
                 Responsible gambling
               </Link>

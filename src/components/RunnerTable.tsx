@@ -6,6 +6,7 @@ import { BookieLink } from "./BookieLink";
 import { MarketHover } from "./MarketHover";
 import { SignalBadge } from "./Ratings";
 import { RunnerDetail } from "./RunnerDetail";
+import type { PersonPower } from "@/lib/data/race-facts";
 import { Section } from "./Section";
 import { percent, price, signedPercent } from "@/lib/format";
 import type { PublishedRace } from "@/lib/model/types";
@@ -15,7 +16,7 @@ import type { PublishedRace } from "@/lib/model/types";
  * back or lay alert where the gap is big enough to act on. Click a runner for
  * the horse, its last runs, what to expect and our call.
  */
-export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: boolean }) {
+export function RunnerTable({ race, locked, people }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Record<string, PersonPower> }) {
   const runners = race.runners.filter((r) => !r.scratched);
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
@@ -102,7 +103,7 @@ export function RunnerTable({ race, locked }: { race: PublishedRace; locked?: bo
                   {isOpen && !locked && (
                     <tr className="runner-detail-row">
                       <td colSpan={cols}>
-                        <RunnerDetail r={r} race={race} />
+                        <RunnerDetail r={r} race={race} people={people} />
                       </td>
                     </tr>
                   )}

@@ -60,6 +60,13 @@ const SHORT_WEIGHT = Number(process.env.OVERLAY_SHORT_WEIGHT ?? 0.8);
 const FL_POWER = Number(process.env.OVERLAY_FL_POWER ?? 1);
 const SHORT_FROM = 0.25;
 const SHORT_TO = 0.5;
+/**
+ * A lay is struck on the exchange, not at a bookmaker's best quote, and the
+ * exchange price sits above it: over 76 settled lays the Betfair SP ran 12%
+ * over the best bookmaker price and 4% over the de-vigged fair price. So a
+ * lay's price is the fair price plus this, and its edge is read against it.
+ */
+const LAY_OVER_FAIR = Number(process.env.OVERLAY_LAY_OVER_FAIR ?? 1.04);
 
 export interface RateInput {
   key: string;
@@ -79,6 +86,10 @@ export interface RateOutput {
   marketPrice?: number;
   /** Our win chance minus the market's implied chance, in probability points. */
   edge?: number;
+  /** What a lay is struck at: the de-vigged fair price plus the exchange's margin over it. */
+  layPrice?: number;
+  /** Our win chance minus the chance the lay price implies; a lay wants this well under nought. */
+  layEdge?: number;
 }
 
 export interface RateResult {
@@ -140,9 +151,12 @@ export function rateRace(
     // market is 25% less 20%, an edge of five points.
     const edge =
       r.marketPrice !== undefined ? round4(probability - 1 / r.marketPrice) : undefined;
+    const fair = marketProbs[i];
+    const layPrice = fair !== undefined && fair > 0 ? roundPrice(LAY_OVER_FAIR / fair) : undefined;
+    const layEdge = layPrice !== undefined ? round4(probability - 1 / layPrice) : undefined;
     // The form alone, before the market had a say.
     const modelPrice = r.rating === undefined ? undefined : roundPrice(modelTotal / modelProbs[i]);
-    return { key: r.key, probability, ratedPrice, modelPrice, marketPrice: r.marketPrice, edge };
+    return { key: r.key, probability, ratedPrice, modelPrice, marketPrice: r.marketPrice, edge, layPrice, layEdge };
   });
 
   return { runners, confidence: confidenceOf(live, modelProbs) };

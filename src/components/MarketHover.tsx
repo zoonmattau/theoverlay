@@ -7,6 +7,8 @@ import { price } from "@/lib/format";
 
 export interface MarketDetail {
   marketPrice?: number;
+  /** The exchange price a lay is struck at, when the runner carries one. */
+  layPrice?: number;
   bookies?: string[];
   marketAvg?: number;
   marketOpen?: number;
@@ -51,6 +53,12 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
           {holders.length > 0 && (
             <span className="market-holders">{best ? [best.name, ...holders.filter((h) => h !== best.name)].join(", ") : holders.join(", ")}</span>
           )}
+          {r.layPrice ? (
+            <span className="market-row">
+              <span className="market-k">Lay at</span>
+              <span className="market-v nums">{price(r.layPrice)}</span>
+            </span>
+          ) : null}
           {r.marketAvg ? (
             <span className="market-row">
               <span className="market-k">Average</span>

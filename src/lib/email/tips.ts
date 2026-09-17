@@ -7,6 +7,7 @@ import { bestBookie, type Bookie } from "@/lib/bookies";
 import { longDate, price, priceWithChance } from "@/lib/format";
 import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { readStoredCard, type StoredCard } from "@/lib/model/store";
+import { callPrice } from "@/lib/model/types";
 import { racingToday, released } from "@/lib/model/source";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
@@ -74,7 +75,7 @@ function calls(date: string, card: StoredCard): Call[] {
             url: `${SITE}/racing/${date}/${encodeURIComponent(m.meetingId)}/${encodeURIComponent(r.raceId)}`,
             runner: `${x.tabNumber}. ${x.horseName}`,
             rated: priceWithChance(x.ratedPrice, x.ratedProbability),
-            live: price(x.marketPrice),
+            live: price(callPrice(x) ?? x.marketPrice),
             bookie: bestBookie(x.bookies),
             side: (x.signal === "back" ? "bet" : "lay") as "bet" | "lay",
             prime: prime.has(`${r.raceId}:${x.tabNumber}`),

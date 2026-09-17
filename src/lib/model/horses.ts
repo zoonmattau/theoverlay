@@ -2,6 +2,7 @@ import "server-only";
 
 import type { MeetingSummary, RaceEntry, RaceSummary } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { rememberRuns, runRowsOf, type RunRow } from "./runs";
 import { classPoints, goingBand, rateEntries } from "./ratings";
 import { publishRace } from "./publish";
 import type { GoingBand, PublishedRace, RunnerRatings } from "./types";
@@ -37,6 +38,7 @@ function trim(e: RaceEntry): RaceEntry {
 export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary[]): Promise<void> {
   const date = (meeting.date ? new Date(meeting.date) : new Date()).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
   const rows: StoredHorse[] = [];
+  const runs: RunRow[] = [];
   for (const race of races) {
     const points = classPoints(race.restrictions, race.name);
     let rated: ReturnType<typeof rateEntries>["rated"] = [];
@@ -50,6 +52,7 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
       const id = (e as RaceEntry & { breedingId?: string }).breedingId;
       if (!id || !e.horse?.name) continue;
       const g = byTab.get(String(e.number));
+      runs.push(...runRowsOf(e, id));
       rows.push({
         id,
         name: e.horse.name,
@@ -64,6 +67,8 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
     }
   }
   if (rows.length === 0) return;
+  // Every past run on the form, for the Datahub.
+  await rememberRuns(runs);
   // The newest sighting wins; an older card must not overwrite a newer one.
   const { data: existing } = await supabaseAdmin().from("horses").select("id, last_seen").in("id", rows.map((r) => r.id));
   const seen = new Map((existing ?? []).map((r) => [r.id as string, String(r.last_seen)]));

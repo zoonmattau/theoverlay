@@ -170,6 +170,10 @@ export interface PublishedRunner {
   formPrice?: number;
   /** Our model's win probability, 0-1. */
   ratedProbability: number;
+  /** What a lay is struck at, the exchange price: the fair price plus its margin. Shown and settled for a lay instead of the bookmakers' best. */
+  layPrice?: number;
+  /** Our chance against the lay price; a lay is called on this. */
+  layEdge?: number;
   /** Best market price we saw at publish time. */
   marketPrice?: number;
   /** Form King's codes for the bookmakers holding that price. */
@@ -285,3 +289,8 @@ export interface Selection {
   /** ISO jump time, for the countdown on the card. */
   jumpTime?: string;
 }
+
+/** The price a call is struck at: a bet at the bookmakers' best, a lay at the exchange price. */
+export const callPrice = (x: { signal?: Signal; marketPrice?: number; layPrice?: number }): number | undefined => (x.signal === "lay" && x.layPrice ? x.layPrice : x.marketPrice);
+/** The edge a call rests on: against the best price for a bet, the exchange price for a lay. */
+export const callEdge = (x: { signal?: Signal; edge?: number; layEdge?: number }): number | undefined => (x.signal === "lay" && x.layEdge !== undefined ? x.layEdge : x.edge);

@@ -22,6 +22,7 @@ import type {
   SelectionTag,
   Signal,
 } from "./types";
+import { callEdge, callPrice } from "./types";
 import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace } from "./rate";
@@ -36,7 +37,11 @@ const LONG_MIN_PRICE = 8;
  * threshold was reset with scripts/sweep-lay-meld.ts once the meld reached
  * the lay side too: ten points there is the disagreement fourteen was
  * before, a lay in about one race in four, and clears exchange commission
- * and a longer lay price by the same margin.
+ * and a longer lay price by the same margin. Since 17 Sep 2026 a lay is
+ * judged at the exchange price (the fair price plus 4%, which is what the
+ * Betfair SP ran at over 76 settled lays) rather than the bookmakers' best,
+ * and the line is six points there: the same one lay in four races, +10%
+ * after commission over the cache where ten points found thirteen lays.
  */
 export const MIN_EDGE = 0.025;
 /** A Prime Overlay is a bet with a wide gap on a horse we give a real chance. */
@@ -48,7 +53,7 @@ const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /** Market shorter than our price by this much, on a runner we can lay. */
-export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.1);
+export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
 
@@ -111,7 +116,7 @@ export function publishRace(
       // No runs means no opinion, and no opinion is never a call, held or new:
       // its price is the market's, moved only by the field normalising around it.
       if ((ratedByTab.get(p.key)?.ratings.runs ?? 0) === 0) return [p.key, undefined];
-      return [p.key, jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held)];
+      return [p.key, jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice)];
     }),
   );
 
@@ -173,6 +178,8 @@ export function publishRace(
       marketMove: e.odds?.firmOrDrift,
       marketAt: e.odds?.timestamp ? new Date(e.odds.timestamp).toISOString() : undefined,
       edge: p?.edge,
+      layPrice: p?.layPrice,
+      layEdge: p?.layEdge,
       rank: rank >= 0 ? rank + 1 : null,
       signal,
       finishPosition: e.horseResult ? e.horseResult.finishPosition : undefined,
@@ -184,7 +191,7 @@ export function publishRace(
   linkMeetings(runners);
 
   // One lay a race at most: the one the market has most wrong.
-  const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.edge ?? 0) - (b.edge ?? 0));
+  const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.layEdge ?? a.edge ?? 0) - (b.layEdge ?? b.edge ?? 0));
   for (const extra of lays.slice(1)) extra.signal = undefined;
   for (const x of runners) if (x.rank) x.why = explain(x.ratings, ratingRank(runners, x), { going, tempo: pace.tempo }, x.signal);
 
@@ -310,14 +317,18 @@ function signalFor(
   probability: number | undefined,
   scratched?: boolean,
   kept?: Signal,
+  layEdge?: number,
+  layPrice?: number,
 ): Signal | undefined {
   if (scratched || edge === undefined || !marketPrice || probability === undefined) return undefined;
   if (edge >= MIN_EDGE && probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE) return "back";
-  if (edge <= LAY_EDGE && marketPrice <= LAY_MAX_PRICE) return "lay";
+  // A lay is judged at the price it is struck at on the exchange, not the bookmakers' best.
+  const le = layEdge ?? edge, lp = layPrice ?? marketPrice;
+  if (le <= LAY_EDGE && lp <= LAY_MAX_PRICE) return "lay";
   // A call already published stays while it still has half its edge, so a
   // ten-cent move in the market does not make a tip vanish between refreshes.
   if (kept === "back" && edge >= MIN_EDGE / 2 && marketPrice <= BET_MAX_PRICE * 1.5) return "back";
-  if (kept === "lay" && edge <= LAY_EDGE / 2 && marketPrice <= LAY_MAX_PRICE * 1.5) return "lay";
+  if (kept === "lay" && le <= LAY_EDGE / 2 && lp <= LAY_MAX_PRICE * 1.5) return "lay";
   return undefined;
 }
 
@@ -484,13 +495,14 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
       horseName: pick.runner.horseName,
       ratedPrice: pick.runner.ratedPrice,
       ratedProbability: pick.runner.ratedProbability,
-      marketPrice: pick.runner.marketPrice,
-      bookies: pick.runner.bookies,
+      // A lay's price is the exchange price, a bet's the bookmakers' best.
+      marketPrice: callPrice(pick.runner) ?? pick.runner.marketPrice,
+      bookies: pick.runner.signal === "lay" ? undefined : pick.runner.bookies,
       marketAvg: pick.runner.marketAvg,
       marketOpen: pick.runner.marketOpen,
       marketMove: pick.runner.marketMove,
       marketAt: pick.runner.marketAt,
-      edge: pick.runner.edge,
+      edge: callEdge(pick.runner) ?? pick.runner.edge,
       finishPosition: pick.race.result ? pick.runner.finishPosition : undefined,
       jumpTime: pick.race.jumpTime,
     });
@@ -517,7 +529,7 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
   // Then every other bet, biggest edge first, and every lay, shortest first,
   // so the home page shows the whole day's calls and not just the headliners.
   for (const c of [...qualifying].filter((c) => !used.has(key(c))).sort((a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0))) take("bet", [c], () => 0);
-  for (const c of pool.filter((x) => x.runner.signal === "lay").sort((a, b) => (a.runner.edge ?? 0) - (b.runner.edge ?? 0))) take("lay", [c], () => 0);
+  for (const c of pool.filter((x) => x.runner.signal === "lay").sort((a, b) => (callEdge(a.runner) ?? 0) - (callEdge(b.runner) ?? 0))) take("lay", [c], () => 0);
 
   return out;
 }

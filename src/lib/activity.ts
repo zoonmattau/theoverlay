@@ -8,7 +8,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
  * and who is most active.
  */
 
-export type Area = "home" | "race" | "tips" | "tipsters" | "tipster" | "horses" | "review" | "pricing" | "account" | "method" | "faq" | "auth" | "other";
+export type Area = "home" | "race" | "tips" | "tipsters" | "tipster" | "horses" | "datahub" | "review" | "pricing" | "account" | "method" | "faq" | "auth" | "other";
 
 /** The public paths, sorted into the areas the activity page reports on. */
 export function areaOf(path: string): { area: Area; raceId?: string; meetingId?: string; date?: string; code?: string } {
@@ -21,7 +21,8 @@ export function areaOf(path: string): { area: Area; raceId?: string; meetingId?:
   const t = p.match(/^\/t\/([^/]+)/);
   if (t) return { area: "tipster", code: t[1] };
   if (p.startsWith("/tipster")) return { area: "tipster" };
-  if (p.startsWith("/horses")) return { area: "horses" };
+  if (p.startsWith("/horses") || p.startsWith("/data/horses")) return { area: "horses" };
+  if (p.startsWith("/data")) return { area: "datahub" };
   if (p.startsWith("/review")) return { area: "review" };
   if (p.startsWith("/pricing")) return { area: "pricing" };
   if (p.startsWith("/account")) return { area: "account" };
@@ -38,6 +39,7 @@ export const AREA_LABEL: Record<Area, string> = {
   tipsters: "Tipsters",
   tipster: "A tipster's page",
   horses: "Horses",
+  datahub: "Datahub",
   review: "Saturday review",
   pricing: "Pricing",
   account: "Account",

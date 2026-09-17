@@ -14,7 +14,7 @@ const races = readdirSync(".formking-cache")
   .map((f) => JSON.parse(readFileSync(`.formking-cache/${f}`, "utf8")).data as RaceSummary)
   .filter((r) => r.entries.some((e) => e.horseResult) && r.entries.some((e) => e.odds));
 
-interface Row { form: number; rated: number; edge: number; market: number; fair: number; won: boolean; conf: number; slow: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
+interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
 const rows: Row[] = [];
 let favWon = 0, favN = 0, formTopWon = 0, favRankLow = 0, layRaces = 0;
 for (const r of races) {
@@ -39,16 +39,18 @@ for (const r of races) {
     const slow = past.some((p) => p.benchmark && p.margin !== undefined && p.benchmark.vsClass < -p.margin - 4);
     const classDrop = past.slice(0, 3).some((p) => /derby|oaks|guineas|group|listed|\bg[123]\b|stakes/i.test(p.raceName ?? "")) && par <= 62;
     const ohrAbove = (e.benchmarkRating ?? 0) >= par + 8;
-    rows.push({ form: 1 / x.formPrice! / formSum, fair: 1 / x.marketPrice! / marketSum, rated: x.ratedProbability, edge: x.edge!, market: x.marketPrice!, won, conf: pub.confidence, slow, classDrop, ohrAbove, fav: x === fav, formTop: x === byForm[0] });
+    rows.push({ form: 1 / x.formPrice! / formSum, fair: 1 / x.marketPrice! / marketSum, layEdge: x.layEdge ?? x.edge!, layPrice: x.layPrice ?? x.marketPrice!, rated: x.ratedProbability, edge: x.edge!, market: x.marketPrice!, won, conf: pub.confidence, slow, classDrop, ohrAbove, fav: x === fav, formTop: x === byForm[0] });
   }
 }
 const ll = (xs: Row[], p: (x: Row) => number) => -xs.reduce((a, x) => a + Math.log(Math.min(0.999, Math.max(0.001, x.won ? p(x) : 1 - p(x)))), 0) / Math.max(1, xs.length);
 const calib = (xs: Row[]) => `${xs.length} runners, ${xs.filter((x) => x.won).length} won, form said ${xs.reduce((a, x) => a + x.form, 0).toFixed(0)}, market ${xs.reduce((a, x) => a + 1 / x.market, 0).toFixed(0)}`;
 const bets = rows.filter((x) => x.conf >= 0.35 && x.edge >= 0.025 && x.rated >= 0.08 && x.market <= 26);
-const lays = rows.filter((x) => x.conf >= 0.35 && x.edge <= -0.1 && x.market <= 12);
+const LAY = Number(process.env.OVERLAY_LAY_EDGE ?? -0.1);
+const lays = rows.filter((x) => x.conf >= 0.35 && x.layEdge <= LAY && x.layPrice <= 12);
 const betU = bets.reduce((a, x) => a + (x.won ? x.market - 1 : -1), 0);
-const layU = lays.reduce((a, x) => a + (x.won ? -(x.market - 1) : 1), 0);
-const tag = `say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
+// A lay settles at the exchange price, less 5% commission on a win.
+const layU = lays.reduce((a, x) => a + (x.won ? -(x.layPrice - 1) : 0.95), 0);
+const tag = `lay ${LAY} say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
 console.log(
   `${tag}: logloss form ${ll(rows, (x) => x.form).toFixed(4)} rated ${ll(rows, (x) => x.rated).toFixed(4)} market ${ll(rows, (x) => x.fair).toFixed(4)} | ${favN} races, fav won ${favWon}, form top won ${formTopWon}, fav ranked 4th+ ${favRankLow}, lay races ${layRaces}` +
   `\n   fav: ${calib(rows.filter((x) => x.fav))}\n   form top: ${calib(rows.filter((x) => x.formTop))}\n   slow-run: ${calib(rows.filter((x) => x.slow))}\n   class drop: ${calib(rows.filter((x) => x.classDrop))}\n   ohr 8+ over par: ${calib(rows.filter((x) => x.ohrAbove))}` +

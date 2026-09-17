@@ -133,6 +133,8 @@ const OHR_PULL = Number(process.env.OVERLAY_OHR_PULL ?? 0);
 const RR_PAR = Number(process.env.OVERLAY_RR_PAR ?? 1) === 1;
 const RR_A = Number(process.env.OVERLAY_RR_A ?? 56);
 const RR_B = Number(process.env.OVERLAY_RR_B ?? 0.4);
+/** Below this a race rating is a placeholder, not a rating: the weakest real one in the cache is in the fifties. */
+const RR_FLOOR = 30;
 /** Our benchmark points onto the feed's class scale. */
 export const toFeedScale = (points: number) => (RR_PAR ? RR_A + RR_B * points : points);
 /**
@@ -451,8 +453,12 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   // 45-rated horse beating four at Cobar in an "Open Hcp" ran in a 45 race.
   const ceiling = Math.min(todayPar + reach, ohr !== undefined ? ohr + OHR_REACH : Infinity);
   const named = clamp(level, Math.min(todayPar - 15, ceiling), ceiling);
-  // The race's measured strength when the feed has it, else the name mapped onto that scale.
-  const par = RR_PAR ? (r.benchmark?.raceRating ?? toFeedScale(named)) : named;
+  // The race's measured strength when the feed has it, else the name mapped
+  // onto that scale. A rating of nought is a race never rated (a Leeton
+  // maiden came through as 0 and put a run at -7.9), so anything under
+  // RR_FLOOR is treated as missing.
+  const rr = r.benchmark?.raceRating;
+  const par = RR_PAR ? (rr !== undefined && rr >= RR_FLOOR ? rr : toFeedScale(named)) : named;
   // Overall time with no sectionals is a hand-held clock at a bush track, so
   // its lengths against class count for half.
   const trust = r.benchmark?.dataStage === "OVERALL_TIME_ONLY" ? TIME_ONLY_WEIGHT : 1;

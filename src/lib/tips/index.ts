@@ -2,7 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
-import type { Signal } from "@/lib/model/types";
+import { callEdge, callPrice, type Signal } from "@/lib/model/types";
 import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./stats";
 
 export type { Period, RecordStats, SideStats, TipSource } from "./stats";
@@ -36,6 +36,13 @@ export interface TipRow {
   settled_at?: string | null;
 }
 
+/**
+ * What a call settles at. A bet at the better of the best bookmaker price
+ * seen and the Betfair SP, since a member could have taken either; a lay at
+ * the lay price it was quoted at.
+ */
+export const settledAt = (side: Signal, struck: number, bsp?: number | null) => (side === "back" && bsp && bsp > struck ? bsp : struck);
+
 /** The price a member would rather have had: longer for a bet, shorter for a lay. */
 export const betterPrice = (side: Signal, a: number, b: number) => (side === "back" ? Math.max(a, b) : Math.min(a, b));
 
@@ -54,8 +61,12 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
     for (const r of m.races) {
       for (const x of r.runners) {
         if (!x.signal || x.scratched || !x.marketPrice) continue;
+        // A lay is struck, and settles, at the exchange price; a bet at the bookmakers' best.
+        const price = callPrice(x) ?? x.marketPrice;
         const resulted = Boolean(r.result?.length);
         const finish = resulted ? (x.finishPosition ?? 0) : undefined;
+        const placing = resulted ? r.placings?.find((p) => p.tabNumber === x.tabNumber) : undefined;
+        const at = finish !== undefined ? settledAt(x.signal, price, placing?.bsp) : price;
         out.push({
           date,
           meeting_id: m.meetingId,
@@ -67,11 +78,11 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
           side: x.signal,
           tag: tagOf.get(`${r.raceId}:${x.tabNumber}`) ?? (x.signal === "lay" ? "lay" : "bet"),
           rated_price: x.ratedPrice,
-          market_price: x.marketPrice,
-          edge: x.edge ?? null,
+          market_price: at,
+          edge: callEdge(x) ?? null,
           source,
           ...(finish !== undefined
-            ? { finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === x.tabNumber)?.sp ?? null, units: settle(x.signal, x.marketPrice, finish), settled_at: new Date().toISOString() }
+            ? { finish_position: finish, sp: placing?.sp ?? null, units: settle(x.signal, at, finish), settled_at: new Date().toISOString() }
             : {}),
         });
       }
