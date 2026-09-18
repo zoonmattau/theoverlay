@@ -1,3 +1,4 @@
+import { stakeOf } from "@/lib/model/types";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -46,7 +47,7 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
   const topRated = [...r.runners].sort((a, b) => b.runner.ratings.today - a.runner.ratings.today)[0];
   const calls = r.runners.filter((x) => x.runner.signal && x.runner.marketPrice);
   const settled = calls.filter((x) => x.finish !== undefined);
-  const units = settled.reduce((a, x) => a + settle(x.runner.signal!, x.runner.marketPrice!, x.finish!), 0);
+  const units = settled.reduce((a, x) => a + settle(x.runner.signal!, x.runner.marketPrice!, x.finish!, stakeOf(x.runner)), 0);
   const ours = r.runners.filter((x) => x.runner.rank).sort((a, b) => a.runner.rank! - b.runner.rank!);
   const talking = review.talking.filter((t) => t.runner.race.race.raceId === raceId);
   // Every race the review wants, in meeting order, for the strip.

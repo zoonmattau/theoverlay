@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { postReview } from "@/lib/discord";
 import { buildReview, type Review, type TalkingPoint } from "@/lib/model/review";
+import { stakeOf } from "@/lib/model/types";
 import { settle } from "@/lib/tips";
 
 /**
@@ -131,7 +132,7 @@ export function featuresOf(review: Review): FeatureLine[] {
         .filter((x) => x.runner.rank)
         .sort((a, b) => a.runner.rank! - b.runner.rank!)
         .map((x) => ({ rank: x.runner.rank!, horse: x.runner.horseName, mark: x.runner.ratings.today, ratedPrice: x.runner.ratedPrice, marketPrice: x.runner.marketPrice, finish: x.finish, call: x.runner.signal })),
-      calls: f.calls.map((c) => ({ side: c.runner.signal!, horse: c.runner.horseName, marketPrice: c.runner.marketPrice!, finish: c.finish, units: c.finish !== undefined ? settle(c.runner.signal!, c.runner.marketPrice!, c.finish) : undefined })),
+      calls: f.calls.map((c) => ({ side: c.runner.signal!, horse: c.runner.horseName, marketPrice: c.runner.marketPrice!, finish: c.finish, units: c.finish !== undefined ? settle(c.runner.signal!, c.runner.marketPrice!, c.finish, stakeOf(c.runner)) : undefined })),
       units: f.units,
       text: w ? `${w.runner.horseName} won${money(w.sp)}, ${rankWord}.${top}${ran}${calls}` : "Not run yet.",
     };

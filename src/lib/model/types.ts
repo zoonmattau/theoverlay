@@ -302,6 +302,9 @@ export interface Selection {
 /** From this price a bet is a Way Overlay: a roughie, shaded its own lighter blue and free of the bet's price cap. */
 export const ROUGHIE_FROM = Number(process.env.OVERLAY_ROUGHIE_FROM ?? 21);
 export const isRoughie = (x: { signal?: Signal; marketPrice?: number }): boolean => x.signal === "back" && (x.marketPrice ?? 0) >= ROUGHIE_FROM;
+/** Units a call is staked at: one, or a tenth on a Way Overlay, fixed when the call is first published. */
+export const ROUGHIE_STAKE = Number(process.env.OVERLAY_ROUGHIE_STAKE ?? 0.1);
+export const stakeOf = (x: { signal?: Signal; marketPrice?: number }): number => (isRoughie(x) ? ROUGHIE_STAKE : 1);
 /** How a race is coloured: lime for a Prime, blue for a bet, the lighter blue when its only bets are Way Overlays, red for a lay. */
 export type RaceTip = "prime" | "back" | "roughie" | "lay";
 export function raceTip(runners: { signal?: Signal; marketPrice?: number; scratched?: boolean }[], prime: boolean): RaceTip | undefined {

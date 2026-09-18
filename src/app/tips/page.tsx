@@ -20,7 +20,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
-import type { PublishedMeeting, PublishedRunner, Signal } from "@/lib/model/types";
+import { stakeOf, type PublishedMeeting, type PublishedRunner, type Signal } from "@/lib/model/types";
 import { callPrice } from "@/lib/model/types";
 
 export const metadata: Metadata = {
@@ -47,11 +47,11 @@ export default function Page({ searchParams }: PageProps<"/tips">) {
  * keeps the unit when the horse loses and pays price minus one when it wins.
  * Undefined until the race has run or when there is no price to settle at.
  */
-function profit(side: Signal, price: number | undefined, position: number | undefined): number | undefined {
+function profit(side: Signal, price: number | undefined, position: number | undefined, stake = 1): number | undefined {
   if (position === undefined || !price) return undefined;
   const won = position === 1;
-  if (side === "back") return won ? price - 1 : -1;
-  return won ? -(price - 1) : 1;
+  const units = side === "back" ? (won ? price - 1 : -1) : won ? -(price - 1) : 1;
+  return Math.round(units * stake * 100) / 100;
 }
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(2)}`;
@@ -108,7 +108,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               runner: x,
               prime: prime.has(`${r.raceId}:${x.tabNumber}`),
               price: at,
-              profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined),
+              profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined, stakeOf(x)),
               mine: b,
               myProfit: my === undefined ? undefined : my * (b?.stake ?? 1),
             };

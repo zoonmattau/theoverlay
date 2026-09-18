@@ -100,7 +100,7 @@ function table(rows: Call[]): string {
       const primeTag = c.prime
         ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#c6f24e;color:#14161a;font:700 11px ${FONT}">Prime</span>`
         : c.way
-          ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#dcebff;color:#1f6fd6;font:700 11px ${FONT}">Way Overlay</span>`
+          ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#dcebff;color:#1f6fd6;font:700 11px ${FONT}">Way Overlay, 0.1u</span>`
           : "";
       return `<tr>${cell(`<a href="${c.url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(c.track)} R${c.raceNumber}</a>`)}${cell(esc(c.runner) + primeTag)}${cell(`<strong style="color:${colour}">${c.live}</strong>${c.bookie ? `<br><a href="${c.bookie.url}" style="font:600 11px ${FONT};color:#6b716a;text-decoration:none">at ${esc(c.bookie.name)}</a>` : ""}`, "text-align:right;white-space:nowrap")}${cell(c.rated, "text-align:right;white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
     })

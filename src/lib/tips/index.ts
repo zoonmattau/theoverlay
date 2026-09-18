@@ -2,7 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
-import { callEdge, callPrice, type Signal } from "@/lib/model/types";
+import { callEdge, callPrice, stakeOf, type Signal } from "@/lib/model/types";
 import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./stats";
 
 export type { Period, RecordStats, SideStats, TipSource } from "./stats";
@@ -32,6 +32,8 @@ export interface TipRow {
   published_at?: string;
   finish_position?: number | null;
   sp?: number | null;
+  /** Units staked: one, or a tenth on a Way Overlay. */
+  stake: number;
   units?: number | null;
   settled_at?: string | null;
 }
@@ -46,11 +48,11 @@ export const settledAt = (side: Signal, struck: number, bsp?: number | null) => 
 /** The price a member would rather have had: longer for a bet, shorter for a lay. */
 export const betterPrice = (side: Signal, a: number, b: number) => (side === "back" ? Math.max(a, b) : Math.min(a, b));
 
-/** Level stakes, one unit, at the published price. */
-export function settle(side: Signal, price: number, finish: number): number {
+/** Level stakes at the published price: one unit, or the stake given (a tenth on a Way Overlay). */
+export function settle(side: Signal, price: number, finish: number, stake = 1): number {
   const won = finish === 1;
-  if (side === "back") return won ? Math.round((price - 1) * 100) / 100 : -1;
-  return won ? -Math.round((price - 1) * 100) / 100 : 1;
+  const units = side === "back" ? (won ? price - 1 : -1) : won ? -(price - 1) : 1;
+  return Math.round(units * stake * 100) / 100;
 }
 
 /** Rows for every call on a card, settled where the race has run. */
@@ -67,6 +69,7 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
         const finish = resulted ? (x.finishPosition ?? 0) : undefined;
         const placing = resulted ? r.placings?.find((p) => p.tabNumber === x.tabNumber) : undefined;
         const at = finish !== undefined ? settledAt(x.signal, price, placing?.bsp) : price;
+        const stake = stakeOf(x);
         out.push({
           date,
           meeting_id: m.meetingId,
@@ -81,8 +84,9 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
           market_price: at,
           edge: callEdge(x) ?? null,
           source,
+          stake,
           ...(finish !== undefined
-            ? { finish_position: finish, sp: placing?.sp ?? null, units: settle(x.signal, at, finish), settled_at: new Date().toISOString() }
+            ? { finish_position: finish, sp: placing?.sp ?? null, units: settle(x.signal, at, finish, stake), settled_at: new Date().toISOString() }
             : {}),
         });
       }
@@ -100,12 +104,13 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   const db = supabaseAdmin();
   const rows = rowsFor(date, card);
   if (rows.length === 0) return;
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at, market_price").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at, market_price, stake").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
   }
-  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price) }]));
+  // The stake was fixed when the call was published; a price that has since crossed $21 does not move it.
+  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price), stake: Number(e.stake ?? 1) }]));
   const fresh = rows.filter((r) => !seen.has(`${r.race_id}:${r.tab_number}`));
   if (fresh.length) {
     const { error: e } = await db.from("tips").insert(fresh);
@@ -119,7 +124,7 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     if (!was || was.settled) continue;
     const price = betterPrice(r.side, was.price, r.market_price);
     const change = r.settled_at
-      ? { market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position ?? 0), settled_at: r.settled_at }
+      ? { market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position ?? 0, was.stake), settled_at: r.settled_at }
       : price !== was.price
         ? { market_price: price }
         : undefined;
@@ -143,17 +148,19 @@ export async function ledgerFor(date: string): Promise<Map<string, { price: numb
 
 const empty = (): SideStats => ({ n: 0, hit: 0, units: 0, roi: 0 });
 
-function tally(rows: { side: Signal; units: number; finish_position: number }[]): { bets: SideStats; lays: SideStats } {
+function tally(rows: { side: Signal; units: number; finish_position: number; stake?: number | null }[]): { bets: SideStats; lays: SideStats } {
   const bets = empty(), lays = empty();
+  const staked = { bets: 0, lays: 0 };
   for (const r of rows) {
     const s = r.side === "back" ? bets : lays;
     s.n++;
     s.units += Number(r.units);
+    staked[r.side === "back" ? "bets" : "lays"] += Number(r.stake ?? 1);
     if (r.side === "back" ? r.finish_position === 1 : r.finish_position !== 1) s.hit++;
   }
-  for (const s of [bets, lays]) {
+  for (const [k, s] of [["bets", bets], ["lays", lays]] as const) {
     s.units = Math.round(s.units * 100) / 100;
-    s.roi = s.n ? s.units / s.n : 0;
+    s.roi = staked[k] ? s.units / staked[k] : 0;
   }
   return { bets, lays };
 }
@@ -162,10 +169,10 @@ function tally(rows: { side: Signal; units: number; finish_position: number }[])
 export async function recordStats(today: string): Promise<RecordStats[]> {
   const { data, error } = await supabaseAdmin()
     .from("tips")
-    .select("date, side, units, finish_position, source")
+    .select("date, side, units, finish_position, source, stake")
     .not("settled_at", "is", null);
   if (error) console.error("[tips]", error.message);
-  const rows = (data ?? []) as { date: string; side: Signal; units: number; finish_position: number; source: TipSource }[];
+  const rows = (data ?? []) as { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null }[];
   const day = new Date(`${today}T12:00:00Z`).getTime();
   return PERIODS.map((p) => {
     const from = p.days ? new Date(day - p.days * 86400_000).toISOString().slice(0, 10) : undefined;

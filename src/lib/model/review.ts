@@ -5,7 +5,7 @@ import type { PastEvent, SectionKey } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { clockPoints, TEMPO_LENGTHS } from "./ratings";
 import { readStoredCard, type StoredCard } from "./store";
-import type { PublishedMeeting, PublishedRace, PublishedRunner, Tempo } from "./types";
+import { stakeOf, type PublishedMeeting, type PublishedRace, type PublishedRunner, type Tempo } from "./types";
 import { settle } from "@/lib/tips";
 
 /**
@@ -462,7 +462,7 @@ function featureRaces(races: ReviewedRace[]): FeatureRace[] {
         topRated,
         placings,
         calls,
-        units: settled.length ? round1(settled.reduce((a, r) => a + settle(r.runner.signal!, r.runner.marketPrice!, r.finish!), 0)) : undefined,
+        units: settled.length ? round1(settled.reduce((a, r) => a + settle(r.runner.signal!, r.runner.marketPrice!, r.finish!, stakeOf(r.runner)), 0)) : undefined,
       };
     });
 }
@@ -591,7 +591,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
           race,
           side: x.signal,
           tag: tagOf.get(`${race.raceId}:${x.tabNumber}`),
-          units: r.finish !== undefined ? settle(x.signal, x.marketPrice, r.finish) : undefined,
+          units: r.finish !== undefined ? settle(x.signal, x.marketPrice, r.finish, stakeOf(x)) : undefined,
         };
         (x.signal === "back" ? bets : lays).push(row);
       }

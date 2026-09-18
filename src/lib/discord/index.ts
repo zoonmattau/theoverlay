@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
 import type { StoredCard } from "@/lib/model/store";
-import { callPrice, isRoughie } from "@/lib/model/types";
+import { callPrice, isRoughie, stakeOf } from "@/lib/model/types";
 import { callLimit } from "@/lib/model/publish";
 import { settledAt } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRunner } from "@/lib/model/types";
@@ -146,7 +146,8 @@ function line(c: Call, withTrack = false): string {
   const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : isRoughie(c.x) ? "Way Overlay" : "Bet";
   const limit = callLimit(c.x);
   const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
-  return `${square} ${withTrack ? `${c.m.track} ` : ""}R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}`;
+  const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
+  return `${square} ${withTrack ? `${c.m.track} ` : ""}R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`;
 }
 
 /** Every call, a heading per meeting and a blank line between meetings, races in jump order. */
@@ -237,11 +238,14 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
       if (!c.r.result?.length || c.x.finishPosition === undefined || !callPrice(c.x)!) continue;
       const w = c.x.finishPosition === 1;
       const at = settledAt(c.x.signal!, callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
-      units += c.x.signal === "back" ? (w ? at - 1 : -1) : w ? -(at - 1) : 1;
+      units += (c.x.signal === "back" ? (w ? at - 1 : -1) : w ? -(at - 1) : 1) * stakeOf(c.x);
     }
     const lines = won.map((c) => {
       const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
-      if (c.x.signal === "back") return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp))}${prime ? ", a Prime" : ""}. +${(settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp) - 1).toFixed(2)}u`;
+      if (c.x.signal === "back") {
+        const at = settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
+        return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(at)}${prime ? ", a Prime" : isRoughie(c.x) ? ", a Way Overlay" : ""}. +${((at - 1) * stakeOf(c.x)).toFixed(2)}u`;
+      }
       return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(callPrice(c.x)!)}. +1.00u`;
     });
     await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
@@ -298,7 +302,7 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
       const settle = (c: Call) => {
         const won = c.x.finishPosition === 1;
         const p = callPrice(c.x)! ?? 0;
-        return c.x.signal === "back" ? (won ? p - 1 : -1) : won ? -(p - 1) : 1;
+        return (c.x.signal === "back" ? (won ? p - 1 : -1) : won ? -(p - 1) : 1) * stakeOf(c.x);
       };
       const rows = calls.map((c) => ({ c, units: settle(c) }));
       const total = rows.reduce((a, r) => a + r.units, 0);
@@ -307,10 +311,10 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
       const sum = (xs: typeof rows) => xs.reduce((a, r) => a + r.units, 0);
       const fmt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
       const finish = (c: Call) => (c.x.finishPosition === 1 ? "won" : c.x.finishPosition === 0 ? "did not finish" : ran(c));
-      const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : "Bet"} ${price(callPrice(c.x)!)}, ${finish(c)}, ${fmt(units)}`).join("\n");
+      const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : isRoughie(c.x) ? "Way Overlay" : "Bet"} ${price(callPrice(c.x)!)}, ${finish(c)}, ${fmt(units)}`).join("\n");
       return send(
         CHANNELS.results,
-        `**${longDate(date)}: ${fmt(total)}** level stakes, one unit a call.\nBets ${bets.filter((r) => r.units > 0).length} of ${bets.length} won, ${fmt(sum(bets))}. Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length} landed, ${fmt(sum(lays))}.\n\n${body}\n\nThe record: ${SITE}/#record`,
+        `**${longDate(date)}: ${fmt(total)}** level stakes, one unit a call and a tenth on a Way Overlay.\nBets ${bets.filter((r) => r.units > 0).length} of ${bets.length} won, ${fmt(sum(bets))}. Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length} landed, ${fmt(sum(lays))}.\n\n${body}\n\nThe record: ${SITE}/#record`,
       );
     });
   } catch (err) {
