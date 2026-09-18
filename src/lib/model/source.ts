@@ -232,6 +232,9 @@ export async function getCard(date: string, preview = false): Promise<Card> {
   // Admins preview everything, but still learn whether members can see it.
   const gate = (card: Card) => (preview ? { ...card, released: released(date) } : released(date) ? card : withheld(card));
   if (storeConfigured()) {
+    // A store that does not answer throws, and the cache goes on serving the
+    // last card it held. Building here instead would put every Form King
+    // call for the day inside each page view for as long as the outage lasts.
     const stored = await readStoredCard(date);
     if (stored) return gate({ ...stored.card, builtAt: stored.builtAt, released: true });
   }

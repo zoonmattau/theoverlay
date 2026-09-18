@@ -13,9 +13,14 @@ export interface StoredCard {
 
 export const storeConfigured = () => supabaseConfigured() && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
 
+/**
+ * The stored card for a date, or undefined when there is none. A store that
+ * does not answer throws: a caller must never mistake an outage for an empty
+ * day and set about building a card in its place.
+ */
 export async function readStoredCard(date: string): Promise<{ card: StoredCard; builtAt: string; pinnedFreeRaceId?: string } | undefined> {
   const { data, error } = await supabaseAdmin().from("cards").select("card, built_at, free_race_id").eq("date", date).maybeSingle();
-  if (error) console.error("[cards]", error.message);
+  if (error) throw new Error(`[cards] read ${date}: ${error.message}`);
   return data ? { card: data.card as StoredCard, builtAt: String(data.built_at), pinnedFreeRaceId: (data.free_race_id as string | null) ?? undefined } : undefined;
 }
 

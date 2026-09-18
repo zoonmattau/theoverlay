@@ -61,8 +61,11 @@ async function readEntry<T>(kind: string, key: string): Promise<Entry<T> | undef
     const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache?select=data,at&key=eq.${encodeURIComponent(`${kind}:${key}`)}`, {
       headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!, authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
       cache: "no-store",
+      signal: AbortSignal.timeout(25_000),
     });
-    if (!res.ok) return undefined;
+    // A cache that does not answer is not a miss: buying the day again on
+    // every failed read is what an outage must never turn into.
+    if (!res.ok) throw new FormKingError(`fk_cache read failed: ${res.status}`, res.status);
     const rows = (await res.json()) as { data: T; at: string }[];
     return rows[0] ? { at: new Date(rows[0].at).getTime(), data: rows[0].data } : undefined;
   }

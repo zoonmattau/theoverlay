@@ -5,9 +5,14 @@ import { createClient } from "@supabase/supabase-js";
  * Writes to profiles happen with the service role, only from Stripe webhooks
  * and the checkout handler. Never import this into anything client-facing.
  */
+/** How long one call to the store may take before it is given up as an outage. */
+const STORE_TIMEOUT_MS = Number(process.env.OVERLAY_STORE_TIMEOUT_SEC ?? 25) * 1000;
+
 export function supabaseAdmin() {
   return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!, {
     auth: { persistSession: false },
+    // A store that is not answering fails fast, so a page falls back to the cached card instead of hanging.
+    global: { fetch: (input, init) => fetch(input, { ...init, signal: init?.signal ?? AbortSignal.timeout(STORE_TIMEOUT_MS) }) },
   });
 }
 
