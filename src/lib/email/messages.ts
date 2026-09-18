@@ -12,7 +12,7 @@ const fmt = (iso: string) =>
 export const EMAILS = {
   trialStarted: (plan: string, trialEnds: string): EmailSpec => ({
     subject: `Your ${plan} trial has started`,
-    preheader: "Seven days of the full board, on us.",
+    preheader: "The full board, on us.",
     heading: "You are in.",
     paragraphs: [
       `Your <strong>${plan}</strong> trial is live and the full board is open on your race days.`,
@@ -91,6 +91,35 @@ export const EMAILS = {
       until ? `It runs until <strong>${fmt(until)}</strong>.` : "It starts now.",
     ],
     cta: { label: "Open today's board", url: `${SITE}/` },
+  }),
+
+  /** Someone who signed up and never pressed the confirm link: a fresh one, and a longer trial for the trouble. */
+  finishSignup: (link: string, days: number): EmailSpec => ({
+    subject: "Your Overlay account is one click away",
+    preheader: `Confirm your email and take ${days} days of the full board free.`,
+    heading: "You never finished signing up.",
+    paragraphs: [
+      "Your account is there, it just needs the email confirmed. Press the button and you are in.",
+      `When you pick a plan the free trial runs <strong>${days} days</strong> instead of seven: every runner rated, a price for every horse, and the bet or lay calls on every race we cover.`,
+      "One race is free every day even without a plan, so have a look before you decide.",
+    ],
+    cta: { label: "Confirm my email", url: link },
+    note: "The link works once and expires in 24 hours. If you did not sign up to The Overlay, ignore this and nothing happens.",
+  }),
+
+  /** Signed up, confirmed, never started a plan: a longer trial to try it properly. */
+  trialExtended: (days: number): EmailSpec => ({
+    subject: `${days} days of the full board, free`,
+    preheader: "Your free trial is longer now. Pick a plan and nothing is charged until it ends.",
+    heading: `Your trial is ${days} days now.`,
+    paragraphs: [
+      `You have an account and never started a plan, so the free trial is <strong>${days} days</strong> for you instead of seven.`,
+      "Pick the days you bet, the full board opens straight away, and nothing is charged until the trial ends. Cancel any time before then from your account.",
+      "Every race we cover gets a top four, ratings across eight categories, a rated price for every runner and our bet or lay calls, settled at the price we post, wins and losses.",
+      DISCORD,
+    ],
+    cta: { label: "Start the trial", url: `${SITE}/pricing` },
+    note: "No promise of winning: the numbers are a guide and every bet is your own call.",
   }),
 
   confirmSignup: (link: string): EmailSpec => ({

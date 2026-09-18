@@ -35,7 +35,8 @@ export const MEMBER_ROLE = "Member";
 /** Tipster accounts carry this as well, which opens tipster-calls to post in and the lounge to see. */
 export const TIPSTER_ROLE = "Tipster";
 
-export const discordConfigured = () => Boolean(process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID);
+/** A local server never posts to the server, so a dev rebuild of the live card stays quiet, unless OVERLAY_DISCORD_LOCAL=1 says otherwise. */
+export const discordConfigured = () => Boolean(process.env.DISCORD_BOT_TOKEN && process.env.DISCORD_GUILD_ID) && (!/localhost|127\.0\.0\.1/.test(SITE) || process.env.OVERLAY_DISCORD_LOCAL === "1");
 export const discordLinkConfigured = () => discordConfigured() && Boolean(process.env.DISCORD_CLIENT_ID && process.env.DISCORD_CLIENT_SECRET);
 const guild = () => process.env.DISCORD_GUILD_ID!;
 

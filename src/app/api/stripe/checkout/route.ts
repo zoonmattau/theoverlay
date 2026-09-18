@@ -63,6 +63,9 @@ export async function POST(request: NextRequest) {
   const trialled = newCustomer
     ? false
     : (await stripe().subscriptions.list({ customer, status: "all", limit: 1 })).data.length > 0;
+  // A longer trial offered to this person (scripts/out/nudge-signups.ts writes it) beats the standard one.
+  const offered = Number((await supabaseAdmin().auth.admin.getUserById(viewer.id)).data.user?.app_metadata?.trial_days);
+  const trialDays = offered > TRIAL_DAYS ? offered : TRIAL_DAYS;
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
@@ -74,7 +77,7 @@ export async function POST(request: NextRequest) {
     metadata: { userId: viewer.id, plan: plan!.id },
     subscription_data: {
       metadata: { userId: viewer.id, plan: plan!.id },
-      ...(trialled ? {} : { trial_period_days: TRIAL_DAYS }),
+      ...(trialled ? {} : { trial_period_days: trialDays }),
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),
   });
