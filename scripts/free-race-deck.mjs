@@ -3,15 +3,19 @@
 // speed map with At a glance, and the lay runner's card (or the top-rated
 // runner when there is no lay). Uses the installed Chrome via playwright-core.
 // node scripts/free-race-deck.mjs 2026-09-16 caulfield-heath-20260916 CAUH_160926_6 "Caulfield Heath R6" "1000m · BM78 · 4.05pm" [layTab]
+// SITE=http://localhost:3000 shoots a local server (run it with OVERLAY_OPEN=1 so members' sections show);
+// PILL="Posted 11am, won at $20" replaces the free-race pill for a results post.
 import { chromium } from "playwright-core";
 import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 
 const [date, meetingId, raceId, raceLabel, raceMeta, layTabArg] = process.argv.slice(2);
 if (!raceId) throw new Error("Give date, meetingId, raceId, a race label and its meta line.");
-const url = `https://theoverlay.com.au/racing/${date}/${meetingId}/${raceId}`;
-const dir = `marketing/posts/${date}-free-race`;
+const url = `${process.env.SITE ?? "https://theoverlay.com.au"}/racing/${date}/${meetingId}/${raceId}`;
+const pill = process.env.PILL ?? "Free race today";
+const dir = `marketing/posts/${date}-${process.env.PILL ? raceId : "free-race"}`;
 mkdirSync(dir, { recursive: true });
-const hide = ".topbar, .ntg { display: none !important }";
+// The bar, the strip and the dev tools badge stay out of the shot.
+const hide = ".topbar, .ntg, nextjs-portal { display: none !important }";
 const browser = await chromium.launch({ channel: "chrome", headless: true });
 
 async function open(width) {
@@ -50,14 +54,15 @@ const panel = row.locator("xpath=following-sibling::tr[1]");
 const a = await row.boundingBox(), b = await panel.boundingBox(), sy = await page.evaluate(() => window.scrollY);
 shots.runner = await page.screenshot({ clip: { x: a.x, y: a.y + sy, width: a.width, height: b.y + b.height - a.y }, fullPage: true });
 const runnerName = (await row.locator("td").nth(1).innerText()).split("\n")[0].trim();
-const isLay = Boolean(layTab);
+// The slide is named for what the row says, not for how the tab was chosen.
+const isLay = /LAY/.test(await row.innerText());
 await page.close();
 
 const slides = [
   { imgs: [shots.topFour], title: "Our top four", sub: "Live price against our rated price, and why each one rates where it does." },
   { imgs: [shots.bars, shots.matrix], title: "The ratings", sub: "Every runner on the benchmark scale, and every category in one table: green above the field, red below." },
   { imgs: [shots.speedMap, shots.glance], title: "The speed map", sub: "Where each runner settles, what that does to the tempo, and the race at a glance." },
-  { imgs: [shots.runner], title: isLay ? "The lay" : "The top pick", sub: `${runnerName}: profile, sectionals against the field, what to expect, the last five runs and our call.` },
+  { imgs: [shots.runner], title: isLay ? "The lay" : process.env.PILL ? "The winner" : "The top pick", sub: `${runnerName}: profile, sectionals against the field, what to expect, the last five runs and our call.` },
 ];
 const data = (buf) => "data:image/png;base64," + buf.toString("base64");
 for (const [i, s] of slides.entries()) {
@@ -76,7 +81,7 @@ for (const [i, s] of slides.entries()) {
     .foot b { color: #f4f5f1; font-weight: 800 }
     .foot .cta { color: #c6f24e; font-weight: 800 }
   </style></head><body>
-    <div class="brand"><div class="mark">The Overlay</div><div class="free">Free race today</div></div>
+    <div class="brand"><div class="mark">The Overlay</div><div class="free">${pill}</div></div>
     <h1>${s.title}<span>${i + 1} / ${slides.length}</span></h1>
     <div class="sub">${s.sub}</div>
     <div class="stack">${s.imgs.map((b) => `<img src="${data(b)}">`).join("")}</div>
