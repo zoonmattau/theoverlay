@@ -30,11 +30,28 @@ export interface MemberRow {
   gift: number;
   emails: boolean;
   lastSeen: number;
+  /** Which group they fall in, one each: paying, trial, gift, paused, lapsed, none (confirmed, never a plan), pending (invited or unconfirmed), tipster, admin. */
+  category: Category;
   /** Their name on Discord once linked, or "". */
   discord: string;
   /** member: in the server with the Member role; joined: in the server without it; linked: linked but not in the server; none: never linked. */
   discordState: "member" | "joined" | "linked" | "none";
 }
+
+export type Category = "paying" | "trial" | "gift" | "paused" | "lapsed" | "none" | "unconfirmed" | "invited" | "tipster" | "admin";
+/** The groups, in the order the Groups view lists them, with what each means. */
+const CATEGORIES: { id: Category; label: string; hint: string }[] = [
+  { id: "paying", label: "Live", hint: "A plan that has been billed and is running" },
+  { id: "trial", label: "On trial", hint: "A plan still in its free trial" },
+  { id: "gift", label: "Gift days", hint: "Gifted or referral days running, no plan" },
+  { id: "paused", label: "Paused", hint: "Plan paused, nothing charged" },
+  { id: "lapsed", label: "Lapsed", hint: "Had a plan or gift days, access has ended" },
+  { id: "none", label: "No plan", hint: "Confirmed, never started a plan" },
+  { id: "unconfirmed", label: "Not confirmed", hint: "Signed up, never pressed the confirm link" },
+  { id: "invited", label: "Not signed up", hint: "Invited, never set a password" },
+  { id: "tipster", label: "Tipsters", hint: "Post their own calls" },
+  { id: "admin", label: "Admins", hint: "" },
+];
 
 type Key = "name" | "account" | "plan" | "affiliate" | "status" | "accessUntil" | "since" | "spent" | "passes" | "gift" | "emails" | "lastSeen" | "discordState";
 
@@ -67,6 +84,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
   const [account, setAccount] = useState<"all" | "active" | "invited" | "unconfirmed">("all");
   const [emails, setEmails] = useState<"all" | "on" | "off">("all");
   const [discord, setDiscord] = useState<"all" | MemberRow["discordState"]>("all");
+  const [view, setView] = useState<"table" | "groups">("table");
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "since", dir: -1 });
 
   const shown = useMemo(() => {
@@ -100,6 +118,10 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
       aside={<span className="nums">{shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`}</span>}
       controls={
         <div className="flex flex-wrap items-center gap-2">
+          <div className="metric-tabs" role="tablist" aria-label="View">
+            <button type="button" role="tab" aria-selected={view === "table"} className="metric-tab" onClick={() => setView("table")}>Table</button>
+            <button type="button" role="tab" aria-selected={view === "groups"} className="metric-tab" onClick={() => setView("groups")}>Groups</button>
+          </div>
           <input id="members-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, phone, suburb" className="field-input py-1 text-xs w-56" />
           <select id="members-status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className={sel}>
             <option value="all">Any status</option><option value="live">Live</option><option value="paused">Paused</option><option value="none">No access</option>
@@ -119,6 +141,39 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
         </div>
       }
     >
+      {view === "groups" ? (
+        <div className="member-groups">
+          {CATEGORIES.map((c) => {
+            const list = shown.filter((m) => m.category === c.id);
+            return (
+              <section key={c.id} className="member-group">
+                <div className="member-group-head">
+                  <h3>{c.label} <span className="nums">{list.length}</span></h3>
+                  {c.hint && <span className="text-xs text-ink-soft">{c.hint}</span>}
+                </div>
+                {list.length === 0 ? (
+                  <p className="text-xs text-ink-soft px-4 py-2">Nobody.</p>
+                ) : (
+                  <ul className="divide-y divide-line-soft">
+                    {list.map((m) => (
+                      <li key={m.id} className="member-line">
+                        <span className="min-w-0">
+                          <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.name}</Link>
+                          {m.name !== m.email && <span className="block text-xs text-ink-soft truncate">{m.email}</span>}
+                        </span>
+                        <span className="text-xs text-ink-secondary">{m.plan || (m.affiliate ? `via ${m.affiliate}` : m.source)}</span>
+                        <span className="text-xs text-ink-soft nums">{c.id === "paying" || c.id === "trial" || c.id === "paused" ? `until ${day(m.accessUntil)}` : c.id === "gift" ? `gift until ${day(m.gift)}` : `since ${day(m.since)}`}</span>
+                        <span className="text-xs text-ink-soft nums">seen {when(m.lastSeen)}</span>
+                        <span>{m.discordState === "member" ? <span className="badge badge-prime">Discord</span> : m.discordState === "joined" ? <span className="badge badge-warn">No role</span> : m.discordState === "linked" ? <span className="badge badge-muted">Not joined</span> : null}</span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
       <div className="overflow-x-auto">
         <table className="data-table text-sm min-w-[1100px]">
           <thead>
@@ -177,6 +232,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
           </tbody>
         </table>
       </div>
+      )}
     </Section>
   );
 }

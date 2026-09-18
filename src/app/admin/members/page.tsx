@@ -9,7 +9,7 @@ import { planById, PLANS } from "@/lib/billing/plans";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { allTipsters } from "@/lib/creators";
 import { discordRoster } from "@/lib/discord";
-import { MembersTable, type MemberRow } from "../MembersTable";
+import { MembersTable, type Category, type MemberRow } from "../MembersTable";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
 
@@ -40,12 +40,33 @@ async function Members() {
   const ms = (iso: string | null | undefined) => (iso ? new Date(iso).getTime() : 0);
   const rows: MemberRow[] = members.map((m) => {
     const live = Boolean(m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at);
+    const giftLive = Boolean(m.bonus_until && new Date(m.bonus_until).getTime() > now);
+    const state = accountState(m);
+    // One group each, the first that fits.
+    const category: Category = m.is_admin
+      ? "admin"
+      : tipsterIds.has(m.id)
+        ? "tipster"
+        : state === "invited"
+          ? "invited"
+          : state === "unconfirmed"
+            ? "unconfirmed"
+          : m.paused_at
+            ? "paused"
+            : live
+              ? m.subscription_status === "trialing" ? "trial" : "paying"
+              : giftLive
+                ? "gift"
+                : m.plan || m.access_until || m.bonus_until
+                  ? "lapsed"
+                  : "none";
     return {
+      category,
       id: m.id,
       name: m.full_name || m.email || m.id,
       email: m.email ?? "",
       haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code, m.affiliate_id ? codeOf.get(m.affiliate_id) : null, m.source].filter(Boolean).join(" ").toLowerCase(),
-      account: accountState(m),
+      account: state,
       admin: Boolean(m.is_admin),
       tipster: tipsterIds.has(m.id),
       plan: m.plan ? (planById(m.plan)?.name ?? m.plan) : "",
