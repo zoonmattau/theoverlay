@@ -142,7 +142,14 @@ export function publishRace(
       if ((g?.runs ?? 0) === 0 || trust < TRUST_FLOOR) return [p.key, undefined];
       const signal = jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
       // A thin rating can back a horse but not lay one: the mirage costs one unit as a bet and the price as a lay.
-      return [p.key, signal === "lay" && trust < LAY_TRUST_FLOOR ? undefined : signal];
+      if (signal === "lay" && trust < LAY_TRUST_FLOOR) return [p.key, undefined];
+      // Nor is a horse on a winning run laid: even rated for the run, the lays
+      // left on them lost 45% of the time over the cache (14 laid, 6 won)
+      // against 34% for lays at large; taking them out costs two units in
+      // 889 races and the record's ROI does not move. Aethelwulf, Newcastle
+      // Gold Cup, 18 Sep 2026.
+      if (signal === "lay" && (g?.factors.streak ?? 0) > 0) return [p.key, undefined];
+      return [p.key, signal];
     }),
   );
 
