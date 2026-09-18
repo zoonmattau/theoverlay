@@ -150,6 +150,127 @@ export async function tipsterRecord(affiliateId: string): Promise<TipsterRecord>
   return { ...tally(rows), month: tally(rows.filter((r) => r.date >= from)) };
 }
 
+export interface SideRecord {
+  n: number;
+  hit: number;
+  units: number;
+  /** Units per unit staked, one a call. */
+  roi: number;
+}
+
+/**
+ * A tipster as the marketplace sizes them up: the record all time and over
+ * the last 30 days, bets and lays apart, the run of recent results, how
+ * often they post, and how many follow them.
+ */
+export interface TipsterProfile {
+  tipster: Tipster;
+  all: SideRecord;
+  month: SideRecord;
+  bets: SideRecord;
+  lays: SideRecord;
+  /** Average price struck on bets. */
+  avgPrice?: number;
+  /** Settled calls, newest first, up to ten. */
+  recent: { won: boolean; units: number; horse: string; date: string; side: Signal }[];
+  /** First day they posted, yyyy-mm-dd. */
+  since?: string;
+  /** Calls posted, settled or not. */
+  posted: number;
+  /** Calls a week over the last 30 days. */
+  perWeek: number;
+  /** Share of calls that came with a reason, 0-1. */
+  reasoned: number;
+  followers: number;
+  /** Their biggest winning bet. */
+  best?: { horse: string; price: number; date: string; track: string };
+}
+
+const tallySide = (xs: { side: Signal; units: number | null; finish_position: number | null }[]): SideRecord => {
+  const n = xs.length;
+  const hit = xs.filter((r) => (r.side === "back" ? r.finish_position === 1 : r.finish_position !== 1)).length;
+  const units = Math.round(xs.reduce((a, r) => a + Number(r.units), 0) * 100) / 100;
+  return { n, hit, units, roi: n ? units / n : 0 };
+};
+
+/** Profiles for a set of tipsters in two queries, for the directory. */
+export async function tipsterProfiles(tipsters: Tipster[]): Promise<TipsterProfile[]> {
+  if (tipsters.length === 0) return [];
+  const ids = tipsters.map((t) => t.id);
+  const db = supabaseAdmin();
+  const [{ data: tips }, { data: follows }] = await Promise.all([
+    db.from("creator_tips").select("affiliate_id, date, track, horse_name, side, price, bookie_price, comment, units, finish_position, settled_at").in("affiliate_id", ids).order("date", { ascending: false }).order("created_at", { ascending: false }),
+    db.from("follows").select("tipster_id").in("tipster_id", ids),
+  ]);
+  const followers = new Map<string, number>();
+  for (const f of (follows ?? []) as { tipster_id: string }[]) followers.set(f.tipster_id, (followers.get(f.tipster_id) ?? 0) + 1);
+  const rows = (tips ?? []) as (Pick<CreatorTip, "affiliate_id" | "date" | "track" | "horse_name" | "side" | "price" | "bookie_price" | "comment" | "units" | "finish_position" | "settled_at">)[];
+  const month = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  return tipsters.map((tipster) => {
+    const mine = rows.filter((r) => r.affiliate_id === tipster.id);
+    const settled = mine.filter((r) => r.settled_at);
+    const bets = settled.filter((r) => r.side === "back");
+    const wins = bets.filter((r) => r.finish_position === 1);
+    const best = wins.sort((a, b) => struckAt(b) - struckAt(a))[0];
+    const inMonth = mine.filter((r) => r.date >= month).length;
+    return {
+      tipster,
+      all: tallySide(settled),
+      month: tallySide(settled.filter((r) => r.date >= month)),
+      bets: tallySide(bets),
+      lays: tallySide(settled.filter((r) => r.side === "lay")),
+      avgPrice: bets.length ? Math.round((bets.reduce((a, r) => a + struckAt(r), 0) / bets.length) * 100) / 100 : undefined,
+      recent: settled.slice(0, 10).map((r) => ({ won: (r.side === "back" ? r.finish_position === 1 : r.finish_position !== 1), units: Number(r.units), horse: r.horse_name, date: r.date, side: r.side })),
+      since: mine.length ? mine[mine.length - 1].date : undefined,
+      posted: mine.length,
+      perWeek: Math.round((inMonth / 30) * 7 * 10) / 10,
+      reasoned: mine.length ? mine.filter((r) => r.comment?.trim()).length / mine.length : 0,
+      followers: followers.get(tipster.id) ?? 0,
+      best: best ? { horse: best.horse_name, price: struckAt(best), date: best.date, track: best.track } : undefined,
+    };
+  });
+}
+
+/**
+ * The directory's order: the best last 30 days first, then the best all
+ * time among those with nothing settled this month, then whoever has
+ * posted most among the unsettled.
+ */
+export function rankProfiles(profiles: TipsterProfile[]): TipsterProfile[] {
+  return [...profiles].sort((a, b) => {
+    if (a.month.n && b.month.n) return b.month.units - a.month.units || b.month.roi - a.month.roi;
+    if (a.month.n !== b.month.n && (!a.month.n || !b.month.n)) return a.month.n ? -1 : 1;
+    if (a.all.n && b.all.n) return b.all.units - a.all.units;
+    if (a.all.n !== b.all.n && (!a.all.n || !b.all.n)) return a.all.n ? -1 : 1;
+    return b.posted - a.posted || a.tipster.name.localeCompare(b.tipster.name);
+  });
+}
+
+/** A call with the tipster who made it, for feeds across every tipster. */
+export type FeedTip = CreatorTip & { tipster: Tipster };
+
+/** Every listed tipster's calls for a date, in race order, for the marketplace feed. */
+export async function callsOn(date: string, tipsters: Tipster[]): Promise<FeedTip[]> {
+  if (tipsters.length === 0) return [];
+  const byId = new Map(tipsters.map((t) => [t.id, t]));
+  const { data } = await supabaseAdmin().from("creator_tips").select("*").eq("date", date).in("affiliate_id", [...byId.keys()]).order("race_number");
+  return ((data ?? []) as CreatorTip[]).map((t) => ({ ...t, tipster: byId.get(t.affiliate_id)! }));
+}
+
+/** The latest settled calls across the listed tipsters, newest first. */
+export async function latestResults(tipsters: Tipster[], limit = 20): Promise<FeedTip[]> {
+  if (tipsters.length === 0) return [];
+  const byId = new Map(tipsters.map((t) => [t.id, t]));
+  const { data } = await supabaseAdmin().from("creator_tips").select("*").in("affiliate_id", [...byId.keys()]).not("settled_at", "is", null).order("settled_at", { ascending: false }).limit(limit);
+  return ((data ?? []) as CreatorTip[]).map((t) => ({ ...t, tipster: byId.get(t.affiliate_id)! }));
+}
+
+/** A tipster's calls before today, newest first, settled or still to run. */
+export async function tipsterHistory(affiliateId: string, before: string, limit = 100): Promise<CreatorTip[]> {
+  const { data } = await supabaseAdmin().from("creator_tips").select("*").eq("affiliate_id", affiliateId).lt("date", before).order("date", { ascending: false }).order("race_number", { ascending: false }).limit(limit);
+  return (data ?? []) as CreatorTip[];
+}
+
 /** Settles every tipster's calls for a date from the card's results. Called after each card build. */
 export async function settleCreatorTips(date: string, card: StoredCard): Promise<void> {
   const db = supabaseAdmin();

@@ -1,108 +1,112 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { FollowButton } from "@/components/FollowButton";
-import { SocialLinks } from "@/components/SocialLinks";
-import { TipsterTips } from "@/components/TipsterTips";
+import { CallFeed } from "@/components/CallFeed";
+import { TipsterCard, units } from "@/components/TipsterCard";
 import { getViewer } from "@/lib/auth";
-import { allTipsters, creatorTips, followedTipsters, tipsterCallCounts, tipsterRecord } from "@/lib/creators";
+import { allTipsters, callsOn, followedTipsters, latestResults, rankProfiles, tipsterProfiles } from "@/lib/creators";
+import { longDate } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 
 export const metadata: Metadata = {
   title: "Tipsters",
-  description: "The tipsters on The Overlay, their records and today's calls. Follow one and their tips sit next to the model's.",
+  description: "Every tipster on The Overlay ranked by their record, every call they post, and why you would follow each one.",
   alternates: { canonical: "/tipsters" },
 };
 
 export default function Page() {
   return (
-    <div className="page max-w-4xl">
+    <div className="page max-w-5xl">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Directory />
+        <Marketplace />
       </Suspense>
     </div>
   );
 }
 
-const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}u`;
-
-/** Every tipster on the site, with their record and a follow button. */
-async function Directory() {
+/**
+ * The marketplace: every tipster ranked on their record, with the numbers
+ * that say why you would follow them, then every call posted today and the
+ * latest results across the lot. Nothing is hidden behind a follow: a
+ * follow puts their calls next to the model's on the race pages.
+ */
+async function Marketplace() {
   await connection();
   const viewer = await getViewer();
-  const [tipsters, following, { date }] = await Promise.all([allTipsters(), followedTipsters(viewer), getTodayCard(viewer.admin)]);
+  const [tipsters, following, { date, meetings }] = await Promise.all([allTipsters(), followedTipsters(viewer), getTodayCard(viewer.admin)]);
   const followingIds = new Set(following.map((t) => t.id));
-  const [records, counts, followedTips] = await Promise.all([
-    Promise.all(tipsters.map((t) => tipsterRecord(t.id))),
-    tipsterCallCounts(date),
-    Promise.all(following.map((t) => creatorTips(t.id, date))),
-  ]);
+  const [profiles, posted, results] = await Promise.all([tipsterProfiles(tipsters), callsOn(date, tipsters), latestResults(tipsters, 20)]);
+  const ranked = rankProfiles(profiles);
+  // Today's calls in jump order across every track, not race number within each.
+  const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime ?? ""] as const)));
+  const today = [...posted].sort((a, b) => (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
+  const todayCount = new Map<string, number>();
+  for (const t of today) todayCount.set(t.affiliate_id, (todayCount.get(t.affiliate_id) ?? 0) + 1);
+  const settledToday = today.filter((t) => t.settled_at);
+  const dayUnits = settledToday.reduce((a, t) => a + Number(t.units), 0);
+  const followed = ranked.filter((p) => followingIds.has(p.tipster.id));
 
   return (
     <>
       <section className="py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Tipsters</h1>
         <p className="mt-2 text-ink-secondary max-w-2xl">
-          People who post their own calls on The Overlay. Follow one and their tips show next to the model&apos;s on every race, settled the same way, wins and losses.
+          Punters who post their own calls here, every one settled at the price they posted, wins and losses. Read the record, read the reasons, follow the ones you rate and their calls sit next to the model&apos;s on every race.
         </p>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs">
+          <span className="badge badge-muted">{tipsters.length} tipsters</span>
+          <span className="badge badge-muted">{today.length} {today.length === 1 ? "call" : "calls"} today</span>
+          {settledToday.length > 0 && <span className={`badge ${dayUnits >= 0 ? "badge-ok" : "badge-warn"}`}>{units(dayUnits)} today so far</span>}
+          {followed.length > 0 && <span className="badge badge-prime">You follow {followed.map((p) => p.tipster.name).join(", ")}</span>}
+        </div>
       </section>
 
-      {following.map((t, i) => (
-        <div key={t.id} className="mb-6">
-          <TipsterTips tipster={t} tips={followedTips[i]} record={records[tipsters.findIndex((x) => x.id === t.id)]} date={date} />
+      <section className="section" id="leaderboard">
+        <div className="section-bar">
+          <span className="section-letter">1</span>
+          <h2>Leaderboard</h2>
+          <span className="aside">Ranked on the last 30 days, then all time</span>
         </div>
-      ))}
+        <div className="section-body">
+          {ranked.length === 0 ? (
+            <p className="text-sm text-ink-soft">No tipsters yet.</p>
+          ) : (
+            <div className="grid gap-3 lg:grid-cols-2">
+              {ranked.map((p, i) => (
+                <TipsterCard key={p.tipster.id} p={p} rank={i + 1} following={followingIds.has(p.tipster.id)} you={p.tipster.user_id === viewer.id} today={todayCount.get(p.tipster.id) ?? 0} />
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
 
-      {tipsters.length === 0 ? (
-        <p className="text-sm text-ink-soft">No tipsters yet.</p>
-      ) : (
-        <div className="grid gap-3 md:grid-cols-2">
-          {tipsters.map((t, i) => {
-            const r = records[i];
-            const today = counts.get(t.id) ?? 0;
-            const isFollowing = followingIds.has(t.id);
-            return (
-              <div key={t.id} className={`card flex flex-col gap-3 ${isFollowing ? "border-lime" : ""}`}>
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <Link href={`/t/${t.code}`} className="font-display text-xl font-extrabold tracking-tight hover:underline">{t.name}</Link>
-                    <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} className="mt-0.5" />
-                    {t.blurb && <p className="text-sm text-ink-secondary mt-0.5">{t.blurb}</p>}
-                  </div>
-                  <span className="flex items-center gap-2">
-                    {t.user_id === viewer.id && <span className="badge badge-prime">You</span>}
-                    <FollowButton code={t.code} following={isFollowing} small />
-                  </span>
-                </div>
-                <div className="grid grid-cols-3 gap-2">
-                  <Stat n={r.month.n ? units(r.month.units) : "—"} label="30 days" sub={r.month.n ? `${r.month.n} calls, ${r.month.hit} landed` : "no settled calls"} tone={r.month.units > 0 ? "up" : r.month.units < 0 ? "down" : undefined} />
-                  <Stat n={r.n ? units(r.units) : "—"} label="all time" sub={r.n ? `${r.n} calls, ${r.hit} landed` : "no settled calls"} tone={r.units > 0 ? "up" : r.units < 0 ? "down" : undefined} />
-                  <Stat n={today} label="calls today" sub={today ? "see their page" : "none posted yet"} />
-                </div>
-                <Link href={`/t/${t.code}`} className="text-sm text-blue">Today&apos;s calls and record →</Link>
-              </div>
-            );
-          })}
+      <section className="section mt-4" id="today">
+        <div className="section-bar">
+          <span className="section-letter">T</span>
+          <h2>Every call today</h2>
+          <span className="aside">{longDate(date)}, in jump order</span>
         </div>
-      )}
+        <div className="section-body">
+          <CallFeed tips={today} date={date} empty="Nothing posted yet today. Calls land here the moment a tipster posts one." />
+        </div>
+      </section>
+
+      <section className="section mt-4" id="results">
+        <div className="section-bar">
+          <span className="section-letter">R</span>
+          <h2>Latest results</h2>
+          <span className="aside">The last {results.length} settled calls across every tipster</span>
+        </div>
+        <div className="section-body">
+          <CallFeed tips={results} date={date} empty="Nothing settled yet." withDate />
+        </div>
+      </section>
 
       <p className="mt-8 text-xs text-ink-soft max-w-2xl">
         Tipsters&apos; calls are their own and settle at the price they post, one unit a call. They are shown separately from the model and never counted in its record.
         Want to post on The Overlay? Email <a href="mailto:hello@theoverlay.com.au" className="text-blue">hello@theoverlay.com.au</a>.
       </p>
     </>
-  );
-}
-
-function Stat({ n, label, sub, tone }: { n: number | string; label: string; sub?: string; tone?: "up" | "down" }) {
-  const cls = tone === "up" ? "border-lime bg-lime-soft" : tone === "down" ? "border-red bg-red-soft" : "";
-  return (
-    <div className={`stat text-center ${cls}`}>
-      <div className="font-display text-xl font-extrabold tracking-tight nums">{n}</div>
-      <div className="stat-label mt-0.5">{label}</div>
-      {sub && <div className="text-[11px] text-ink-soft mt-0.5">{sub}</div>}
-    </div>
   );
 }

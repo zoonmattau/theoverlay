@@ -2804,3 +2804,71 @@ body {
   font-size: 0.8rem;
   line-height: 1.25;
 }
+
+/* --- Tipster marketplace: the cards, their stat rows, the rank and the run of results --- */
+.tipster-card {
+  display: flex;
+  flex-direction: column;
+}
+.tipster-rank {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-ink);
+  color: var(--color-lime);
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-size: 0.8rem;
+  margin-top: 2px;
+}
+.tipster-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+@media (min-width: 640px) {
+  .tipster-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+  .tipster-stats:has(> :nth-child(6)) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 900px) {
+  .tipster-stats:has(> :nth-child(6)) {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+}
+.tipster-stat {
+  text-align: center;
+  padding: 8px var(--sp-2);
+}
+.tipster-stat.is-up {
+  border-color: var(--color-accent-dim);
+  background: var(--color-lime-soft);
+}
+.tipster-stat.is-down {
+  border-color: var(--color-red-dim);
+  background: var(--color-red-soft);
+}
+.form-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+}
+.form-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--color-line-strong);
+}
+.form-dot.is-won {
+  background: var(--color-accent);
+}
+.form-dot.is-lost {
+  background: var(--color-red);
+}
