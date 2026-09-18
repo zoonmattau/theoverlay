@@ -32,6 +32,7 @@ async function open(width) {
 }
 const section = (page, title) => page.locator(`section.section:has(h2:text-is("${title}"))`).first();
 
+const light = process.env.THEME === "light";
 const shots = {};
 let page = await open(900);
 const top = Number(process.env.TOP ?? 4);
@@ -64,6 +65,14 @@ await page.waitForTimeout(800);
 const panel = row.locator("xpath=following-sibling::tr[1]");
 const a = await row.boundingBox(), b = await panel.boundingBox(), sy = await page.evaluate(() => window.scrollY);
 shots.runner = await page.screenshot({ clip: { x: a.x, y: a.y + sy, width: a.width, height: b.y + b.height - a.y }, fullPage: true });
+// The worm on its own, heading included, for the slide that has room under the speed map.
+const wormHead = panel.locator("h4:has-text('run by run')");
+const worm = panel.locator("figure.worm");
+if (await worm.count()) {
+  await worm.scrollIntoViewIfNeeded();
+  const h = await wormHead.boundingBox(), w = await worm.boundingBox(), sy2 = await page.evaluate(() => window.scrollY);
+  shots.worm = await page.screenshot({ clip: { x: w.x, y: (h?.y ?? w.y) + sy2, width: w.width, height: w.y + w.height - (h?.y ?? w.y) }, fullPage: true });
+}
 const runnerName = (await row.locator("td").nth(1).innerText()).split("\n")[0].trim();
 // The slide is named for what the row says, not for how the tab was chosen.
 const isLay = /LAY/.test(await row.innerText());
@@ -72,13 +81,14 @@ await page.close();
 const slides = [
   { imgs: [shots.topFour], title: top === 2 ? "Our top two" : top === 3 ? "Our top three" : "Our top four", sub: process.env.SUB1 ?? "Live price against our rated price, and why each one rates where it does." },
   { imgs: [shots.bars, shots.matrix], title: "The ratings", sub: "Every runner on the benchmark scale, and every category in one table: green above the field, red below." },
-  { imgs: [shots.speedMap, shots.glance], title: "The speed map", sub: "Where each runner settles, what that does to the tempo, and the race at a glance." },
+  light
+    ? { imgs: [shots.speedMap, ...(shots.worm ? [shots.worm] : [])], title: "The speed map", sub: `Where each runner settles, and ${runnerName} against the field, run by run.` }
+    : { imgs: [shots.speedMap, shots.glance], title: "The speed map", sub: "Where each runner settles, what that does to the tempo, and the race at a glance." },
   { imgs: [shots.runner], title: isLay ? "The lay" : process.env.PILL ? "The winner" : "The top pick", sub: `${runnerName}: profile, sectionals against the field, what to expect, the last five runs and our call.` },
 ];
 const picked = process.env.PICK ? process.env.PICK.split(",").map((n) => slides[Number(n) - 1]).filter(Boolean) : slides;
 const from = Number(process.env.FROM ?? 1);
 const total = Number(process.env.TOTAL ?? from - 1 + picked.length);
-const light = process.env.THEME === "light";
 const data = (buf, type = "image/png") => `data:${type};base64,` + buf.toString("base64");
 // The brand faces, inlined so the composed page needs no file access.
 const font = (file) => data(readFileSync(`.design-sync/fonts/${file}`), "font/woff2");
@@ -100,9 +110,8 @@ for (const [i, s] of picked.entries()) {
     h1 b { background: #c6f24e; padding: 2px 12px 0 }
     .sub { font-size: 23px; line-height: 1.4; margin-bottom: 22px; max-width: 920px }
     /* The screenshot runs the full width and is clipped at the foot rather than shrunk: the top of every section is the part that matters. */
-    .stack { flex: 1; min-height: 0; overflow: hidden; border: 1px solid #dfe3db }
-    .stack img { display: block; width: 100% }
-    .stack img + img { display: none }
+    .stack { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 14px }
+    .stack img { display: block; width: 100%; border: 1px solid #dfe3db; flex: none }
     .foot { display: flex; align-items: center; gap: 22px; margin-top: 32px; padding-top: 28px; border-top: 1px solid #dfe3db }
     .foot img { width: 58px; height: 58px; background: #c6f24e; padding: 12px }
     .foot .site { font-size: 26px; font-weight: 700 }
