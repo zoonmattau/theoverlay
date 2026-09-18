@@ -181,14 +181,43 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
     const lays = calls.length - bets;
     await once(date, "calls", () => send(CHANNELS.calls, `**${day}: ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}.**\n\n${lines(calls)}\n\n${SITE}/`));
     const free = card.meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === card.freeRaceId);
-    if (free) {
-      await once(date, "free", () =>
-        send(CHANNELS.free, `**Free race of the day, ${day}**\n${free.m.track} R${free.r.raceNumber}, ${free.r.distance}m at ${clock(free.r.jumpTime)}. Our top four, a rated price for every runner and the calls, open to all.\n${raceUrl(date, free.m, free.r)}`),
-      );
-    }
+    if (free) await once(date, "free", () => send(CHANNELS.free, freeRacePost(date, day, free.m, free.r, calls)));
   } catch (err) {
     console.error("[discord] calls", err);
   }
+}
+
+/**
+ * The free race written up: what the race is, how it should be run, our
+ * top four with the reason for each, the question the race turns on, and
+ * the calls in it, so the post reads like the page rather than a pointer to it.
+ */
+function freeRacePost(date: string, day: string, m: PublishedMeeting, r: PublishedRace, calls: Call[]): string {
+  const live = r.runners.filter((x) => !x.scratched);
+  const top = live.filter((x) => x.rank).sort((a, b) => a.rank! - b.rank!);
+  const tempo = r.pace.tempo === "fast" ? "A fast tempo" : r.pace.tempo === "slow" ? "A slow tempo" : "An even tempo";
+  const lead = r.pace.leaderGap !== undefined && r.pace.leaderGap < 1 ? "a contested lead" : r.pace.leaderGap !== undefined && r.pace.leaderGap >= 3 ? "one horse on its own in front" : "no fight for the lead";
+  const leader = live.find((x) => x.ratings.map === "leader");
+  const shape = `${tempo} on our read of the early sectionals, with ${lead}${leader ? `, ${leader.horseName} the likely leader` : ""}.`;
+  const four = top.map((x) => `${x.rank}. **${x.tabNumber}. ${x.horseName}** rates ${x.ratings.today.toFixed(0)}, ${price(x.ratedPrice)} against ${price(x.marketPrice)}${x.why ? `. ${x.why}` : ""}`).join("\n");
+  const own = calls.filter((c) => c.r.raceId === r.raceId);
+  const called = own.length ? own.map((c) => line(c)).join("\n") : "No call in this race: the market has it about right.";
+  return [
+    `**Free race of the day, ${day}**`,
+    `${m.track} R${r.raceNumber}, ${r.name}${r.className ? ` (${r.className})` : ""}, ${r.distance}m${r.goingText ? `, ${r.goingText}` : ""}, ${live.length} runners, jumps ${clock(r.jumpTime)}.`,
+    ``,
+    `**The shape.** ${shape}`,
+    ``,
+    `**Our top four.**`,
+    four,
+    ``,
+    `**The question.** ${r.verdict}`,
+    ``,
+    `**The calls.**`,
+    called,
+    ``,
+    `Every runner rated, the sectionals and the speed map: ${raceUrl(date, m, r)}`,
+  ].join("\n");
 }
 
 /**
