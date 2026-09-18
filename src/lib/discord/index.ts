@@ -292,17 +292,33 @@ const layKey = (c: Call) => `lay:${c.r.raceId}:${c.x.tabNumber}`;
 const primeKey = (c: Call) => `prime:${c.r.raceId}:${c.x.tabNumber}`;
 
 /**
- * Winners as they land: a race whose result arrived with this rebuild posts
- * every call that came off in it, a bet that won at its price or a lay that
- * held, with the day's running total. Losers stay off this channel; the
- * results post at the end of the day carries the lot.
+ * Winners as they land: every resulted race with a call in it that has not
+ * been announced yet posts the calls that came off, a bet that won at its
+ * price or a lay that held, with the day's running total. Each race is
+ * remembered in discord_posts, so a build cut short after settling the
+ * ledger (the prices cron has a time cap) is picked up by the next one
+ * rather than lost. Losers stay off this channel; the results post at the
+ * end of the day carries the lot.
  */
 export async function postWinners(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
   if (!discordConfigured() || before.size === 0) return;
   try {
-    const landed = callsOn(card).filter((c) => c.r.result?.length && !before.get(c.r.raceId)?.result?.length && c.x.finishPosition !== undefined);
+    const resulted = callsOn(card).filter((c) => c.r.result?.length && c.x.finishPosition !== undefined);
+    const raceIds = [...new Set(resulted.map((c) => c.r.raceId))];
+    if (raceIds.length === 0) return;
+    const { data: posts } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).in("kind", raceIds.map((id) => `won:${id}`));
+    const announced = new Set((posts ?? []).map((p) => String(p.kind)));
+    const landed = resulted.filter((c) => !announced.has(`won:${c.r.raceId}`));
     const won = landed.filter((c) => (c.x.signal === "back" ? c.x.finishPosition === 1 : c.x.finishPosition !== 1));
-    if (won.length === 0) return;
+    // Every race in this batch is written down, winners in it or not, so a race of losers is not asked about again.
+    const remember = async (messageId?: string) => {
+      const rows = [...new Set(landed.map((c) => c.r.raceId))].map((id) => ({ date, kind: `won:${id}`, message_id: messageId ?? null }));
+      if (rows.length) await supabaseAdmin().from("discord_posts").upsert(rows, { onConflict: "date,kind" });
+    };
+    if (won.length === 0) {
+      await remember();
+      return;
+    }
     // The day so far, over every call in a race that has run.
     let units = 0;
     for (const c of callsOn(card)) {
@@ -319,7 +335,8 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
       }
       return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(callPrice(c.x)!)}. +1.00u`;
     });
-    await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
+    const messageId = await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
+    await remember(messageId);
   } catch (err) {
     console.error("[discord] winners", err);
   }

@@ -2,7 +2,8 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { racingToday, refreshPrices } from "@/lib/model/source";
 
-export const maxDuration = 60;
+// A rebuild on a result settles the ledger and posts to Discord; the card route's cap, so neither is cut short.
+export const maxDuration = 300;
 
 /**
  * The price poll: BetWatch's bookmaker and exchange prices for every race

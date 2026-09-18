@@ -121,7 +121,17 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   // open; they count for nothing.
   for (const r of rows) {
     const was = seen.get(`${r.race_id}:${r.tab_number}`);
-    if (!was || was.settled) continue;
+    if (!was) continue;
+    // A bet settled on the exchange's first result, before the official one brought
+    // the Betfair SP, moves up to that SP when it is the better price: the rule is
+    // the better of the two, whichever arrived first. Looming One, 18 Sep 2026.
+    if (was.settled) {
+      if (r.side === "back" && r.settled_at && r.finish_position !== undefined && r.market_price > was.price) {
+        const { error: e } = await db.from("tips").update({ market_price: r.market_price, units: settle(r.side, r.market_price, r.finish_position ?? 0, was.stake) }).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
+        if (e) console.error("[tips] resettle", e.message);
+      }
+      continue;
+    }
     const price = betterPrice(r.side, was.price, r.market_price);
     // A bet that grew into a Prime during the day is a Prime on the record: members were told so.
     const prime = r.tag === "prime_overlay" && was.tag !== "prime_overlay" ? { tag: r.tag } : {};
