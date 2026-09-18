@@ -102,7 +102,7 @@ export function RaceMatrix({
         <span><span className="legend-dot bg-blue-soft" />Way Overlay</span>
         <span><span className="legend-dot bg-red" />Lay</span>
         <span><span className="legend-dot bg-surface-alt" />Resulted, first four</span>
-        {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />{tipsters.map((t) => t.name).join(", ")}: a call in this race</span>}
+        {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />A tipster you follow has a call in this race</span>}
       </div>
     </div>
   );

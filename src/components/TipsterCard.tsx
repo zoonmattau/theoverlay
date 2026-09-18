@@ -3,7 +3,7 @@ import Link from "next/link";
 import { CallFeed } from "./CallFeed";
 import { FollowButton } from "./FollowButton";
 import { SocialLinks } from "./SocialLinks";
-import type { CreatorTip, TipsterProfile } from "@/lib/creators";
+import { TIPSTER_PERIODS, type CreatorTip, type TipsterPeriod, type TipsterProfile } from "@/lib/creators";
 import { price } from "@/lib/format";
 
 export const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}u`;
@@ -44,8 +44,10 @@ export function FormDots({ recent }: { recent: TipsterProfile["recent"] }) {
  * would follow, and a dropdown with today's calls (how many still to run)
  * and their last few before that.
  */
-export function TipsterCard({ p, rank, following, you, today, live, recent, date }: { p: TipsterProfile; rank: number; following: boolean; you: boolean; today: CreatorTip[]; live: number; recent: CreatorTip[]; date: string }) {
+export function TipsterCard({ p, rank, following, you, today, live, recent, date, period = "30" }: { p: TipsterProfile; rank: number; following: boolean; you: boolean; today: CreatorTip[]; live: number; recent: CreatorTip[]; date: string; period?: TipsterPeriod }) {
   const t = p.tipster;
+  const w = p.windows[period];
+  const wLabel = TIPSTER_PERIODS.find((x) => x.id === period)?.label ?? "30 days";
   const summary = today.length
     ? `${today.length} ${today.length === 1 ? "call" : "calls"} today${live ? `, ${live} still to run` : ", all run"}`
     : recent.length
@@ -71,9 +73,17 @@ export function TipsterCard({ p, rank, following, you, today, live, recent, date
       <p className="text-sm mt-3">{whyFollow(p)}</p>
 
       <div className="tipster-stats mt-3">
-        <Stat label="30 days" value={p.month.n ? units(p.month.units) : "—"} sub={p.month.n ? `${p.month.hit} of ${p.month.n}` : "nothing settled"} tone={tone(p.month.units, p.month.n > 0)} />
-        <Stat label="All time" value={p.all.n ? units(p.all.units) : "—"} sub={p.all.n ? `${p.all.hit} of ${p.all.n}` : "nothing settled"} tone={tone(p.all.units, p.all.n > 0)} />
-        <Stat label="Return" value={p.all.n ? pct(p.all.roi) : "—"} sub="on turnover" tone={tone(p.all.roi, p.all.n > 0)} />
+        {period === "all" ? (
+          <Stat label="All time" value={p.all.n ? units(p.all.units) : "—"} sub={p.all.n ? `${p.all.hit} of ${p.all.n}` : "nothing settled"} tone={tone(p.all.units, p.all.n > 0)} />
+        ) : (
+          <Stat label={wLabel} value={w.n ? units(w.units) : "—"} sub={w.n ? `${w.hit} of ${w.n}` : "nothing settled"} tone={tone(w.units, w.n > 0)} />
+        )}
+        {period === "all" ? (
+          <Stat label="Strike rate" value={p.all.n ? `${Math.round((p.all.hit / p.all.n) * 100)}%` : "—"} sub={p.all.n ? "landed" : "nothing settled"} />
+        ) : (
+          <Stat label="All time" value={p.all.n ? units(p.all.units) : "—"} sub={p.all.n ? `${p.all.hit} of ${p.all.n}` : "nothing settled"} tone={tone(p.all.units, p.all.n > 0)} />
+        )}
+        <Stat label="Return" value={w.n ? pct(w.roi) : "—"} sub={period === "all" ? "on turnover" : `on turnover, ${wLabel}`} tone={tone(w.roi, w.n > 0)} />
         <Stat label="Avg bet" value={p.avgPrice ? price(p.avgPrice) : "—"} sub={p.bets.n ? `${p.bets.n} bets, ${p.lays.n} lays` : "no bets yet"} />
       </div>
 

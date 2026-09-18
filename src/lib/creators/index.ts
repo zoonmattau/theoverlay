@@ -158,15 +158,27 @@ export interface SideRecord {
   roi: number;
 }
 
+/** The windows the leaderboard can rank on. */
+export const TIPSTER_PERIODS = [
+  { id: "7", label: "7 days", days: 7 },
+  { id: "30", label: "30 days", days: 30 },
+  { id: "90", label: "90 days", days: 90 },
+  { id: "all", label: "All time" },
+] as const;
+export type TipsterPeriod = (typeof TIPSTER_PERIODS)[number]["id"];
+export const tipsterPeriod = (v: unknown): TipsterPeriod => (TIPSTER_PERIODS.some((p) => p.id === v) ? (v as TipsterPeriod) : "30");
+
 /**
  * A tipster as the marketplace sizes them up: the record all time and over
- * the last 30 days, bets and lays apart, the run of recent results, how
- * often they post, and how many follow them.
+ * each window, bets and lays apart, the run of recent results, how often
+ * they post, and how many follow them.
  */
 export interface TipsterProfile {
   tipster: Tipster;
   all: SideRecord;
   month: SideRecord;
+  /** The record over each window the leaderboard offers. */
+  windows: Record<TipsterPeriod, SideRecord>;
   bets: SideRecord;
   lays: SideRecord;
   /** Average price struck on bets. */
@@ -205,7 +217,8 @@ export async function tipsterProfiles(tipsters: Tipster[]): Promise<TipsterProfi
   const followers = new Map<string, number>();
   for (const f of (follows ?? []) as { tipster_id: string }[]) followers.set(f.tipster_id, (followers.get(f.tipster_id) ?? 0) + 1);
   const rows = (tips ?? []) as (Pick<CreatorTip, "affiliate_id" | "date" | "track" | "horse_name" | "side" | "price" | "bookie_price" | "comment" | "units" | "finish_position" | "settled_at">)[];
-  const month = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
+  const from = (days: number) => new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
+  const month = from(30);
   return tipsters.map((tipster) => {
     const mine = rows.filter((r) => r.affiliate_id === tipster.id);
     const settled = mine.filter((r) => r.settled_at);
@@ -217,6 +230,7 @@ export async function tipsterProfiles(tipsters: Tipster[]): Promise<TipsterProfi
       tipster,
       all: tallySide(settled),
       month: tallySide(settled.filter((r) => r.date >= month)),
+      windows: Object.fromEntries(TIPSTER_PERIODS.map((w) => [w.id, tallySide("days" in w ? settled.filter((r) => r.date >= from(w.days)) : settled)])) as Record<TipsterPeriod, SideRecord>,
       bets: tallySide(bets),
       lays: tallySide(settled.filter((r) => r.side === "lay")),
       avgPrice: bets.length ? Math.round((bets.reduce((a, r) => a + struckAt(r), 0) / bets.length) * 100) / 100 : undefined,
@@ -232,14 +246,15 @@ export async function tipsterProfiles(tipsters: Tipster[]): Promise<TipsterProfi
 }
 
 /**
- * The directory's order: the best last 30 days first, then the best all
- * time among those with nothing settled this month, then whoever has
- * posted most among the unsettled.
+ * The directory's order: the best over the window first, then the best all
+ * time among those with nothing settled in it, then whoever has posted
+ * most among the unsettled.
  */
-export function rankProfiles(profiles: TipsterProfile[]): TipsterProfile[] {
+export function rankProfiles(profiles: TipsterProfile[], period: TipsterPeriod = "30"): TipsterProfile[] {
   return [...profiles].sort((a, b) => {
-    if (a.month.n && b.month.n) return b.month.units - a.month.units || b.month.roi - a.month.roi;
-    if (a.month.n !== b.month.n && (!a.month.n || !b.month.n)) return a.month.n ? -1 : 1;
+    const x = a.windows[period], y = b.windows[period];
+    if (x.n && y.n) return y.units - x.units || y.roi - x.roi;
+    if (x.n !== y.n && (!x.n || !y.n)) return x.n ? -1 : 1;
     if (a.all.n && b.all.n) return b.all.units - a.all.units;
     if (a.all.n !== b.all.n && (!a.all.n || !b.all.n)) return a.all.n ? -1 : 1;
     return b.posted - a.posted || a.tipster.name.localeCompare(b.tipster.name);

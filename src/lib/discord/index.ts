@@ -263,9 +263,9 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
       if (prev && prev.signal === c.x.signal) continue;
       fresh.push(c);
     }
-    for (const c of fresh) await send(CHANNELS.calls, callPost(c));
-    for (const c of primes) await remember(date, primeKey(c), () => send(CHANNELS.primes, callPost(c)));
-    for (const c of lays) await remember(date, layKey(c), () => send(CHANNELS.calls, callPost(c)));
+    for (const c of fresh) await send(CHANNELS.calls, callPost(c, date));
+    for (const c of primes) await remember(date, primeKey(c), () => send(CHANNELS.primes, callPost(c, date)));
+    for (const c of lays) await remember(date, layKey(c), () => send(CHANNELS.calls, callPost(c, date)));
   } catch (err) {
     console.error("[discord] call changes", err);
   }
@@ -274,16 +274,17 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
 /**
  * One call on its own, headed by the race and its jump time so the post
  * reads "Ballarat R2 1:30pm, LAY 9. Miss Graff", then the price it is
- * struck at and ours.
+ * struck at and ours. The heading links to the race page.
  */
-function callPost(c: Call): string {
+function callPost(c: Call, date: string): string {
   const prime = isPrime(c);
   const side = c.x.signal === "lay" ? "LAY" : prime ? "PRIME" : isRoughie(c.x) ? "WAY OVERLAY" : "BET";
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
   const limit = callLimit(c.x);
   const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
   const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
-  return [`**${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)}, ${side} ${c.x.tabNumber}. ${c.x.horseName}**`, `${square} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`].join("\n");
+  // The heading is the link to the race; embeds are off on every post, so it stays one line.
+  return [`**[${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)}, ${side} ${c.x.tabNumber}. ${c.x.horseName}](${raceUrl(date, c.m, c.r)})**`, `${square} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`].join("\n");
 }
 
 /** The discord_posts kinds that remember a lay, or a Prime made during the day, has been posted. */

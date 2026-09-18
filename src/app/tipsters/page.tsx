@@ -5,7 +5,9 @@ import { Suspense } from "react";
 import { CallFeed } from "@/components/CallFeed";
 import { TipsterCard, units } from "@/components/TipsterCard";
 import { getViewer } from "@/lib/auth";
-import { allTipsters, callsOn, followedTipsters, latestResults, rankProfiles, recentCalls, tipsterProfiles } from "@/lib/creators";
+import Link from "next/link";
+
+import { allTipsters, callsOn, followedTipsters, latestResults, rankProfiles, recentCalls, TIPSTER_PERIODS, tipsterPeriod, tipsterProfiles } from "@/lib/creators";
 import { longDate } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 
@@ -15,11 +17,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/tipsters" },
 };
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/tipsters">) {
   return (
     <div className="page max-w-5xl">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Marketplace />
+        <Marketplace searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -31,13 +33,15 @@ export default function Page() {
  * latest results across the lot. Nothing is hidden behind a follow: a
  * follow puts their calls next to the model's on the race pages.
  */
-async function Marketplace() {
+async function Marketplace({ searchParams }: { searchParams: PageProps<"/tipsters">["searchParams"] }) {
   await connection();
-  const viewer = await getViewer();
+  const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
+  // The window the leaderboard ranks on, from ?period=7|30|90|all.
+  const period = tipsterPeriod(sp.period);
   const [tipsters, following, { date, meetings }] = await Promise.all([allTipsters(), followedTipsters(viewer), getTodayCard(viewer.admin)]);
   const followingIds = new Set(following.map((t) => t.id));
   const [profiles, posted, results, recent] = await Promise.all([tipsterProfiles(tipsters), callsOn(date, tipsters), latestResults(tipsters, 20), recentCalls(tipsters, date)]);
-  const ranked = rankProfiles(profiles);
+  const ranked = rankProfiles(profiles, period);
   // Today's calls in jump order across every track, not race number within each.
   const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime ?? ""] as const)));
   const today = [...posted].sort((a, b) => (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
@@ -67,7 +71,14 @@ async function Marketplace() {
         <div className="section-bar">
           <span className="section-letter">1</span>
           <h2>Leaderboard</h2>
-          <span className="aside">Ranked on the last 30 days, then all time</span>
+          <div className="metric-tabs" role="tablist">
+            {TIPSTER_PERIODS.map((w) => (
+              <Link key={w.id} href={w.id === "30" ? "/tipsters" : `/tipsters?period=${w.id}`} role="tab" aria-selected={period === w.id} className="metric-tab" scroll={false}>
+                {w.label}
+              </Link>
+            ))}
+          </div>
+          <span className="aside">{period === "all" ? "Ranked all time" : `Ranked on the last ${TIPSTER_PERIODS.find((w) => w.id === period)?.label}, then all time`}</span>
         </div>
         <div className="section-body">
           {ranked.length === 0 ? (
@@ -85,6 +96,7 @@ async function Marketplace() {
                   live={today.filter((t) => t.affiliate_id === p.tipster.id && isLive(t)).length}
                   recent={recent.get(p.tipster.id) ?? []}
                   date={date}
+                  period={period}
                 />
               ))}
             </div>

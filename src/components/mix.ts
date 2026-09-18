@@ -20,19 +20,21 @@ export const mixed = (mix: RaceMix) => mix.length > 1;
 export function mixGradient(mix: RaceMix): string {
   const total = mix.reduce((a, s) => a + s.n, 0);
   let at = 0;
-  const stops = mix.map((s) => {
+  // The last stripe runs to the edge with no end stop, and the gradient never
+  // repeats, so no sliver of the first colour tiles in at the far right.
+  const stops = mix.map((s, i) => {
     const from = at;
     at += (s.n / total) * 100;
-    return `${COLOUR[s.tip]} ${from.toFixed(1)}% ${at.toFixed(1)}%`;
+    return i === mix.length - 1 ? `${COLOUR[s.tip]} ${from.toFixed(1)}%` : `${COLOUR[s.tip]} ${from.toFixed(1)}% ${at.toFixed(1)}%`;
   });
-  return `linear-gradient(90deg, ${stops.join(", ")})`;
+  return `linear-gradient(90deg, ${stops.join(", ")}) no-repeat`;
 }
 
 /** The fill for a race still to run, or the outline for one that has: the stripes as a border, the grey fill kept inside it. */
 export function mixStyle(mix: RaceMix, resulted = false): CSSProperties | undefined {
   if (!mixed(mix)) return undefined;
   const stripes = mixGradient(mix);
-  if (resulted) return { border: "2px solid transparent", background: `linear-gradient(var(--color-surface), var(--color-surface)) padding-box, ${stripes} border-box` };
+  if (resulted) return { border: "2px solid transparent", background: `linear-gradient(var(--color-surface), var(--color-surface)) padding-box no-repeat, ${stripes} border-box` };
   return { background: stripes, borderColor: "transparent" };
 }
 
