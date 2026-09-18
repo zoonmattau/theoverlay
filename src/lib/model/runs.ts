@@ -45,7 +45,7 @@ export function runRowsOf(entry: RaceEntry, horseId: string): RunRow[] {
   if (!name) return [];
   const out: RunRow[] = [];
   for (const p of (entry.pastEvents ?? []) as (PastEvent & Record<string, unknown>)[]) {
-    if (p.race === false || p.trial || p.spell || p.scratched || !p.raceId || !p.date || isJumps(p.raceName)) continue;
+    if (p.race === false || p.trial || p.spell || p.scratched || !p.raceId || !p.date || isJumps(p)) continue;
     const finish = num(p.finishPosition);
     out.push({
       race_id: p.raceId,

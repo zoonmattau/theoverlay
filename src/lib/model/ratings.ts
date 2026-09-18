@@ -387,7 +387,7 @@ export function rateEntries(
 /** The last runs the rating is built on: real races, most recent first. */
 function recentRuns(e: RaceEntry) {
   return (e.pastEvents ?? [])
-    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p.raceName))
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p))
     .sort((a, b) => b.date - a.date)
     .slice(0, RUN_WEIGHTS.length);
 }
@@ -480,7 +480,16 @@ const sameTrack = (a?: string, b?: string) =>
   Boolean(a && b) && a!.trim().toLowerCase() === b!.trim().toLowerCase();
 
 /** Hurdles and steeplechases are rated on their own scale and never count. */
-export const isJumps = (raceName?: string) => /\b(stpl|steeple|steeplechase|hdle|hurdle|jumps?)\b/i.test(raceName ?? "");
+/**
+ * A run that says nothing about form at a normal trip and stays out of the
+ * ratings: a jumps race by name, anything past 3400m (the Jericho Cup is
+ * flat, 4600m, once a year, and its benchmark read sixty lengths clear of a
+ * BM90 par), or a benchmark that far from par however it happened. Tempest
+ * Moon, Ballarat R5, 18 Sep 2026: that one run rated 99 and put a 74 horse
+ * on top of a 2000m field.
+ */
+export const isJumps = (p: { raceName?: string; distance?: number; benchmark?: { vsClass: number } }) =>
+  /\b(stpl|steeple|steeplechase|hdle|hurdle|jumps?)\b/i.test(p.raceName ?? "") || (p.distance ?? 0) > 3400 || Math.abs(p.benchmark?.vsClass ?? 0) > 25;
 
 /**
  * What one run was worth. The race's benchmark comes from its name, falling
