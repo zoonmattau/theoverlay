@@ -8,6 +8,7 @@ import { getViewer } from "@/lib/auth";
 import { planById, PLANS } from "@/lib/billing/plans";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { allTipsters } from "@/lib/creators";
+import { discordRoster } from "@/lib/discord";
 import { MembersTable, type MemberRow } from "../MembersTable";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
@@ -31,6 +32,8 @@ async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const [members, tipsters, { data: affiliates }] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code")]);
+  // Discord asked one linked account at a time, so the page knows who is really in the server.
+  const { presence, serverMembers } = await discordRoster(members.map((m) => m.discord_id).filter((id): id is string => Boolean(id)));
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
   const codeOf = new Map((affiliates ?? []).map((a) => [a.id as string, a.code as string]));
   const now = clock();
@@ -57,8 +60,13 @@ async function Members() {
       gift: m.bonus_until && new Date(m.bonus_until).getTime() > now ? ms(m.bonus_until) : 0,
       emails: Boolean(m.marketing_opt_in),
       lastSeen: ms(m.last_seen_at) || ms(m.last_sign_in_at),
+      discord: (m.discord_id && (presence.get(m.discord_id)?.name || m.discord_name)) || "",
+      discordState: !m.discord_id ? "none" : presence.get(m.discord_id)?.member ? "member" : presence.get(m.discord_id)?.joined ? "joined" : "linked",
     };
   });
+  const linked = rows.filter((r) => r.discordState !== "none").length;
+  const inServer = rows.filter((r) => r.discordState === "member" || r.discordState === "joined").length;
+  const withRole = rows.filter((r) => r.discordState === "member").length;
 
 
   return (
@@ -66,6 +74,10 @@ async function Members() {
       <section className="py-6">
         <h1 className="font-display text-3xl font-extrabold tracking-tight">Members</h1>
         <p className="mt-1 text-sm text-ink-soft">Everyone with an account. Click a name for the full record.</p>
+        <p className="mt-2 text-sm text-ink-secondary nums">
+          Discord: {serverMembers !== undefined ? `${serverMembers} in the server, ` : ""}{linked} linked to an account, {inServer} of those in the server, {withRole} with the Member role.
+          {serverMembers !== undefined && serverMembers - inServer > 0 ? ` ${serverMembers - inServer} in the server with no account linked, the bot among them.` : ""}
+        </p>
       </section>
 
       <div className="card mb-6">

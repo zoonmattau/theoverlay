@@ -473,6 +473,46 @@ async function applyRole(discordId: string, member: boolean, accessToken?: strin
   }
 }
 
+export interface DiscordPresence {
+  /** In the server right now. */
+  joined: boolean;
+  /** Holds the Member role. */
+  member: boolean;
+  tipster: boolean;
+  /** Their name on the server. */
+  name?: string;
+}
+
+/**
+ * For the admin: whether each linked Discord account is in the server and
+ * which roles it holds, one lookup each, and how big the server is. A
+ * lookup that fails reads as not joined.
+ */
+export async function discordRoster(discordIds: string[]): Promise<{ presence: Map<string, DiscordPresence>; serverMembers?: number }> {
+  const presence = new Map<string, DiscordPresence>();
+  if (!discordConfigured()) return { presence };
+  let serverMembers: number | undefined;
+  try {
+    const ids = await roles();
+    const memberId = ids.get(MEMBER_ROLE);
+    const tipsterId = ids.get(TIPSTER_ROLE);
+    const g = await api<{ approximate_member_count?: number }>("GET", `/guilds/${guild()}?with_counts=true`);
+    serverMembers = g.approximate_member_count;
+    for (const id of discordIds) {
+      try {
+        const m = await api<{ roles: string[]; nick?: string | null; user?: { username: string; global_name?: string | null } }>("GET", `/guilds/${guild()}/members/${id}`);
+        presence.set(id, { joined: true, member: Boolean(memberId && m.roles.includes(memberId)), tipster: Boolean(tipsterId && m.roles.includes(tipsterId)), name: m.nick || m.user?.global_name || m.user?.username });
+      } catch (err) {
+        if (!/404/.test(String(err))) throw err;
+        presence.set(id, { joined: false, member: false, tipster: false });
+      }
+    }
+  } catch (err) {
+    console.error("[discord] roster", err);
+  }
+  return { presence, serverMembers };
+}
+
 /** Takes the Member role off a Discord account that is no longer linked. */
 export async function removeDiscordMember(discordId: string): Promise<void> {
   if (!discordConfigured()) return;

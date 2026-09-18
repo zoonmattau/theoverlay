@@ -30,9 +30,13 @@ export interface MemberRow {
   gift: number;
   emails: boolean;
   lastSeen: number;
+  /** Their name on Discord once linked, or "". */
+  discord: string;
+  /** member: in the server with the Member role; joined: in the server without it; linked: linked but not in the server; none: never linked. */
+  discordState: "member" | "joined" | "linked" | "none";
 }
 
-type Key = "name" | "account" | "plan" | "affiliate" | "status" | "accessUntil" | "since" | "spent" | "passes" | "gift" | "emails" | "lastSeen";
+type Key = "name" | "account" | "plan" | "affiliate" | "status" | "accessUntil" | "since" | "spent" | "passes" | "gift" | "emails" | "lastSeen" | "discordState";
 
 const COLS: { key: Key; label: string; right?: boolean }[] = [
   { key: "name", label: "Member" },
@@ -46,8 +50,10 @@ const COLS: { key: Key; label: string; right?: boolean }[] = [
   { key: "passes", label: "Passes", right: true },
   { key: "gift", label: "Gift until" },
   { key: "emails", label: "Emails" },
+  { key: "discordState", label: "Discord" },
   { key: "lastSeen", label: "Last seen" },
 ];
+const DISCORD_ORDER = { member: 0, joined: 1, linked: 2, none: 3 };
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const day = (t: number) => (t ? new Date(t).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" }) : "—");
@@ -60,6 +66,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
   const [plan, setPlan] = useState("all");
   const [account, setAccount] = useState<"all" | "active" | "invited" | "unconfirmed">("all");
   const [emails, setEmails] = useState<"all" | "on" | "off">("all");
+  const [discord, setDiscord] = useState<"all" | MemberRow["discordState"]>("all");
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "since", dir: -1 });
 
   const shown = useMemo(() => {
@@ -70,17 +77,19 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
         (status === "all" || m.status === status) &&
         (plan === "all" || (plan === "tipster" ? m.tipster : m.plan === plan)) &&
         (account === "all" || m.account === account) &&
-        (emails === "all" || m.emails === (emails === "on")),
+        (emails === "all" || m.emails === (emails === "on")) &&
+        (discord === "all" || m.discordState === discord),
     );
     const cmp = (a: MemberRow, b: MemberRow) => {
+      if (sort.key === "discordState") return DISCORD_ORDER[a.discordState] - DISCORD_ORDER[b.discordState];
       const x = a[sort.key], y = b[sort.key];
       if (typeof x === "string" && typeof y === "string") return x.localeCompare(y);
       return Number(x) - Number(y);
     };
     return out.sort((a, b) => sort.dir * cmp(a, b) || a.name.localeCompare(b.name));
-  }, [rows, q, status, plan, account, emails, sort]);
+  }, [rows, q, status, plan, account, emails, discord, sort]);
 
-  const click = (key: Key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" || key === "plan" || key === "account" || key === "status" || key === "affiliate" ? 1 : -1 }));
+  const click = (key: Key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" || key === "plan" || key === "account" || key === "status" || key === "affiliate" || key === "discordState" ? 1 : -1 }));
   const sel = "field-input py-1 text-xs";
 
   return (
@@ -103,6 +112,9 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
           </select>
           <select id="members-emails" value={emails} onChange={(e) => setEmails(e.target.value as typeof emails)} className={sel}>
             <option value="all">Emails on or off</option><option value="on">Emails on</option><option value="off">Emails off</option>
+          </select>
+          <select id="members-discord" value={discord} onChange={(e) => setDiscord(e.target.value as typeof discord)} className={sel}>
+            <option value="all">Any Discord</option><option value="member">Discord Member role</option><option value="joined">In the server, no role</option><option value="linked">Linked, not in the server</option><option value="none">Not linked</option>
           </select>
         </div>
       }
@@ -142,6 +154,16 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                 <td className="text-right nums">{m.passes}</td>
                 <td className="nums">{day(m.gift)}</td>
                 <td>{m.emails ? <span className="badge badge-prime">On</span> : <span className="badge badge-muted">Off</span>}</td>
+                <td>
+                  {m.discordState === "none" ? (
+                    <span className="text-xs text-ink-soft">—</span>
+                  ) : (
+                    <>
+                      {m.discordState === "member" ? <span className="badge badge-prime">Member</span> : m.discordState === "joined" ? <span className="badge badge-warn">No role</span> : <span className="badge badge-muted">Not joined</span>}
+                      <span className="block text-xs text-ink-soft">{m.discord}</span>
+                    </>
+                  )}
+                </td>
                 <td className="nums">{when(m.lastSeen)}</td>
                 <td>
                   {m.id !== self && !m.admin && (
