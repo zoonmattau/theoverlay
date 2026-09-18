@@ -46,10 +46,17 @@ export interface PriceBook {
 }
 
 const KIND = "bw";
-/** Inside this long before the jump a race is polled every PRICE_EVERY_MS; further out, every PRICE_FAR_EVERY_MS. */
+/**
+ * How often a race is polled by how far off it is: every PRICE_FAR_EVERY_MS
+ * until the window opens, every PRICE_EVERY_MS inside it, and every
+ * PRICE_NEAR_EVERY_MS in the last minutes, when the exchange fills and the
+ * bookmakers move most.
+ */
 export const PRICE_WINDOW_MS = Number(process.env.OVERLAY_PRICE_WINDOW_MIN ?? 120) * 60_000;
 export const PRICE_EVERY_MS = Number(process.env.OVERLAY_PRICE_EVERY_SEC ?? 300) * 1000;
 export const PRICE_FAR_EVERY_MS = Number(process.env.OVERLAY_PRICE_FAR_MIN ?? 30) * 60_000;
+export const PRICE_NEAR_MS = Number(process.env.OVERLAY_PRICE_NEAR_MIN ?? 5) * 60_000;
+export const PRICE_NEAR_EVERY_MS = Number(process.env.OVERLAY_PRICE_NEAR_EVERY_SEC ?? 60) * 1000;
 /** How long after the jump a result is waited for. */
 const RESULT_WINDOW_MS = 4 * 60 * 60_000;
 /** Races fetched at once; each takes a few seconds. */
@@ -108,7 +115,7 @@ export function racesToPrice(meetings: PublishedMeeting[], now = Date.now(), far
       if (until > PRICE_WINDOW_MS) {
         if (!far) continue;
         out.push({ meeting, race, every: PRICE_FAR_EVERY_MS });
-      } else out.push({ meeting, race, every: PRICE_EVERY_MS });
+      } else out.push({ meeting, race, every: until <= PRICE_NEAR_MS ? PRICE_NEAR_EVERY_MS : PRICE_EVERY_MS });
     }
   }
   return out;
@@ -143,8 +150,9 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
   const book = await readPriceBook(date);
   // A result already in the book is only waiting for the card to be rebuilt.
   if (due.some(({ race }) => book.races[race.raceId]?.result)) return 1;
-  // Whoever polled inside the interval has this round.
-  if (book.polledAt && now - Date.parse(book.polledAt) < PRICE_EVERY_MS * 0.8) return 0;
+  // Whoever polled inside the shortest interval due has this round.
+  const soonest = Math.min(...due.map((d) => d.every));
+  if (book.polledAt && now - Date.parse(book.polledAt) < soonest * 0.8) return 0;
   book.polledAt = new Date(now).toISOString();
   await writePriceBook(date, book);
 

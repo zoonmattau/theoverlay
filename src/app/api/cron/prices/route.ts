@@ -7,8 +7,9 @@ export const maxDuration = 60;
 /**
  * The price poll: BetWatch's bookmaker and exchange prices for every race
  * inside the window before its jump, and a rebuild of the card on them
- * when any moved. Called every five minutes; page views run the same poll
- * between calls. Protected by CRON_SECRET as a bearer token or ?key=.
+ * when any moved. Called every minute; each race is fetched only when its
+ * own interval is up (30 minutes far out, five inside two hours, one in the
+ * last five), and page views run the same poll between calls. Protected by CRON_SECRET as a bearer token or ?key=.
  */
 export async function GET(request: NextRequest) {
   const secret = process.env.CRON_SECRET;

@@ -370,8 +370,8 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
  * Call from a page after reading a card: when a race is inside the price
  * window BetWatch is asked for its prices after the response has gone out,
  * and when any moved the card is rebuilt on them. The cron does the same
- * every five minutes, and every race still to run on the day besides; this
- * keeps the board moving between its calls.
+ * every minute, for every race still to run on the day; this keeps the
+ * board moving between its calls.
  */
 export function keepPrices(date: string, card: Card): void {
   if (!storeConfigured() || !usingLiveData() || !betwatchConfigured()) return;
