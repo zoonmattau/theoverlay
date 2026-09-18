@@ -93,8 +93,10 @@ export interface PublishedRun {
   track?: string;
   distance: number;
   going?: string;
-  /** Race class as printed, e.g. "Bm64" or "Mdn". */
+  /** Race class as printed, e.g. "Bm64" or "Mdn", or G1 for a named Group 1. */
   className?: string;
+  /** The race name as printed, for the hover behind the class. */
+  raceName?: string;
   finish?: number;
   runners?: number;
   /** Lengths beaten, 0 for the winner. */

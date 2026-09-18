@@ -260,7 +260,7 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
                   <td className="truncate max-w-[110px] runs-track">{x.track ?? "—"}</td>
                   <td>{x.distance}</td>
                   <td className="runs-going">{x.going ?? "—"}</td>
-                  <td className="truncate runs-class">{x.className ?? "—"}</td>
+                  <td className="truncate runs-class" title={x.raceName}>{x.className ?? "—"}</td>
                   <td className={x.finish === 1 ? "font-bold text-accent" : ""}>
                     {x.finish ? (
                       <span

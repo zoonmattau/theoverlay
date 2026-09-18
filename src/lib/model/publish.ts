@@ -444,6 +444,7 @@ function runsOf(e: RaceEntry, todayPar: number, todayDistance: number, asOf?: nu
       distance: p.distance,
       going: goingLabel(p.going),
       className: classOf(p.raceName),
+      raceName: p.raceName || undefined,
       finish: p.finishPosition || undefined,
       runners: p.numRunners,
       margin: p.margin,
@@ -486,11 +487,41 @@ function linkMeetings(runners: PublishedRunner[]): void {
   }
 }
 
-/** "Midway (Bm72)" → "Bm72", "3yo+ Mdn Plate" → "Mdn", else the name trimmed. */
+/**
+ * The Group 1s the feed prints by name alone, with no grade on them. Only
+ * races whose name says which race it is: a plain "Derby" or "Guineas"
+ * could be anything from a Group 1 to a country feature and keeps its name.
+ */
+const GROUP_ONES = new Set([
+  "australian derby", "victoria derby", "queensland derby", "south australian derby", "sa derby",
+  "australian guineas", "caulfield guineas", "rosehill guineas", "randwick guineas", "thousand guineas",
+  "australian oaks", "crown oaks", "vrc oaks", "queensland oaks", "australasian oaks",
+  "cox plate", "golden slipper", "doncaster mile", "doncaster hcp", "epsom hcp", "melbourne cup", "caulfield cup", "sydney cup",
+  "newmarket hcp", "blue diamond stakes", "coolmore stud stakes", "champions stakes", "mackinnon stakes", "lightning stakes", "black caviar lightning",
+  "oakleigh plate", "futurity stakes", "c f orr stakes", "cf orr stakes", "orr stakes", "australian cup", "ranvet stakes", "george ryder stakes",
+  "t j smith stakes", "tj smith stakes", "queen elizabeth stakes", "all aged stakes", "kingsford smith cup", "kingsford-smith cup", "stradbroke hcp",
+  "j j atkins", "jj atkins", "tattersall's tiara", "tatts tiara", "winx stakes", "memsie stakes", "makybe diva stakes", "underwood stakes", "turnbull stakes",
+  "toorak hcp", "might and power stakes", "manikato stakes", "moir stakes", "sir rupert clarke stakes", "george main stakes", "flight stakes",
+  "spring champion stakes", "the metropolitan", "metropolitan hcp", "railway stakes", "kingston town classic", "winterbottom stakes", "northerly stakes",
+  "canterbury stakes", "surround stakes", "chipping norton stakes", "coolmore classic", "vinery stud stakes", "inglis sires", "sires produce stakes",
+  "champagne stakes", "robert sangster stakes", "the goodwood", "goodwood hcp", "doomben cup", "doomben 10,000", "doomben 10000", "cantala stakes",
+  "empire rose stakes", "champions sprint", "champions mile", "myer classic", "william reid stakes", "kennedy oaks",
+]);
+
+/** "Australian Derby" → "G1"; a feature race the table does not name is undefined. */
+function groupOf(name: string): string | undefined {
+  const plain = name.toLowerCase().replace(/^\d(?:,\d)*yo\+?\s+/, "").replace(/\s+/g, " ").trim();
+  return GROUP_ONES.has(plain) ? "G1" : undefined;
+}
+
+/** "Midway (Bm72)" → "Bm72", "3yo+ Mdn Plate" → "Mdn", "Australian Derby" → "G1", else the name trimmed. */
 function classOf(name?: string): string | undefined {
   if (!name) return undefined;
   const bm = name.match(/\((bm\s?\d+|[^)]*)\)/i);
   if (bm) return bm[1].replace(/\s+/g, "");
+  // Before the keywords: the Epsom is a Group 1, not a "Hcp".
+  const group = groupOf(name);
+  if (group) return group;
   const m = name.match(/\b(mdn|maiden|cl\s?\d|class\s?\d|open|hcp|rs\d\w*|listed|group\s?\d|g\d|bm\s?\d+|benchmark\s?\d+)\b/i);
   return m ? m[1].replace(/\s+/g, "") : name.slice(0, 18);
 }
