@@ -42,8 +42,13 @@ const LONG_MIN_PRICE = 8;
  * Betfair SP ran at over 76 settled lays) rather than the bookmakers' best,
  * and the line is six points there: the same one lay in four races, +10%
  * after commission over the cache where ten points found thirteen lays.
+ * The bet line came down from 2.5 to 2 points on 18 Sep 2026
+ * (scripts/sweep-bet-line.ts, 889 races): the band between the two is the
+ * best band there is, 146 bets at +25%, and at two points the model makes
+ * 0.44 bets a race at +19% (+9% at SP) against 0.27 at +16% (+4%) above
+ * it; below two points it runs to breakeven.
  */
-export const MIN_EDGE = 0.025;
+export const MIN_EDGE = Number(process.env.OVERLAY_MIN_EDGE ?? 0.02);
 /** A Prime Overlay is a bet with a wide gap on a horse we give a real chance. */
 const PRIME_EDGE = 0.05;
 const PRIME_MIN_PROB = 0.15;
