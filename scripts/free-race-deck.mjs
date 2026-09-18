@@ -7,6 +7,7 @@
 // PILL="Posted 11am, won at $20" replaces the free-race pill for a results post.
 // PICK=1,4,3 chooses and orders the slides (1 top four, 2 ratings, 3 speed map, 4 runner);
 // FROM=2 numbers them from there when a designed slide goes first, TOTAL=5 when one closes the deck.
+// TOP=2 shoots only the first two selections and titles the slide "Our top two"; SUB1="..." replaces the line under it.
 // THEME=light composes on white in the brand faces (Archivo caps with the lime block, Plex Mono body,
 // the lime mark and the tagline in the footer), to sit behind a designed opening slide of the same kind.
 import { chromium } from "playwright-core";
@@ -33,6 +34,12 @@ const section = (page, title) => page.locator(`section.section:has(h2:text-is("$
 
 const shots = {};
 let page = await open(900);
+const top = Number(process.env.TOP ?? 4);
+// Fewer selections: the cards past the count go, and the bar's aside with them.
+if (top < 4) await section(page, "Our selections").evaluate((el, n) => {
+  el.querySelectorAll(".grid > *").forEach((c, i) => { if (i >= n) c.style.display = "none"; });
+  el.querySelector(".aside")?.remove();
+}, top);
 shots.topFour = await section(page, "Our selections").screenshot();
 shots.speedMap = await section(page, "Speed map").screenshot();
 const glance = section(page, "At a glance");
@@ -63,7 +70,7 @@ const isLay = /LAY/.test(await row.innerText());
 await page.close();
 
 const slides = [
-  { imgs: [shots.topFour], title: "Our top four", sub: "Live price against our rated price, and why each one rates where it does." },
+  { imgs: [shots.topFour], title: top === 2 ? "Our top two" : top === 3 ? "Our top three" : "Our top four", sub: process.env.SUB1 ?? "Live price against our rated price, and why each one rates where it does." },
   { imgs: [shots.bars, shots.matrix], title: "The ratings", sub: "Every runner on the benchmark scale, and every category in one table: green above the field, red below." },
   { imgs: [shots.speedMap, shots.glance], title: "The speed map", sub: "Where each runner settles, what that does to the tempo, and the race at a glance." },
   { imgs: [shots.runner], title: isLay ? "The lay" : process.env.PILL ? "The winner" : "The top pick", sub: `${runnerName}: profile, sectionals against the field, what to expect, the last five runs and our call.` },
@@ -89,11 +96,13 @@ for (const [i, s] of picked.entries()) {
     .eyebrow { display: flex; align-items: center; gap: 18px; font-size: 20px; font-weight: 600; letter-spacing: 0.22em; text-transform: uppercase; margin-bottom: 30px }
     .eyebrow hr { flex: 1; border: 0; border-top: 2px solid #14161a }
     .eyebrow .n { letter-spacing: 0.1em; color: #6b716a }
-    h1 { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 84px; line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; margin-bottom: 28px }
+    h1 { font-family: "Archivo", sans-serif; font-weight: 900; font-size: 64px; line-height: 1; letter-spacing: -0.02em; text-transform: uppercase; margin-bottom: 18px }
     h1 b { background: #c6f24e; padding: 2px 12px 0 }
-    .sub { font-size: 26px; line-height: 1.45; margin-bottom: 30px; max-width: 900px }
-    .stack { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 16px; align-items: center; justify-content: center }
-    .stack img { max-width: 100%; border: 1px solid #dfe3db; flex: 0 1 auto; min-height: 0; object-fit: contain }
+    .sub { font-size: 23px; line-height: 1.4; margin-bottom: 22px; max-width: 920px }
+    /* The screenshot runs the full width and is clipped at the foot rather than shrunk: the top of every section is the part that matters. */
+    .stack { flex: 1; min-height: 0; overflow: hidden; border: 1px solid #dfe3db }
+    .stack img { display: block; width: 100% }
+    .stack img + img { display: none }
     .foot { display: flex; align-items: center; gap: 22px; margin-top: 32px; padding-top: 28px; border-top: 1px solid #dfe3db }
     .foot img { width: 58px; height: 58px; background: #c6f24e; padding: 12px }
     .foot .site { font-size: 26px; font-weight: 700 }
