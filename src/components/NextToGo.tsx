@@ -2,7 +2,8 @@
 import { NtgCountdown } from "./Countdown";
 import { jumpTime } from "@/lib/format";
 import { now as clock } from "@/lib/admin";
-import { raceTip, type PublishedMeeting, type RaceTip, type Selection } from "@/lib/model/types";
+import { raceMix, raceTip, type PublishedMeeting, type RaceTip, type Selection } from "@/lib/model/types";
+import { mixTag, mixed } from "./mix";
 
 export type NtgTip = RaceTip;
 
@@ -43,8 +44,10 @@ export function NextToGo({
         const backs = r.runners.filter((x) => x.signal === "back").length;
         const lays = r.runners.filter((x) => x.signal === "lay").length;
         const tip = raceTip(r.runners, prime.has(r.raceId));
-        const tag =
-          tip === "prime"
+        const mix = raceMix(r.runners, prime.has(r.raceId));
+        const tag = mixed(mix)
+          ? mixTag(mix)
+          : tip === "prime"
             ? "Prime Overlay"
             : tip === "roughie"
               ? backs === 1 ? "Way Overlay" : `${backs} Way Overlays`
@@ -61,6 +64,7 @@ export function NextToGo({
             clock={jumpTime(r.jumpTime)}
             label={`${m.track} R${r.raceNumber}`}
             tip={tip}
+            mix={mix}
             tag={tag}
             tipsters={initialsFor(r.raceId)}
           />

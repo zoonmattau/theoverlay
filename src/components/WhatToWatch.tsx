@@ -24,7 +24,32 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
     >
       <div className="section-body">
         <p className="text-sm mb-3">{race.verdict}</p>
-        <div className="overflow-x-auto">
+        {/* On a phone each runner is a block: the name, three facts as chips, then the sentence. */}
+        <ul className="watch-list sm:hidden">
+          {ours.map((r) => {
+            const t = tempoFit(r, race);
+            const f = finishFit(r, race);
+            return (
+              <li key={r.tabNumber} className="watch-item">
+                <div className="flex items-center gap-2 min-w-0">
+                  <TipChip r={r} />
+                  <span className="font-semibold truncate">
+                    {r.tabNumber}. {r.horseName}
+                  </span>
+                  <span className="text-ink-soft text-xs shrink-0">(B{r.barrier})</span>
+                  <SignalBadge signal={r.signal} prime={r.prime} />
+                </div>
+                <dl className="watch-facts">
+                  <div><dt>Settles</dt><dd>{MAP_LABEL[r.ratings.map]}</dd></div>
+                  <div><dt>Race speed</dt><dd><Tone tone={t.tone}>{t.text}</Tone></dd></div>
+                  <div><dt>Closing</dt><dd><Tone tone={f.tone}>{f.text}</Tone></dd></div>
+                </dl>
+                <p className="text-sm text-ink-secondary">{watchSentence(r, race)}</p>
+              </li>
+            );
+          })}
+        </ul>
+        <div className="overflow-x-auto hidden sm:block">
           <table className="data-table text-sm min-w-[720px]">
             <thead>
               <tr>

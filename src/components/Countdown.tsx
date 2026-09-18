@@ -1,9 +1,11 @@
 "use client";
 
-import type { RaceTip } from "@/lib/model/types";
+import type { RaceMix, RaceTip } from "@/lib/model/types";
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
+
+import { mixClass, mixStyle, mixTag, mixed } from "./mix";
 
 /**
  * One matrix cell. Time to the jump ticks on the client; the server paints the
@@ -18,6 +20,7 @@ export function MatrixCell({
   backs,
   lays,
   tip,
+  mix = [],
   group,
   free,
   tipsters,
@@ -31,6 +34,8 @@ export function MatrixCell({
   lays: number;
   /** The race's colour: lime Prime, blue bet, the lighter blue when its only bets are Way Overlays, red lay. */
   tip?: RaceTip;
+  /** Every kind of call in the race; more than one and the cell is striped, each colour as wide as its share. */
+  mix?: RaceMix;
   /** 1, 2 or 3 for a Group race, shown as gold, silver or bronze. */
   group?: 1 | 2 | 3;
   /** Today's free race, for a viewer who cannot open the others. */
@@ -64,7 +69,7 @@ export function MatrixCell({
   // colour of what we had on.
   if (result) {
     return (
-      <Link href={href} className={`matrix-btn race-resulted ${tip ? `had-${tip}` : ""}`}>
+      <Link href={href} className={`matrix-btn race-resulted ${tip ? `had-${tip}` : ""} ${mixClass(mix)}`} style={mixStyle(mix, true)}>
         {medal}
         {freeTag}
         {tipsterTag}
@@ -74,10 +79,10 @@ export function MatrixCell({
     );
   }
 
-  const tag = prime ? "Prime" : tip === "roughie" ? (backs === 1 ? "Way Overlay" : `${backs} Way Overlays`) : backs > 0 ? plural(backs, "bet") : lays > 0 ? plural(lays, "lay") : undefined;
+  const tag = mixed(mix) ? mixTag(mix) : prime ? "Prime" : tip === "roughie" ? (backs === 1 ? "Way Overlay" : `${backs} Way Overlays`) : backs > 0 ? plural(backs, "bet") : lays > 0 ? plural(lays, "lay") : undefined;
 
   return (
-    <Link href={href} className={`matrix-btn ${tip ? `tip-${tip}` : ""} ${state.status}`}>
+    <Link href={href} className={`matrix-btn ${tip ? `tip-${tip}` : ""} ${mixClass(mix)} ${state.status}`} style={mixStyle(mix)}>
       {medal}
       {freeTag}
       {tipsterTag}
@@ -110,6 +115,7 @@ export function NtgCountdown({
   clock,
   label,
   tip,
+  mix = [],
   tag,
   tipsters,
 }: {
@@ -118,6 +124,8 @@ export function NtgCountdown({
   clock: string;
   label: string;
   tip?: RaceTip;
+  /** Every kind of call in the race; more than one and the pill is striped like the board. */
+  mix?: RaceMix;
   tag?: string;
   /** Initials of the tipsters the viewer follows who have a call in this race, badged like the board. */
   tipsters?: string[];
@@ -143,7 +151,7 @@ export function NtgCountdown({
   if (state.gone) return null;
 
   return (
-    <Link href={href} className={`ntg-item ${state.status} ${tip ? `tip-${tip}` : ""}`}>
+    <Link href={href} className={`ntg-item ${state.status} ${tip ? `tip-${tip}` : ""} ${mixClass(mix)}`} style={mixStyle(mix)}>
       {tipsters && tipsters.length > 0 && (
         <span className="matrix-tipsters" title="A tipster you follow has a call in this race">{tipsters.slice(0, 3).map((t, i) => <span key={i} className="matrix-tipster">{t}</span>)}</span>
       )}

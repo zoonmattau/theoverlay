@@ -1,6 +1,6 @@
 import { MatrixCell } from "./Countdown";
 import { jumpTime } from "@/lib/format";
-import { raceTip, type PublishedMeeting, type Selection } from "@/lib/model/types";
+import { raceMix, raceTip, type PublishedMeeting, type Selection } from "@/lib/model/types";
 
 /**
  * The day at a glance: one row per track, one column per race number. A
@@ -83,6 +83,7 @@ export function RaceMatrix({
                       backs={backs}
                       lays={lays}
                       tip={raceTip(race.runners, prime.has(race.raceId))}
+                      mix={raceMix(race.runners, prime.has(race.raceId))}
                       group={groupOf(race.className, race.name)}
                       free={race.raceId === freeRaceId}
                       tipsters={initialsFor(race.raceId)}
@@ -98,8 +99,9 @@ export function RaceMatrix({
         <span className="font-bold uppercase tracking-[0.08em] text-[0.65rem]">Legend</span>
         <span><span className="legend-dot bg-lime" />Prime Overlay</span>
         <span><span className="legend-dot bg-blue" />Bet</span>
-        <span><span className="legend-dot bg-blue-soft" />Way Overlay, a bet at $21 or more</span>
+        <span><span className="legend-dot bg-blue-soft" />Way Overlay</span>
         <span><span className="legend-dot bg-red" />Lay</span>
+        <span><span className="legend-dot legend-dot-mix" />Two colours, two kinds of call, each as wide as its share</span>
         <span><span className="legend-dot bg-surface-alt" />Resulted, first four, border shows what we had on</span>
         {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />{tipsters.map((t) => t.name).join(", ")}: a call in this race</span>}
       </div>

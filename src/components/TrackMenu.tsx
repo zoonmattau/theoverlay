@@ -3,12 +3,17 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
+import type { RaceMix, RaceTip } from "@/lib/model/types";
+import { mixClass, mixStyle } from "./mix";
+
 export interface MiniRace {
   raceId: string;
   raceNumber: number;
   clock: string;
   resulted: boolean;
-  tip?: "prime" | "back" | "roughie" | "lay";
+  tip?: RaceTip;
+  /** Every kind of call in the race; more than one and the cell is striped like the board. */
+  mix?: RaceMix;
   group?: 1 | 2 | 3;
   /** The tipster the viewer follows has a call in this race: their initial. */
   tipster?: string;
@@ -94,12 +99,14 @@ export function TrackMenu({
                       r.raceId === currentRaceId ? "is-current" : "",
                       r.resulted ? "is-resulted" : "",
                       r.tip ? (r.resulted ? `had-${r.tip}` : `tip-${r.tip}`) : "",
+                      mixClass(r.mix ?? []),
                     ].join(" ");
                     return (
                       <td key={r.raceId}>
                         <Link
                           href={`/racing/${date}/${m.meetingId}/${r.raceId}`}
                           className={cls}
+                          style={mixStyle(r.mix ?? [], r.resulted)}
                           onClick={() => setOpen(false)}
                           role="menuitem"
                         >

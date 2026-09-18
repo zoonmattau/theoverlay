@@ -104,13 +104,13 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   const db = supabaseAdmin();
   const rows = rowsFor(date, card);
   if (rows.length === 0) return;
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at, market_price, stake").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at, market_price, stake, tag").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
   }
   // The stake was fixed when the call was published; a price that has since crossed $21 does not move it.
-  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price), stake: Number(e.stake ?? 1) }]));
+  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price), stake: Number(e.stake ?? 1), tag: e.tag as string | null }]));
   const fresh = rows.filter((r) => !seen.has(`${r.race_id}:${r.tab_number}`));
   if (fresh.length) {
     const { error: e } = await db.from("tips").insert(fresh);
@@ -123,10 +123,12 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     const was = seen.get(`${r.race_id}:${r.tab_number}`);
     if (!was || was.settled) continue;
     const price = betterPrice(r.side, was.price, r.market_price);
+    // A bet that grew into a Prime during the day is a Prime on the record: members were told so.
+    const prime = r.tag === "prime_overlay" && was.tag !== "prime_overlay" ? { tag: r.tag } : {};
     const change = r.settled_at
-      ? { market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position ?? 0, was.stake), settled_at: r.settled_at }
-      : price !== was.price
-        ? { market_price: price }
+      ? { ...prime, market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position ?? 0, was.stake), settled_at: r.settled_at }
+      : price !== was.price || prime.tag
+        ? { ...prime, market_price: price }
         : undefined;
     if (!change) continue;
     const { error: e } = await db.from("tips").update(change).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");

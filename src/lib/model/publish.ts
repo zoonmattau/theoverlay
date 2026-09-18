@@ -76,6 +76,16 @@ const LAY_TRUST_FLOOR = Number(process.env.OVERLAY_LAY_TRUST_FLOOR ?? 0.4);
 export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 /** Laying at long prices is all liability, so cap it. */
 const LAY_MAX_PRICE = 12;
+/**
+ * The last half hour before the jump. A call on the card inside it is locked
+ * in: it stays whatever the market does from here and settles on the record.
+ * Lays go to Discord once a race is inside it too, since a lay is struck on
+ * the exchange price at the time.
+ */
+export const CALL_LOCK_MS = 30 * 60_000;
+
+/** Whether a race is inside the last half hour before its jump, or has jumped. */
+export const inCallLock = (jumpTime?: string, now = Date.now()) => Boolean(jumpTime && new Date(jumpTime).getTime() - now <= CALL_LOCK_MS);
 
 /**
  * Where a runner sits on our rating alone, 1 for the highest, so "rates top
@@ -128,6 +138,10 @@ export function publishRace(
   // A backtest replays run races on purpose: OVERLAY_REPLAY=1 lets it.
   const jumpTime = jumpIso(meeting.date ?? race.date, race.startTime, race.date, meeting.state);
   const jumped = process.env.OVERLAY_REPLAY !== "1" && hasJumped(race.status, jumpTime);
+  // Inside the last half hour a call already on the card is locked in: a
+  // member has had it since the morning, so it is tracked whatever the
+  // market does with three minutes to go. A new call can still be made.
+  const locked = jumped || (process.env.OVERLAY_REPLAY !== "1" && inCallLock(jumpTime));
   // Below the confidence floor the model is guessing and no call is made,
   // on the runner as well as in the day's selections, so the race page and
   // the home page count agree with the email.
@@ -140,7 +154,7 @@ export function publishRace(
       const g = ratedByTab.get(p.key)?.ratings;
       const trust = g?.trust ?? 1;
       if ((g?.runs ?? 0) === 0 || trust < TRUST_FLOOR) return [p.key, undefined];
-      const signal = jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
+      const signal = held && (locked || guessing) ? held : jumped || guessing ? undefined : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
       // A thin rating can back a horse but not lay one: the mirage costs one unit as a bet and the price as a lay.
       if (signal === "lay" && trust < LAY_TRUST_FLOOR) return [p.key, undefined];
       // Nor is a horse on a winning run laid: even rated for the run, the lays

@@ -2719,3 +2719,88 @@ body {
     padding-top: var(--sp-3);
   }
 }
+
+/* --- Striped cells: a race with more than one kind of call --- */
+/* The stripes come inline (see components/mix.ts); these set the text on them. Stripes with no
+   lime or pale blue read white; with either, ink, which still reads on the blue and red halves. */
+.matrix-btn.tip-mix,
+.matrix-btn.tip-mix .matrix-time,
+.matrix-btn.tip-mix .matrix-count,
+.ntg-item.tip-mix,
+.ntg-item.tip-mix .ntg-tag,
+.ntg-item.tip-mix .ntg-track,
+.race-tab.tip-mix,
+.mini-cell.tip-mix,
+.mini-cell.tip-mix .mini-t {
+  color: #fff;
+}
+.matrix-btn.tip-mix.has-pale,
+.matrix-btn.tip-mix.has-pale .matrix-time,
+.matrix-btn.tip-mix.has-pale .matrix-count,
+.ntg-item.tip-mix.has-pale,
+.ntg-item.tip-mix.has-pale .ntg-tag,
+.ntg-item.tip-mix.has-pale .ntg-track,
+.race-tab.tip-mix.has-pale,
+.mini-cell.tip-mix.has-pale,
+.mini-cell.tip-mix.has-pale .mini-t {
+  color: var(--color-ink);
+}
+.matrix-btn.tip-mix .matrix-count {
+  text-align: center;
+}
+.matrix-btn.tip-mix.race-imminent .matrix-time {
+  text-decoration: underline;
+}
+.ntg-item.tip-mix .ntg-time {
+  background: #fff;
+  color: var(--color-ink);
+}
+/* Resulted, the stripes are the outline and the text goes back to grey. */
+.matrix-btn.race-resulted.tip-mix,
+.matrix-btn.race-resulted.tip-mix .matrix-result,
+.mini-cell.is-resulted.tip-mix,
+.mini-cell.is-resulted.tip-mix .mini-t,
+.race-tab.is-resulted.tip-mix {
+  color: var(--color-ink-secondary);
+}
+.mini-cell.is-resulted.tip-mix .mini-t {
+  color: var(--color-ink-soft);
+}
+.race-tab.is-resulted.tip-mix {
+  color: var(--color-ink-soft);
+}
+.legend-dot-mix {
+  background: linear-gradient(90deg, var(--color-blue) 0 50%, var(--color-red) 50% 100%);
+}
+
+/* --- What to watch on a phone: a block per runner instead of a table that scrolls sideways --- */
+.watch-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+.watch-item {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--color-line-soft);
+  border-radius: var(--radius-md);
+  background: var(--color-panel);
+}
+.watch-facts {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-2);
+}
+.watch-facts dt {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-soft);
+}
+.watch-facts dd {
+  font-size: 0.8rem;
+  line-height: 1.25;
+}

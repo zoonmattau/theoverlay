@@ -5,7 +5,7 @@ import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
 import type { StoredCard } from "@/lib/model/store";
 import { callPrice, isRoughie, stakeOf } from "@/lib/model/types";
-import { callLimit } from "@/lib/model/publish";
+import { callLimit, inCallLock } from "@/lib/model/publish";
 import { settledAt } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRunner } from "@/lib/model/types";
 
@@ -105,13 +105,17 @@ async function send(channelName: string, text: string): Promise<string | undefin
 
 /** Whether this kind of post has gone out for the date, and remembers it once it has. */
 async function once(date: string, kind: string, post: () => Promise<string | undefined>): Promise<boolean> {
-  const db = supabaseAdmin();
-  const { data } = await db.from("discord_posts").select("kind").eq("date", date).eq("kind", kind).maybeSingle();
+  const { data } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).eq("kind", kind).maybeSingle();
   if (data) return false;
-  const messageId = await post();
-  const { error } = await db.from("discord_posts").insert({ date, kind, message_id: messageId ?? null });
-  if (error) console.error("[discord]", error.message);
+  await remember(date, kind, post);
   return true;
+}
+
+/** Posts, and writes the kind down so it is not posted again. */
+async function remember(date: string, kind: string, post: () => Promise<string | undefined>): Promise<void> {
+  const messageId = await post();
+  const { error } = await supabaseAdmin().from("discord_posts").insert({ date, kind, message_id: messageId ?? null });
+  if (error) console.error("[discord]", kind, error.message);
 }
 
 /* ---------- The calls ---------- */
@@ -135,13 +139,15 @@ function callsOn(card: StoredCard): Call[] {
     .sort((a, b) => (a.r.jumpTime ?? "").localeCompare(b.r.jumpTime ?? ""));
 }
 
+const isPrime = (c: Call) => Boolean(c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay");
+
 /**
  * One call as a line: track and race, then the runner, then the call. The
  * square is the site's colour convention, lime for a Prime, blue for a bet,
  * red for a lay.
  */
 function line(c: Call, withTrack = false): string {
-  const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
+  const prime = isPrime(c);
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
   const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : isRoughie(c.x) ? "Way Overlay" : "Bet";
   const limit = callLimit(c.x);
@@ -157,29 +163,31 @@ function lines(calls: Call[]): string {
   return [...groups.entries()].map(([track, list]) => `**${track.toUpperCase()}**\n${list.map((c) => line(c)).join("\n")}`).join("\n\n");
 }
 
+const LAYS_LATER = "Lays post here half an hour before the jump, at the exchange price then.";
+
 /**
- * The morning posts: the Primes, every bet and lay,
- * and the free race. Each goes once per date, so a rebuild never repeats them.
+ * The morning posts: the Primes, every bet, and the free race. Each goes
+ * once per date, so a rebuild never repeats them. A lay is struck on the
+ * exchange price at the time, so lays wait for the last half hour before
+ * the jump and go from postCallChanges().
  */
 export async function postCalls(date: string, card: StoredCard, opts: { early?: boolean } = {}): Promise<void> {
   if (!discordConfigured()) return;
   const calls = callsOn(card);
+  const bets = calls.filter((c) => c.x.signal === "back");
   const day = longDate(date);
   try {
     if (opts.early) {
-      // Tomorrow's bets the night before, for members only. A lay is struck on the day's exchange
-      // price, so one the night before is nothing to act on and is left out.
-      const bets = calls.filter((c) => c.x.signal === "back");
+      // Tomorrow's bets the night before, for members only.
       const body = bets.length ? lines(bets) : "No bets on the card yet.";
       await once(date, "early", () => send(CHANNELS.early, `**Early look, ${day}.** Prices will move by morning, the calls may too.\n\n${body}`));
       return;
     }
     if (calls.length === 0) return;
-    const primes = calls.filter((c) => c.x.signal === "back" && (c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay"));
+    const primes = bets.filter(isPrime);
     if (primes.length) await once(date, "primes", () => send(CHANNELS.primes, `**Prime Overlays, ${day}**\n${primes.map((c) => line(c, true)).join("\n")}`));
-    const bets = calls.filter((c) => c.x.signal === "back").length;
-    const lays = calls.length - bets;
-    await once(date, "calls", () => send(CHANNELS.calls, `**${day}: ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}.**\n\n${lines(calls)}\n\n${SITE}/`));
+    const body = bets.length ? `**${day}: ${bets.length} ${bets.length === 1 ? "bet" : "bets"}.** ${LAYS_LATER}\n\n${lines(bets)}` : `**${day}: no bets this morning.** ${LAYS_LATER}`;
+    await once(date, "calls", () => send(CHANNELS.calls, `${body}\n\n${SITE}/`));
     const free = card.meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === card.freeRaceId);
     if (free) await once(date, "free", () => send(CHANNELS.free, freeRacePost(date, day, free.m, free.r, calls)));
   } catch (err) {
@@ -201,7 +209,11 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
   const shape = `${tempo} on our read of the early sectionals, with ${lead}${leader ? `, ${leader.horseName} the likely leader` : ""}.`;
   const four = top.map((x) => `${x.rank}. **${x.tabNumber}. ${x.horseName}** rates ${x.ratings.today.toFixed(0)}, ${price(x.ratedPrice)} against ${price(x.marketPrice)}${x.why ? `. ${x.why}` : ""}`).join("\n");
   const own = calls.filter((c) => c.r.raceId === r.raceId);
-  const called = own.length ? own.map((c) => line(c)).join("\n") : "No call in this race: the market has it about right.";
+  const bets = own.filter((c) => c.x.signal === "back");
+  const called = [
+    ...(bets.length ? bets.map((c) => line(c)) : own.length ? [] : ["No bet in this race: the market has it about right."]),
+    ...(own.length > bets.length ? [`A lay in this race. ${LAYS_LATER}`] : []),
+  ].join("\n");
   return [
     `**Free race of the day, ${day}**`,
     `${m.track} R${r.raceNumber}, ${r.name}${r.className ? ` (${r.className})` : ""}, ${r.distance}m${r.goingText ? `, ${r.goingText}` : ""}, ${live.length} runners, jumps ${clock(r.jumpTime)}.`,
@@ -221,33 +233,62 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
 }
 
 /**
- * Calls that appeared since the last card, posted as they happen once the
- * early look or the morning post has gone, so a member who is not on the
- * site hears about a bet the market drifted into at lunchtime. A call that
- * went is not announced, a race that has jumped is left alone, and a call
- * that only changed price is not news.
+ * Calls posted as they happen once the early look or the morning post has
+ * gone, so a member who is not on the site hears about them. A bet that
+ * appeared since the last card is news; a lay is posted once its race is
+ * inside the last half hour before the jump, each once, since that is the
+ * price it is struck at. A call that went is not announced, a race that
+ * has jumped is left alone, and a call that only changed price is not news.
  */
 export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
   if (!discordConfigured() || before.size === 0) return;
   try {
     // Changes follow a post members have seen: the morning calls, or the early look the night before.
-    const { data: seen } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).in("kind", ["calls", "early"]).not("message_id", "is", null).limit(1);
-    if (!seen?.length) return;
+    const { data: posts } = await supabaseAdmin().from("discord_posts").select("kind, message_id").eq("date", date);
+    if (!posts?.some((p) => (p.kind === "calls" || p.kind === "early") && p.message_id)) return;
+    const posted = new Set(posts.map((p) => String(p.kind)));
     const now = Date.now();
     const fresh: Call[] = [];
+    const lays: Call[] = [];
+    const primes: Call[] = [];
     for (const c of callsOn(card)) {
       if (c.r.result || (c.r.jumpTime && new Date(c.r.jumpTime).getTime() < now)) continue;
+      if (c.x.signal === "lay") {
+        if (inCallLock(c.r.jumpTime, now) && !posted.has(layKey(c))) lays.push(c);
+        continue;
+      }
       const prev = before.get(c.r.raceId)?.runners.find((x) => x.tabNumber === c.x.tabNumber);
+      // A bet that grew into a Prime during the day goes to the Primes channel as the morning ones did.
+      if (isPrime(c) && !prev?.prime && !posted.has(primeKey(c))) primes.push(c);
       if (prev && prev.signal === c.x.signal) continue;
       fresh.push(c);
     }
-    if (fresh.length === 0) return;
-    const at = new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }).replace(" ", "");
-    await send(CHANNELS.calls, [`**${fresh.length === 1 ? "New call" : "New calls"}, ${at}.**`, ...fresh.map((c) => line(c, true))].join("\n"));
+    for (const c of fresh) await send(CHANNELS.calls, callPost(c));
+    for (const c of primes) await remember(date, primeKey(c), () => send(CHANNELS.primes, callPost(c)));
+    for (const c of lays) await remember(date, layKey(c), () => send(CHANNELS.calls, callPost(c)));
   } catch (err) {
     console.error("[discord] call changes", err);
   }
 }
+
+/**
+ * One call on its own, headed by the race and its jump time so the post
+ * reads "Ballarat R2 1:30pm, LAY 9. Miss Graff", then the price it is
+ * struck at and ours.
+ */
+function callPost(c: Call): string {
+  const prime = isPrime(c);
+  const side = c.x.signal === "lay" ? "LAY" : prime ? "PRIME" : isRoughie(c.x) ? "WAY OVERLAY" : "BET";
+  const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
+  const limit = callLimit(c.x);
+  const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
+  const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
+  return [`**${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)}, ${side} ${c.x.tabNumber}. ${c.x.horseName}**`, `${square} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`].join("\n");
+}
+
+/** The discord_posts kinds that remember a lay, or a Prime made during the day, has been posted. */
+const layKey = (c: Call) => `lay:${c.r.raceId}:${c.x.tabNumber}`;
+const primeKey = (c: Call) => `prime:${c.r.raceId}:${c.x.tabNumber}`;
 
 /**
  * Winners as they land: a race whose result arrived with this rebuild posts
@@ -270,7 +311,7 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
       units += (c.x.signal === "back" ? (w ? at - 1 : -1) : w ? -(at - 1) : 1) * stakeOf(c.x);
     }
     const lines = won.map((c) => {
-      const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
+      const prime = isPrime(c);
       if (c.x.signal === "back") {
         const at = settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
         return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(at)}${prime ? ", a Prime" : isRoughie(c.x) ? ", a Way Overlay" : ""}. +${((at - 1) * stakeOf(c.x)).toFixed(2)}u`;

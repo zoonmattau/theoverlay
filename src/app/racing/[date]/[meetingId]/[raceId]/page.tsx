@@ -31,7 +31,8 @@ import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 import { DatahubStrip } from "@/components/DatahubStrip";
 import { racePeople, raceFacts } from "@/lib/data/race-facts";
-import { raceTip, type GoingBand } from "@/lib/model/types";
+import { raceMix, raceTip, type GoingBand } from "@/lib/model/types";
+import { mixClass, mixStyle } from "@/components/mix";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
 
@@ -114,6 +115,7 @@ async function Race({ params }: { params: Props["params"] }) {
         clock: jumpTime(r.jumpTime),
         resulted: Boolean(r.result),
         tip: raceTip(r.runners, prime.has(r.raceId)),
+        mix: raceMix(r.runners, prime.has(r.raceId)),
         group: groupOf(r.className, r.name),
         tipster: initialsFor(r.raceId) || undefined,
       };
@@ -198,11 +200,13 @@ async function Race({ params }: { params: Props["params"] }) {
           <nav className="race-tabs" aria-label="Races at this meeting">
             {meeting.races.map((r) => {
               const tabTip = raceTip(r.runners, prime.has(r.raceId)) ?? "";
+              const tabMix = raceMix(r.runners, prime.has(r.raceId));
               return (
               <Link
                 key={r.raceId}
                 href={`/racing/${date}/${meetingId}/${r.raceId}`}
-                className={`race-tab ${r.raceId === raceId ? "is-current" : ""} ${r.result ? "is-resulted" : ""} ${tabTip ? `tip-${tabTip}` : ""}`}
+                className={`race-tab ${r.raceId === raceId ? "is-current" : ""} ${r.result ? "is-resulted" : ""} ${tabTip ? `tip-${tabTip}` : ""} ${mixClass(tabMix)}`}
+                style={r.raceId === raceId ? undefined : mixStyle(tabMix, Boolean(r.result))}
               >
                 {groupOf(r.className, r.name) && <span className={`medal medal-${groupOf(r.className, r.name)}`} title={`Group ${groupOf(r.className, r.name)}`}>G{groupOf(r.className, r.name)}</span>}
                 R{r.raceNumber}

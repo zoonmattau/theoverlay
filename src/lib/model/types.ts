@@ -315,6 +315,25 @@ export function raceTip(runners: { signal?: Signal; marketPrice?: number; scratc
   if (backs.length) return backs.every(isRoughie) ? "roughie" : "back";
   return runners.some((x) => !x.scratched && x.signal === "lay") ? "lay" : undefined;
 }
+/**
+ * Every kind of call in a race with how many of each, in colour order: the
+ * Prime, the bets, the Way Overlays, the lays. A race with more than one
+ * kind is painted in stripes, each colour as wide as its share of the calls.
+ */
+export type RaceMix = { tip: RaceTip; n: number }[];
+export function raceMix(runners: { signal?: Signal; marketPrice?: number; scratched?: boolean; prime?: boolean }[], prime: boolean): RaceMix {
+  const n: Record<RaceTip, number> = { prime: 0, back: 0, roughie: 0, lay: 0 };
+  for (const x of runners) {
+    if (x.scratched || !x.signal) continue;
+    n[x.signal === "lay" ? "lay" : x.prime ? "prime" : isRoughie(x) ? "roughie" : "back"]++;
+  }
+  // The day's selections name the Prime; a card built before the runner carried the flag still shows it.
+  if (prime && !n.prime && n.back) {
+    n.prime++;
+    n.back--;
+  }
+  return (["prime", "back", "roughie", "lay"] as const).filter((t) => n[t]).map((t) => ({ tip: t, n: n[t] }));
+}
 /** The price a call is struck at: a bet at the bookmakers' best, a lay at the exchange price. */
 export const callPrice = (x: { signal?: Signal; marketPrice?: number; layPrice?: number }): number | undefined => (x.signal === "lay" && x.layPrice ? x.layPrice : x.marketPrice);
 /** The edge a call rests on: against the best price for a bet, the exchange price for a lay. */
