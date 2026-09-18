@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { postCalls, postResults, syncDiscordMembers } from "@/lib/discord";
 import { buildCard, racingToday } from "@/lib/model/source";
 import { readStoredCard } from "@/lib/model/store";
+import { pollPrices } from "@/lib/betwatch/prices";
 import { writeHubSnapshots } from "@/lib/data/hub";
 
 export const maxDuration = 300;
@@ -33,6 +34,13 @@ export async function GET(request: NextRequest) {
   const admins = (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
   let built: Awaited<ReturnType<typeof buildCard>>;
   try {
+    // Live prices for every race on the day first, so the card, the email and the posts are on what the market says now.
+    try {
+      const previous = await readStoredCard(date);
+      if (previous) await pollPrices(date, previous.card.meetings, { far: true });
+    } catch (err) {
+      console.error("[cron] prices before build", err instanceof Error ? err.message : err);
+    }
     built = await buildCard(date);
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

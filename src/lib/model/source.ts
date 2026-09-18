@@ -369,7 +369,8 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
  * Call from a page after reading a card: when a race is inside the price
  * window BetWatch is asked for its prices after the response has gone out,
  * and when any moved the card is rebuilt on them. The cron does the same
- * every five minutes; this keeps the board moving between its calls.
+ * every five minutes, and every race still to run on the day besides; this
+ * keeps the board moving between its calls.
  */
 export function keepPrices(date: string, card: Card): void {
   if (!storeConfigured() || !usingLiveData() || !betwatchConfigured()) return;
@@ -377,12 +378,12 @@ export function keepPrices(date: string, card: Card): void {
   after(() => refreshPrices(date, card));
 }
 
-/** One poll of BetWatch and, when it brought new prices, one rebuild on them. */
+/** One poll of BetWatch and, when it brought new prices, one rebuild on them. Without a card (the cron) every race left on the day is polled. */
 export async function refreshPrices(date: string, card?: { meetings: PublishedMeeting[] }): Promise<{ refreshed: number; rebuilt: boolean }> {
-  const meetings = card?.meetings ?? (await readStoredCard(date))?.card.meetings ?? [];
   let refreshed = 0;
   try {
-    refreshed = await pollPrices(date, meetings);
+    const meetings = card?.meetings ?? (await readStoredCard(date))?.card.meetings ?? [];
+    refreshed = await pollPrices(date, meetings, { far: !card });
   } catch (err) {
     console.error("[betwatch] poll failed", err);
   }

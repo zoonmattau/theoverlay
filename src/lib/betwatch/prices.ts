@@ -46,9 +46,10 @@ export interface PriceBook {
 }
 
 const KIND = "bw";
-/** How long before the jump prices start being polled, and how often. */
+/** Inside this long before the jump a race is polled every PRICE_EVERY_MS; further out, every PRICE_FAR_EVERY_MS. */
 export const PRICE_WINDOW_MS = Number(process.env.OVERLAY_PRICE_WINDOW_MIN ?? 120) * 60_000;
 export const PRICE_EVERY_MS = Number(process.env.OVERLAY_PRICE_EVERY_SEC ?? 300) * 1000;
+export const PRICE_FAR_EVERY_MS = Number(process.env.OVERLAY_PRICE_FAR_MIN ?? 30) * 60_000;
 /** How long after the jump a result is waited for. */
 const RESULT_WINDOW_MS = 4 * 60 * 60_000;
 /** Races fetched at once; each takes a few seconds. */
@@ -56,8 +57,10 @@ const IN_FLIGHT = 6;
 
 const empty = (): PriceBook => ({ ids: {}, missing: [], races: {} });
 
+/** The day's book, empty when none has been written; a store that does not answer throws rather than pass for an empty book. */
 export async function readPriceBook(date: string): Promise<PriceBook> {
-  const { data } = await supabaseAdmin().from("fk_cache").select("data").eq("key", `${KIND}:${date}`).maybeSingle();
+  const { data, error } = await supabaseAdmin().from("fk_cache").select("data").eq("key", `${KIND}:${date}`).maybeSingle();
+  if (error) throw new Error(`[betwatch] read book ${date}: ${error.message}`);
   return (data?.data as PriceBook | undefined) ?? empty();
 }
 
@@ -76,7 +79,7 @@ const dayAfter = (date: string, n: number) => new Date(Date.parse(`${date}T00:00
  * which settles a track the two feeds name differently (Kembla Grange is
  * Illawarra Grange there).
  */
-function matchRace(meeting: PublishedMeeting, race: PublishedMeeting["races"][number], list: BetwatchRace[]): BetwatchRace | undefined {
+export function matchRace(meeting: PublishedMeeting, race: PublishedMeeting["races"][number], list: BetwatchRace[]): BetwatchRace | undefined {
   const jump = race.jumpTime ? Date.parse(race.jumpTime) : undefined;
   const names = new Set(race.runners.map((r) => nameKey(r.horseName)));
   const candidates = list.filter((b) => b.number === race.raceNumber && b.meeting.location === meeting.state && (!jump || Math.abs(Date.parse(b.startTime) - jump) < 90 * 60_000));
@@ -90,16 +93,22 @@ function matchRace(meeting: PublishedMeeting, race: PublishedMeeting["races"][nu
   return scored[0]?.b;
 }
 
-/** The races on a card with a jump inside the window and not yet run. */
-export function racesToPrice(meetings: PublishedMeeting[], now = Date.now()): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number] }[] {
-  const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number] }[] = [];
+/**
+ * The races on a card not yet run: inside the window before the jump, or
+ * with `far` every race still to come today, each with how often it is due.
+ */
+export function racesToPrice(meetings: PublishedMeeting[], now = Date.now(), far = false): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] {
+  const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] = [];
   for (const meeting of meetings) {
     for (const race of meeting.races) {
       if (race.result?.length || !race.jumpTime) continue;
       const until = Date.parse(race.jumpTime) - now;
       // A minute past the listed jump: the field is often late out, and the last look is the one that matters.
-      if (until < -60_000 || until > PRICE_WINDOW_MS) continue;
-      out.push({ meeting, race });
+      if (until < -60_000) continue;
+      if (until > PRICE_WINDOW_MS) {
+        if (!far) continue;
+        out.push({ meeting, race, every: PRICE_FAR_EVERY_MS });
+      } else out.push({ meeting, race, every: PRICE_EVERY_MS });
     }
   }
   return out;
@@ -120,15 +129,16 @@ export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): {
 }
 
 /**
- * One round: every race inside the window whose prices are older than the
- * poll interval is fetched, and every race run and unresulted is asked for
- * its result, and the book written. Returns how many races were refreshed;
- * the caller rebuilds the card when that is more than none.
+ * One round: every race due whose prices are older than its interval is
+ * fetched (inside the window, or with `far` every race still to run), every
+ * race run and unresulted is asked for its result, and the book written.
+ * Returns how many races were refreshed; the caller rebuilds the card when
+ * that is more than none.
  */
-export async function pollPrices(date: string, meetings: PublishedMeeting[]): Promise<number> {
+export async function pollPrices(date: string, meetings: PublishedMeeting[], opts: { far?: boolean } = {}): Promise<number> {
   if (!betwatchConfigured()) return 0;
   const now = Date.now();
-  const due = [...racesToPrice(meetings, now), ...racesToSettle(meetings, now)];
+  const due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now).map((r) => ({ ...r, every: PRICE_EVERY_MS }))];
   if (due.length === 0) return 0;
   const book = await readPriceBook(date);
   // A result already in the book is only waiting for the card to be rebuilt.
@@ -153,7 +163,7 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[]): Pr
     }
   }
 
-  const stale = due.filter(({ race }) => book.ids[race.raceId] && now - Date.parse(book.races[race.raceId]?.at ?? "1970-01-01") >= PRICE_EVERY_MS * 0.8);
+  const stale = due.filter(({ race, every }) => book.ids[race.raceId] && now - Date.parse(book.races[race.raceId]?.at ?? "1970-01-01") >= every * 0.8);
   let refreshed = 0;
   for (let i = 0; i < stale.length; i += IN_FLIGHT) {
     await Promise.all(
