@@ -143,6 +143,7 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
     barrier: `Barrier ${r.barrier}, ${ord(race.runners.filter((x) => !x.scratched && x.barrier < r.barrier).length + 1)} from the rail of ${race.runners.filter((x) => !x.scratched).length} once scratchings are out, for a runner that ${MAP_LABEL[g.map].toLowerCase()}, over ${race.distance}m. ${g.map === "leader" || g.map === "on pace" ? "A wide gate means working early to hold a spot; an inside one saves that." : "Back in the field the draw matters less, though a very wide gate costs cover and a rail draw in a big field can mean being held up."}`,
     sections: race.pace.tempo === "fast" ? `A fast tempo is expected, so its late sectional under pressure counts: ${g.pressure.toFixed(1)}, class ${g.class.toFixed(1)}, ${gap(g.pressure - g.class)}.` : race.pace.tempo === "slow" ? `A slow tempo is expected, so its early speed counts: ${g.early.toFixed(1)}, class ${g.class.toFixed(1)}, ${gap(g.early - g.class)}.` : `An even tempo is expected, so its whole sectional profile counts: ${((g.early + g.mid + g.late) / 3).toFixed(1)}, class ${g.class.toFixed(1)}, ${gap((g.early + g.mid + g.late) / 3 - g.class)}.`,
     shape: shapeWhy(),
+    streak: "A horse on a winning run goes better than its clock says: over the cache the form gave horses with their last two runs won about half their real chance.",
     market: "Form King's own view of this runner against the rest of the field.",
   };
   function shapeWhy(): string {

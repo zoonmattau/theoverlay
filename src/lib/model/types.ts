@@ -28,6 +28,7 @@ export type Factor =
   | "barrier"
   | "sections"
   | "shape"
+  | "streak"
   | "market";
 
 export const FACTOR_LABEL: Record<Factor, string> = {
@@ -42,6 +43,7 @@ export const FACTOR_LABEL: Record<Factor, string> = {
   barrier: "Barrier",
   sections: "Sectionals",
   shape: "Shape",
+  streak: "Winning run",
   market: "Field",
 };
 

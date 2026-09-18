@@ -8,8 +8,8 @@ import type { RaceEntry } from "@/lib/formking/types";
 import type { MapPosition } from "./types";
 
 const CAP = { weight: 3, fresh: 3, barrier: 1.5 };
-/** Form King's restated ratings move a lot per kilo, so take half. */
-const WEIGHT_SCALE = 0.5;
+/** Form King's restated ratings move a lot per kilo, so take half the shift: more made the form price worse over the cache (scripts/sweep-streak.ts, 18 Sep 2026). */
+const WEIGHT_SCALE = Number(process.env.OVERLAY_WEIGHT_SCALE ?? 0.5);
 const SHRINK = 2;
 
 /**

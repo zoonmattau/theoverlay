@@ -250,6 +250,30 @@ const CONTESTED = 1;
 const LONE = 3;
 /** Caps on the smaller factors, in points. */
 const CAP = { weight: 4, fresh: 3, jockey: 0.8, trainer: 0.5 };
+/**
+ * A horse on a winning run is going better than its clock says: over the
+ * cache the form gave horses with their last two runs won about half their
+ * real chance (18 said, 34 won of 152; 6 said, 12 won of 45 on three or
+ * more), and laid ten of the eleven odds-on ones, six of which won. Points
+ * per win in the run beyond the first, up to STREAK_MAX wins. Three from
+ * scripts/sweep-streak.ts on 18 Sep 2026: the form's log loss falls at every
+ * step to four, at three the streak horses price about right (23 said of
+ * 34, 10 of 12) and the bet record is unchanged.
+ */
+const STREAK_POINTS = Number(process.env.OVERLAY_STREAK_POINTS ?? 3);
+/**
+ * How far a run's figure moves from the overall clock toward a faster
+ * closing sectional. Off: over the cache every setting made the form price
+ * worse (log loss 0.3083 to 0.3098 at a half), so the overall clock stands
+ * even in a crawl then a sprint.
+ */
+const SPRINT_RESCUE = Number(process.env.OVERLAY_SPRINT_RESCUE ?? 0);
+const STREAK_MAX = 3;
+function streakFactor(e: RaceEntry): number {
+  let wins = 0;
+  for (const p of recentRuns(e)) { if (p.finishPosition === 1) wins++; else break; }
+  return STREAK_POINTS * Math.max(0, Math.min(wins, STREAK_MAX) - 1);
+}
 
 export function rateEntries(
   entries: RaceEntry[],
@@ -340,6 +364,7 @@ export function rateEntries(
       barrier: barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, map, race.distance),
       sections: r.runs > 0 ? SECTION_WEIGHT * (sectionFit - r.class) : 0,
       shape: shapeOf(r, map),
+      streak: streakFactor(e),
       market: fk[i] * FK_NUDGE,
     };
     for (const k of Object.keys(factors) as Factor[]) {
@@ -496,8 +521,13 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   const trust = r.benchmark?.dataStage === "OVERALL_TIME_ONLY" ? TIME_ONLY_WEIGHT : 1;
   const byMargin = par - Math.min(15, (r.margin ?? ((r.finishPosition ?? 6) - 1) * 1.2) * POINTS_PER_LENGTH * MARGIN_WEIGHT);
   const own = OWN_CLOCK_BLEND > 0 || OWN_CLOCK_ALONE > 0 ? ownClock(r) : undefined;
+  // A crawl then a sprint: the overall clock says little about the winner
+  // and the closing sectional says a lot, so where the last 600 beats the
+  // overall figure the run moves that way by SPRINT_RESCUE of the gap.
+  const closing = r.benchmark?.sections?.["6-F"]?.vsClass;
+  const vsClass = r.benchmark ? (SPRINT_RESCUE > 0 && closing !== undefined && closing > r.benchmark.vsClass ? r.benchmark.vsClass + SPRINT_RESCUE * (closing - r.benchmark.vsClass) : r.benchmark.vsClass) : 0;
   const raw = r.benchmark
-    ? Math.max(par + (own !== undefined ? (1 - OWN_CLOCK_BLEND) * r.benchmark.vsClass + OWN_CLOCK_BLEND * own : r.benchmark.vsClass) * clockPoints(r.distance) * trust, byMargin - CLOCK_FLOOR * POINTS_PER_LENGTH)
+    ? Math.max(par + (own !== undefined ? (1 - OWN_CLOCK_BLEND) * vsClass + OWN_CLOCK_BLEND * own : vsClass) * clockPoints(r.distance) * trust, byMargin - CLOCK_FLOOR * POINTS_PER_LENGTH)
     : own !== undefined && OWN_CLOCK_ALONE > 0
       ? par + own * clockPoints(r.distance) * OWN_CLOCK_ALONE
       : byMargin;
