@@ -57,8 +57,16 @@ const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
-/** Below this trust in the rating there is no call either way: 0.4 keeps a horse on one run (trust 0.35) out, two runs (0.55) in. */
-const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0.4);
+/**
+ * Below this trust in the rating there is no bet: 0.3 lets a horse on one
+ * run (trust 0.35) in, which the user asked for on 18 Sep 2026 (Far And
+ * Wide, Townsville, rated $3.20 off one fast maiden win against $4). The
+ * lay floor stays at 0.4, two runs (0.55) in and one out: over the cache
+ * one-run horses added four bets at breakeven and six lays of which five
+ * won (scripts/sweep-bet-line.ts with OVERLAY_TRUST_FLOOR=0.3).
+ */
+const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0.3);
+const LAY_TRUST_FLOOR = Number(process.env.OVERLAY_LAY_TRUST_FLOOR ?? 0.4);
 /** Market shorter than our price by this much, on a runner we can lay. */
 export const LAY_EDGE = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 /** Laying at long prices is all liability, so cap it. */
@@ -125,8 +133,11 @@ export function publishRace(
       // No runs means no opinion, and no opinion is never a call, held or new:
       // its price is the market's, moved only by the field normalising around it.
       const g = ratedByTab.get(p.key)?.ratings;
-      if ((g?.runs ?? 0) === 0 || (g?.trust ?? 1) < TRUST_FLOOR) return [p.key, undefined];
-      return [p.key, jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice)];
+      const trust = g?.trust ?? 1;
+      if ((g?.runs ?? 0) === 0 || trust < TRUST_FLOOR) return [p.key, undefined];
+      const signal = jumped || guessing ? held : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
+      // A thin rating can back a horse but not lay one: the mirage costs one unit as a bet and the price as a lay.
+      return [p.key, signal === "lay" && trust < LAY_TRUST_FLOOR ? undefined : signal];
     }),
   );
 

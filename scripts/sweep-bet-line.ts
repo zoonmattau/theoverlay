@@ -8,7 +8,7 @@ import { readdirSync, readFileSync } from "node:fs";
 import type { RaceSummary } from "../src/lib/formking/types";
 import { publishRace } from "../src/lib/model/publish";
 
-const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0.4);
+const TRUST_FLOOR = Number(process.env.OVERLAY_TRUST_FLOOR ?? 0.3);
 const races = readdirSync(".formking-cache")
   .filter((f) => f.startsWith("race-"))
   .map((f) => JSON.parse(readFileSync(`.formking-cache/${f}`, "utf8")).data as RaceSummary)
