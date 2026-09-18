@@ -8,7 +8,7 @@ export interface MiniRace {
   raceNumber: number;
   clock: string;
   resulted: boolean;
-  tip?: "prime" | "back" | "lay";
+  tip?: "prime" | "back" | "roughie" | "lay";
   group?: 1 | 2 | 3;
   /** The tipster the viewer follows has a call in this race: their initial. */
   tipster?: string;

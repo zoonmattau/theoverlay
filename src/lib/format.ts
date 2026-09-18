@@ -52,6 +52,7 @@ export function longDate(date: string): string {
 export const TAG_LABEL = {
   top_overlay: "Overlay of the Day",
   prime_overlay: "Prime Overlay",
+  way_overlay: "Way Overlay",
   long_overlay: "Long Overlay",
   bet: "Bet",
   lay: "Lay",
@@ -60,6 +61,7 @@ export const TAG_LABEL = {
 export const TAG_BLURB = {
   top_overlay: "Biggest edge on the card",
   prime_overlay: "A bet with an edge of five points or more",
+  way_overlay: "A bet at $21 or more, way over the odds",
   long_overlay: "Best edge at an each-way price",
   bet: "Market longer than our price",
   lay: "Market shorter than our price",

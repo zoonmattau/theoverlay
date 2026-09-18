@@ -7,7 +7,7 @@ import { bestBookie, type Bookie } from "@/lib/bookies";
 import { longDate, price, priceWithChance } from "@/lib/format";
 import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { readStoredCard, type StoredCard } from "@/lib/model/store";
-import { callPrice } from "@/lib/model/types";
+import { callPrice, isRoughie } from "@/lib/model/types";
 import { racingToday, released } from "@/lib/model/source";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
@@ -59,6 +59,8 @@ interface Call {
   bookie?: Bookie;
   side: "bet" | "lay";
   prime: boolean;
+  /** A Way Overlay, a bet at $21 or more. */
+  way: boolean;
 }
 
 function calls(date: string, card: StoredCard): Call[] {
@@ -79,6 +81,7 @@ function calls(date: string, card: StoredCard): Call[] {
             bookie: bestBookie(x.bookies),
             side: (x.signal === "back" ? "bet" : "lay") as "bet" | "lay",
             prime: prime.has(`${r.raceId}:${x.tabNumber}`),
+            way: isRoughie(x),
           })),
       ),
     )
@@ -94,7 +97,11 @@ function table(rows: Call[]): string {
     .map((c) => {
       const colour = c.side === "bet" ? "#1f6fd6" : "#d93636";
       const badge = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${colour};color:#fff;font:700 11px ${FONT};text-transform:uppercase">${c.side}</span>`;
-      const primeTag = c.prime ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#c6f24e;color:#14161a;font:700 11px ${FONT}">Prime</span>` : "";
+      const primeTag = c.prime
+        ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#c6f24e;color:#14161a;font:700 11px ${FONT}">Prime</span>`
+        : c.way
+          ? ` <span style="display:inline-block;padding:2px 7px;border-radius:4px;background:#dcebff;color:#1f6fd6;font:700 11px ${FONT}">Way Overlay</span>`
+          : "";
       return `<tr>${cell(`<a href="${c.url}" style="color:#14161a;font-weight:700;text-decoration:none">${esc(c.track)} R${c.raceNumber}</a>`)}${cell(esc(c.runner) + primeTag)}${cell(`<strong style="color:${colour}">${c.live}</strong>${c.bookie ? `<br><a href="${c.bookie.url}" style="font:600 11px ${FONT};color:#6b716a;text-decoration:none">at ${esc(c.bookie.name)}</a>` : ""}`, "text-align:right;white-space:nowrap")}${cell(c.rated, "text-align:right;white-space:nowrap")}${cell(badge, "text-align:right")}</tr>`;
     })
     .join("");

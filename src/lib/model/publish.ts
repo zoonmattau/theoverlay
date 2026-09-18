@@ -22,7 +22,7 @@ import type {
   SelectionTag,
   Signal,
 } from "./types";
-import { callEdge, callPrice } from "./types";
+import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
@@ -52,7 +52,12 @@ export const MIN_EDGE = Number(process.env.OVERLAY_MIN_EDGE ?? 0.02);
 /** A Prime Overlay is a bet with a wide gap on a horse we give a real chance. */
 const PRIME_EDGE = 0.05;
 const PRIME_MIN_PROB = 0.15;
-/** A bet needs a real chance and a price someone would actually take. */
+/**
+ * A bet needs a real chance and a price someone would actually take, unless
+ * it is a Way Overlay: from ROUGHIE_FROM up a bet stands on its edge alone,
+ * at any price, which the user asked for on 18 Sep 2026 knowing the cache
+ * runs negative at SP there (scripts/sweep-roughies.ts).
+ */
 const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
@@ -357,13 +362,14 @@ function signalFor(
   layPrice?: number,
 ): Signal | undefined {
   if (scratched || edge === undefined || !marketPrice || probability === undefined) return undefined;
-  if (edge >= MIN_EDGE && probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE) return "back";
+  const roughie = marketPrice >= ROUGHIE_FROM;
+  if (edge >= MIN_EDGE && (roughie || (probability >= BET_MIN_PROB && marketPrice <= BET_MAX_PRICE))) return "back";
   // A lay is judged at the price it is struck at on the exchange, not the bookmakers' best.
   const le = layEdge ?? edge, lp = layPrice ?? marketPrice;
   if (le <= LAY_EDGE && lp <= LAY_MAX_PRICE) return "lay";
   // A call already published stays while it still has half its edge, so a
   // ten-cent move in the market does not make a tip vanish between refreshes.
-  if (kept === "back" && edge >= MIN_EDGE / 2 && marketPrice <= BET_MAX_PRICE * 1.5) return "back";
+  if (kept === "back" && edge >= MIN_EDGE / 2 && (roughie || marketPrice <= BET_MAX_PRICE * 1.5)) return "back";
   if (kept === "lay" && le <= LAY_EDGE / 2 && lp <= LAY_MAX_PRICE * 1.5) return "lay";
   return undefined;
 }
@@ -544,18 +550,20 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
     });
   };
 
-  // Overlay of the day: the biggest edge on a horse we give a real chance.
-  const real = qualifying.filter((c) => c.runner.ratedProbability >= PRIME_MIN_PROB);
-  take("top_overlay", real.length ? real : qualifying, (a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0));
-
-  // Prime overlays: every other bet five points clear on a horse we give a real chance, biggest first.
+  // Prime Overlays: every bet five points clear on a horse we give a real
+  // chance and a rating with two runs behind it, biggest first. There is no
+  // Overlay of the Day any more: nothing is lime for being merely the best
+  // of the day, and a day with no Prime has none.
   for (const c of [...qualifying]
-    .filter((c) => (c.runner.edge ?? 0) >= PRIME_EDGE && c.runner.ratedProbability >= PRIME_MIN_PROB && !used.has(key(c)))
+    .filter((c) => (c.runner.edge ?? 0) >= PRIME_EDGE && c.runner.ratedProbability >= PRIME_MIN_PROB && (c.runner.ratings.trust ?? 1) >= LAY_TRUST_FLOOR)
     .sort((a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0))) {
     take("prime_overlay", [c], () => 0);
   }
 
-  // Long overlay: best edge at a genuine each-way price.
+  // Way Overlays: every bet at a roughie's price, biggest edge first.
+  for (const c of [...qualifying].filter((c) => (c.runner.marketPrice ?? 0) >= ROUGHIE_FROM && !used.has(key(c))).sort((a, b) => (b.runner.edge ?? 0) - (a.runner.edge ?? 0))) take("way_overlay", [c], () => 0);
+
+  // Long overlay: best edge at a genuine each-way price, short of a roughie's.
   take(
     "long_overlay",
     qualifying.filter((c) => (c.runner.marketPrice ?? 0) >= LONG_MIN_PRICE),

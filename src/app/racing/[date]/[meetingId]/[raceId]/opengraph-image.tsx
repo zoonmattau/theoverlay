@@ -1,5 +1,7 @@
 import { ImageResponse } from "next/og";
 
+import { isRoughie } from "@/lib/model/types";
+
 import { longDate, price } from "@/lib/format";
 import { getRaceCard } from "@/lib/model/source";
 
@@ -7,7 +9,7 @@ export const alt = "The Overlay race card";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
-const INK = "#14161a", LIME = "#c6f24e", BLUE = "#1f6fd6", RED = "#d93636", PAPER = "#f5f7f2", SOFT = "#b9bec8";
+const INK = "#14161a", LIME = "#c6f24e", BLUE = "#1f6fd6", BLUE_SOFT = "#dcebff", RED = "#d93636", PAPER = "#f5f7f2", SOFT = "#b9bec8";
 
 /**
  * The share image for a race: track, race, the top four with rated against
@@ -42,7 +44,7 @@ export default async function Image({ params }: { params: Promise<{ date: string
             </div>
             <div style={{ display: "flex", flexDirection: "column", marginTop: 22, gap: 8 }}>
               {top.map((r) => {
-                const call = released ? (r.prime ? { bg: LIME, fg: INK, text: "PRIME" } : r.signal === "back" ? { bg: BLUE, fg: PAPER, text: "BET" } : r.signal === "lay" ? { bg: RED, fg: PAPER, text: "LAY" } : null) : null;
+                const call = released ? (r.prime ? { bg: LIME, fg: INK, text: "PRIME" } : isRoughie(r) ? { bg: BLUE_SOFT, fg: BLUE, text: "WAY" } : r.signal === "back" ? { bg: BLUE, fg: PAPER, text: "BET" } : r.signal === "lay" ? { bg: RED, fg: PAPER, text: "LAY" } : null) : null;
                 const won = run && race.result![0] === r.tabNumber;
                 return (
                   <div key={r.tabNumber} style={{ display: "flex", alignItems: "center", gap: 16, fontSize: 28, background: "rgba(255,255,255,0.06)", borderRadius: 10, padding: "7px 16px" }}>

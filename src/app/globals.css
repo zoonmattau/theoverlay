@@ -352,6 +352,20 @@ h1, h2, h3 {
   background: #fff;
   color: var(--color-blue);
 }
+/* A Way Overlay, a bet at $21 or more, is the lighter blue wherever a race is coloured. */
+.ntg-item.tip-roughie {
+  background: var(--color-blue-soft);
+  border-color: var(--color-blue-dim);
+  color: var(--color-ink);
+}
+.ntg-item.tip-roughie .ntg-tag,
+.ntg-item.tip-roughie .ntg-track {
+  color: var(--color-blue);
+}
+.ntg-item.tip-roughie .ntg-time {
+  background: var(--color-blue);
+  color: #fff;
+}
 .ntg-item.tip-lay {
   background: var(--color-red);
   border-color: var(--color-red);
@@ -1175,6 +1189,15 @@ body {
 .matrix-btn.tip-back .matrix-count {
   color: #fff;
 }
+.matrix-btn.tip-roughie {
+  background: var(--color-blue-soft);
+  border-color: var(--color-blue-dim);
+  color: var(--color-ink);
+}
+.matrix-btn.tip-roughie .matrix-time,
+.matrix-btn.tip-roughie .matrix-count {
+  color: var(--color-blue);
+}
 .matrix-btn.tip-lay {
   background: var(--color-red);
   border-color: var(--color-red);
@@ -1376,6 +1399,11 @@ body {
   border-color: var(--color-blue);
   color: #fff;
 }
+.race-tab.tip-roughie {
+  background: var(--color-blue-soft);
+  border-color: var(--color-blue-dim);
+  color: var(--color-blue);
+}
 .race-tab.tip-lay {
   background: var(--color-red);
   border-color: var(--color-red);
@@ -1387,6 +1415,7 @@ body {
 }
 .race-tab.is-resulted.tip-prime,
 .race-tab.is-resulted.tip-back,
+.race-tab.is-resulted.tip-roughie,
 .race-tab.is-resulted.tip-lay {
   background: var(--color-surface);
   color: var(--color-ink-soft);
@@ -1394,10 +1423,12 @@ body {
 }
 .race-tab.is-resulted.tip-prime { border-color: var(--color-lime); }
 .race-tab.is-resulted.tip-back { border-color: var(--color-blue); }
+.race-tab.is-resulted.tip-roughie { border-color: var(--color-blue-dim); }
 .race-tab.is-resulted.tip-lay { border-color: var(--color-red); }
 .race-tab.is-current,
 .race-tab.is-current.tip-prime,
 .race-tab.is-current.tip-back,
+.race-tab.is-current.tip-roughie,
 .race-tab.is-current.tip-lay,
 .race-tab.is-current.is-resulted {
   background: var(--color-bar);
@@ -1885,6 +1916,7 @@ body {
 .mini-cell.tip-prime { background: var(--color-lime); border-color: var(--color-lime); }
 .mini-cell.tip-back { background: var(--color-blue); border-color: var(--color-blue); color: #fff; }
 .mini-cell.tip-back .mini-t { color: rgba(255, 255, 255, 0.8); }
+.mini-cell.tip-roughie { background: var(--color-blue-soft); border-color: var(--color-blue-dim); color: var(--color-blue); }
 .mini-cell.tip-lay { background: var(--color-red); border-color: var(--color-red); color: #fff; }
 .mini-cell.tip-lay .mini-t { color: rgba(255, 255, 255, 0.8); }
 .mini-cell.is-current {
@@ -1982,6 +2014,10 @@ body {
 .matrix-btn.race-resulted.had-back,
 .mini-cell.is-resulted.had-back {
   border: 2px solid var(--color-blue);
+}
+.matrix-btn.race-resulted.had-roughie,
+.mini-cell.is-resulted.had-roughie {
+  border: 2px solid var(--color-blue-dim);
 }
 .matrix-btn.race-resulted.had-lay,
 .mini-cell.is-resulted.had-lay {
@@ -2248,6 +2284,10 @@ body {
 }
 .tip-chip.is-back {
   background: var(--color-blue);
+}
+.tip-chip.is-roughie {
+  background: var(--color-blue-soft);
+  color: var(--color-blue);
 }
 .tip-chip.is-lay {
   background: var(--color-red);

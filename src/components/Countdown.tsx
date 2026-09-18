@@ -1,5 +1,7 @@
 "use client";
 
+import type { RaceTip } from "@/lib/model/types";
+
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -15,7 +17,7 @@ export function MatrixCell({
   result,
   backs,
   lays,
-  prime,
+  tip,
   group,
   free,
   tipsters,
@@ -27,7 +29,8 @@ export function MatrixCell({
   result?: number[];
   backs: number;
   lays: number;
-  prime?: boolean;
+  /** The race's colour: lime Prime, blue bet, the lighter blue when its only bets are Way Overlays, red lay. */
+  tip?: RaceTip;
   /** 1, 2 or 3 for a Group race, shown as gold, silver or bronze. */
   group?: 1 | 2 | 3;
   /** Today's free race, for a viewer who cannot open the others. */
@@ -55,7 +58,7 @@ export function MatrixCell({
     return () => clearInterval(id);
   }, [iso, clock, result]);
 
-  const tip = prime ? "prime" : backs > 0 ? "back" : lays > 0 ? "lay" : undefined;
+  const prime = tip === "prime";
 
   // Resulted: the race number and the first four home, with a border in the
   // colour of what we had on.
@@ -71,7 +74,7 @@ export function MatrixCell({
     );
   }
 
-  const tag = prime ? "Prime" : backs > 0 ? plural(backs, "bet") : lays > 0 ? plural(lays, "lay") : undefined;
+  const tag = prime ? "Prime" : tip === "roughie" ? (backs === 1 ? "Way Overlay" : `${backs} Way Overlays`) : backs > 0 ? plural(backs, "bet") : lays > 0 ? plural(lays, "lay") : undefined;
 
   return (
     <Link href={href} className={`matrix-btn ${tip ? `tip-${tip}` : ""} ${state.status}`}>
@@ -114,7 +117,7 @@ export function NtgCountdown({
   iso?: string;
   clock: string;
   label: string;
-  tip?: "prime" | "back" | "lay";
+  tip?: RaceTip;
   tag?: string;
   /** Initials of the tipsters the viewer follows who have a call in this race, badged like the board. */
   tipsters?: string[];

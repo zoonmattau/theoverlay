@@ -7,7 +7,8 @@
  * boundary the licence draws.
  */
 
-export type SelectionTag = "top_overlay" | "prime_overlay" | "long_overlay" | "bet" | "lay";
+/** top_overlay is no longer made (18 Sep 2026) and stays only so past cards still render. */
+export type SelectionTag = "top_overlay" | "prime_overlay" | "way_overlay" | "long_overlay" | "bet" | "lay";
 
 /** Back when the market is longer than our price, lay when it is shorter. */
 export type Signal = "back" | "lay";
@@ -298,6 +299,17 @@ export interface Selection {
   jumpTime?: string;
 }
 
+/** From this price a bet is a Way Overlay: a roughie, shaded its own lighter blue and free of the bet's price cap. */
+export const ROUGHIE_FROM = Number(process.env.OVERLAY_ROUGHIE_FROM ?? 21);
+export const isRoughie = (x: { signal?: Signal; marketPrice?: number }): boolean => x.signal === "back" && (x.marketPrice ?? 0) >= ROUGHIE_FROM;
+/** How a race is coloured: lime for a Prime, blue for a bet, the lighter blue when its only bets are Way Overlays, red for a lay. */
+export type RaceTip = "prime" | "back" | "roughie" | "lay";
+export function raceTip(runners: { signal?: Signal; marketPrice?: number; scratched?: boolean }[], prime: boolean): RaceTip | undefined {
+  if (prime) return "prime";
+  const backs = runners.filter((x) => !x.scratched && x.signal === "back");
+  if (backs.length) return backs.every(isRoughie) ? "roughie" : "back";
+  return runners.some((x) => !x.scratched && x.signal === "lay") ? "lay" : undefined;
+}
 /** The price a call is struck at: a bet at the bookmakers' best, a lay at the exchange price. */
 export const callPrice = (x: { signal?: Signal; marketPrice?: number; layPrice?: number }): number | undefined => (x.signal === "lay" && x.layPrice ? x.layPrice : x.marketPrice);
 /** The edge a call rests on: against the best price for a bet, the exchange price for a lay. */

@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
 import type { StoredCard } from "@/lib/model/store";
-import { callPrice } from "@/lib/model/types";
+import { callPrice, isRoughie } from "@/lib/model/types";
 import { callLimit } from "@/lib/model/publish";
 import { settledAt } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRunner } from "@/lib/model/types";
@@ -142,8 +142,8 @@ function callsOn(card: StoredCard): Call[] {
  */
 function line(c: Call, withTrack = false): string {
   const prime = c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay";
-  const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : "🟦";
-  const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : "Bet";
+  const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
+  const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : isRoughie(c.x) ? "Way Overlay" : "Bet";
   const limit = callLimit(c.x);
   const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
   return `${square} ${withTrack ? `${c.m.track} ` : ""}R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}`;
@@ -157,7 +157,7 @@ function lines(calls: Call[]): string {
 }
 
 /**
- * The morning posts: the Overlay of the Day, the Primes, every bet and lay,
+ * The morning posts: the Primes, every bet and lay,
  * and the free race. Each goes once per date, so a rebuild never repeats them.
  */
 export async function postCalls(date: string, card: StoredCard, opts: { early?: boolean } = {}): Promise<void> {
@@ -174,12 +174,6 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
       return;
     }
     if (calls.length === 0) return;
-    const top = calls.find((c) => c.tag === "top_overlay");
-    if (top) {
-      await once(date, "overlay", () =>
-        send(CHANNELS.overlay, `**Overlay of the Day, ${day}**\n${line(top, true)}${top.x.why ? `\n> ${top.x.why}` : ""}\n${raceUrl(date, top.m, top.r)}`),
-      );
-    }
     const primes = calls.filter((c) => c.x.signal === "back" && (c.x.prime || c.tag === "prime_overlay" || c.tag === "top_overlay"));
     if (primes.length) await once(date, "primes", () => send(CHANNELS.primes, `**Prime Overlays, ${day}**\n${primes.map((c) => line(c, true)).join("\n")}`));
     const bets = calls.filter((c) => c.x.signal === "back").length;

@@ -14,7 +14,7 @@ export const RATINGS_FAQ: Faq[] = [
   { q: "What is the Today rating?", a: "The one number everything adds up to: the horse's class rating plus or minus the factors that matter today, such as going, tempo, distance, track, weight, freshness, jockey and trainer." },
   { q: "What is a rated price?", a: "Our price for the horse, worked out from the Today ratings of the whole field, shown next to its win chance so you can compare it with the market." },
   { q: "What is a bet and what is a lay?", a: "A bet is a horse whose market price is bigger than our rated price, a lay is a horse whose market price is shorter than our rated price and worth opposing on the exchange." },
-  { q: "What is a Prime Overlay?", a: "The bets where the gap between the market and our price is widest, the strongest calls on the day." },
+  { q: "What is the difference between a bet, a Prime Overlay and a Way Overlay?", a: "A bet is any horse whose market price is at least two points of win chance longer than our rated price, at $26 or under. A Prime Overlay is a bet with a gap of five points or more on a horse we give a real chance, 15% or better, with at least two runs behind its rating, the strongest calls on the day and shown in lime. A Way Overlay is a bet at $21 or more, a roughie the market has way over the odds, shown in the lighter blue and struck at small stakes because most of them lose and the ones that win pay for the rest." },
   { q: "Do results change the ratings?", a: "No, the clock does: a run is scored on time against the class benchmark, so winning slowly does not lift a rating and running fast in defeat does." },
 ];
 

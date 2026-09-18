@@ -2,9 +2,9 @@
 import { NtgCountdown } from "./Countdown";
 import { jumpTime } from "@/lib/format";
 import { now as clock } from "@/lib/admin";
-import type { PublishedMeeting, Selection } from "@/lib/model/types";
+import { raceTip, type PublishedMeeting, type RaceTip, type Selection } from "@/lib/model/types";
 
-export type NtgTip = "prime" | "back" | "lay";
+export type NtgTip = RaceTip;
 
 /**
  * The next races across every track, soonest first, coloured by what we have
@@ -42,21 +42,17 @@ export function NextToGo({
       {races.map(({ m, r }) => {
         const backs = r.runners.filter((x) => x.signal === "back").length;
         const lays = r.runners.filter((x) => x.signal === "lay").length;
-        const tip: NtgTip | undefined = prime.has(r.raceId)
-          ? "prime"
-          : backs > 0
-            ? "back"
-            : lays > 0
-              ? "lay"
-              : undefined;
+        const tip = raceTip(r.runners, prime.has(r.raceId));
         const tag =
           tip === "prime"
             ? "Prime Overlay"
-            : tip === "back"
-              ? `${backs} bet${backs === 1 ? "" : "s"}`
-              : tip === "lay"
-                ? `${lays} lay${lays === 1 ? "" : "s"}`
-                : undefined;
+            : tip === "roughie"
+              ? backs === 1 ? "Way Overlay" : `${backs} Way Overlays`
+              : tip === "back"
+                ? `${backs} bet${backs === 1 ? "" : "s"}`
+                : tip === "lay"
+                  ? `${lays} lay${lays === 1 ? "" : "s"}`
+                  : undefined;
         return (
           <NtgCountdown
             key={r.raceId}

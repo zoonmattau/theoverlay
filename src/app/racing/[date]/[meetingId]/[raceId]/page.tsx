@@ -31,7 +31,7 @@ import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 import { DatahubStrip } from "@/components/DatahubStrip";
 import { racePeople, raceFacts } from "@/lib/data/race-facts";
-import type { GoingBand } from "@/lib/model/types";
+import { raceTip, type GoingBand } from "@/lib/model/types";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
 
@@ -108,14 +108,12 @@ async function Race({ params }: { params: Props["params"] }) {
     track: m.track,
     condition: m.trackCondition,
     races: m.races.map((r) => {
-      const backs = r.runners.some((x) => x.signal === "back");
-      const lays = r.runners.some((x) => x.signal === "lay");
       return {
         raceId: r.raceId,
         raceNumber: r.raceNumber,
         clock: jumpTime(r.jumpTime),
         resulted: Boolean(r.result),
-        tip: prime.has(r.raceId) ? "prime" : backs ? "back" : lays ? "lay" : undefined,
+        tip: raceTip(r.runners, prime.has(r.raceId)),
         group: groupOf(r.className, r.name),
         tipster: initialsFor(r.raceId) || undefined,
       };
@@ -199,7 +197,7 @@ async function Race({ params }: { params: Props["params"] }) {
         <div className="flex flex-wrap items-center gap-3 border-t border-line-soft px-4 py-3">
           <nav className="race-tabs" aria-label="Races at this meeting">
             {meeting.races.map((r) => {
-              const tabTip = prime.has(r.raceId) ? "prime" : r.runners.some((x) => x.signal === "back") ? "back" : r.runners.some((x) => x.signal === "lay") ? "lay" : "";
+              const tabTip = raceTip(r.runners, prime.has(r.raceId)) ?? "";
               return (
               <Link
                 key={r.raceId}

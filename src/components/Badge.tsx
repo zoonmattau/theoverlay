@@ -1,3 +1,4 @@
+import { isRoughie } from "@/lib/model/types";
 import type { ReactNode } from "react";
 
 const TONES = {
@@ -25,8 +26,9 @@ export function Badge({
  * The chip beside a runner's name: B for a bet, L for a lay, P for a Prime
  * Overlay, and only otherwise its place in our top four.
  */
-export function TipChip({ r }: { r: { rank: number | null; signal?: "back" | "lay"; prime?: boolean } }) {
+export function TipChip({ r }: { r: { rank: number | null; signal?: "back" | "lay"; prime?: boolean; marketPrice?: number } }) {
   if (r.prime) return <span className="tip-chip is-prime" title="Prime Overlay">P</span>;
+  if (isRoughie(r)) return <span className="tip-chip is-roughie" title="Way Overlay, a bet at $21 or more">W</span>;
   if (r.signal === "back") return <span className="tip-chip is-back" title="Bet">B</span>;
   if (r.signal === "lay") return <span className="tip-chip is-lay" title="Lay">L</span>;
   if (r.rank) return <RankChip rank={r.rank} />;
