@@ -12,7 +12,7 @@ import {
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
-import { claimRefresh, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { claimRefresh, readMutes, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
@@ -277,9 +277,12 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
     .map((m) => ({ ...m, races: m.races.map((r) => freezeRun(r, before.get(r.raceId))) }))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
+  // A call taken off by hand stays off, whatever the numbers say on this build.
+  const muted = storeConfigured() ? await readMutes(date) : new Set<string>();
+  for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (muted.has(`${r.raceId}:${x.tabNumber}`)) x.signal = undefined;
   const selections = selectBestBets(meetings);
   // Prime Overlays are chosen across the card, so the runner learns it here.
-  const primes = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
+  const primes = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   for (const m of meetings) {
     for (const r of m.races) {
       for (const x of r.runners) if (primes.has(`${r.raceId}:${x.tabNumber}`)) x.prime = true;

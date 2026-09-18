@@ -62,3 +62,19 @@ export async function claimRefresh(date: string): Promise<boolean> {
   if (error) console.error("[cards]", error.message);
   return Boolean(data && data.length > 0);
 }
+
+/**
+ * Calls taken off by hand for a date: "raceId:tab" keys in fk_cache under
+ * mute:<date>, applied on every build so a rebuild does not bring the call
+ * back. Set with scripts/mute-call.ts.
+ */
+export async function readMutes(date: string): Promise<Set<string>> {
+  const { data, error } = await supabaseAdmin().from("fk_cache").select("data").eq("key", `mute:${date}`).maybeSingle();
+  if (error) throw new Error(`[mutes] read ${date}: ${error.message}`);
+  return new Set(((data?.data as { keys?: string[] } | undefined)?.keys ?? []));
+}
+
+export async function writeMutes(date: string, keys: Set<string>): Promise<void> {
+  const { error } = await supabaseAdmin().from("fk_cache").upsert({ key: `mute:${date}`, kind: "mute", data: { keys: [...keys] }, at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) throw new Error(`[mutes] write ${date}: ${error.message}`);
+}
