@@ -44,14 +44,18 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
   const widest = Math.max(1, ...live.map((r) => r.barrier));
   /**
    * Where each runner in a column sits off the rail, in lanes from 0 (the
-   * fence) to 2 (wide): its barrier as a share of the widest gate, then
-   * anyone landing on top of the one below is lifted a lane.
+   * fence) to 2 (wide). The field drifts to the fence as it settles, so the
+   * inside runner of each pair takes the rail (the leader's back is nearly
+   * always filled) unless its gate is in the widest third, and the others
+   * stack off it by barrier, lifted a lane where they would land on the one
+   * below.
    */
   const lanes = (row: PublishedRunner[]): Map<number, number> => {
     const out = new Map<number, number>();
     let floor = 0;
-    for (const r of row) {
-      const want = ((r.barrier - 1) / Math.max(1, widest - 1)) * 2;
+    for (const [i, r] of row.entries()) {
+      const wide = (r.barrier - 1) / Math.max(1, widest - 1);
+      const want = i === 0 ? (wide >= 0.66 ? 1 : 0) : wide * 2;
       const lane = Math.min(2, Math.max(want, floor));
       out.set(r.tabNumber, lane);
       floor = lane + 1;
