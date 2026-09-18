@@ -46,6 +46,7 @@ def listing():
 def setup():
     LIME, BLUE = 0xC8F53C, 0x3B82F6
     VIEW, SEND, THREADS_PUB, SEND_IN_THREADS, REACT, CONNECT, SPEAK, HISTORY = 1 << 10, 1 << 11, 1 << 35, 1 << 38, 1 << 6, 1 << 20, 1 << 21, 1 << 16
+    EMBED, ATTACH = 1 << 14, 1 << 15
     ADMIN = 8
     everyone = GID
     roles = {r["name"]: r for r in call("GET", f"/guilds/{GID}/roles")}
@@ -137,6 +138,8 @@ def setup():
     channel("saturday-chat", talk, OPEN, 0, "Live on Saturday.")
     channel("midweek-chat", talk, OPEN, 0, "Wednesday and the rest of the week.")
     channel("feedback-for-admin", talk, OPEN, 0, "Bugs, ideas, things that read wrong.")
+    # Winning slips: anyone can post a picture of a collect, one every couple of minutes.
+    channel("winning-slips", talk, [ov(everyone, TALK | ATTACH | EMBED)], 0, "Your winning slips. Screenshot the collect, say what the call was.", {"rate_limit_per_user": 120})
     # Forums: one thread per horse, one per Saturday review. An empty text
     # channel of the same name makes way; one with messages is left alone.
     for n, t in [("horses-to-follow", "One thread per horse. Say why."), ("the-review", "One thread per Saturday review. Sectionals, who ran above their mark, what we got wrong.")]:
