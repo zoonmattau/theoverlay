@@ -37,8 +37,9 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // OVERLAY_OPEN=1 is local development with no login; the account page renders in open mode.
   const guarded = ["/account", "/reset"];
-  if (!user && guarded.some((g) => request.nextUrl.pathname.startsWith(g))) {
+  if (!user && process.env.OVERLAY_OPEN !== "1" && guarded.some((g) => request.nextUrl.pathname.startsWith(g))) {
     const login = request.nextUrl.clone();
     login.pathname = "/login";
     login.searchParams.set("next", request.nextUrl.pathname);
