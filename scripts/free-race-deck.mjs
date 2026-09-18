@@ -8,6 +8,7 @@
 // PICK=1,4,3 chooses and orders the slides (1 top four, 2 ratings, 3 speed map, 4 runner);
 // FROM=2 numbers them from there when a designed slide goes first, TOTAL=5 when one closes the deck.
 // TOP=2 shoots only the first two selections and titles the slide "Our top two"; SUB1="..." replaces the line under it.
+// TITLE3 and SUB3 do the same for the speed map slide, SUB4 for the runner's.
 // THEME=light composes on white in the brand faces (Archivo caps with the lime block, Plex Mono body,
 // the lime mark and the tagline in the footer), to sit behind a designed opening slide of the same kind.
 import { chromium } from "playwright-core";
@@ -82,9 +83,9 @@ const slides = [
   { imgs: [shots.topFour], title: top === 2 ? "Our top two" : top === 3 ? "Our top three" : "Our top four", sub: process.env.SUB1 ?? "Live price against our rated price, and why each one rates where it does." },
   { imgs: [shots.bars, shots.matrix], title: "The ratings", sub: "Every runner on the benchmark scale, and every category in one table: green above the field, red below." },
   light
-    ? { imgs: [shots.speedMap, ...(shots.worm ? [shots.worm] : [])], title: "The speed map", sub: `Where each runner settles, and ${runnerName} against the field, run by run.` }
+    ? { imgs: [shots.speedMap, ...(shots.worm ? [shots.worm] : [])], title: process.env.TITLE3 ?? "The speed map", sub: process.env.SUB3 ?? `Where each runner settles, and ${runnerName} against the field, run by run.` }
     : { imgs: [shots.speedMap, shots.glance], title: "The speed map", sub: "Where each runner settles, what that does to the tempo, and the race at a glance." },
-  { imgs: [shots.runner], title: isLay ? "The lay" : process.env.PILL ? "The winner" : "The top pick", sub: `${runnerName}: profile, sectionals against the field, what to expect, the last five runs and our call.` },
+  { imgs: [shots.runner], title: isLay ? "The lay" : process.env.PILL ? "The winner" : "The top pick", sub: process.env.SUB4 ?? `${runnerName}: profile, sectionals against the field, what to expect, the last five runs and our call.` },
 ];
 const picked = process.env.PICK ? process.env.PICK.split(",").map((n) => slides[Number(n) - 1]).filter(Boolean) : slides;
 const from = Number(process.env.FROM ?? 1);
