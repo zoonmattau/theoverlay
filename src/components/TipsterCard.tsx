@@ -1,8 +1,9 @@
 import Link from "next/link";
 
+import { CallFeed } from "./CallFeed";
 import { FollowButton } from "./FollowButton";
 import { SocialLinks } from "./SocialLinks";
-import type { TipsterProfile } from "@/lib/creators";
+import type { CreatorTip, TipsterProfile } from "@/lib/creators";
 import { price } from "@/lib/format";
 
 export const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}u`;
@@ -38,9 +39,18 @@ export function FormDots({ recent }: { recent: TipsterProfile["recent"] }) {
   );
 }
 
-/** A tipster in the directory: who they are, the record, the run, and why you would follow. */
-export function TipsterCard({ p, rank, following, you, today }: { p: TipsterProfile; rank: number; following: boolean; you: boolean; today: number }) {
+/**
+ * A tipster in the directory: who they are, the record, the run, why you
+ * would follow, and a dropdown with today's calls (how many still to run)
+ * and their last few before that.
+ */
+export function TipsterCard({ p, rank, following, you, today, live, recent, date }: { p: TipsterProfile; rank: number; following: boolean; you: boolean; today: CreatorTip[]; live: number; recent: CreatorTip[]; date: string }) {
   const t = p.tipster;
+  const summary = today.length
+    ? `${today.length} ${today.length === 1 ? "call" : "calls"} today${live ? `, ${live} still to run` : ", all run"}`
+    : recent.length
+      ? `Nothing today, last ${recent.length} ${recent.length === 1 ? "call" : "calls"}`
+      : "No calls yet";
   const tone = (n: number, has: boolean) => (!has ? "" : n > 0 ? "is-up" : n < 0 ? "is-down" : "");
   return (
     <div className={`card tipster-card ${following ? "border-lime" : ""}`}>
@@ -51,7 +61,7 @@ export function TipsterCard({ p, rank, following, you, today }: { p: TipsterProf
             <Link href={`/t/${t.code}`} className="font-display text-xl font-extrabold tracking-tight hover:underline">{t.name}</Link>
             <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} />
             {you && <span className="badge badge-prime">You</span>}
-            {today > 0 && <span className="badge badge-ok">{today} {today === 1 ? "call" : "calls"} today</span>}
+            {live > 0 && <span className="badge badge-ok">{live} live</span>}
           </div>
           {t.blurb && <p className="text-sm text-ink-secondary mt-0.5">{t.blurb}</p>}
         </div>
@@ -75,6 +85,24 @@ export function TipsterCard({ p, rank, following, you, today }: { p: TipsterProf
         {p.best && <span>best {p.best.horse} at {price(p.best.price)}</span>}
         <Link href={`/t/${t.code}`} className="ml-auto text-blue">Every call →</Link>
       </div>
+
+      {(today.length > 0 || recent.length > 0) && (
+        <details className="tipster-calls mt-3">
+          <summary>{summary}</summary>
+          {today.length > 0 && (
+            <div className="mt-2">
+              <div className="stat-label">Today</div>
+              <CallFeed tips={today} date={date} empty="" />
+            </div>
+          )}
+          {recent.length > 0 && (
+            <div className="mt-2">
+              <div className="stat-label">Before today</div>
+              <CallFeed tips={recent} date={date} empty="" withDate />
+            </div>
+          )}
+        </details>
+      )}
     </div>
   );
 }

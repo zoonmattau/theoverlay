@@ -2872,3 +2872,33 @@ body {
 .form-dot.is-lost {
   background: var(--color-red);
 }
+
+/* The dropdown on a tipster's card: today's calls and the last few before. */
+.tipster-calls {
+  border-top: 1px solid var(--color-line-soft);
+  padding-top: var(--sp-2);
+}
+.tipster-calls > summary {
+  cursor: pointer;
+  list-style: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-blue);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tipster-calls > summary::-webkit-details-marker {
+  display: none;
+}
+.tipster-calls > summary::before {
+  content: "▸";
+  font-size: 0.7rem;
+  transition: transform 120ms var(--ease);
+}
+.tipster-calls[open] > summary::before {
+  transform: rotate(90deg);
+}
+.tipster-calls .stat-label {
+  margin-bottom: 2px;
+}

@@ -265,6 +265,18 @@ export async function latestResults(tipsters: Tipster[], limit = 20): Promise<Fe
   return ((data ?? []) as CreatorTip[]).map((t) => ({ ...t, tipster: byId.get(t.affiliate_id)! }));
 }
 
+/** Each tipster's last few calls before a date, newest first, keyed by tipster id, for the cards' dropdowns. */
+export async function recentCalls(tipsters: Tipster[], before: string, each = 5): Promise<Map<string, CreatorTip[]>> {
+  const out = new Map<string, CreatorTip[]>();
+  if (tipsters.length === 0) return out;
+  const { data } = await supabaseAdmin().from("creator_tips").select("*").in("affiliate_id", tipsters.map((t) => t.id)).lt("date", before).order("date", { ascending: false }).order("race_number", { ascending: false }).limit(each * tipsters.length * 4);
+  for (const t of (data ?? []) as CreatorTip[]) {
+    const list = out.get(t.affiliate_id) ?? [];
+    if (list.length < each) out.set(t.affiliate_id, [...list, t]);
+  }
+  return out;
+}
+
 /** A tipster's calls before today, newest first, settled or still to run. */
 export async function tipsterHistory(affiliateId: string, before: string, limit = 100): Promise<CreatorTip[]> {
   const { data } = await supabaseAdmin().from("creator_tips").select("*").eq("affiliate_id", affiliateId).lt("date", before).order("date", { ascending: false }).order("race_number", { ascending: false }).limit(limit);

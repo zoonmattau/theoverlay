@@ -5,7 +5,7 @@ import { Suspense } from "react";
 import { CallFeed } from "@/components/CallFeed";
 import { TipsterCard, units } from "@/components/TipsterCard";
 import { getViewer } from "@/lib/auth";
-import { allTipsters, callsOn, followedTipsters, latestResults, rankProfiles, tipsterProfiles } from "@/lib/creators";
+import { allTipsters, callsOn, followedTipsters, latestResults, rankProfiles, recentCalls, tipsterProfiles } from "@/lib/creators";
 import { longDate } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 
@@ -36,13 +36,14 @@ async function Marketplace() {
   const viewer = await getViewer();
   const [tipsters, following, { date, meetings }] = await Promise.all([allTipsters(), followedTipsters(viewer), getTodayCard(viewer.admin)]);
   const followingIds = new Set(following.map((t) => t.id));
-  const [profiles, posted, results] = await Promise.all([tipsterProfiles(tipsters), callsOn(date, tipsters), latestResults(tipsters, 20)]);
+  const [profiles, posted, results, recent] = await Promise.all([tipsterProfiles(tipsters), callsOn(date, tipsters), latestResults(tipsters, 20), recentCalls(tipsters, date)]);
   const ranked = rankProfiles(profiles);
   // Today's calls in jump order across every track, not race number within each.
   const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime ?? ""] as const)));
   const today = [...posted].sort((a, b) => (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
-  const todayCount = new Map<string, number>();
-  for (const t of today) todayCount.set(t.affiliate_id, (todayCount.get(t.affiliate_id) ?? 0) + 1);
+  // A call is live until its race jumps.
+  const now = Date.now();
+  const isLive = (t: (typeof today)[number]) => !t.settled_at && new Date(jumps.get(t.race_id) || 0).getTime() > now;
   const settledToday = today.filter((t) => t.settled_at);
   const dayUnits = settledToday.reduce((a, t) => a + Number(t.units), 0);
   const followed = ranked.filter((p) => followingIds.has(p.tipster.id));
@@ -74,7 +75,17 @@ async function Marketplace() {
           ) : (
             <div className="grid gap-3 lg:grid-cols-2">
               {ranked.map((p, i) => (
-                <TipsterCard key={p.tipster.id} p={p} rank={i + 1} following={followingIds.has(p.tipster.id)} you={p.tipster.user_id === viewer.id} today={todayCount.get(p.tipster.id) ?? 0} />
+                <TipsterCard
+                  key={p.tipster.id}
+                  p={p}
+                  rank={i + 1}
+                  following={followingIds.has(p.tipster.id)}
+                  you={p.tipster.user_id === viewer.id}
+                  today={today.filter((t) => t.affiliate_id === p.tipster.id)}
+                  live={today.filter((t) => t.affiliate_id === p.tipster.id && isLive(t)).length}
+                  recent={recent.get(p.tipster.id) ?? []}
+                  date={date}
+                />
               ))}
             </div>
           )}
