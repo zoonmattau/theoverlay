@@ -163,14 +163,17 @@ function lines(calls: Call[]): string {
 export async function postCalls(date: string, card: StoredCard, opts: { early?: boolean } = {}): Promise<void> {
   if (!discordConfigured()) return;
   const calls = callsOn(card);
-  if (calls.length === 0) return;
   const day = longDate(date);
   try {
     if (opts.early) {
-      // Tomorrow's card the night before, for members only.
-      await once(date, "early", () => send(CHANNELS.early, `**Early look, ${day}.** Prices will move by morning, the calls may too.\n\n${lines(calls)}`));
+      // Tomorrow's bets the night before, for members only. A lay is struck on the day's exchange
+      // price, so one the night before is nothing to act on and is left out.
+      const bets = calls.filter((c) => c.x.signal === "back");
+      const body = bets.length ? lines(bets) : "No bets on the card yet.";
+      await once(date, "early", () => send(CHANNELS.early, `**Early look, ${day}.** Prices will move by morning, the calls may too.\n\n${body}`));
       return;
     }
+    if (calls.length === 0) return;
     const top = calls.find((c) => c.tag === "top_overlay");
     if (top) {
       await once(date, "overlay", () =>
@@ -194,10 +197,11 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
 }
 
 /**
- * Calls that appeared or went since the last card, posted as they happen
- * once the early look or the morning post has gone, so a member who is not on the site hears
- * about a bet the market drifted into at lunchtime. A race that has jumped
- * is left alone, and a call that only changed price is not news.
+ * Calls that appeared since the last card, posted as they happen once the
+ * early look or the morning post has gone, so a member who is not on the
+ * site hears about a bet the market drifted into at lunchtime. A call that
+ * went is not announced, a race that has jumped is left alone, and a call
+ * that only changed price is not news.
  */
 export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
   if (!discordConfigured() || before.size === 0) return;
@@ -207,31 +211,15 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
     if (!seen?.length) return;
     const now = Date.now();
     const fresh: Call[] = [];
-    const gone: { c: Call; was: "back" | "lay" }[] = [];
     for (const c of callsOn(card)) {
       if (c.r.result || (c.r.jumpTime && new Date(c.r.jumpTime).getTime() < now)) continue;
       const prev = before.get(c.r.raceId)?.runners.find((x) => x.tabNumber === c.x.tabNumber);
       if (prev && prev.signal === c.x.signal) continue;
       fresh.push(c);
     }
-    for (const m of card.meetings) {
-      for (const r of m.races) {
-        if (r.result || (r.jumpTime && new Date(r.jumpTime).getTime() < now)) continue;
-        const prevRace = before.get(r.raceId);
-        if (!prevRace) continue;
-        for (const p of prevRace.runners) {
-          if (!p.signal || p.scratched) continue;
-          const x = r.runners.find((y) => y.tabNumber === p.tabNumber);
-          if (x && !x.signal && !x.scratched) gone.push({ c: { m, r, x }, was: p.signal });
-        }
-      }
-    }
-    if (fresh.length === 0 && gone.length === 0) return;
+    if (fresh.length === 0) return;
     const at = new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }).replace(" ", "");
-    const parts: string[] = [];
-    if (fresh.length) parts.push([`**${fresh.length === 1 ? "New call" : "New calls"}, ${at}.**`, ...fresh.map((c) => line(c, true))].join("\n"));
-    if (gone.length) parts.push(`**Off, ${at}.** ${gone.map(({ c, was }) => `${c.m.track} R${c.r.raceNumber} ${c.x.tabNumber}. ${c.x.horseName} is no longer a ${was === "lay" ? "lay" : "bet"} at ${price(callPrice(c.x)!)}`).join("; ")}.`);
-    await send(CHANNELS.calls, parts.join("\n\n"));
+    await send(CHANNELS.calls, [`**${fresh.length === 1 ? "New call" : "New calls"}, ${at}.**`, ...fresh.map((c) => line(c, true))].join("\n"));
   } catch (err) {
     console.error("[discord] call changes", err);
   }
