@@ -70,11 +70,19 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
                   <div className="map-stack">
                     {row.map((r) => {
                       const call = locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : "";
+                      // Not a grid: the one with more early speed in the pair edges forward, and a
+                      // runner we have little on (a thin rating) sits a touch back, dashed, since where
+                      // it settles is a guess.
+                      const front = Math.min(...row.map((x) => x.ratings.ppir));
+                      const span = Math.max(1, Math.max(...row.map((x) => x.ratings.ppir)) - front);
+                      const unsure = r.ratings.trust < 0.6;
+                      const shift = Math.round(((span - (r.ratings.ppir - front)) / span) * 22) - (unsure ? 10 : 0) - (row.length > 1 && r === row[row.length - 1] ? 4 : 0);
                       return (
                         <div
                           key={r.tabNumber}
-                          className={`map-chip tip ${call}`}
-                          data-tip={`${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
+                          className={`map-chip tip ${call} ${unsure ? "is-unsure" : ""}`}
+                          style={{ transform: `translateX(${shift}%)` }}
+                          data-tip={`${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${unsure ? ", on little form so it could be anywhere" : ""}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
                         >
                           <span className="map-cloth">{r.tabNumber}</span>
                           <span className="map-text">

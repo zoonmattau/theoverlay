@@ -3104,8 +3104,6 @@ body {
   flex-direction: column;
   justify-content: flex-end;
   gap: 6px;
-  /* Room for three, so a pair sits in the lower two lanes and the rail is the rail. */
-  min-height: calc(3 * 28px + 2 * 6px);
 }
 .map-stack .map-chip {
   max-width: 100%;
@@ -3139,5 +3137,10 @@ body {
   font-size: 0.64rem;
 }
 .map-stack {
-  min-height: calc(3 * 36px + 2 * 6px);
+  /* Two lanes as a rule; a three stretches its own column and the strip with it. */
+  min-height: calc(2 * 36px + 6px);
+}
+.map-chip.is-unsure {
+  border-style: dashed;
+  opacity: 0.85;
 }
