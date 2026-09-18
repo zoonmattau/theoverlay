@@ -4,33 +4,43 @@ import { MAP_LABEL, TEMPO_LABEL } from "./Ratings";
 import { percent, price } from "@/lib/format";
 import type { MapPosition, PublishedRace, PublishedRunner } from "@/lib/model/types";
 
-/** The field runs left to right: backmarkers on the left, the leader out in front on the right. */
-const COLUMNS: MapPosition[] = ["back", "midfield", "on pace", "leader"];
-
 const PRESSURE_TIP =
   "Pressure is how much early speed is in the race: the average early-speed score of the three quickest beginners, from the speed map or their settling positions in past runs. Above 82% we call the tempo fast, below 62% slow.";
 
-const ROW = 34;
+/**
+ * The field in running order, front to back: the leaders, then the rest in
+ * pairs from where we expect each to settle, one three where the numbers
+ * are odd, so nobody sits six wide. The lower barrier takes the rail.
+ */
+export function mapRows(live: PublishedRunner[]): PublishedRunner[][] {
+  const order = [...live].sort((a, b) => a.ratings.ppir - b.ratings.ppir);
+  const leaders = order.filter((r) => r.ratings.map === "leader");
+  const rest = order.filter((r) => r.ratings.map !== "leader");
+  const rows: PublishedRunner[][] = leaders.length ? [leaders] : [];
+  const pairs = Math.floor(rest.length / 2);
+  // The odd one out joins a pair in the middle of the field as a three.
+  const triple = rest.length % 2 === 1 ? Math.floor(pairs / 2) : -1;
+  let at = 0;
+  for (let i = 0; i < pairs; i++) {
+    const size = i === triple ? 3 : 2;
+    rows.push(rest.slice(at, at + size));
+    at += size;
+  }
+  if (at < rest.length) rows.push(rest.slice(at));
+  return rows.map((row) => row.sort((a, b) => a.barrier - b.barrier));
+}
 
 /**
  * The speed map as a picture of the first 400m: every runner is a saddlecloth
- * placed by where we expect it to settle, the leader out on the right, low
- * barriers nearest the rail at the bottom, coloured by our call.
+ * placed by where we expect it to settle, the leader out on the right, the
+ * rail along the bottom, coloured by our call.
  */
 export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: string; locked?: boolean }) {
-  const live = race.runners.filter((r) => !r.scratched).sort((a, b) => a.ratings.ppir - b.ratings.ppir);
-  const n = live.length;
+  const live = race.runners.filter((r) => !r.scratched);
   const tone = race.pace.tempo === "fast" ? "warn" : race.pace.tempo === "slow" ? "muted" : "ok";
-
-  // Each runner sits in the column for where it settles, nudged right within
-  // it by how far forward we have it, and stacked from the rail up with the
-  // inside barriers at the bottom.
-  const columns = COLUMNS.map((col) => {
-    const group = live.filter((r) => r.ratings.map === col).sort((a, b) => b.barrier - a.barrier);
-    return { col, group };
-  });
-  const lanes = Math.max(1, ...columns.map((c) => c.group.length));
-  const nudge = (r: PublishedRunner) => (n > 1 ? Math.round(((n - r.ratings.ppir) / (n - 1)) * 100) % 25 : 0);
+  // Back of the field on the left, the leader on the right.
+  const rows = mapRows(live).reverse();
+  const zoneOf = (row: PublishedRunner[]): MapPosition => row[0]?.ratings.map ?? "midfield";
 
   return (
     <Section
@@ -49,31 +59,36 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
       }
     >
       <div className="section-body">
-        <div className="map-axis">
-          {COLUMNS.map((c) => (
-            <span key={c}>{MAP_LABEL[c]}</span>
-          ))}
-        </div>
-        <div className="map-field" style={{ minHeight: lanes * ROW + 12 }}>
-          {columns.map(({ col, group }) => (
-            <div key={col} className="map-col">
-              {group.map((r) => {
-                const call = locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : "";
-                return (
-                  <div
-                    key={r.tabNumber}
-                    className={`map-chip tip ${call}`}
-                    style={{ marginLeft: `${nudge(r) * 1.6}%` }}
-                    data-tip={`${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
-                  >
-                    <span className="map-cloth">{r.tabNumber}</span>
-                    <span className="map-name">{r.horseName}</span>
-                    <span className="map-price nums">{price(r.marketPrice)}</span>
+        <div className="map-scroll">
+          <div className="map-strip" style={{ gridTemplateColumns: `repeat(${rows.length}, minmax(0, 1fr))` }}>
+            {rows.map((row, i) => {
+              const zone = zoneOf(row);
+              const first = i === 0 || zoneOf(rows[i - 1]) !== zone;
+              return (
+                <div key={i} className={`map-slot ${first ? "is-zone-start" : ""}`}>
+                  <span className="map-zone">{first ? MAP_LABEL[zone] : ""}</span>
+                  <div className="map-stack">
+                    {row.map((r) => {
+                      const call = locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : "";
+                      return (
+                        <div
+                          key={r.tabNumber}
+                          className={`map-chip tip ${call}`}
+                          data-tip={`${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
+                        >
+                          <span className="map-cloth">{r.tabNumber}</span>
+                          <span className="map-text">
+                            <span className="map-name">{r.horseName}</span>
+                            <span className="map-price nums">{price(r.marketPrice)}</span>
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
-                );
-              })}
-            </div>
-          ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
         <div className="rail">
           <span className="rail-label">Rail{rail ? ` ${rail}` : ""}</span>

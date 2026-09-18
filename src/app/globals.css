@@ -3061,3 +3061,83 @@ body {
     display: none;
   }
 }
+
+/* --- Speed map: the field in running order, back on the left, leaders on the right, pairs stacked from the rail --- */
+.map-scroll {
+  overflow-x: auto;
+}
+.map-strip {
+  display: grid;
+  gap: 0 4px;
+  min-width: 100%;
+  padding: 4px 6px 6px;
+  background: linear-gradient(180deg, #f7f9f2, #eef3e4);
+  border: 1px solid var(--color-line);
+  border-bottom: 0;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+}
+.map-slot {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+  border-left: 1px dashed transparent;
+  padding-left: 4px;
+}
+.map-slot.is-zone-start {
+  border-left-color: var(--color-line-strong);
+}
+.map-slot:first-child {
+  border-left-color: transparent;
+}
+.map-zone {
+  height: 16px;
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-soft);
+  white-space: nowrap;
+}
+.map-stack {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 6px;
+  /* Room for three, so a pair sits in the lower two lanes and the rail is the rail. */
+  min-height: calc(3 * 28px + 2 * 6px);
+}
+.map-stack .map-chip {
+  max-width: 100%;
+}
+@media (max-width: 640px) {
+  .map-strip {
+    min-width: 640px;
+  }
+}
+.map-stack .map-chip {
+  height: 36px;
+  border-radius: 18px;
+  padding-right: 10px;
+}
+.map-stack .map-cloth {
+  width: 30px;
+  height: 30px;
+  border-radius: 15px;
+  margin-left: 2px;
+}
+.map-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.1;
+}
+.map-text .map-name {
+  font-size: 0.74rem;
+}
+.map-text .map-price {
+  font-size: 0.64rem;
+}
+.map-stack {
+  min-height: calc(3 * 36px + 2 * 6px);
+}
