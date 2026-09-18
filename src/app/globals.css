@@ -2779,6 +2779,17 @@ body {
   flex-direction: column;
   gap: var(--sp-3);
 }
+/* Phones get the list, wider screens the table; done here since this rule outranks the sm: utilities. */
+@media (min-width: 640px) {
+  .watch-list {
+    display: none;
+  }
+}
+@media (max-width: 639px) {
+  .watch-table {
+    display: none;
+  }
+}
 .watch-item {
   display: flex;
   flex-direction: column;

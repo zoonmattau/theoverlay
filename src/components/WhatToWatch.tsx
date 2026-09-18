@@ -25,7 +25,7 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
       <div className="section-body">
         <p className="text-sm mb-3">{race.verdict}</p>
         {/* On a phone each runner is a block: the name, three facts as chips, then the sentence. */}
-        <ul className="watch-list sm:hidden">
+        <ul className="watch-list">
           {ours.map((r) => {
             const t = tempoFit(r, race);
             const f = finishFit(r, race);
@@ -49,7 +49,7 @@ export function WhatToWatch({ race }: { race: PublishedRace }) {
             );
           })}
         </ul>
-        <div className="overflow-x-auto hidden sm:block">
+        <div className="overflow-x-auto watch-table">
           <table className="data-table text-sm min-w-[720px]">
             <thead>
               <tr>
