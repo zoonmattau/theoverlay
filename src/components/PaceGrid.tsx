@@ -41,6 +41,30 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
   // Back of the field on the left, the leader on the right.
   const rows = mapRows(live).reverse();
   const zoneOf = (row: PublishedRunner[]): MapPosition => row[0]?.ratings.map ?? "midfield";
+  const widest = Math.max(1, ...live.map((r) => r.barrier));
+  /**
+   * Where each runner in a column sits off the rail, in lanes from 0 (the
+   * fence) to 2 (wide): its barrier as a share of the widest gate, then
+   * anyone landing on top of the one below is lifted a lane.
+   */
+  const lanes = (row: PublishedRunner[]): Map<number, number> => {
+    const out = new Map<number, number>();
+    let floor = 0;
+    for (const r of row) {
+      const want = ((r.barrier - 1) / Math.max(1, widest - 1)) * 2;
+      const lane = Math.min(2, Math.max(want, floor));
+      out.set(r.tabNumber, lane);
+      floor = lane + 1;
+    }
+    // Where the top was reached, the ones beneath drop a lane each so nobody overlaps.
+    let ceiling = 3;
+    for (const r of [...row].reverse()) {
+      const lane = Math.min(out.get(r.tabNumber)!, ceiling - 1);
+      out.set(r.tabNumber, lane);
+      ceiling = lane;
+    }
+    return out;
+  };
 
   return (
     <Section
@@ -69,6 +93,7 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
                   <span className="map-zone">{first ? MAP_LABEL[zone] : ""}</span>
                   <div className="map-stack">
                     {row.map((r) => {
+                      const lane = lanes(row).get(r.tabNumber) ?? 0;
                       const call = locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : "";
                       // Not a grid: the one with more early speed in the pair edges forward, and a
                       // runner we have little on (a thin rating) sits a touch back, dashed, since where
@@ -81,7 +106,7 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
                         <div
                           key={r.tabNumber}
                           className={`map-chip tip ${call} ${unsure ? "is-unsure" : ""}`}
-                          style={{ transform: `translateX(${shift}%)` }}
+                          style={{ bottom: `calc(${lane} * (36px + 6px))`, transform: `translateX(${shift}%)` }}
                           data-tip={`${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${unsure ? ", on little form so it could be anywhere" : ""}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
                         >
                           <span className="map-cloth">{r.tabNumber}</span>

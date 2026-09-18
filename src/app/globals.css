@@ -3137,8 +3137,15 @@ body {
   font-size: 0.64rem;
 }
 .map-stack {
-  /* Two lanes as a rule; a three stretches its own column and the strip with it. */
-  min-height: calc(2 * 36px + 6px);
+  /* Three lanes off the rail, every chip placed by its barrier: the fence at the bottom, wide at the top. */
+  position: relative;
+  height: calc(3 * 36px + 2 * 6px);
+  display: block;
+}
+.map-stack .map-chip {
+  position: absolute;
+  left: 0;
+  max-width: 100%;
 }
 .map-chip.is-unsure {
   border-style: dashed;
