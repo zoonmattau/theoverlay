@@ -309,7 +309,8 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
       revalidateTag(`card-${date}`, "max");
       // Calls that came or went since the last card, then once every race has run the day's ledger, once.
       if (date === racingToday()) {
-        await postCallChanges(date, before, card);
+        // Never ahead of the site: before the release hour the calls are not public yet.
+        if (released(date)) await postCallChanges(date, before, card);
         await postWinners(date, before, card);
       }
       await postResults(date, card);

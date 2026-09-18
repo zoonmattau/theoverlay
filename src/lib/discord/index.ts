@@ -193,18 +193,18 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
   }
 }
 
-/** The day's ledger once every race has run. Posted once. */
 /**
  * Calls that appeared or went since the last card, posted as they happen
- * once the morning post has gone, so a member who is not on the site hears
+ * once the early look or the morning post has gone, so a member who is not on the site hears
  * about a bet the market drifted into at lunchtime. A race that has jumped
  * is left alone, and a call that only changed price is not news.
  */
 export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
   if (!discordConfigured() || before.size === 0) return;
   try {
-    const { data: morning } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).eq("kind", "calls").not("message_id", "is", null).maybeSingle();
-    if (!morning) return;
+    // Changes follow a post members have seen: the morning calls, or the early look the night before.
+    const { data: seen } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).in("kind", ["calls", "early"]).not("message_id", "is", null).limit(1);
+    if (!seen?.length) return;
     const now = Date.now();
     const fresh: Call[] = [];
     const gone: { c: Call; was: "back" | "lay" }[] = [];
