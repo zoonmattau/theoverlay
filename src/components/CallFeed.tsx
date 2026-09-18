@@ -30,9 +30,13 @@ export async function CallFeed({ tips, date, empty, withDate }: { tips: (Creator
   const viewer = await getViewer();
   const reactions = await reactionsFor(tips.map((t) => t.id), viewer.id);
   if (tips.length === 0) return <p className="text-sm text-ink-soft">{empty}</p>;
+  // Today's calls run next to go first: the live ones in jump order, then the ones that have run.
+  const now = Date.now();
+  const live = (t: CreatorTip) => !t.settled_at && new Date(jumps.get(t.race_id) || 0).getTime() > now;
+  const ordered = withDate ? tips : [...tips].sort((a, b) => Number(live(b)) - Number(live(a)) || (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
   return (
     <ul className="divide-y divide-line">
-      {tips.map((t) => {
+      {ordered.map((t) => {
         const jump = !t.settled_at ? jumps.get(t.race_id) : undefined;
         const u = t.settled_at ? Number(t.units) : undefined;
         return (
