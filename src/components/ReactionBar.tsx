@@ -17,9 +17,14 @@ interface State {
   mine: Key[];
 }
 
-/** Four reactions under a tipster's call: tap to add, tap again to take back. Signed out, they only count. */
-export function ReactionBar({ tipId, counts, mine, signedIn }: { tipId: number; counts: Record<Key, number>; mine: Key[]; signedIn: boolean }) {
+/**
+ * Four reactions on a tipster's call: tap to add, tap again to take back.
+ * Signed out, they only count. Compact, only the reactions anyone has used
+ * show, with one small button that opens the four.
+ */
+export function ReactionBar({ tipId, counts, mine, signedIn, compact }: { tipId: number; counts: Record<Key, number>; mine: Key[]; signedIn: boolean; compact?: boolean }) {
   const [state, setState] = useState<State>({ counts, mine });
+  const [expanded, setExpanded] = useState(false);
   const [shown, show] = useOptimistic(state, (s: State, key: Key) => {
     const on = s.mine.includes(key);
     return { counts: { ...s.counts, [key]: Math.max(0, s.counts[key] + (on ? -1 : 1)) }, mine: on ? s.mine.filter((k) => k !== key) : [...s.mine, key] };
@@ -45,9 +50,10 @@ export function ReactionBar({ tipId, counts, mine, signedIn }: { tipId: number; 
       });
     });
   };
+  const list = compact && !expanded ? REACTIONS.filter((r) => shown.counts[r.key] > 0 || shown.mine.includes(r.key)) : REACTIONS;
   return (
-    <span className="basis-full flex items-center gap-1.5 pt-1">
-      {REACTIONS.map((r) => {
+    <span className={`inline-flex items-center gap-1.5 ${compact ? "" : "basis-full pt-1"}`}>
+      {list.map((r) => {
         const on = shown.mine.includes(r.key);
         const n = shown.counts[r.key];
         return (
@@ -65,6 +71,11 @@ export function ReactionBar({ tipId, counts, mine, signedIn }: { tipId: number; 
           </button>
         );
       })}
+      {compact && !expanded && list.length < REACTIONS.length && (
+        <button type="button" onClick={() => setExpanded(true)} className="rounded-full border border-line px-2 py-0.5 text-xs leading-none text-ink-soft hover:border-line-strong" title="React">
+          {list.length ? "+" : "React"}
+        </button>
+      )}
       {note && <span className="text-xs text-ink-soft ml-1">{note}</span>}
     </span>
   );

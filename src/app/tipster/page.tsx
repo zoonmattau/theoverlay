@@ -155,7 +155,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
                     <td className="text-right">{t.settled_at ? <span className="nums">{units(Number(t.units))}</span> : <span className="text-xs text-ink-soft">to run</span>}</td>
                     <td className="text-right">
                       {!t.settled_at && (
-                        <form action={removeTip.bind(null, t.id)}><button className="btn btn-secondary btn-sm" type="submit">Remove</button></form>
+                        <form action={removeTip.bind(null, t.id, undefined)}><button className="btn btn-secondary btn-sm" type="submit">Remove</button></form>
                       )}
                     </td>
                   </tr>

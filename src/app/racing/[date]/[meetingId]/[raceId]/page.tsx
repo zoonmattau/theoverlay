@@ -18,7 +18,9 @@ import { TrackMenu, type MiniMeeting } from "@/components/TrackMenu";
 import { TipsterTips } from "@/components/TipsterTips";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { followedCalls } from "@/lib/creators";
+import { creatorTips, followedCalls, tipsterForUser } from "@/lib/creators";
+import { postTip, removeTip } from "@/app/tipster/actions";
+import type { Tipping } from "@/components/RunnerTable";
 import { planById, planFor } from "@/lib/billing/plans";
 import { UsePassButton } from "@/components/UsePassButton";
 import { JsonLd, SITE_URL, breadcrumbs } from "@/components/JsonLd";
@@ -96,6 +98,18 @@ async function Race({ params }: { params: Props["params"] }) {
   const open = free || hasAccess(viewer, date);
   const field = race.runners.filter((r) => !r.scratched).length;
   const followed = await followedCalls(viewer, date);
+  // A tipster gets a Tip column in the market table to post on a runner from here.
+  const mine = await tipsterForUser(viewer.id);
+  const myTips = mine ? (await creatorTips(mine.id, date)).filter((t) => t.race_id === raceId) : [];
+  const tipping: Tipping | undefined = mine
+    ? {
+        date,
+        posted: Object.fromEntries(myTips.map((t) => [t.tab_number, { id: t.id, side: t.side, price: Number(t.bookie_price && Number(t.bookie_price) > 1 ? t.bookie_price : t.price) }])),
+        closed: Boolean(race.result?.length) || (!viewer.admin && Boolean(race.jumpTime && new Date(race.jumpTime).getTime() < now())),
+        postTip,
+        removeTip,
+      }
+    : undefined;
   // The Datahub's standing of every jockey and trainer here, for members: not awaited, the runner table resolves it as it streams.
   const people = open ? racePeople({ jockeys: race.runners.map((r) => r.jockey), trainers: race.runners.map((r) => r.trainer) }).catch(() => ({})) : undefined;
   const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
@@ -288,7 +302,7 @@ async function Race({ params }: { params: Props["params"] }) {
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
-      <RunnerTable race={race} locked={!open} people={people} />
+      <RunnerTable race={race} locked={!open} people={people} tipping={tipping} />
 
       {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} />}
     </div>

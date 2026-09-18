@@ -101,8 +101,7 @@ export function RaceMatrix({
         <span><span className="legend-dot bg-blue" />Bet</span>
         <span><span className="legend-dot bg-blue-soft" />Way Overlay</span>
         <span><span className="legend-dot bg-red" />Lay</span>
-        <span><span className="legend-dot legend-dot-mix" />Two colours, two kinds of call, each as wide as its share</span>
-        <span><span className="legend-dot bg-surface-alt" />Resulted, first four, border shows what we had on</span>
+        <span><span className="legend-dot bg-surface-alt" />Resulted, first four</span>
         {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />{tipsters.map((t) => t.name).join(", ")}: a call in this race</span>}
       </div>
     </div>

@@ -11,7 +11,7 @@ import { postTipsterCall } from "@/lib/discord";
 import { notifyFollowers } from "@/lib/email/tipster";
 import { getCard } from "@/lib/model/source";
 
-const paths = () => ["/tipster", "/tips", "/tipsters", "/"].forEach((p) => revalidatePath(p));
+const paths = (...more: string[]) => ["/tipster", "/tips", "/tipsters", "/", ...more].forEach((p) => revalidatePath(p));
 
 /** Followers hear about a post after a short wait, so a run of posts is one email. */
 const NOTIFY_DELAY_MS = 90_000;
@@ -51,7 +51,7 @@ export async function postTip(form: FormData): Promise<void> {
     },
     { onConflict: "affiliate_id,race_id,tab_number" },
   );
-  paths();
+  paths(`/racing/${date}/${encodeURIComponent(meeting.meetingId)}/${encodeURIComponent(raceId)}`);
   // Off public view, the call stays on the site for the tipster and the admins: no Discord, no email.
   if (!tipster.listed) return;
   after(() =>
@@ -68,12 +68,12 @@ export async function postTip(form: FormData): Promise<void> {
 }
 
 /** Only before the race has run; a settled call stays on the record. */
-export async function removeTip(id: number): Promise<void> {
+export async function removeTip(id: number, path?: string): Promise<void> {
   const viewer = await getViewer();
   const tipster = await tipsterForUser(viewer.id);
   if (!tipster) return;
   await supabaseAdmin().from("creator_tips").delete().eq("id", id).eq("affiliate_id", tipster.id).is("settled_at", null);
-  paths();
+  paths(...(path?.startsWith("/racing/") ? [path] : []));
 }
 
 export async function saveBlurb(form: FormData): Promise<void> {
