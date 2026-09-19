@@ -54,6 +54,31 @@ export function TipsterCard({ p, rank, following, you, today, live, recent, date
       ? `Nothing today, last ${recent.length} ${recent.length === 1 ? "call" : "calls"}`
       : "No calls yet";
   const tone = (n: number, has: boolean) => (!has ? "" : n > 0 ? "is-up" : n < 0 ? "is-down" : "");
+
+  // A tipster who has never posted is one line, not a card of empty boxes.
+  // Four of them under the two who post was most of the page saying nothing.
+  if (p.posted === 0 && p.all.n === 0 && today.length === 0 && recent.length === 0) {
+    return (
+      <div className={`card tipster-card is-quiet ${following ? "border-lime" : ""}`}>
+        <div className="flex items-center gap-3">
+          <span className="tipster-rank nums">{rank}</span>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-x-2">
+              <Link href={`/t/${t.code}`} className="font-display text-lg font-extrabold tracking-tight hover:underline">{t.name}</Link>
+              <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} />
+              {you && <span className="badge badge-prime">You</span>}
+            </div>
+            <p className="text-xs text-ink-soft">
+              No calls yet
+              {p.followers > 0 ? ` \u00b7 ${p.followers} ${p.followers === 1 ? "follower" : "followers"}` : ""}
+            </p>
+          </div>
+          <FollowButton code={t.code} following={following} small />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className={`card tipster-card ${following ? "border-lime" : ""}`}>
       <div className="flex items-start gap-3">
@@ -90,9 +115,9 @@ export function TipsterCard({ p, rank, following, you, today, live, recent, date
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-soft">
         <FormDots recent={p.recent} />
         <span>{p.followers} {p.followers === 1 ? "follower" : "followers"}</span>
-        {p.perWeek > 0 && <span>{perWeek(p.perWeek)}</span>}
-        {p.since && <span>since {shortDate(p.since)}</span>}
-        {p.best && <span>best {p.best.horse} at {price(p.best.price)}</span>}
+        {p.perWeek > 0 && <span className="hide-sm">{perWeek(p.perWeek)}</span>}
+        {p.since && <span className="hide-sm">since {shortDate(p.since)}</span>}
+        {p.best && <span className="hide-sm">best {p.best.horse} at {price(p.best.price)}</span>}
         <Link href={`/t/${t.code}`} className="ml-auto text-blue">Every call →</Link>
       </div>
 

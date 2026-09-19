@@ -3664,6 +3664,19 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sp-2);
 }
+/* A tipster who has never posted: one line, no numbers to show. */
+.tipster-card.is-quiet {
+  padding: 10px var(--sp-3);
+  background: var(--color-panel-alt);
+}
+.tipster-card.is-quiet .tipster-rank {
+  width: 24px;
+  height: 24px;
+  font-size: 0.72rem;
+  background: var(--color-line-strong);
+  color: var(--color-panel);
+}
+
 /* Phones: the four numbers read across in one band rather than as a block of
    four boxes, which was most of the card's height. */
 @media (max-width: 639px) {
