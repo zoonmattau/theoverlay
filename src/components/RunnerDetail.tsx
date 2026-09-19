@@ -2,6 +2,9 @@ import Link from "next/link";
 import { Fragment, Suspense, use } from "react";
 
 import { BookieLink } from "./BookieLink";
+import { LayBlockButton } from "./LayBlockButton";
+import type { LayAdmin } from "./RunnerTable";
+import { horseKey } from "@/lib/model/keys";
 import { Factors } from "./Factors";
 import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
@@ -122,7 +125,34 @@ function StandingLine({ people, name, what }: { people: Promise<Record<string, P
   );
 }
 
-export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: PublishedRace; people?: Promise<Record<string, PersonPower>> }) {
+/**
+ * One block of the runner panel, headed and foldable. It opens with the panel
+ * so nothing is hidden; a tap on the heading folds it, which is what a phone
+ * needs by the time it is eight runs down.
+ */
+function Panel({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="detail-panel" open>
+      <summary><h4>{title}</h4></summary>
+      {children}
+    </details>
+  );
+}
+
+/** The rest of a run on one line, for the phone, where the table only has room for the headline. */
+function RunMore({ run }: { run: PublishedRun }) {
+  const bits: string[] = [];
+  if (run.going) bits.push(run.going);
+  if (run.className) bits.push(run.className);
+  if (run.margin !== undefined) bits.push(run.finish === 1 ? "won" : `${run.margin.toFixed(1)}L`);
+  if (run.time) bits.push(clockTime(run.time));
+  if (run.weight) bits.push(`${run.weight}kg`);
+  if (run.sp) bits.push(price(run.sp));
+  if (run.map) bits.push(run.map);
+  return <span className="runs-more-line nums">{bits.join(" · ")}</span>;
+}
+
+export function RunnerDetail({ r, race, people, lays }: { r: PublishedRunner; race: PublishedRace; people?: Promise<Record<string, PersonPower>>; lays?: LayAdmin }) {
   const h = r.horse;
   const runs = r.runs ?? [];
   const avg = fieldAverage(race);
@@ -208,7 +238,7 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
   return (
     <div className="runner-detail">
       <div className="runner-detail-col">
-        <h4>Horse</h4>
+        <Panel title="Horse">
         <dl className="detail-list">
           <div><dt>Profile</dt><dd>{[h?.age ? `${h.age}yo` : null, h?.sex ? SEX[h.sex] ?? h.sex : null].filter(Boolean).join(" ") || "—"}</dd></div>
           <div><dt>Breeding</dt><dd>{h?.sire ? `${h.sire} × ${h.dam ?? "?"}` : "—"}</dd></div>
@@ -227,41 +257,42 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
             <div><dt>Gear change</dt><dd className="font-bold">{h.gearChanges.join(", ")}</dd></div>
           ) : null}
         </dl>
+        </Panel>
       </div>
 
       <div className="runner-detail-col runner-detail-runs">
-        <h4>Last {runs.length || ""} runs</h4>
+        <Panel title={`Last ${runs.length || ""} runs`.replace("  ", " ")}>
         {runs.length === 0 ? (
           <p className="text-xs text-ink-soft">No starts yet.</p>
         ) : (
           <table className="runs-table nums">
             <thead>
               <tr>
-                <th className="tip" data-tip="When the race was run, most recent first.">Date</th>
-                <th className="tip" data-tip="Where it ran.">Track</th>
-                <th className="tip" data-tip="Race distance in metres.">Dist</th>
-                <th className="tip" data-tip="Track condition that day: Firm 1-2, Good 3-4, Soft 5-7, Heavy 8-10.">Going</th>
-                <th className="tip" data-tip="The grade of the race: benchmark, class, maiden, listed or group.">Class</th>
-                <th className="tip" data-tip="Where it finished and the field size. Hover a result for the first four home.">Fin</th>
-                <th className="tip" data-tip="Lengths behind the winner.">Mgn</th>
-                <th className="tip" data-tip="The horse's own time for the race.">Time</th>
-                <th className="tip" data-tip="Its last 600m.">L600</th>
-                <th className="tip hide-sm" data-tip="Weight carried, in kilograms.">Wgt</th>
-                <th className="tip hide-sm" data-tip="Starting price, the odds at the jump.">SP</th>
-                <th className="tip hide-sm" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
-                <th className="text-right tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock.">Pts</th>
+                <th data-col="date" className="tip" data-tip="When the race was run, most recent first.">Date</th>
+                <th data-col="track" className="tip" data-tip="Where it ran.">Track</th>
+                <th data-col="dist" className="tip" data-tip="Race distance in metres.">Dist</th>
+                <th data-col="going" className="tip hide-sm" data-tip="Track condition that day: Firm 1-2, Good 3-4, Soft 5-7, Heavy 8-10.">Going</th>
+                <th data-col="class" className="tip hide-sm" data-tip="The grade of the race: benchmark, class, maiden, listed or group.">Class</th>
+                <th data-col="fin" className="tip" data-tip="Where it finished and the field size. Hover a result for the first four home.">Fin</th>
+                <th data-col="mgn" className="tip hide-sm" data-tip="Lengths behind the winner.">Mgn</th>
+                <th data-col="time" className="tip hide-sm" data-tip="The horse's own time for the race.">Time</th>
+                <th data-col="l600" className="tip" data-tip="Its last 600m.">L600</th>
+                <th data-col="wgt" className="tip hide-sm" data-tip="Weight carried, in kilograms.">Wgt</th>
+                <th data-col="sp" className="tip hide-sm" data-tip="Starting price, the odds at the jump.">SP</th>
+                <th data-col="map" className="tip hide-sm" data-tip="Where it sat in the run: leader, on pace, midfield or back.">Settled</th>
+                <th data-col="pts" className="text-right tip tip-right" data-tip="What we scored the run in benchmark points, from the class and the clock.">Pts</th>
               </tr>
             </thead>
             <tbody>
               {runs.map((x) => (
                 <Fragment key={`${x.date}-${x.track}`}>
-                <tr>
-                  <td>{day(x.date)}</td>
-                  <td className="truncate max-w-[110px] runs-track">{x.track ?? "—"}</td>
-                  <td>{x.distance}</td>
-                  <td className="runs-going">{x.going ?? "—"}</td>
-                  <td className="truncate runs-class" title={x.raceName}>{x.className ?? "—"}</td>
-                  <td className={x.finish === 1 ? "font-bold text-accent" : ""}>
+                <tr className="runs-row">
+                  <td data-col="date">{day(x.date)}</td>
+                  <td data-col="track" className="truncate max-w-[110px] runs-track">{x.track ?? "—"}</td>
+                  <td data-col="dist">{x.distance}</td>
+                  <td data-col="going" className="runs-going hide-sm">{x.going ?? "—"}</td>
+                  <td data-col="class" className="truncate runs-class hide-sm" title={x.raceName}>{x.className ?? "—"}</td>
+                  <td data-col="fin" className={x.finish === 1 ? "font-bold text-accent" : ""}>
                     {x.finish ? (
                       <span
                         className={x.placings?.length ? "tip cursor-help underline decoration-dotted underline-offset-2" : ""}
@@ -273,13 +304,19 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
                       "—"
                     )}
                   </td>
-                  <td>{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
-                  <td>{x.time ? <span className={x.vsBench !== undefined ? `tip cursor-help ${bench(x.vsBench)}` : ""} data-tip={x.vsBench !== undefined ? benchTip(x.vsBench) : undefined}>{clockTime(x.time)}</span> : "—"}</td>
-                  <td>{x.last600 ? <span className={x.vsBench600 !== undefined ? `tip cursor-help ${bench(x.vsBench600)}` : ""} data-tip={x.vsBench600 !== undefined ? benchTip(x.vsBench600) : undefined}>{x.last600.toFixed(2)}</span> : "—"}</td>
-                  <td className="hide-sm">{x.weight ?? "—"}</td>
-                  <td className="hide-sm">{x.sp ? price(x.sp) : "—"}</td>
-                  <td className="hide-sm">{x.map ?? "—"}</td>
-                  <td className="text-right font-semibold">{x.points.toFixed(1)}</td>
+                  <td data-col="mgn" className="hide-sm">{x.margin !== undefined ? (x.finish === 1 ? "won" : `${x.margin.toFixed(1)}L`) : "—"}</td>
+                  <td data-col="time" className="hide-sm">{x.time ? <span className={x.vsBench !== undefined ? `tip cursor-help ${bench(x.vsBench)}` : ""} data-tip={x.vsBench !== undefined ? benchTip(x.vsBench) : undefined}>{clockTime(x.time)}</span> : "—"}</td>
+                  <td data-col="l600">{x.last600 ? <span className={x.vsBench600 !== undefined ? `tip cursor-help ${bench(x.vsBench600)}` : ""} data-tip={x.vsBench600 !== undefined ? benchTip(x.vsBench600) : undefined}>{x.last600.toFixed(2)}</span> : "—"}</td>
+                  <td data-col="wgt" className="hide-sm">{x.weight ?? "—"}</td>
+                  <td data-col="sp" className="hide-sm">{x.sp ? price(x.sp) : "—"}</td>
+                  <td data-col="map" className="hide-sm">{x.map ?? "—"}</td>
+                  <td data-col="pts" className="text-right font-semibold">{x.points.toFixed(1)}</td>
+                </tr>
+                {/* On a phone the columns the row drops come back on their own line under it. */}
+                <tr className="runs-more">
+                  <td colSpan={13}>
+                    <RunMore run={x} />
+                  </td>
                 </tr>
                 {x.met?.length && x.finish ? (
                   <tr className="met-row">
@@ -291,16 +328,16 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
             </tbody>
           </table>
         )}
+        </Panel>
         {runs.length > 0 && (
-          <>
-            <h4 className="mt-4">Against the field, run by run</h4>
+          <Panel title="Against the field, run by run">
             <FormWorm race={race} runner={r} />
-          </>
+          </Panel>
         )}
       </div>
 
       <div className="runner-detail-col">
-        <h4>Sectionals against the field</h4>
+        <Panel title="Sectionals against the field">
         <div className="sec-bars">
           <SectionalBar label="Early" value={g.early} avg={avg.early} runs={runs} cls={g.class} pick={(run) => run.early} points={(run) => run.earlyPts} />
           <SectionalBar label="Mid" value={g.mid} avg={avg.mid} runs={runs} cls={g.class} pick={(run) => run.mid} points={(run) => run.midPts} />
@@ -312,16 +349,21 @@ export function RunnerDetail({ r, race, people }: { r: PublishedRunner; race: Pu
           {tile("this track", g.track, "Its record at this track")}
           {tile(race.pace.tempo === "fast" ? "fast tempo" : "slow tempo", race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow, `Its record in ${race.pace.tempo}-run races, which is what we expect today`)}
         </div>
-        <h4 className="mt-4">What to expect</h4>
+        </Panel>
+        <Panel title="What to expect">
         <ul className="detail-lines">
           {expectations(r, race).slice(0, 4).map((line) => <li key={line.text} className={line.tone > 0 ? "is-up" : line.tone < 0 ? "is-down" : ""}>{line.text}</li>)}
         </ul>
         <div className="mt-2"><Factors r={r.ratings} compact /></div>
+        </Panel>
         <h4 className="mt-4">Our call</h4>
         <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
           {callLine(r)}
           {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block mt-1 font-bold" /> : null}
         </p>
+        {lays && (
+          <LayBlockButton horse={r.horseName} blocked={lays.blocked.includes(horseKey(r.horseName))} block={lays.block} unblock={lays.unblock} />
+        )}
       </div>
     </div>
   );

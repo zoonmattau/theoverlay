@@ -103,7 +103,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           The market has an opinion.{" "}
           <span className="bg-lime px-2 box-decoration-clone">We have the data.</span>
         </h1>
-        <p className="mt-4 text-ink-secondary text-base max-w-xl">
+        <p className="mt-4 hidden sm:block text-ink-secondary text-base max-w-xl">
           Australian horse racing tips for today, every race, every runner. Each one gets a benchmark rating and a rated price, then we
           tell you where the market has it wrong: the bets, the lays and the Overlay of the Day, with one race free every day.
         </p>
@@ -122,7 +122,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           )}
         </div>
       </div>
-      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+      <div className="hidden sm:grid grid-cols-3 gap-2 sm:gap-3">
         {next ? (
           <Tile href={href(next.m, next.r)} label={withBet ? `Next bet, ${next.m.track} R${next.r.raceNumber}` : `Next to jump, ${next.m.track} R${next.r.raceNumber}`} tone={nextCall?.prime ? "prime" : nextCall ? "bet" : undefined}>
             <Jumps iso={next.r.jumpTime} clock={jumpTime(next.r.jumpTime)} />
@@ -241,7 +241,7 @@ function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMee
 
 function WhyUs() {
   return (
-    <section className="mt-12 grid gap-3 md:grid-cols-3">
+    <section className="mt-12 hidden sm:grid gap-3 md:grid-cols-3">
       <div className="card">
         <div className="section-letter mb-2">1</div>
         <h3 className="font-display font-extrabold">Every runner rated</h3>

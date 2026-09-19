@@ -18,7 +18,7 @@ import { ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls, tipsterRecord } from "@/lib/creators";
-import { jumpTime, longDate, price, priceWithChance, signedPercent } from "@/lib/format";
+import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { stakeOf, type PublishedMeeting, type PublishedRunner, type Signal } from "@/lib/model/types";
 import { callPrice } from "@/lib/model/types";
@@ -120,7 +120,6 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const bets = calls.filter((c) => c.runner.signal === "back");
   const lays = calls.filter((c) => c.runner.signal === "lay");
   const primes = bets.filter((c) => c.prime);
-  const toRun = calls.filter((c) => !c.resulted).length;
   const settled = calls.filter((c) => c.profit !== undefined);
   const total = settled.reduce((a, c) => a + (c.profit ?? 0), 0);
   const taken = calls.filter((c) => c.mine);
@@ -152,11 +151,10 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
           {longDate(date)}. Every bet and lay on the card, with the result once the race has run.
         </p>
         <p className="mt-1 text-xs text-ink-soft">Tips are released at {RELEASE_HOUR}:00am AEST each race day, and prices refresh through the day.</p>
-        <div className="mt-5 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
-          <StatCard n={calls.length} label="tips today" sub={`${toRun} still to run`} />
+        <div className="tips-stats mt-5 grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
+          <StatCard n={primes.length} label={primes.length === 1 ? "prime" : "primes"} tone="prime" />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />
           <StatCard n={lays.length} label={lays.length === 1 ? "lay" : "lays"} tone="lay" />
-          <StatCard n={primes.length} label={primes.length === 1 ? "Prime Overlay" : "Prime Overlays"} tone="prime" />
           {open && (
             <StatCard
               n={settled.length ? units(total) : "—"}
@@ -226,10 +224,10 @@ function StatCard({ n, label, sub, tone }: { n: number | string; label: string; 
           ? "border-lime bg-lime-soft"
           : "";
   return (
-    <div className={`card text-center ${cls}`}>
-      <div className="font-display text-3xl font-extrabold tracking-tight nums">{n}</div>
-      <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
-      {sub && <div className="text-xs text-ink-soft mt-0.5">{sub}</div>}
+    <div className={`card stat-card text-center ${cls}`}>
+      <div className="font-display text-xl sm:text-3xl font-extrabold tracking-tight nums">{n}</div>
+      <div className="text-[10px] sm:text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1 leading-tight">{label}</div>
+      {sub && <div className="hidden sm:block text-xs text-ink-soft mt-0.5">{sub}</div>}
     </div>
   );
 }
@@ -263,17 +261,17 @@ function CallTable({
           <table className="data-table text-sm min-w-[1080px]">
             <thead>
               <tr>
-                <th>Race</th>
-                <th>Jump</th>
-                <th>Runner</th>
-                <th className="text-right">Live</th>
-                <th className="text-right">Rated</th>
-                <th className="text-right">Edge</th>
-                <th>Result</th>
-                <th className="text-right">P/L</th>
-                <th className="text-right">Sum</th>
-                {member && <th>Yours</th>}
-                {member && <th className="text-right">Your P/L</th>}
+                <th data-col="race">Race</th>
+                <th data-col="jump">Jump</th>
+                <th data-col="runner">Runner</th>
+                <th data-col="live" className="text-right">Live</th>
+                <th data-col="rated" className="text-right">Rated</th>
+                <th data-col="edge" className="text-right">Edge</th>
+                <th data-col="result">Result</th>
+                <th data-col="pl" className="text-right">P/L</th>
+                <th data-col="sum" className="text-right">Sum</th>
+                {member && <th data-col="yours">Yours</th>}
+                {member && <th data-col="yourpl" className="text-right">Your P/L</th>}
               </tr>
             </thead>
             <tbody>
@@ -282,14 +280,14 @@ function CallTable({
                 const running = sofar.reduce((a, x) => a + (x.profit ?? 0), 0);
                 const anySettled = sofar.some((x) => x.profit !== undefined);
                 return (
-                <tr key={`${c.raceId}-${c.runner.tabNumber}`}>
-                  <td className="whitespace-nowrap">
+                <tr key={`${c.raceId}-${c.runner.tabNumber}`} className="tip-row">
+                  <td data-col="race" className="whitespace-nowrap">
                     <Link href={`/racing/${date}/${c.meeting.meetingId}/${c.raceId}`} className="font-semibold hover:text-blue">
                       {c.meeting.track} R{c.raceNumber}
                     </Link>
                   </td>
-                  <td className="nums text-ink-soft whitespace-nowrap">{c.resulted ? "Run" : jumpTime(c.jumpTime)}</td>
-                  <td>
+                  <td data-col="jump" className="nums text-ink-soft whitespace-nowrap">{c.resulted ? "Run" : jumpTime(c.jumpTime)}</td>
+                  <td data-col="runner">
                     <span className="flex items-center gap-2">
                       <span className="font-semibold">
                         {c.runner.tabNumber}. {c.runner.horseName}
@@ -298,17 +296,20 @@ function CallTable({
                       {c.prime && <span className="badge badge-prime">Prime</span>}
                     </span>
                   </td>
-                  <td className="text-right">
+                  <td data-col="live" className="text-right">
                     <MarketHover r={c.runner} className="market-right">
                       <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : callPrice(c.runner) ?? c.runner.marketPrice)}</span>
                     </MarketHover>
                     {side === "lay" ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
                   </td>
-                  <td className="text-right nums font-semibold whitespace-nowrap">{priceWithChance(c.runner.ratedPrice, c.runner.ratedProbability)}</td>
-                  <td className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>
+                  <td data-col="rated" className="text-right nums font-semibold whitespace-nowrap">
+                    {price(c.runner.ratedPrice)}
+                    {c.runner.ratedProbability ? <span className="chance"> · {percent(c.runner.ratedProbability)}</span> : null}
+                  </td>
+                  <td data-col="edge" className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>
                     {signedPercent(c.runner.edge)}
                   </td>
-                  <td>
+                  <td data-col="result">
                     {c.resulted ? (
                       <span className="flex items-center gap-2">
                         <Outcome position={c.runner.finishPosition} />
@@ -325,19 +326,19 @@ function CallTable({
                       </span>
                     )}
                   </td>
-                  <td className={`text-right nums font-semibold ${c.profit === undefined ? "text-ink-soft" : c.profit > 0 ? "text-accent" : c.profit < 0 ? "text-red" : ""}`}>
+                  <td data-col="pl" data-pending={c.profit === undefined ? "1" : undefined} className={`text-right nums font-semibold ${c.profit === undefined ? "text-ink-soft" : c.profit > 0 ? "text-accent" : c.profit < 0 ? "text-red" : ""}`}>
                     {c.profit === undefined ? "—" : units(c.profit)}
                   </td>
-                  <td className={`text-right nums ${running > 0 ? "text-accent" : running < 0 ? "text-red" : "text-ink-soft"}`}>
+                  <td data-col="sum" className={`text-right nums ${running > 0 ? "text-accent" : running < 0 ? "text-red" : "text-ink-soft"}`}>
                     {anySettled ? units(running) : "—"}
                   </td>
                   {member && (
-                    <td>
+                    <td data-col="yours">
                       <TakeBet date={date} raceId={c.raceId} tab={c.runner.tabNumber} side={side} live={c.runner.marketPrice} taken={c.mine ? { price: c.mine.price, stake: c.mine.stake } : undefined} />
                     </td>
                   )}
                   {member && (
-                    <td className={`text-right nums font-semibold ${c.myProfit === undefined ? "text-ink-soft" : c.myProfit > 0 ? "text-accent" : c.myProfit < 0 ? "text-red" : ""}`}>
+                    <td data-col="yourpl" data-pending={c.myProfit === undefined && !c.mine ? "1" : undefined} className={`text-right nums font-semibold ${c.myProfit === undefined ? "text-ink-soft" : c.myProfit > 0 ? "text-accent" : c.myProfit < 0 ? "text-red" : ""}`}>
                       {c.myProfit === undefined ? (c.mine ? "on" : "—") : units(c.myProfit)}
                     </td>
                   )}
@@ -346,7 +347,7 @@ function CallTable({
               })}
             </tbody>
             <tfoot>
-              <tr>
+              <tr className="tip-total">
                 <td colSpan={7} className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Total, one unit a call</td>
                 <td className={`text-right nums font-extrabold ${total > 0 ? "text-accent" : total < 0 ? "text-red" : ""}`}>{units(total)}</td>
                 {member && <td className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Yours</td>}

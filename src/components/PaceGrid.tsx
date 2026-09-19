@@ -77,12 +77,12 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
       title="Speed map"
       controls={
         <span className="tip" data-tip="Our call on how the race will be run up front, from the pressure score and the expected tempo where we have it.">
-          <Badge tone={tone}>{TEMPO_LABEL[race.pace.tempo]} tempo</Badge>
+          <Badge tone={tone}>{TEMPO_LABEL[race.pace.tempo]}<span className="hide-sm"> tempo</span></Badge>
         </span>
       }
       aside={
         <span className="nums tip tip-right cursor-help" data-tip={PRESSURE_TIP}>
-          Pressure {percent(race.pace.pressure)}
+          <span className="hide-sm">Pressure </span>{percent(race.pace.pressure)}
         </span>
       }
     >
@@ -110,8 +110,8 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
                         <div
                           key={r.tabNumber}
                           className={`map-chip tip ${call} ${unsure ? "is-unsure" : ""}`}
-                          style={{ bottom: `calc(${lane} * (36px + 6px))`, transform: `translateX(${shift}%)` }}
-                          data-tip={`${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${unsure ? ", on little form so it could be anywhere" : ""}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
+                          style={{ "--lane": lane, transform: `translateX(${shift}%)` } as React.CSSProperties}
+                          data-tip={`${r.tabNumber}. ${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${unsure ? ", on little form so it could be anywhere" : ""}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
                         >
                           <span className="map-cloth">{r.tabNumber}</span>
                           <span className="map-text">

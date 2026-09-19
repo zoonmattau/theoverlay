@@ -29,6 +29,10 @@ import { NextToGo } from "@/components/NextToGo";
 import { RaceNav } from "@/components/RaceNav";
 import { groupOf } from "@/components/RaceMatrix";
 import { getRaceCard, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
+import { readLayBlocks } from "@/lib/model/store";
+import { horseKey } from "@/lib/model/keys";
+import { blockLay, unblockLay } from "@/app/admin/actions";
+import type { LayAdmin } from "@/components/RunnerTable";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 import { DatahubStrip } from "@/components/DatahubStrip";
@@ -112,6 +116,11 @@ async function Race({ params }: { params: Props["params"] }) {
     : undefined;
   // The Datahub's standing of every jockey and trainer here, for members: not awaited, the runner table resolves it as it streams.
   const people = open ? racePeople({ jockeys: race.runners.map((r) => r.jockey), trainers: race.runners.map((r) => r.trainer) }).catch(() => ({})) : undefined;
+  // Admin: which horses in this race are already ruled out of the lays.
+  const layKeys = viewer.admin ? await readLayBlocks().catch(() => new Set<string>()) : undefined;
+  const lays: LayAdmin | undefined = layKeys
+    ? { blocked: race.runners.map((x) => horseKey(x.horseName)).filter((k) => layKeys.has(k)), block: blockLay, unblock: unblockLay }
+    : undefined;
   const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
   const initialsFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => f.tipster.name.trim()[0]?.toUpperCase() ?? "?").join("");
 
@@ -181,16 +190,16 @@ async function Race({ params }: { params: Props["params"] }) {
       <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }))} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}
       <header className="section !overflow-visible">
-        <div className="section-body flex flex-wrap items-center gap-x-4 gap-y-3">
-          <Link href="/" className="text-xs text-ink-soft hover:text-ink">
+        <div className="section-body race-head">
+          <Link href="/" className="race-back text-xs text-ink-soft hover:text-ink">
             ← Today
           </Link>
-          <h1 className="font-display text-2xl sm:text-3xl font-extrabold tracking-tight flex items-center gap-2">
+          <h1 className="race-title font-display text-2xl sm:text-3xl font-extrabold tracking-tight">
             <TrackMenu track={meeting.track} date={date} currentRaceId={raceId} meetings={mini} />
             <span>R{race.raceNumber}</span>
-            <span className="text-ink-soft font-semibold text-lg">{race.name}</span>
+            <span className="race-name text-ink-soft font-semibold text-lg">{race.name}</span>
           </h1>
-          <div className="flex flex-wrap gap-1.5 ml-auto">
+          <div className="race-chips">
             <span className="race-chip tip" data-tip="Race distance">{race.distance}m</span>
             <span
               className="race-chip tip"
@@ -210,7 +219,7 @@ async function Race({ params }: { params: Props["params"] }) {
             <span className="race-chip tip" data-tip="Runners after scratchings">{field} runners</span>
           </div>
         </div>
-        <div className="flex flex-wrap items-center gap-3 border-t border-line-soft px-4 py-3">
+        <div className="race-strip border-t border-line-soft px-4 py-3">
           <nav className="race-tabs" aria-label="Races at this meeting">
             {meeting.races.map((r) => {
               const tabTip = raceTip(r.runners, prime.has(r.raceId)) ?? "";
@@ -228,7 +237,7 @@ async function Race({ params }: { params: Props["params"] }) {
               );
             })}
           </nav>
-          <div className="ml-auto">
+          <div className="race-clock">
             {race.result ? (
               <span className="race-chip">Result {race.result.join(", ")}</span>
             ) : (
@@ -302,7 +311,7 @@ async function Race({ params }: { params: Props["params"] }) {
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
-      <RunnerTable race={race} locked={!open} people={people} tipping={tipping} />
+      <RunnerTable race={race} locked={!open} people={people} tipping={tipping} lays={lays} />
 
       {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} />}
     </div>

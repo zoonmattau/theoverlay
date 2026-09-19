@@ -2,6 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { supabaseConfigured } from "@/lib/supabase/server";
+import { horseKey } from "./keys";
 import type { PublishedMeeting, Selection } from "./types";
 
 export interface StoredCard {
@@ -77,4 +78,44 @@ export async function readMutes(date: string): Promise<Set<string>> {
 export async function writeMutes(date: string, keys: Set<string>): Promise<void> {
   const { error } = await supabaseAdmin().from("fk_cache").upsert({ key: `mute:${date}`, kind: "mute", data: { keys: [...keys] }, at: new Date().toISOString() }, { onConflict: "key" });
   if (error) throw new Error(`[mutes] write ${date}: ${error.message}`);
+}
+
+/**
+ * Horses we never lay, by normalised name. A lay risks the price rather than
+ * a unit, so a horse ruled out by hand stays out of the lays on every build
+ * until it is let back in. Unlike a mute this is not tied to a date.
+ */
+export { horseKey } from "./keys";
+
+export interface LayBlock {
+  horse_key: string;
+  horse_name: string;
+  reason: string | null;
+  added_by: string | null;
+  added_at: string;
+}
+
+export async function readLayBlocks(): Promise<Set<string>> {
+  const { data, error } = await supabaseAdmin().from("lay_blocks").select("horse_key");
+  if (error) throw new Error(`[lay_blocks] read: ${error.message}`);
+  return new Set((data ?? []).map((r) => String(r.horse_key)));
+}
+
+/** Every block, newest first, for the admin page. */
+export async function listLayBlocks(): Promise<LayBlock[]> {
+  const { data, error } = await supabaseAdmin().from("lay_blocks").select("*").order("added_at", { ascending: false });
+  if (error) throw new Error(`[lay_blocks] list: ${error.message}`);
+  return (data ?? []) as LayBlock[];
+}
+
+export async function addLayBlock(name: string, by: string, reason?: string): Promise<void> {
+  const { error } = await supabaseAdmin()
+    .from("lay_blocks")
+    .upsert({ horse_key: horseKey(name), horse_name: name, reason: reason?.trim() || null, added_by: by, added_at: new Date().toISOString() }, { onConflict: "horse_key" });
+  if (error) throw new Error(`[lay_blocks] add ${name}: ${error.message}`);
+}
+
+export async function removeLayBlock(key: string): Promise<void> {
+  const { error } = await supabaseAdmin().from("lay_blocks").delete().eq("horse_key", key);
+  if (error) throw new Error(`[lay_blocks] remove ${key}: ${error.message}`);
 }

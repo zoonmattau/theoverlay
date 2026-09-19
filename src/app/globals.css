@@ -1048,6 +1048,88 @@ body {
 .matrix-empty {
   color: var(--color-muted);
 }
+
+/* Phones: the board stops being a grid you drag sideways. Each track is its
+   own block, its name and going across the top, and its races in small cells
+   six to a row under it. Nothing scrolls. */
+@media (max-width: 640px) {
+  .matrix-wrap {
+    overflow-x: visible;
+  }
+  .matrix-table,
+  .matrix-table > tbody {
+    display: block;
+  }
+  .matrix-table > thead {
+    display: none;
+  }
+  .matrix-table > tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 4px;
+    padding: 10px var(--sp-3) 12px;
+  }
+  .matrix-table > tbody > tr + tr {
+    border-top: 1px solid var(--color-line);
+  }
+  .matrix-table > tbody > tr + tr td {
+    border-top: 0;
+  }
+  .matrix-table > tbody > tr > td {
+    display: block;
+  }
+  .matrix-track {
+    grid-column: 1 / -1;
+    position: static;
+    box-shadow: none;
+    padding: 0 0 2px;
+    font-size: 0.9rem;
+    white-space: normal;
+  }
+  .matrix-track > div {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .matrix-track-state {
+    margin-top: 0;
+  }
+  .matrix-cell {
+    min-width: 0;
+    padding: 0;
+  }
+  /* A track with fewer races just stops; no empty cells to pad the row. */
+  .matrix-table > tbody > tr > td.matrix-empty {
+    display: none;
+  }
+  .matrix-btn {
+    min-height: 42px;
+    padding: 2px;
+  }
+  .matrix-race {
+    font-size: 0.7rem;
+  }
+  /* The group medal sat over the race number in a cell this small: it shrinks
+     into the top corner and the number keeps the middle. */
+  .matrix-btn .medal {
+    top: 1px;
+    right: 1px;
+    font-size: 7px;
+    padding: 1px 2px;
+    border-radius: 2px;
+  }
+  .matrix-time {
+    font-size: 0.68rem;
+  }
+  /* The colour of the cell already says what is in the race; the words do not fit. */
+  .matrix-count {
+    display: none;
+  }
+  .matrix-result {
+    font-size: 0.6rem;
+  }
+}
 .matrix-btn {
   width: 100%;
   min-height: 50px;
@@ -1364,8 +1446,8 @@ body {
 }
 .race-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
   scrollbar-width: none;
 }
 .race-tab {
@@ -1438,6 +1520,8 @@ body {
 }
 
 /* --- Selection cards --- */
+/* A pick, closed: the rank, the horse and the two prices on one line. Open:
+   the connections, the why, the ratings and the factors under it. */
 .pick-card {
   display: flex;
   flex-direction: column;
@@ -1451,6 +1535,103 @@ body {
 .pick-card.is-top {
   border-color: var(--color-line);
 }
+.pick-head {
+  display: grid;
+  width: 100%;
+  align-items: center;
+  gap: 8px;
+  text-align: left;
+  color: inherit;
+  /* Wide enough for the whole card and there is nothing to open: the head is
+     a heading again, and the body below it never folds away. */
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "rank   name   marks"
+    "prices prices prices";
+  pointer-events: none;
+}
+.pick-head > .pick-rank { grid-area: rank; }
+.pick-head > .pick-name { grid-area: name; }
+.pick-head > .pick-marks { grid-area: marks; }
+.pick-head > .pick-prices { grid-area: prices; }
+.pick-head > .pick-caret { grid-area: caret; }
+/* Only a phone folds a pick away, so only a phone shows the arrow. */
+.pick-caret {
+  display: none;
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--color-ink-soft);
+  border-bottom: 2px solid var(--color-ink-soft);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 120ms var(--ease);
+}
+.pick-caret.is-open {
+  transform: rotate(-135deg) translateY(-2px);
+}
+.pick-marks {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.pick-prices {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+.pick-price {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 6px 10px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel-alt);
+}
+.pick-price .label {
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-soft);
+}
+.pick-price .value {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin-top: 1px;
+}
+.pick-chance {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+}
+.pick-price.is-prime {
+  background: var(--color-lime);
+  border-color: var(--color-lime);
+  color: var(--color-ink);
+}
+.pick-price.is-prime .label {
+  color: var(--color-ink-secondary);
+}
+.pick-price.is-back {
+  background: var(--color-blue);
+  border-color: var(--color-blue);
+  color: #fff;
+}
+.pick-price.is-lay {
+  background: var(--color-red);
+  border-color: var(--color-red);
+  color: #fff;
+}
+.pick-price.is-back .label,
+.pick-price.is-lay .label {
+  color: rgba(255, 255, 255, 0.8);
+}
+.pick-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
 .pick-rank {
   font-family: var(--font-display);
   font-weight: 800;
@@ -1460,9 +1641,78 @@ body {
 .pick-name {
   font-family: var(--font-display);
   font-weight: 800;
-  font-size: 1.05rem;
+  font-size: 0.95rem;
   line-height: 1.2;
 }
+/* Phones: the pick closes down to its number, its horse and the two prices,
+   and a tap opens the rest. */
+@media (max-width: 640px) {
+  .pick-card {
+    gap: 0;
+    padding: 8px var(--sp-3);
+  }
+  .pick-card[data-open="0"] .pick-body {
+    display: none;
+  }
+  .pick-card[data-open="1"] .pick-body {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--color-line-soft);
+  }
+  .pick-head {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "rank name   prices caret"
+      ".    marks  prices caret";
+    align-items: center;
+    column-gap: 6px;
+    row-gap: 2px;
+    cursor: pointer;
+    pointer-events: auto;
+  }
+  .pick-caret {
+    display: block;
+    margin-left: 2px;
+  }
+  .pick-head > .pick-marks {
+    justify-self: start;
+  }
+  .pick-prices {
+    align-items: center;
+    gap: 5px;
+  }
+  .pick-price {
+    flex: 0 0 auto;
+    padding: 2px 6px;
+  }
+  .pick-price .label {
+    font-size: 0.5rem;
+    letter-spacing: 0.06em;
+  }
+  .pick-price .value {
+    font-size: 0.86rem;
+    margin-top: 0;
+  }
+  .pick-chance {
+    display: none;
+  }
+  /* Today's rating led the open card at nearly half its width; it is a number
+     among numbers here, not a billboard. */
+  .pick-body .today-tile {
+    min-width: 0;
+    padding: 4px 10px;
+  }
+  .pick-body .today-value {
+    font-size: 1.1rem;
+  }
+  .pick-body .today-label {
+    font-size: 0.55rem;
+  }
+  .pick-num .value {
+    font-size: 0.78rem;
+  }
+}
+
 .price-box {
   flex: 1;
   padding: 6px 10px;
@@ -1582,6 +1832,37 @@ body {
   margin-left: var(--sp-2);
   overflow-x: auto;
   scrollbar-width: none;
+}
+/* In the section bar there is no room for ten tabs on a phone, so they take
+   the whole width under the heading and wrap. */
+@media (max-width: 640px) {
+  /* One line: the letter, the heading, whatever the section puts in the bar,
+     then the aside and the caret. Nothing wraps but the rankings' tab strip. */
+  .section-bar {
+    gap: var(--sp-2);
+    padding: 8px var(--sp-3);
+  }
+  .section-bar h2 {
+    font-size: 0.85rem;
+    white-space: nowrap;
+  }
+  .section-bar .aside {
+    font-size: 0.66rem;
+    white-space: nowrap;
+  }
+  .section-bar .badge {
+    white-space: nowrap;
+  }
+  .section-bar:has(.metric-tabs) {
+    flex-wrap: wrap;
+  }
+  .metric-tabs {
+    order: 9;
+    width: 100%;
+    margin-left: 0;
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
 }
 .metric-tab {
   padding: 3px 10px;
@@ -1749,6 +2030,45 @@ body {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* A phone cannot hover, so the bubble never opened; it still hung 260px off
+   the side of whatever it was attached to and dragged half the page sideways
+   with it. Off at this width: a tap opens the same words in .tip-tap, which
+   is fixed to the screen and so cannot move the page. */
+@media (hover: none), (max-width: 640px) {
+  .tip::after,
+  .tip::before {
+    display: none;
+  }
+}
+/* The jump time in the market's bar, so the clock is where the prices are. */
+.market-jump {
+  margin-right: 8px;
+  padding-right: 8px;
+  border-right: 1px solid rgba(255, 255, 255, 0.25);
+  color: var(--color-bar-ink);
+  font-weight: 700;
+}
+
+.tip-tap {
+  position: fixed;
+  z-index: 200;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(320px, calc(100vw - 24px));
+  padding: 9px 11px;
+  border-radius: var(--radius-md);
+  background: var(--color-bar);
+  color: var(--color-bar-ink);
+  font-family: var(--font-sans);
+  font-size: 0.78rem;
+  font-weight: 500;
+  line-height: 1.4;
+  white-space: pre-line;
+  text-align: left;
+  box-shadow: var(--shadow-lift);
+}
+
 .tip:hover::before,
 .tip:focus-visible::before {
   transform: translateX(-50%);
@@ -1782,6 +2102,26 @@ body {
   text-transform: uppercase;
   background: var(--color-surface);
   color: var(--color-ink);
+}
+
+/* Phones: the first four read down instead of across. The place badge and the
+   horse take the top line, the connections and the margin the next, and the
+   dividends sit under them rather than squeezing the name off the screen. */
+@media (max-width: 640px) {
+  .result-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 4px 10px;
+    padding: 10px var(--sp-3);
+  }
+  .result-row > .place-badge {
+    grid-row: 1 / span 2;
+  }
+  .result-row > div:last-child {
+    grid-column: 2;
+    justify-content: flex-start;
+  }
 }
 .place-badge.place-1 { background: var(--color-lime); }
 .place-badge.place-2 { background: #e2e5e9; }
@@ -1921,6 +2261,68 @@ body {
 .mini-cell.tip-lay .mini-t { color: rgba(255, 255, 255, 0.8); }
 .mini-cell.is-current {
   box-shadow: 0 0 0 2px var(--color-ink);
+}
+
+/* Phones: the track menu is the board again, a block per track with its races
+   six to a row, instead of a strip that has to be dragged sideways. */
+@media (max-width: 640px) {
+  .track-menu {
+    position: fixed;
+    left: var(--sp-3);
+    right: var(--sp-3);
+    top: auto;
+    min-width: 0;
+    max-width: none;
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+  }
+  .mini-matrix,
+  .mini-matrix > tbody {
+    display: block;
+    width: 100%;
+    border-spacing: 0;
+  }
+  .mini-matrix > tbody > tr {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 3px;
+    padding: 8px 0;
+  }
+  .mini-matrix > tbody > tr + tr {
+    border-top: 1px solid var(--color-line-soft);
+  }
+  .mini-matrix > tbody > tr > th,
+  .mini-matrix > tbody > tr > td {
+    display: block;
+    padding: 0;
+  }
+  .mini-matrix > tbody > tr > th {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    padding-bottom: 4px;
+    white-space: normal;
+  }
+  .mini-cond {
+    display: inline;
+  }
+  /* A track with fewer races just stops; the blanks padded the row out. */
+  .mini-matrix > tbody > tr > td:empty {
+    display: none;
+  }
+  .mini-cell {
+    min-width: 0;
+    padding: 3px 2px;
+  }
+  .mini-cell .medal {
+    top: 1px;
+    right: 1px;
+    font-size: 7px;
+    padding: 1px 2px;
+    border-radius: 2px;
+  }
 }
 
 /* --- Forms --- */
@@ -2144,6 +2546,55 @@ body {
 .runner-detail-col {
   min-width: 0;
 }
+/* A block of the runner panel. The heading carries a caret and folds it; on a
+   wide screen there is room for everything, so it stays open and inert. */
+.detail-panel + .detail-panel {
+  margin-top: var(--sp-3);
+}
+.detail-panel > summary {
+  list-style: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.detail-panel > summary::-webkit-details-marker {
+  display: none;
+}
+.detail-panel > summary::after {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid var(--color-ink-soft);
+  border-bottom: 2px solid var(--color-ink-soft);
+  transform: rotate(45deg) translateY(-2px);
+  transition: transform 120ms var(--ease);
+}
+.detail-panel[open] > summary::after {
+  transform: rotate(-135deg) translateY(-2px);
+}
+.detail-panel > summary > h4 {
+  margin-bottom: 0;
+}
+@media (min-width: 701px) {
+  /* Nothing to fold away at this width: the heading is a heading again. */
+  .detail-panel > summary {
+    pointer-events: none;
+    margin-bottom: var(--sp-2);
+  }
+  .detail-panel > summary::after {
+    display: none;
+  }
+}
+@media (max-width: 700px) {
+  .detail-panel > summary {
+    padding: 6px 0;
+    border-top: 1px solid var(--color-line-soft);
+  }
+  .detail-panel[open] > summary {
+    margin-bottom: var(--sp-2);
+  }
+}
 .runner-detail h4 {
   font-family: var(--font-archivo), sans-serif;
   font-size: 0.68rem;
@@ -2171,36 +2622,80 @@ body {
 .detail-list dd {
   text-align: right;
   font-weight: 600;
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 /* The runs column fits its table: small type, tight cells, and only a phone scrolls it. */
 .runner-detail-runs {
   min-width: 0;
   overflow: visible;
 }
+/* The rest of a run, on its own line under it. Only a phone needs it: above
+   that width every column is in the row. */
+.runs-more {
+  display: none;
+}
+.runs-more-line {
+  color: var(--color-ink-soft);
+}
+
 @media (max-width: 700px) {
-  /* On a phone the runs fit the width: weight, SP and settling position go (hide-sm), the track and class are clipped, the going is its number. */
+  /* On a phone the runs fit the width and never scroll sideways: the row is
+     the headline (when, where, how far, where it finished, its last 600 and
+     what we scored it), and the going, class, margin, time, weight, starting
+     price and where it sat go on the line under it. */
   .runner-detail-runs {
-    overflow-x: auto;
+    overflow-x: hidden;
   }
   .runs-table {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
+    table-layout: fixed;
   }
-  .runs-table th {
-    padding-right: 5px;
-  }
+  .runs-table th,
   .runs-table td {
-    padding-right: 4px;
+    padding-right: 3px;
   }
+  /* The columns a phone drops are collapsed rather than removed: the rows
+     under each run span all thirteen, so a dropped column would otherwise
+     still take a share of the width and leave the track a stub. */
+  .runs-table th.hide-sm,
+  .runs-table td.hide-sm {
+    display: table-cell;
+    width: 0;
+    max-width: 0;
+    padding: 0;
+    border-left: 0;
+    border-right: 0;
+    overflow: hidden;
+    visibility: hidden;
+    font-size: 0;
+  }
+  /* Every other column is given its width, so the track takes what is left
+     and clips there: the points never leave the screen. */
   .runs-table .runs-track {
-    max-width: 62px;
+    max-width: none;
   }
-  .runs-table .runs-class {
-    max-width: 72px;
+  .runs-table th[data-col="date"] { width: 3.2rem; }
+  .runs-table th[data-col="dist"] { width: 2.3rem; }
+  .runs-table th[data-col="fin"] { width: 3.1rem; }
+  .runs-table th[data-col="l600"] { width: 2.6rem; }
+  .runs-table th[data-col="pts"] { width: 2.1rem; }
+  .runs-row > td {
+    border-top-width: 1px;
+    padding-bottom: 1px;
+  }
+  .runs-more {
+    display: table-row;
+  }
+  .runs-more > td {
+    border-top: 0;
+    padding: 0 0 4px;
+    font-size: 0.66rem;
+    white-space: normal;
   }
 }
 .runs-table {
   width: 100%;
-  table-layout: auto;
   border-collapse: collapse;
   font-size: 0.74rem;
   white-space: nowrap;
@@ -2474,8 +2969,14 @@ body {
 }
 .cond-tiles {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 4px;
+}
+/* Four across is too tight for a phone; two rows of two read. */
+@media (max-width: 640px) {
+  .cond-tiles {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .cond-tile {
   text-align: center;
@@ -2560,11 +3061,299 @@ body {
   color: var(--color-red);
 }
 
+/* The phone line under a runner's name: the barrier, weight, rider and form
+   the table drops at this width. Off above it, where the columns are back. */
+.runner-meta {
+  display: none;
+}
+
+.runner-meta > span + span::before {
+  content: "·";
+  margin: 0 4px;
+  color: var(--color-line-strong);
+}
+
 /* Phones: the market fits the screen, the map is saddlecloths only. */
 @media (max-width: 640px) {
   .hide-sm {
     display: none;
   }
+  /* Today's tips: a call is a block, not a row eleven columns wide. The race
+     and its jump time head it, the horse under them, the price we struck and
+     ours as a labelled pair on the right, then the result and the units. The
+     running total goes: it is a column for a wide screen, not a phone. */
+  .data-table:has(th[data-col="race"]),
+  .data-table:has(th[data-col="race"]) > tbody,
+  .data-table:has(th[data-col="race"]) > tfoot {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .data-table thead:has(th[data-col="race"]) {
+    display: none;
+  }
+  tr.tip-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto auto;
+    grid-template-areas:
+      "race   jump   live  rated"
+      "runner runner live  rated"
+      "result result pl    edge"
+      "yours  yours  yours yourpl";
+    align-items: center;
+    gap: 3px 8px;
+    padding: 10px var(--sp-3);
+    border-bottom: 1px solid var(--color-line-soft);
+  }
+  tr.tip-row > td {
+    padding: 0;
+    border-bottom: 0;
+  }
+  /* A long track name gives way rather than running under the prices. */
+  tr.tip-row > td[data-col="race"] {
+    grid-area: race;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  tr.tip-row > td[data-col="jump"] { grid-area: jump; justify-self: start; white-space: nowrap; font-size: 0.7rem; }
+  tr.tip-row > td[data-col="runner"] { grid-area: runner; font-size: 0.88rem; }
+  tr.tip-row > td[data-col="result"] { grid-area: result; }
+  tr.tip-row > td[data-col="edge"] { grid-area: edge; justify-self: end; font-size: 0.75rem; }
+  tr.tip-row > td[data-col="pl"] { grid-area: pl; justify-self: end; font-size: 0.75rem; }
+  tr.tip-row > td[data-col="yours"] { grid-area: yours; justify-self: start; padding-top: 6px; }
+  tr.tip-row > td[data-col="yourpl"] { grid-area: yourpl; justify-self: end; align-self: end; }
+  /* A running total down a list of calls is a wide-screen column, and a dash
+     where the units will go says nothing that "to run" has not already said. */
+  tr.tip-row > td[data-col="sum"],
+  tr.tip-row > td[data-pending="1"] {
+    display: none;
+  }
+  /* The two prices sit as a labelled pair, the shape the market uses. */
+  tr.tip-row > td[data-col="live"],
+  tr.tip-row > td[data-col="rated"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: center;
+    justify-self: end;
+    min-width: 58px;
+    padding: 2px 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line);
+    background: var(--color-panel-alt);
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  tr.tip-row > td[data-col="live"] { grid-area: live; }
+  tr.tip-row > td[data-col="rated"] { grid-area: rated; }
+  tr.tip-row > td[data-col="live"]::before { content: "Live"; }
+  tr.tip-row > td[data-col="rated"]::before { content: "Rated"; }
+  tr.tip-row > td[data-col="live"]::before,
+  tr.tip-row > td[data-col="rated"]::before {
+    font-family: var(--font-sans);
+    font-size: 0.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-soft);
+  }
+  tr.tip-row > td[data-col="live"] .price-chip {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.88rem;
+  }
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-prime) {
+    background: var(--color-lime);
+    border-color: var(--color-lime);
+  }
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-back) {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+    color: #fff;
+  }
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-lay) {
+    background: var(--color-red);
+    border-color: var(--color-red);
+    color: #fff;
+  }
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-back)::before,
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-lay)::before {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  /* Our rated price carries the chance beside it on a wide screen; here the
+     price alone is the number that matters. */
+  tr.tip-row > td[data-col="rated"] .chance {
+    display: none;
+  }
+  tr.tip-row > td[data-col="live"] .bookie-link {
+    display: none;
+  }
+  tr.tip-total {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 8px var(--sp-3);
+  }
+  tr.tip-total > td {
+    padding: 0;
+    border: 0;
+  }
+
+  /* The market is two lines a runner instead of a row that runs off the side:
+     the saddlecloth over the call down the left, the horse and its facts in
+     the middle, the market's price and ours as a labelled pair on the right
+     with the edge under them. Table layout goes with it, so an open runner's
+     panel is the width of the screen and not the width of its widest chart. */
+  .data-table:has(th[data-col="runner"]),
+  .data-table:has(th[data-col="runner"]) > tbody {
+    display: block;
+    width: 100%;
+  }
+  .data-table thead:has(th[data-col="runner"]) {
+    display: none;
+  }
+  .runner-detail-row,
+  .runner-detail-row > td {
+    display: block;
+    width: 100%;
+  }
+  tr.runner-row {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "tab  name  live  rated"
+      "tab  name  edge  edge";
+    align-items: center;
+    gap: 2px 8px;
+    padding: 9px var(--sp-3);
+  }
+  tr.runner-row > td {
+    padding: 0;
+    border-bottom: 0;
+  }
+  tr.runner-row > td[data-col="tab"] {
+    grid-area: tab;
+    justify-self: stretch;
+    text-align: center;
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--color-ink-secondary);
+  }
+  /* The call is the live pill: it already wears the colour, so it wears the
+     word too and the badge that hung off the saddlecloth goes. */
+  tr.runner-row > td[data-col="signal"] {
+    display: none;
+  }
+  tr.runner-row > td[data-col="runner"] {
+    grid-area: name;
+  }
+  tr.runner-row > td[data-col="runner"] > div {
+    align-items: center;
+  }
+  /* The two prices sit as a labelled pair, the shape the selections use. */
+  tr.runner-row > td[data-col="live"],
+  tr.runner-row > td[data-col="rated"] {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: end;
+    justify-self: end;
+    min-width: 56px;
+    padding: 2px 6px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line);
+    background: var(--color-panel-alt);
+    font-size: 0.88rem;
+    font-weight: 700;
+  }
+  tr.runner-row > td[data-col="live"] { grid-area: live; }
+  tr.runner-row > td[data-col="rated"] { grid-area: rated; }
+  tr.runner-row > td[data-col="live"]::before { content: "Live"; }
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-prime)::before { content: "Prime"; }
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-back)::before { content: "Bet"; }
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-lay)::before { content: "Lay"; }
+  tr.runner-row > td[data-col="rated"]::before { content: "Rated"; }
+  tr.runner-row > td[data-col="live"]::before,
+  tr.runner-row > td[data-col="rated"]::before {
+    font-family: var(--font-sans);
+    font-size: 0.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-soft);
+  }
+  /* The price chip is already in a pill, so it drops its own box. */
+  tr.runner-row > td[data-col="live"] .price-chip {
+    padding: 0;
+    border: 0;
+    background: none;
+    font-size: 0.88rem;
+  }
+  /* The call's colour comes to the whole pill instead. */
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-prime) {
+    background: var(--color-lime);
+    border-color: var(--color-lime);
+  }
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-back) {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+    color: #fff;
+  }
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-lay) {
+    background: var(--color-red);
+    border-color: var(--color-red);
+    color: #fff;
+  }
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-back)::before,
+  tr.runner-row > td[data-col="live"]:has(.price-chip.is-lay)::before {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  /* Who holds the price is a line the row has no width for; the selections
+     and the runner's own panel still carry it. */
+  tr.runner-row > td[data-col="live"] .bookie-link {
+    display: none;
+  }
+  tr.runner-row > td[data-col="edge"] {
+    grid-area: edge;
+    justify-self: end;
+    align-self: start;
+    padding-top: 3px;
+    font-size: 0.72rem;
+  }
+  tr.runner-row > td[data-col="tip"] {
+    grid-column: 1 / -1;
+    justify-self: end;
+    padding-top: 6px;
+  }
+  /* No room for an arrow at this width; the footer line says the row opens. */
+  tr.runner-row .runner-caret {
+    display: none;
+  }
+  /* The horse's name is what the row is for: it wraps rather than being cut. */
+  tr.runner-row > td[data-col="runner"] .truncate:first-child {
+    overflow: visible;
+    white-space: normal;
+    text-overflow: clip;
+    line-height: 1.15;
+  }
+  /* The gate, the weight and the form wrap rather than being cut short. */
+  .runner-meta {
+    display: block;
+    margin-top: 1px;
+    font-size: 0.66rem;
+    line-height: 1.3;
+    color: var(--color-ink-soft);
+    white-space: normal;
+  }
+  /* The last runs: the track gives way first so the points stay on screen. */
+  .runs-table .runs-track {
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
   .map-chip {
     padding: 0;
     border-radius: 50%;
@@ -2574,10 +3363,46 @@ body {
   .map-price {
     display: none;
   }
+  /* The chip is the saddlecloth and nothing else: the pill it sat in left a
+     tail of empty panel to the right of every dot. The call's colour is on
+     the cloth, so the pill has nothing left to carry. */
+  .map-chip {
+    padding: 0;
+    gap: 0;
+    max-width: none;
+    background: none;
+    border: 0;
+    box-shadow: none;
+  }
+  .map-text {
+    display: none;
+  }
   .map-cloth {
-    width: 30px;
-    height: 30px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
+    font-size: 0.74rem;
+  }
+  .map-stack {
+    height: calc(3 * 26px + 2 * 5px);
+  }
+  .map-stack .map-chip {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    padding-right: 0;
+    bottom: calc(var(--lane, 0) * (26px + 5px));
+  }
+  .map-stack .map-cloth {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    margin-left: 0;
+  }
+  /* A runner we have little on keeps its dashed edge, now on the cloth itself. */
+  .map-chip.is-unsure .map-cloth {
+    outline: 2px dashed var(--color-ink-soft);
+    outline-offset: 1px;
   }
   .map-col {
     flex-direction: row;
@@ -2841,6 +3666,31 @@ body {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sp-2);
 }
+/* Phones: the four numbers read across in one band rather than as a block of
+   four boxes, which was most of the card's height. */
+@media (max-width: 639px) {
+  .tipster-card {
+    padding: var(--sp-3);
+  }
+  .tipster-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 4px;
+  }
+  .tipster-stat {
+    padding: 5px 2px;
+  }
+  .tipster-stat .stat-label {
+    font-size: 0.52rem;
+    letter-spacing: 0.04em;
+  }
+  .tipster-stat .font-display {
+    font-size: 0.95rem;
+  }
+  /* The sentence above the numbers already says what these repeat. */
+  .tipster-stat .text-\[11px\] {
+    display: none;
+  }
+}
 @media (min-width: 640px) {
   .tipster-stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3063,8 +3913,12 @@ body {
 }
 
 /* --- Speed map: the field in running order, back on the left, leaders on the right, pairs stacked from the rail --- */
+/* No overflow either way: the strip's columns squeeze to fit and the chips
+   clip their own names, so there was nothing to scroll to. Setting overflow
+   on one axis makes the browser scroll the other, which is where the stray
+   vertical scrollbar came from, and it clipped the tapped name as well. */
 .map-scroll {
-  overflow-x: auto;
+  overflow: visible;
 }
 .map-strip {
   display: grid;
@@ -3108,9 +3962,22 @@ body {
 .map-stack .map-chip {
   max-width: 100%;
 }
+/* Phones: the map fits the screen instead of scrolling past it. The chips are
+   saddlecloths only at this width, so the columns close up to suit. */
 @media (max-width: 640px) {
   .map-strip {
-    min-width: 640px;
+    min-width: 0;
+    gap: 0 2px;
+    padding: 4px 2px 6px;
+  }
+  .map-slot {
+    padding-left: 2px;
+  }
+  .map-zone {
+    font-size: 0.5rem;
+    letter-spacing: 0.04em;
+    overflow: hidden;
+    text-overflow: clip;
   }
 }
 .map-stack .map-chip {
@@ -3146,8 +4013,125 @@ body {
   position: absolute;
   left: 0;
   max-width: 100%;
+  /* --lane is the runner's lane off the fence, 0 at the rail; the chip's own height sets the step. */
+  bottom: calc(var(--lane, 0) * (36px + 6px));
 }
 .map-chip.is-unsure {
   border-style: dashed;
   opacity: 0.85;
+}
+
+/* Phones: the day's numbers read as one band across the top, however many
+   there are, rather than stacking into rows of chunky cards. */
+@media (max-width: 639px) {
+  .tips-stats {
+    display: flex;
+    gap: 4px;
+  }
+  .tips-stats > .stat-card {
+    flex: 1;
+    min-width: 0;
+    padding: 6px 2px;
+  }
+  .tips-stats > .stat-card > .font-display {
+    font-size: 1rem;
+  }
+  .tips-stats > .stat-card > div:nth-child(2) {
+    font-size: 0.45rem;
+    letter-spacing: 0.04em;
+    line-height: 1.25;
+    margin-top: 2px;
+  }
+}
+
+/* Admin only, under a runner's call: rule the horse out of the lays for good. */
+.lay-block {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+  font-size: 0.78rem;
+  color: var(--color-ink-soft);
+}
+.lay-block.is-on {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px dashed var(--color-red);
+  background: var(--color-red-soft);
+  color: var(--color-red);
+  font-weight: 700;
+}
+
+/* --- The race header: where we are, the conditions, every race on the card --- */
+.race-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3) var(--sp-4);
+}
+.race-title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+.race-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: auto;
+}
+.race-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.race-clock {
+  margin-left: auto;
+}
+/* Phones: the track and the race number lead, the race's name takes the line
+   under them, the conditions read as one quiet line, and the countdown gets
+   the width rather than being squeezed against the tabs. */
+@media (max-width: 640px) {
+  .race-head {
+    gap: 6px;
+    padding: var(--sp-3);
+  }
+  .race-back {
+    width: 100%;
+  }
+  .race-title {
+    flex-wrap: wrap;
+    width: 100%;
+    font-size: 1.5rem;
+    row-gap: 2px;
+  }
+  .race-name {
+    width: 100%;
+    font-size: 0.86rem;
+    line-height: 1.25;
+  }
+  .race-chips {
+    width: 100%;
+    margin-left: 0;
+    gap: 4px;
+  }
+  .race-chip {
+    padding: 2px 7px;
+    font-size: 0.62rem;
+    letter-spacing: 0.02em;
+  }
+  .race-strip {
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  }
+  .race-clock {
+    width: 100%;
+    margin-left: 0;
+  }
+  .race-clock > * {
+    width: 100%;
+  }
 }

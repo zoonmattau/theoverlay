@@ -13,6 +13,7 @@ import { NavUser } from "@/components/NavUser";
 import { SocialLinks } from "@/components/SocialLinks";
 import { BRAND_SOCIAL } from "@/lib/social";
 import { TopbarOffset } from "@/components/TopbarOffset";
+import { TipTap } from "@/components/TipTap";
 import "./globals.css";
 
 const archivo = Archivo({
@@ -67,6 +68,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <PageView />
         </Suspense>
         <TopbarOffset />
+        <TipTap />
         <header className="site-head">
         <nav className="topbar" aria-label="Main navigation">
           <Link href="/" className="topbar-brand">

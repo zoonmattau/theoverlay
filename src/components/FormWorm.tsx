@@ -172,7 +172,6 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
           </>
         )}
         <span className="worm-key worm-key-par ml-3" /> today&apos;s par
-        <span className="ml-3">the last dot is today&apos;s rating</span>
       </figcaption>
     </figure>
   );

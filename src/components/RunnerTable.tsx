@@ -8,8 +8,18 @@ import { SignalBadge } from "./Ratings";
 import { RunnerDetail } from "./RunnerDetail";
 import type { PersonPower } from "@/lib/data/race-facts";
 import { Section } from "./Section";
-import { percent, price, signedPercent } from "@/lib/format";
+import { jumpTime, percent, price, signedPercent } from "@/lib/format";
 import type { PublishedRace, Signal } from "@/lib/model/types";
+
+/**
+ * Admin only: the horses already ruled out of the lays, by key, and the
+ * actions to rule one out or let it back in.
+ */
+export interface LayAdmin {
+  blocked: string[];
+  block: (name: string, path?: string, reason?: string) => Promise<void>;
+  unblock: (key: string, path?: string) => Promise<void>;
+}
 
 /**
  * For a signed-in tipster: what they have posted on this race, and the
@@ -31,7 +41,7 @@ export interface Tipping {
  * the horse, its last runs, what to expect and our call. A tipster gets a Tip
  * column on the right to post their own call on a runner.
  */
-export function RunnerTable({ race, locked, people, tipping }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Promise<Record<string, PersonPower>>; tipping?: Tipping }) {
+export function RunnerTable({ race, locked, people, tipping, lays }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Promise<Record<string, PersonPower>>; tipping?: Tipping; lays?: LayAdmin }) {
   const runners = race.runners.filter((r) => !r.scratched);
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
@@ -55,24 +65,34 @@ export function RunnerTable({ race, locked, people, tipping }: { race: Published
   }
 
   return (
-    <Section id="market" letter="M" title="Market" aside={<span className="nums">{runners.length} runners</span>}>
+    <Section
+      id="market"
+      letter="M"
+      title="Market"
+      aside={
+        <span className="nums">
+          {race.jumpTime ? <span className="market-jump">{jumpTime(race.jumpTime)}</span> : null}
+          {runners.length} runners
+        </span>
+      }
+    >
       <div className="overflow-x-auto lg:overflow-visible">
         <table className="data-table sm:min-w-[820px] text-sm">
           <thead>
             <tr>
-              <th className="w-8">#</th>
-              <th>Runner</th>
-              <th className="hide-sm text-right">Bar</th>
-              {!locked && <th>Signal</th>}
-              <th className="hide-sm text-right">Wgt</th>
-              <th className="hide-sm">Jockey</th>
-              <th className="hide-sm">Form</th>
-              <th className="text-right">Live</th>
-              {!locked && <th className="text-right">Rated</th>}
-              {!locked && <th className="hide-sm text-right">Win</th>}
-              {!locked && <th className="text-right tip tip-right cursor-help" data-tip="Our chance less the chance the best bookmaker price implies, in points. A bet needs +2.5 or more.">Back edge</th>}
-              {!locked && <th className="hide-sm text-right tip tip-right cursor-help" data-tip="Betfair's best lay on offer now, and our chance less the chance it implies. A lay needs −6 or more, at $12 or under.">Lay at</th>}
-              {tipping && <th className="text-right">Tip</th>}
+              <th data-col="tab" className="w-8">#</th>
+              <th data-col="runner">Runner</th>
+              <th data-col="bar" className="hide-sm text-right">Bar</th>
+              {!locked && <th data-col="signal">Signal</th>}
+              <th data-col="wgt" className="hide-sm text-right">Wgt</th>
+              <th data-col="jockey" className="hide-sm">Jockey</th>
+              <th data-col="form" className="hide-sm">Form</th>
+              <th data-col="live" className="text-right">Live</th>
+              {!locked && <th data-col="rated" className="text-right">Rated</th>}
+              {!locked && <th data-col="win" className="hide-sm text-right">Win</th>}
+              {!locked && <th data-col="edge" className="text-right tip tip-right cursor-help" data-tip="Our chance less the chance the best bookmaker price implies, in points. A bet needs +2.5 or more.">Back edge</th>}
+              {!locked && <th data-col="lay" className="hide-sm text-right tip tip-right cursor-help" data-tip="Betfair's best lay on offer now, and our chance less the chance it implies. A lay needs −6 or more, at $12 or under.">Lay at</th>}
+              {tipping && <th data-col="tip" className="text-right">Tip</th>}
             </tr>
           </thead>
           <tbody>
@@ -86,22 +106,28 @@ export function RunnerTable({ race, locked, people, tipping }: { race: Published
                     onClick={() => !locked && toggle(r.tabNumber)}
                     aria-expanded={locked ? undefined : isOpen}
                   >
-                    <td className="nums text-ink-soft">{r.tabNumber}</td>
-                    <td>
+                    <td data-col="tab" className="nums text-ink-soft">{r.tabNumber}</td>
+                    <td data-col="runner">
                       <div className="min-w-0 flex items-center gap-2">
-                        <div>
+                        <div className="min-w-0">
                           <div className="font-medium truncate">{r.horseName}</div>
                           <div className="text-[11px] text-muted truncate">{r.trainer ?? ""}</div>
+                          {/* On a phone the columns the table drops come back here, as one line under the name. */}
+                          <div className="runner-meta nums">
+                            <span>b{r.barrier}</span>
+                            {r.weight ? <span>{r.weight}kg</span> : null}
+                            {r.form ? <span>{r.form}</span> : null}
+                          </div>
                         </div>
                         {!locked && <span className={`runner-caret ${isOpen ? "is-open" : ""}`} aria-hidden="true" />}
                       </div>
                     </td>
-                    <td className="hide-sm text-right nums text-ink-secondary">{r.barrier}</td>
-                    {!locked && <td><SignalBadge signal={r.signal} prime={r.prime} /></td>}
-                    <td className="hide-sm text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
-                    <td className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
-                    <td className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
-                    <td className="text-right">
+                    <td data-col="bar" className="hide-sm text-right nums text-ink-secondary">{r.barrier}</td>
+                    {!locked && <td data-col="signal"><SignalBadge signal={r.signal} prime={r.prime} /></td>}
+                    <td data-col="wgt" className="hide-sm text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
+                    <td data-col="jockey" className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
+                    <td data-col="form" className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
+                    <td data-col="live" className="text-right">
                       <MarketHover r={r} className="market-right">
                         <span className={`price-chip ${locked ? "" : r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
                           {price(r.marketPrice)}
@@ -109,17 +135,17 @@ export function RunnerTable({ race, locked, people, tipping }: { race: Published
                       </MarketHover>
                       {!locked && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} className="block text-[10px] mt-0.5" /> : null}
                     </td>
-                    {!locked && <td className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
-                    {!locked && <td className="hide-sm text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
+                    {!locked && <td data-col="rated" className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
+                    {!locked && <td data-col="win" className="hide-sm text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
                     {!locked && (
-                      <td className="text-right nums">
+                      <td data-col="edge" className="text-right nums">
                         <span className={r.prime ? "text-accent font-semibold" : r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
                           {signedPercent(r.edge)}
                         </span>
                       </td>
                     )}
                     {!locked && (
-                      <td className="hide-sm text-right nums whitespace-nowrap">
+                      <td data-col="lay" className="hide-sm text-right nums whitespace-nowrap">
                         {r.layPrice ? (
                           <>
                             <span className="text-ink-secondary">{price(r.layPrice)}</span>{" "}
@@ -129,7 +155,7 @@ export function RunnerTable({ race, locked, people, tipping }: { race: Published
                       </td>
                     )}
                     {tipping && (
-                      <td className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                      <td data-col="tip" className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {tipping.posted[r.tabNumber] ? (
                           <span className="inline-flex items-center gap-1">
                             <span className={`badge ${tipping.posted[r.tabNumber].side === "lay" ? "badge-lay" : "badge-back"}`}>{tipping.posted[r.tabNumber].side === "lay" ? "Lay" : "Bet"} {price(tipping.posted[r.tabNumber].price)}</span>
@@ -159,7 +185,7 @@ export function RunnerTable({ race, locked, people, tipping }: { race: Published
                   {isOpen && !locked && (
                     <tr className="runner-detail-row">
                       <td colSpan={cols}>
-                        <RunnerDetail r={r} race={race} people={people} />
+                        <RunnerDetail r={r} race={race} people={people} lays={lays} />
                       </td>
                     </tr>
                   )}

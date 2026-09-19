@@ -68,7 +68,9 @@ export function Section({
       >
         <span className="section-letter">{letter}</span>
         <h2>{title}</h2>
-        {controls && (
+        {/* Closed, the section shows its name and nothing else: its tabs and
+            filters belong to the body and go with it. */}
+        {controls && open && (
           <span className="contents" onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
             {controls}
           </span>
