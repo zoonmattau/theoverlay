@@ -42,11 +42,69 @@ export async function listStoredDates(limit = 60): Promise<string[]> {
   return (data ?? []).map((r) => String(r.date));
 }
 
-export async function writeStoredCard(date: string, card: StoredCard, seconds: number): Promise<void> {
-  const { error } = await supabaseAdmin()
-    .from("cards")
-    .upsert({ date, card, built_at: new Date().toISOString(), refreshing_at: null, seconds });
+/**
+ * The card, and the runs beside it. A runner's last runs were four fifths of
+ * the stored card and only ever read on the race being looked at, so they go
+ * to race_runs keyed by race and the card carries none.
+ *
+ * The runs are written first and the card is only slimmed once they are safely
+ * down. If that write fails the card keeps them inline, the way it always did,
+ * so a missing table or a bad minute costs nothing but the old size.
+ */
+export async function writeStoredCard(date: string, card: StoredCard, seconds: number, opts: { runs?: boolean } = {}): Promise<void> {
+  const db = supabaseAdmin();
+  const at = new Date().toISOString();
+  const rows: { date: string; race_id: string; runs: Record<string, unknown>; built_at: string }[] = [];
+  for (const m of card.meetings) {
+    for (const r of m.races) {
+      const runs: Record<string, unknown> = {};
+      for (const x of r.runners) if (x.runs?.length) runs[String(x.tabNumber)] = x.runs;
+      if (Object.keys(runs).length) rows.push({ date, race_id: r.raceId, runs, built_at: at });
+    }
+  }
+
+  // A reprice leaves the form alone, so it writes no runs and slims the card
+  // on the ones already stored.
+  let stored = opts.runs === false;
+  if (opts.runs !== false && rows.length > 0) {
+    stored = true;
+    // In batches, so one oversized statement cannot lose the lot.
+    for (let i = 0; i < rows.length; i += 25) {
+      const { error } = await db.from("race_runs").upsert(rows.slice(i, i + 25), { onConflict: "date,race_id" });
+      if (error) {
+        console.error("[race_runs]", error.message);
+        stored = false;
+        break;
+      }
+    }
+  }
+
+  const lean: StoredCard = stored
+    ? {
+        ...card,
+        meetings: card.meetings.map((m) => ({
+          ...m,
+          races: m.races.map((r) => ({
+            ...r,
+            runners: r.runners.map((x) => {
+              const { runs: _runs, ...rest } = x;
+              void _runs;
+              return rest as typeof x;
+            }),
+          })),
+        })),
+      }
+    : card;
+
+  const { error } = await db.from("cards").upsert({ date, card: lean, built_at: at, refreshing_at: null, seconds });
   if (error) console.error("[cards]", error.message);
+}
+
+/** One race's runs, by tab number. Empty when the race has none stored. */
+export async function readRaceRuns(date: string, raceId: string): Promise<Record<string, unknown[]>> {
+  const { data, error } = await supabaseAdmin().from("race_runs").select("runs").eq("date", date).eq("race_id", raceId).maybeSingle();
+  if (error) throw new Error(`[race_runs] read ${date} ${raceId}: ${error.message}`);
+  return (data?.runs as Record<string, unknown[]> | undefined) ?? {};
 }
 
 /** Takes the refresh lock for a date; false when someone else holds a fresh one. */

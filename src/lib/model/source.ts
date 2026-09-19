@@ -12,14 +12,14 @@ import {
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
-import { claimRefresh, readMutes, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { claimRefresh, readMutes, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
 import { betwatchConfigured } from "@/lib/betwatch/client";
 import { pollPrices, racesToPrice, readPriceBook, type PriceBook } from "@/lib/betwatch/prices";
 import { recordTips } from "@/lib/tips";
-import type { PublishedMeeting, PublishedRace } from "./types";
+import type { PublishedMeeting, PublishedRace, PublishedRun } from "./types";
 
 /**
  * The app's only data entry point.
@@ -303,13 +303,17 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings, pinnedFreeRaceId, previousFreeRaceId), live: usingLiveData() };
   const seconds = Math.round((Date.now() - started) / 1000);
   if (storeConfigured()) {
-    await writeStoredCard(date, card, seconds);
+    // A reprice leaves the form alone, so the runs are written on a real
+    // build only: rewriting every race's runs each time a price moved would
+    // cost more than carrying them in the card ever did.
+    await writeStoredCard(date, card, seconds, { runs: !opts.reprice });
     // New calls join the ledger at today's price; run races settle.
     await recordTips(date, card);
     await settleCreatorTips(date, card);
     // Not allowed from inside a cache scope, so the in-cache build skips it.
     if (opts.revalidate !== false) {
       revalidateTag(`card-${date}`, "max");
+      if (!opts.reprice) revalidateTag(`runs-${date}`, "max");
       // Calls that came or went since the last card, then once every race has run the day's ledger, once.
       if (date === racingToday()) {
         // Never ahead of the site: before the release hour the calls are not public yet.
@@ -427,16 +431,42 @@ export async function getMeetingCard(
   return meetings.find((m) => m.meetingId === meetingId);
 }
 
+/**
+ * One race's last runs, read on their own. The card no longer carries them:
+ * they were four fifths of it, and only the race being looked at reads them.
+ */
+async function raceRuns(date: string, raceId: string): Promise<Record<string, PublishedRun[]>> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
+  cacheTag(`runs-${date}`);
+  if (!storeConfigured()) return {};
+  try {
+    return (await readRaceRuns(date, raceId)) as Record<string, PublishedRun[]>;
+  } catch (err) {
+    console.error("[race_runs]", err);
+    return {};
+  }
+}
+
 export async function getRaceCard(date: string, meetingId: string, raceId: string, preview = false) {
   const card = await getCard(date, preview);
   const { meetings, selections, freeRaceId } = card;
   const meeting = meetings.find((m) => m.meetingId === meetingId);
-  const race = meeting?.races.find((r) => r.raceId === raceId);
-  if (!meeting || !race) return undefined;
+  const found = meeting?.races.find((r) => r.raceId === raceId);
+  if (!meeting || !found) return undefined;
+  // A card built before the split still carries its runs; one built after
+  // takes them from race_runs, for this race alone.
+  const race = found.runners.some((x) => x.runs?.length)
+    ? found
+    : await (async () => {
+        const runs = await raceRuns(date, raceId);
+        if (Object.keys(runs).length === 0) return found;
+        return { ...found, runners: found.runners.map((x) => ({ ...x, runs: runs[String(x.tabNumber)] ?? x.runs })) };
+      })();
   return {
     meeting,
     race,
-    meetings,
+    meetings: meetings.map((m) => (m.meetingId === meetingId ? { ...m, races: m.races.map((r) => (r.raceId === raceId ? race : r)) } : m)),
     selections,
     free: race.raceId === freeRaceId,
     card,
