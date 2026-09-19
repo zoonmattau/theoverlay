@@ -10,7 +10,7 @@ type Key = "name" | "class" | "peak" | "trend" | "early" | "mid" | "late" | "pre
 const COLS: { key: Key; label: string; right?: boolean; tip: string }[] = [
   { key: "name", label: "Horse", tip: "Click a row to add it to the race." },
   { key: "class", label: "Class", right: true, tip: "Class rating in benchmark points, from its last runs." },
-  { key: "peak", label: "Peak", right: true, tip: "The best single run it has put up, in benchmark points." },
+  { key: "peak", label: "Best run", right: true, tip: "The best single run we have scored it, from the clock and the class of the race. The class rating takes in the handicapper's mark as well, so a good horse sits above its best run here." },
   { key: "trend", label: "Trend", right: true, tip: "Its last three runs against the three before, in points. Up means it is improving; it needs two runs each side to say anything." },
   { key: "early", label: "Early", right: true, tip: "Early sectional rating." },
   { key: "mid", label: "Mid", right: true, tip: "Mid-race sectional rating." },

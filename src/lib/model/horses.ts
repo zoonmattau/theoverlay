@@ -21,7 +21,7 @@ export interface StoredHorse {
   state: string | null;
   last_track: string | null;
   last_seen: string;
-  /** The best run it has put up, its last three against the three before, and the runs behind both. */
+  /** The best single run we scored it, its last three runs against the three before, and the runs behind both. */
   peak: number | null;
   trend: number | null;
   starts: number | null;
@@ -118,7 +118,7 @@ export interface HorseSummary {
   state: string | null;
   lastTrack: string | null;
   lastSeen: string;
-  /** The best run it has put up, in benchmark points. */
+  /** The best single run we have scored it: our clock against the race's class, not the handicapper's mark. */
   peak: number | null;
   /** Its last three runs against the three before, in points: on the up or on the way down. */
   trend: number | null;

@@ -3,7 +3,7 @@
 // remembered before the columns existed.
 //   npx tsx --conditions=react-server --env-file=.env.local scripts/backfill-horse-form.ts [limit]
 import { supabaseAdmin } from "../src/lib/billing/access";
-import { classPoints, isJumps, runPoints } from "../src/lib/model/ratings";
+import { isJumps, runPoints } from "../src/lib/model/ratings";
 import type { RaceEntry } from "../src/lib/formking/types";
 
 void (async () => {
@@ -18,7 +18,7 @@ void (async () => {
   for (;;) {
     const { data, error } = await db
       .from("horses")
-      .select("id, entry, last_seen")
+      .select("id, entry, last_seen, class")
       .order("id")
       .range(from, from + 499);
     if (error) throw error;
@@ -28,8 +28,11 @@ void (async () => {
     const patch: { id: string; peak: number | null; trend: number | null; starts: number | null }[] = [];
     for (const r of rows) {
       const e = r.entry as RaceEntry;
-      // The race the horse was remembered from set the par its runs were read against.
-      const par = classPoints(undefined, (e as RaceEntry & { raceName?: string }).raceName) ?? 90;
+      // runPoints reads a run against the level the horse races at. The build
+      // has today's race for that; here the horse's own class rating is the
+      // honest stand-in, and a par of 90 for everyone dragged a Group horse's
+      // best run below its rating.
+      const par = r.class === null ? 90 : Number(r.class);
       const past = (e.pastEvents ?? []).filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && p.date && !isJumps(p));
       const asOf = Date.parse(`${String(r.last_seen)}T12:00:00+10:00`) || undefined;
       const pts = past.map((p) => runPoints(p, par, e.horse?.age, asOf)).filter((v) => Number.isFinite(v));
@@ -44,9 +47,20 @@ void (async () => {
       patch.push({ id: String(r.id), peak: round(Math.max(...pts)), trend, starts: pts.length });
     }
 
-    for (let i = 0; i < patch.length; i += 100) {
-      const { error: up } = await db.from("horses").upsert(patch.slice(i, i + 100), { onConflict: "id" });
-      if (up) console.error("[horses]", up.message);
+    // An upsert would be an insert that happens to conflict, and the row has
+    // columns it cannot supply, so each horse is updated on its id. Five at a
+    // time with a breath between: twenty in flight had the instance handing
+    // back 525s, and there is no hurry on a one-off.
+    const write = async (id: string, set: Record<string, number | null>, go = 0): Promise<void> => {
+      const { error: e } = await db.from("horses").update(set).eq("id", id);
+      if (!e) return;
+      if (go >= 3) return void console.error("[horses]", String(e.message).slice(0, 80));
+      await new Promise((r) => setTimeout(r, 400 * (go + 1)));
+      return write(id, set, go + 1);
+    };
+    for (let i = 0; i < patch.length; i += 5) {
+      await Promise.all(patch.slice(i, i + 5).map(({ id, ...set }) => write(id, set)));
+      await new Promise((r) => setTimeout(r, 30));
     }
     done += rows.length;
     process.stdout.write(`\r${done} horses`);
