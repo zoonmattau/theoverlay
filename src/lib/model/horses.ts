@@ -77,12 +77,25 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
   if (rows.length === 0) return;
   // Every past run on the form, for the Datahub.
   await rememberRuns(runs);
+  // One row per horse. A horse entered twice at the meeting put its id in the
+  // batch twice, and Postgres rejects the whole statement rather than the
+  // duplicate ("ON CONFLICT DO UPDATE command cannot affect row a second
+  // time"), so two hundred horses were lost for the sake of one. The reading
+  // with a rating behind it wins.
+  const byId = new Map<string, StoredHorse>();
+  for (const r of rows) {
+    const had = byId.get(r.id);
+    if (!had || (had.class === null && r.class !== null)) byId.set(r.id, r);
+  }
   // The newest sighting wins; an older card must not overwrite a newer one.
-  const { data: existing } = await supabaseAdmin().from("horses").select("id, last_seen").in("id", rows.map((r) => r.id));
+  const unique = [...byId.values()];
+  const { data: existing } = await supabaseAdmin().from("horses").select("id, last_seen").in("id", unique.map((r) => r.id));
   const seen = new Map((existing ?? []).map((r) => [r.id as string, String(r.last_seen)]));
-  const fresh = rows.filter((r) => !seen.has(r.id) || seen.get(r.id)! <= r.last_seen);
-  for (let i = 0; i < fresh.length; i += 200) {
-    const { error } = await supabaseAdmin().from("horses").upsert(fresh.slice(i, i + 200).map((r) => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: "id" });
+  const fresh = unique.filter((r) => !seen.has(r.id) || seen.get(r.id)! <= r.last_seen);
+  // Fifty at a time: each row carries the horse's whole entry, and two hundred
+  // of them was enough to time the statement out on a small instance.
+  for (let i = 0; i < fresh.length; i += 50) {
+    const { error } = await supabaseAdmin().from("horses").upsert(fresh.slice(i, i + 50).map((r) => ({ ...r, updated_at: new Date().toISOString() })), { onConflict: "id" });
     if (error) console.error("[horses]", error.message);
   }
 }
