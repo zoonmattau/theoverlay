@@ -75,7 +75,9 @@ void (async () => {
       const lay = all.filter((v) => v.x.signal === "lay").sort((a, b) => (callEdge(a.x) ?? 0) - (callEdge(b.x) ?? 0))[0];
       return { meeting: m, bet, lay };
     })
-    .filter((t) => t.bet || t.lay)
+    // Only tracks with both sides: a slide showing one call and a gap where
+    // the other should be is the weakest one in the deck.
+    .filter((t) => t.bet && t.lay)
     .slice(0, limit);
 
   const races = card.meetings.flatMap((m) => m.races);
@@ -143,20 +145,20 @@ h1 { font-size:110px; font-weight:800; line-height:.96; letter-spacing:-.03em; m
 h2 { font-size:76px; font-weight:800; line-height:1; letter-spacing:-.025em; }
 .where { font-family:var(--mono); font-size:32px; color:var(--muted); margin-top:16px; }
 .mark { background:var(--lime); padding:0 16px; color:var(--ink); }
-.calls { margin-top:44px; display:flex; flex-direction:column; gap:26px; }
+.calls { margin-top:36px; display:flex; flex-direction:column; gap:20px; }
 /* No coloured spine down the side: the pill says which it is, and the bar
    made every card look like it came out of a template. */
-.call { border-radius:30px; padding:34px 36px; background:var(--panel); border:3px solid var(--line); }
+.call { border-radius:30px; padding:28px 32px; background:var(--panel); border:3px solid var(--line); }
 .tagrow { display:flex; align-items:center; gap:16px; }
 .tag { font-family:var(--mono); font-size:26px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
        padding:6px 16px; border-radius:999px; color:#fff; background:var(--blue); }
 .tag.lay { background:var(--red); }
 .tag.prime { background:var(--lime); color:var(--ink); }
 .rno { font-family:var(--mono); font-size:28px; color:var(--muted); font-weight:700; }
-.horse { font-size:54px; font-weight:800; letter-spacing:-.02em; margin-top:14px; line-height:1.05; }
-.why { font-size:31px; line-height:1.4; color:var(--color-ink-secondary, #3d4147); margin-top:14px; }
+.horse { font-size:48px; font-weight:800; letter-spacing:-.02em; margin-top:14px; line-height:1.05; }
+.why { font-size:29px; line-height:1.4; color:var(--color-ink-secondary, #3d4147); margin-top:14px; }
 .prices { display:flex; align-items:baseline; gap:26px; margin-top:20px; font-family:var(--mono); }
-.prices b { font-size:44px; font-weight:700; }
+.prices b { font-size:40px; font-weight:700; }
 .prices span { font-size:26px; color:var(--muted); font-weight:600; }
 .prices .edge { font-weight:700; color:var(--blue); font-size:30px; }
 .call.lay .prices .edge { color:var(--red); }
@@ -172,6 +174,11 @@ h2 { font-size:76px; font-weight:800; line-height:1; letter-spacing:-.025em; }
 .tile .n { font-family:var(--mono); font-size:112px; font-weight:700; line-height:1; letter-spacing:-.04em; }
 .tile .l { font-family:var(--mono); font-size:26px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-top:10px; opacity:.75; }
 .spacer { display:none; }
+.lede { font-size:40px; font-weight:600; line-height:1.4; margin-top:30px; max-width:840px; }
+.slide.dark .lede { color:#d7dccb; }
+.url { font-size:64px; font-weight:800; letter-spacing:-.02em; margin-top:52px; }
+/* The close says the address once, big; the footer keeps the lockup alone. */
+.slide.close .tag2 { display:none; }
 .foot { position:absolute; left:76px; right:76px; bottom:66px; display:flex; align-items:center; gap:20px; }
 .logo { font-size:46px; font-weight:800; letter-spacing:-.02em; }
 .logo em { font-style:normal; background:var(--lime); padding:0 12px; color:var(--ink); }
@@ -214,12 +221,11 @@ D.slides.forEach((s, i) => {
     '<div class="spacer"></div>' + foot(i < D.slides.length - 1) + '</div>');
 });
 
-slides.push('<div class="slide dark"><div class="kicker">Every race, every day</div>' +
+slides.push('<div class="slide dark close"><div class="kicker">Every race, every day</div>' +
   '<h1>Every runner<br><span class="mark">rated.</span></h1>' +
-  '<div class="where" style="margin-top:34px;font-size:36px;line-height:1.5">A benchmark rating and a price for every horse.<br>' +
-  'We call a bet only where the market is longer than our price, and a lay only where it is shorter.<br>One race free every day.</div>' +
-  '<div class="spacer"></div>' +
-  '<h2 style="font-size:58px">theoverlay.com.au</h2>' + foot(false) + '</div>');
+  '<p class="lede">A benchmark rating and a price for every horse.</p>' +
+  '<p class="lede">A bet only where the market is longer than our price. A lay only where it is shorter.</p>' +
+  '<p class="url">theoverlay.com.au</p>' + foot(false) + '</div>');
 
 document.body.innerHTML = slides.join('');
 `;
