@@ -144,10 +144,9 @@ h2 { font-size:76px; font-weight:800; line-height:1; letter-spacing:-.025em; }
 .where { font-family:var(--mono); font-size:32px; color:var(--muted); margin-top:16px; }
 .mark { background:var(--lime); padding:0 16px; color:var(--ink); }
 .calls { margin-top:44px; display:flex; flex-direction:column; gap:26px; }
+/* No coloured spine down the side: the pill says which it is, and the bar
+   made every card look like it came out of a template. */
 .call { border-radius:30px; padding:34px 36px; background:var(--panel); border:3px solid var(--line); }
-.call.bet { border-left:14px solid var(--blue); }
-.call.lay { border-left:14px solid var(--red); }
-.call.prime { border-left-color:var(--lime); }
 .tagrow { display:flex; align-items:center; gap:16px; }
 .tag { font-family:var(--mono); font-size:26px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
        padding:6px 16px; border-radius:999px; color:#fff; background:var(--blue); }
