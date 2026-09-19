@@ -64,9 +64,15 @@ export async function writeStoredCard(date: string, card: StoredCard, seconds: n
   }
 
   // A reprice leaves the form alone, so it writes no runs and slims the card
-  // on the ones already stored.
-  let stored = opts.runs === false;
-  if (opts.runs !== false && rows.length > 0) {
+  // on the ones already stored. It checks they are there first: slimming
+  // against rows that do not exist would take the day's form off the card
+  // with nowhere to read it back from.
+  let stored = false;
+  if (opts.runs === false) {
+    const { count, error } = await db.from("race_runs").select("race_id", { count: "exact", head: true }).eq("date", date);
+    if (error) console.error("[race_runs]", error.message);
+    stored = !error && (count ?? 0) > 0;
+  } else if (rows.length > 0) {
     stored = true;
     // In batches, so one oversized statement cannot lose the lot.
     for (let i = 0; i < rows.length; i += 25) {
