@@ -55,6 +55,7 @@ const BEATS = [
 
 const data = {
   beats: BEATS.map((b) => ({ at: b.at, until: b.until, scene: b.scene })),
+  shots: [] as string[],
   features: features.slice(0, 2).map((m) => ({ track: m.track, state: m.state, races: m.races.map((r) => ({ n: r.raceNumber, g: r.g })) })),
   track: meeting.track,
   state: meeting.state,
@@ -82,6 +83,8 @@ const data = {
     : null,
 };
 
+const STYLE_MARKER = 1;
+void STYLE_MARKER;
 const STYLE = `
 :root { --ink:#14161a; --panel:#fff; --soft:#f3f5ef; --line:#dfe3d8; --lime:#c4f000; --blue:#1668ff;
         --muted:#8a9080; --display:'Archivo',sans-serif; --mono:'IBM Plex Mono',monospace; }
@@ -152,6 +155,17 @@ h2 { font-size:84px; font-weight:800; line-height:1; letter-spacing:-.02em; }
 .row .t span { display:block; height:100%; background:#c9cfbd; border-radius:23px; transform-origin:left center; }
 .row.me .t span { background:var(--lime); }
 .row .v { font-family:var(--mono); font-weight:700; font-size:40px; width:118px; text-align:right; }
+.shot { margin-top:40px; border-radius:30px; overflow:hidden; border:3px solid var(--line);
+        box-shadow:0 30px 70px rgba(20,22,26,.16); background:var(--panel); }
+.shot img { display:block; width:100%; }
+.scene.dark .shot { border-color:#3a3f48; box-shadow:0 30px 70px rgba(0,0,0,.5); }
+.scene.on .shot { animation: liftin .7s cubic-bezier(.2,.8,.2,1) both; animation-delay:.18s; }
+@keyframes liftin { from { opacity:0; transform:translateY(64px) scale(.97); } to { opacity:1; transform:none; } }
+/* A number laid over the shot, so the claim and the proof are one picture. */
+.over { position:relative; }
+.over .tagnum { position:absolute; right:-10px; bottom:-40px; font-family:var(--mono); font-weight:700;
+                font-size:150px; letter-spacing:-.05em; color:var(--ink); background:var(--lime);
+                padding:6px 26px; border-radius:24px; box-shadow:0 18px 40px rgba(20,22,26,.2); }
 .foot { position:absolute; left:80px; right:80px; bottom:96px; display:flex; align-items:center; gap:22px; }
 .logo { font-size:50px; font-weight:800; letter-spacing:-.02em; }
 .logo em { font-style:normal; background:var(--lime); padding:0 12px; color:var(--ink); }
@@ -163,66 +177,72 @@ const PAGE = `
 const D = __DATA__;
 const foot = '<div class="foot in d3"><span class="logo">THE <em>OVERLAY</em></span><span class="tag">theoverlay.com.au</span></div>';
 const pct = (v, lo, hi) => Math.max(6, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+/** The site itself, where we managed to shoot it; the drawn version otherwise. */
+const has = (n) => D.shots.indexOf(n) >= 0;
+const shot = (n, over) => '<div class="shot' + (over ? ' over' : '') + '"><img src="shot-' + n + '.png">' + (over || '') + '</div>';
 
 const SCENES = {
   today: () =>
     '<div class="kicker in">Saturday racing</div>' +
     '<h1 class="in d1">Group One<br>at Caulfield.</h1>' +
-    '<div class="rows">' + D.features.map((m, i) =>
-      '<div class="trk in d' + (i + 1) + '"><div><span class="name">' + m.track + '</span><span class="st">' + m.state + '</span></div>' +
-      '<div class="gs">' + m.races.map((r) => '<span class="g g' + r.g + '">G' + r.g + ' R' + r.n + '</span>').join('') + '</div></div>').join('') +
-    '</div><div class="spacer"></div>' + foot,
+    (has('board') ? shot('board') :
+      '<div class="rows">' + D.features.map((m, i) =>
+        '<div class="trk in d' + (i + 1) + '"><div><span class="name">' + m.track + '</span><span class="st">' + m.state + '</span></div>' +
+        '<div class="gs">' + m.races.map((r) => '<span class="g g' + r.g + '">G' + r.g + ' R' + r.n + '</span>').join('') + '</div></div>').join('') +
+      '</div>') + foot,
 
   pick: () =>
     '<div class="kicker in">Best of the day</div>' +
     '<h1 class="in d1">' + D.track + '<br>Race ' + D.raceNumber + '.</h1>' +
     '<div class="runner"><span class="cloth pop">' + D.tab + '</span><div class="in d2"><h2>' + D.horse + '</h2>' +
     '<div class="meta">' + D.distance + 'm ' + D.className + ' \\u00b7 ' + D.going + ' \\u00b7 ' + D.field + ' runners</div></div></div>' +
-    '<div class="spacer"></div>' + foot,
+    (has('pick') ? shot('pick') : '') + foot,
 
   late: () =>
     '<div class="kicker in">Closing sectionals</div>' +
     '<h1 class="in d1">It closes<br>like nothing<br>else in it.</h1>' +
-    '<div class="bar in d2"><div class="lbl">' + D.horse + '</div><div class="track"><div class="fill" style="width:' +
-      pct(+D.late, +D.lateAvg - 14, +D.late + 3) + '%"></div></div><div class="num">' + D.late + '</div></div>' +
-    '<div class="bar in d3"><div class="lbl">The field</div><div class="track"><div class="fill dim" style="width:' +
-      pct(+D.lateAvg, +D.lateAvg - 14, +D.late + 3) + '%"></div></div><div class="num">' + D.lateAvg + '</div></div>' +
-    '<div class="spacer"></div><div class="gap pop">+' + D.lateGap + '</div>' +
-    '<div class="meta in d3">points clear of the field average</div>' + foot,
+    (has('sectionals')
+      ? shot('sectionals', '<span class="tagnum pop">+' + D.lateGap + '</span>')
+      : '<div class="bar in d2"><div class="lbl">' + D.horse + '</div><div class="track"><div class="fill" style="width:' +
+        pct(+D.late, +D.lateAvg - 14, +D.late + 3) + '%"></div></div><div class="num">' + D.late + '</div></div>' +
+        '<div class="bar in d3"><div class="lbl">The field</div><div class="track"><div class="fill dim" style="width:' +
+        pct(+D.lateAvg, +D.lateAvg - 14, +D.late + 3) + '%"></div></div><div class="num">' + D.lateAvg + '</div></div>' +
+        '<div class="gap pop">+' + D.lateGap + '</div>') +
+    '<div class="meta in d3" style="margin-top:66px">points clear of the field on its closing sectional</div>' + foot,
 
   weight: () =>
-    '<div class="kicker in">The query</div><div class="spacer"></div>' +
-    '<div class="big pop">' + D.weight + '<small>kg</small></div>' +
-    '<div class="note in d2">Settles ' + D.map + ', so it gets back and has to come hard to win.</div>' +
-    '<div class="spacer"></div>' + foot,
+    '<div class="kicker in">The query</div>' +
+    '<h1 class="in d1">' + D.weight + 'kg, and it<br>settles ' + D.map + '.</h1>' +
+    (has('map') ? shot('map') : '<div class="big pop">' + D.weight + '<small>kg</small></div>') +
+    '<div class="note in d3">It gets back, and it has to come hard to win.</div>' + foot,
 
   price: () =>
     '<div class="kicker in">The price</div><h1 class="in d1">That is an<br><span class="mark">overlay.</span></h1>' +
-    '<div class="prices"><div class="price pop"><div class="k">Our rated</div><div class="v">' + D.rated + '</div></div>' +
-    '<div class="price live pop"><div class="k">Live</div><div class="v">' + D.market + '</div></div></div>' +
-    '<div class="note in d3">Anything over ' + D.takeAbove + ' we take. Right now it is ' + D.market + '.</div>' +
-    '<div class="spacer"></div>' + foot,
+    (has('market') ? shot('market') :
+      '<div class="prices"><div class="price pop"><div class="k">Our rated</div><div class="v">' + D.rated + '</div></div>' +
+      '<div class="price live pop"><div class="k">Live</div><div class="v">' + D.market + '</div></div></div>') +
+    '<div class="note in d3">Anything over ' + D.takeAbove + ' we take. Right now it is ' + D.market + '.</div>' + foot,
 
   last: () =>
     '<div class="kicker in">Last start</div><h1 class="in d1">Won it<br>from the<br>midfield.</h1>' +
-    (D.last ? '<div class="meta in d2" style="font-size:42px;margin-top:48px">' + D.last.track + ' \\u00b7 ' + D.last.distance + 'm \\u00b7 ' + D.last.className +
-      '<br>Settled ' + D.last.map + ' \\u00b7 won by ' + D.last.margin.toFixed(2) + 'L \\u00b7 we rated the run ' + D.last.points + '</div>' : '') +
-    '<div class="spacer"></div>' + foot,
+    (has('runs') ? shot('runs')
+      : D.last ? '<div class="meta in d2" style="font-size:42px;margin-top:48px">' + D.last.track + ' \\u00b7 ' + D.last.distance + 'm \\u00b7 ' + D.last.className +
+        '<br>Settled ' + D.last.map + ' \\u00b7 won by ' + D.last.margin.toFixed(2) + 'L</div>' : '') + foot,
 
   class: () =>
     '<div class="kicker in">The field it meets</div><h1 class="in d1">Nothing<br>near it.</h1>' +
-    '<div class="barlist">' + D.bars.map((b) =>
-      '<div class="row ' + (b.me ? 'me' : '') + '"><span class="who">' + b.tab + '. ' + b.horse + '</span>' +
-      '<span class="t"><span style="width:' + pct(b.today, D.bars[D.bars.length - 1].today - 8, D.bars[0].today + 2) + '%"></span></span>' +
-      '<span class="v">' + b.today.toFixed(1) + '</span></div>').join('') + '</div>' +
-    '<div class="spacer"></div>' + foot,
+    (has('rankings') ? shot('rankings') :
+      '<div class="barlist">' + D.bars.map((b) =>
+        '<div class="row ' + (b.me ? 'me' : '') + '"><span class="who">' + b.tab + '. ' + b.horse + '</span>' +
+        '<span class="t"><span style="width:' + pct(b.today, D.bars[D.bars.length - 1].today - 8, D.bars[0].today + 2) + '%"></span></span>' +
+        '<span class="v">' + b.today.toFixed(1) + '</span></div>').join('') + '</div>') + foot,
 
   close: () =>
     '<div class="kicker in">' + D.track + ' R' + D.raceNumber + '</div>' +
     '<div class="runner" style="margin-top:22px"><span class="cloth pop">' + D.tab + '</span><div class="in d1"><h2>' + D.horse + '</h2></div></div>' +
     '<div class="prices"><div class="price pop"><div class="k">Our rated</div><div class="v">' + D.rated + '</div></div>' +
     '<div class="price live pop"><div class="k">Live</div><div class="v">' + D.market + '</div></div></div>' +
-    '<div class="note in d3">Take anything over ' + D.takeAbove + '.</div><div class="spacer"></div>' +
+    '<div class="note in d3">Take anything over ' + D.takeAbove + '.</div>' +
     '<h1 class="in d3" style="font-size:92px">Every runner<br><span class="mark">rated, every day.</span></h1>' + foot,
 };
 
@@ -257,6 +277,88 @@ window.__run = (ms) => new Promise((done) => {
 });
 `;
 
+const dir = `marketing/reels/${date}-${meeting.track.toLowerCase().replace(/\W+/g, "-")}-r${race.raceNumber}`;
+mkdirSync(dir, { recursive: true });
+
+/**
+ * The site itself, shot at phone width so the reel shows the thing being
+ * sold rather than a drawing of it. SITE= points it somewhere else; the
+ * local server wants OVERLAY_OPEN=1 so the members' sections are open.
+ */
+const SITE = process.env.SITE ?? "http://localhost:3000";
+const racePath = `/racing/${date}/${meeting.meetingId}/${encodeURIComponent(race.raceId)}`;
+const shots = new Set<string>();
+{
+  const b = await chromium.launch({ channel: "chrome", headless: true });
+  const p = await b.newPage({ viewport: { width: 390, height: 1400 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  await p.addInitScript(() => Object.defineProperty(navigator, "webdriver", { get: () => false }));
+  const hide = ".topbar, .site-head, .ntg, .launch-offer, nextjs-portal { display: none !important } html { scroll-behavior: auto }";
+  const grab = async (name: string, what: () => Promise<{ x: number; y: number; width: number; height: number } | null>) => {
+    try {
+      const clip = await what();
+      if (!clip || clip.width < 40 || clip.height < 40) return;
+      await p.screenshot({ path: `${dir}/shot-${name}.png`, clip });
+      shots.add(name);
+    } catch {
+      // a shot we cannot take is one the scene does without
+    }
+  };
+  const box = async (sel: string) => {
+    const el = p.locator(sel).first();
+    await el.scrollIntoViewIfNeeded();
+    await p.waitForTimeout(250);
+    return el.boundingBox();
+  };
+  /** From one element's top to another's bottom, so a shot can span headings. */
+  const span = async (from: string, to: string) => {
+    const a = await box(from);
+    const c = await box(to);
+    if (!a || !c) return null;
+    const a2 = await box(from);
+    if (!a2) return null;
+    return { x: 8, y: a2.y - 10, width: 374, height: Math.min(1380, c.y + c.height - a2.y + 20) };
+  };
+
+  await p.goto(`${SITE}/`, { waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(2500);
+  await p.addStyleTag({ content: hide });
+  await grab("board", async () => {
+    const rows = p.locator(".matrix-table tbody tr");
+    const first = await rows.nth(0).boundingBox();
+    const second = await rows.nth(1).boundingBox();
+    if (!first || !second) return null;
+    return { x: 8, y: first.y - 6, width: 374, height: second.y + second.height - first.y + 12 };
+  });
+
+  await p.goto(`${SITE}${racePath}`, { waitUntil: "domcontentloaded" });
+  await p.waitForTimeout(2800);
+  await p.addStyleTag({ content: hide });
+  await grab("pick", async () => box(".pick-card"));
+  await grab("map", async () => span('section.section:has(h2:text-is("Speed map")) .section-bar', ".rail"));
+  await grab("rankings", async () => span('section.section:has(h2:text-is("Rankings")) .section-bar', ".bar-row:nth-of-type(4)"));
+  await grab("market", async () => {
+    const row = await box(`#runner-${data.tab}`);
+    if (!row) return null;
+    return { x: 8, y: row.y - 6, width: 374, height: row.height + 12 };
+  });
+  // The runner's own panel, for the sectionals and the last runs.
+  await p.locator(`#runner-${data.tab}`).click();
+  await p.waitForTimeout(900);
+  await grab("sectionals", async () => span(".sec-bars", ".cond-tiles"));
+  await grab("runs", async () => {
+    const head = await box(".runner-detail-runs .detail-panel > summary");
+    const rows = p.locator(".runs-table .runs-row");
+    const third = await rows.nth(2).boundingBox();
+    if (!head || !third) return null;
+    const head2 = await box(".runner-detail-runs .detail-panel > summary");
+    if (!head2) return null;
+    return { x: 8, y: head2.y - 8, width: 374, height: third.y + third.height - head2.y + 30 };
+  });
+  await b.close();
+}
+
+data.shots = [...shots];
+
 const html =
   '<!doctype html><html lang="en"><head><meta charset="utf-8">' +
   '<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' +
@@ -264,8 +366,6 @@ const html =
   `<style>${STYLE}</style></head><body><div class="stage" id="stage"></div>` +
   `<script>${PAGE.replace("__DATA__", JSON.stringify(data))}</script></body></html>`;
 
-const dir = `marketing/reels/${date}-${meeting.track.toLowerCase().replace(/\W+/g, "-")}-r${race.raceNumber}`;
-mkdirSync(dir, { recursive: true });
 writeFileSync(`${dir}/reel.html`, html);
 const file = `file://${process.cwd().replace(/\\/g, "/")}/${dir}/reel.html`;
 const total = BEATS[BEATS.length - 1].until;
