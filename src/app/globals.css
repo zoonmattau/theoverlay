@@ -1126,8 +1126,11 @@ body {
   .matrix-count {
     display: none;
   }
-  .matrix-result {
+  .matrix-units {
     font-size: 0.6rem;
+  }
+  .matrix-btn.race-resulted {
+    padding: 2px 1px;
   }
 }
 .matrix-btn {
@@ -1234,12 +1237,21 @@ body {
   line-height: 1.2;
   color: var(--color-ink-secondary);
 }
-.matrix-result {
-  font-weight: 600;
+/* What the race returned us, in place of the first four home, which never
+   fitted the cell and is on the race page anyway. */
+.matrix-units {
+  font-weight: 700;
   font-size: 0.72rem;
   letter-spacing: 0.02em;
-  color: var(--color-ink-secondary);
+  line-height: 1.15;
   white-space: nowrap;
+  color: var(--color-ink-secondary);
+}
+.matrix-units.is-up {
+  color: var(--color-accent);
+}
+.matrix-units.is-down {
+  color: var(--color-red);
 }
 .matrix-count {
   font-size: 0.58rem;
@@ -3580,7 +3592,6 @@ body {
 }
 /* Resulted, the stripes are the outline and the text goes back to grey. */
 .matrix-btn.race-resulted.tip-mix,
-.matrix-btn.race-resulted.tip-mix .matrix-result,
 .mini-cell.is-resulted.tip-mix,
 .mini-cell.is-resulted.tip-mix .mini-t,
 .race-tab.is-resulted.tip-mix {

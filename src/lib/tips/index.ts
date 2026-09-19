@@ -2,7 +2,7 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
-import { callEdge, callPrice, stakeOf, type Signal } from "@/lib/model/types";
+import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
 import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./stats";
 
 export type { Period, RecordStats, SideStats, TipSource } from "./stats";
@@ -50,9 +50,7 @@ export const betterPrice = (side: Signal, a: number, b: number) => (side === "ba
 
 /** Level stakes at the published price: one unit, or the stake given (a tenth on a Way Overlay). */
 export function settle(side: Signal, price: number, finish: number, stake = 1): number {
-  const won = finish === 1;
-  const units = side === "back" ? (won ? price - 1 : -1) : won ? -(price - 1) : 1;
-  return Math.round(units * stake * 100) / 100;
+  return callUnits(side, price, finish, stake);
 }
 
 /** Rows for every call on a card, settled where the race has run. */

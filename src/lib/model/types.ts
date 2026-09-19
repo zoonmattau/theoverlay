@@ -309,6 +309,35 @@ export const isRoughie = (x: { signal?: Signal; marketPrice?: number }): boolean
 /** Units a call is staked at: one, or a tenth on a Way Overlay, fixed when the call is first published. */
 export const ROUGHIE_STAKE = Number(process.env.OVERLAY_ROUGHIE_STAKE ?? 0.1);
 export const stakeOf = (x: { signal?: Signal; marketPrice?: number }): number => (isRoughie(x) ? ROUGHIE_STAKE : 1);
+/**
+ * What one call returned, in units, at level stakes: a bet wins the price
+ * less its outlay and loses the outlay, a lay keeps the outlay when the horse
+ * is beaten and pays the price less one when it wins.
+ */
+export function callUnits(side: Signal, price: number, finish: number, stake = 1): number {
+  const won = finish === 1;
+  const units = side === "back" ? (won ? price - 1 : -1) : won ? -(price - 1) : 1;
+  return Math.round(units * stake * 100) / 100;
+}
+
+/**
+ * What the race returned us once it has run, over every call in it. Undefined
+ * where we had nothing on, so the board can leave those blank rather than
+ * printing a nought we never risked.
+ */
+export function raceUnits(runners: { signal?: Signal; prime?: boolean; scratched?: boolean; marketPrice?: number; layPrice?: number; finishPosition?: number }[]): number | undefined {
+  let total = 0;
+  let settled = false;
+  for (const x of runners) {
+    if (x.scratched || !x.signal || x.finishPosition === undefined) continue;
+    const price = callPrice(x);
+    if (!price) continue;
+    settled = true;
+    total += callUnits(x.signal, price, x.finishPosition, stakeOf(x));
+  }
+  return settled ? Math.round(total * 100) / 100 : undefined;
+}
+
 /** How a race is coloured: lime for a Prime, blue for a bet, the lighter blue when its only bets are Way Overlays, red for a lay. */
 export type RaceTip = "prime" | "back" | "roughie" | "lay";
 export function raceTip(runners: { signal?: Signal; marketPrice?: number; scratched?: boolean }[], prime: boolean): RaceTip | undefined {

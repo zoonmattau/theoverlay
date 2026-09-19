@@ -17,6 +17,7 @@ export function MatrixCell({
   iso,
   clock,
   result,
+  units,
   backs,
   lays,
   tip,
@@ -30,6 +31,8 @@ export function MatrixCell({
   iso?: string;
   clock: string;
   result?: number[];
+  /** What the race returned us, once it has run. Undefined where we had nothing on. */
+  units?: number;
   backs: number;
   lays: number;
   /** The race's colour: lime Prime, blue bet, the lighter blue when its only bets are Way Overlays, red lay. */
@@ -74,7 +77,12 @@ export function MatrixCell({
         {freeTag}
         {tipsterTag}
         <span className="matrix-race">R{raceNumber}</span>
-        <span className="matrix-result nums">{result.join(",")}</span>
+        {/* What it returned us, not who ran where: the first four is on the race. */}
+        {units !== undefined && (
+          <span className={`matrix-units nums ${units > 0 ? "is-up" : units < 0 ? "is-down" : ""}`}>
+            {units > 0 ? "+" : units < 0 ? "−" : ""}{Math.abs(units).toFixed(2)}u
+          </span>
+        )}
       </Link>
     );
   }

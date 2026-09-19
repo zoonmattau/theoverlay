@@ -1,11 +1,11 @@
 import { MatrixCell } from "./Countdown";
 import { jumpTime } from "@/lib/format";
-import { raceMix, raceTip, type PublishedMeeting, type Selection } from "@/lib/model/types";
+import { raceMix, raceTip, raceUnits, type PublishedMeeting, type Selection } from "@/lib/model/types";
 
 /**
- * The day at a glance: one row per track, one column per race number. A
- * resulted race shows the first four home; one still to jump shows the
- * countdown and how many tips it carries.
+ * The day at a glance: one row per track, one column per race number. A race
+ * still to jump shows the countdown and how many tips it carries; one that
+ * has run shows what it returned us, and nothing where we had nothing on.
  */
 /** Colour the going chip by band so a wet track stands out down the column. */
 export function goingClass(condition: string): string {
@@ -80,6 +80,7 @@ export function RaceMatrix({
                       iso={race.jumpTime}
                       clock={jumpTime(race.jumpTime)}
                       result={race.result}
+                      units={raceUnits(race.runners)}
                       backs={backs}
                       lays={lays}
                       tip={raceTip(race.runners, prime.has(race.raceId))}
@@ -101,7 +102,7 @@ export function RaceMatrix({
         <span><span className="legend-dot bg-blue" />Bet</span>
         <span><span className="legend-dot bg-blue-soft" />Way Overlay</span>
         <span><span className="legend-dot bg-red" />Lay</span>
-        <span><span className="legend-dot bg-surface-alt" />Resulted, first four</span>
+        <span><span className="legend-dot bg-surface-alt" />Run, with what it returned us</span>
         {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />A tipster you follow has a call in this race</span>}
       </div>
     </div>
