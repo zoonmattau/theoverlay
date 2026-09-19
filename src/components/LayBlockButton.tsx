@@ -12,17 +12,32 @@ export function LayBlockButton({
   blocked,
   block,
   unblock,
+  compact,
 }: {
   horse: string;
   blocked: boolean;
   block: (name: string, path?: string, reason?: string) => Promise<void>;
   unblock: (key: string, path?: string) => Promise<void>;
+  /** In a list of lays there is no room to ask why; the reason can wait. */
+  compact?: boolean;
 }) {
   const [pending, start] = useTransition();
   const [asking, setAsking] = useState(false);
   const [reason, setReason] = useState("");
   const path = typeof window === "undefined" ? undefined : window.location.pathname;
   const key = horse.toLowerCase().replace(/[^a-z0-9]+/g, "");
+
+  if (compact) {
+    return blocked ? (
+      <button type="button" className="lay-chip is-on" disabled={pending} title={`Let ${horse} back into the lays`} onClick={() => start(() => unblock(key, path))}>
+        {pending ? "…" : "Ruled out"}
+      </button>
+    ) : (
+      <button type="button" className="lay-chip" disabled={pending} title={`Never lay ${horse} again`} onClick={() => start(() => block(horse, path))}>
+        {pending ? "…" : "Never lay"}
+      </button>
+    );
+  }
 
   if (blocked) {
     return (

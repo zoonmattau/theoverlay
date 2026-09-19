@@ -20,6 +20,11 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
+import { readLayBlocks } from "@/lib/model/store";
+import { horseKey } from "@/lib/model/keys";
+import { blockLay, unblockLay } from "@/app/admin/actions";
+import { LayBlockButton } from "@/components/LayBlockButton";
+import type { LayAdmin } from "@/components/RunnerTable";
 import { stakeOf, type PublishedMeeting, type PublishedRunner, type Signal } from "@/lib/model/types";
 import { callPrice } from "@/lib/model/types";
 
@@ -117,6 +122,10 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
     )
     .sort((a, b) => (a.jumpTime ?? "").localeCompare(b.jumpTime ?? ""));
 
+  // Admin: rule a horse out of the lays from the list itself.
+  const layKeys = viewer.admin ? await readLayBlocks().catch(() => new Set<string>()) : undefined;
+  const layAdmin: LayAdmin | undefined = layKeys ? { blocked: [...layKeys], block: blockLay, unblock: unblockLay } : undefined;
+
   const bets = calls.filter((c) => c.runner.signal === "back");
   const lays = calls.filter((c) => c.runner.signal === "lay");
   const primes = bets.filter((c) => c.prime);
@@ -202,7 +211,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
       {open ? (
         <div className="space-y-4">
           <CallTable id="tips-bets" letter="B" title="Bets" side="back" calls={bets} date={date} member={Boolean(viewer.id)} />
-          <CallTable id="tips-lays" letter="L" title="Lays" side="lay" calls={lays} date={date} member={Boolean(viewer.id)} />
+          <CallTable id="tips-lays" letter="L" title="Lays" side="lay" calls={lays} date={date} member={Boolean(viewer.id)} lays={layAdmin} />
         </div>
       ) : (
         <div className="space-y-4">
@@ -240,6 +249,7 @@ function CallTable({
   calls,
   date,
   member,
+  lays,
 }: {
   id: string;
   letter: string;
@@ -248,6 +258,8 @@ function CallTable({
   calls: Call[];
   date: string;
   member: boolean;
+  /** Admin only, on the lays: rule a horse out of them from here. */
+  lays?: LayAdmin;
 }) {
   const total = calls.reduce((a, x) => a + (x.profit ?? 0), 0);
   const myTotal = calls.reduce((a, x) => a + (x.myProfit ?? 0), 0);
@@ -272,6 +284,7 @@ function CallTable({
                 <th data-col="sum" className="text-right">Sum</th>
                 {member && <th data-col="yours">Yours</th>}
                 {member && <th data-col="yourpl" className="text-right">Your P/L</th>}
+                {lays && <th data-col="block" className="text-right">Never lay</th>}
               </tr>
             </thead>
             <tbody>
@@ -340,6 +353,17 @@ function CallTable({
                   {member && (
                     <td data-col="yourpl" data-pending={c.myProfit === undefined && !c.mine ? "1" : undefined} className={`text-right nums font-semibold ${c.myProfit === undefined ? "text-ink-soft" : c.myProfit > 0 ? "text-accent" : c.myProfit < 0 ? "text-red" : ""}`}>
                       {c.myProfit === undefined ? (c.mine ? "on" : "—") : units(c.myProfit)}
+                    </td>
+                  )}
+                  {lays && (
+                    <td data-col="block" className="text-right">
+                      <LayBlockButton
+                        horse={c.runner.horseName}
+                        blocked={lays.blocked.includes(horseKey(c.runner.horseName))}
+                        block={lays.block}
+                        unblock={lays.unblock}
+                        compact
+                      />
                     </td>
                   )}
                 </tr>

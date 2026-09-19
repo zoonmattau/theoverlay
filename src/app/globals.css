@@ -3123,6 +3123,7 @@ body {
   tr.tip-row > td[data-col="pl"] { grid-area: pl; justify-self: end; font-size: 0.75rem; }
   tr.tip-row > td[data-col="yours"] { grid-area: yours; justify-self: start; padding-top: 6px; }
   tr.tip-row > td[data-col="yourpl"] { grid-area: yourpl; justify-self: end; align-self: end; }
+  tr.tip-row > td[data-col="block"] { grid-column: 1 / -1; justify-self: start; padding-top: 6px; }
   /* A running total down a list of calls is a wide-screen column, and a dash
      where the units will go says nothing that "to run" has not already said. */
   tr.tip-row > td[data-col="sum"],
@@ -4042,6 +4043,31 @@ body {
     line-height: 1.25;
     margin-top: 2px;
   }
+}
+
+/* The same, as a chip in a list of lays, where there is no room to ask why. */
+.lay-chip {
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px dashed var(--color-line-strong);
+  background: var(--color-panel);
+  color: var(--color-ink-soft);
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.lay-chip:hover {
+  border-color: var(--color-red);
+  color: var(--color-red);
+}
+.lay-chip.is-on {
+  border-style: solid;
+  border-color: var(--color-red);
+  background: var(--color-red-soft);
+  color: var(--color-red);
 }
 
 /* Admin only, under a runner's call: rule the horse out of the lays for good. */
