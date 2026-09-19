@@ -1,4 +1,28 @@
 /** Bookmaker prices are quoted to two decimals under $10 and one above. */
+/**
+ * The feed sends its text with HTML entities in it: a rail reads
+ * "3m 1000m &#x2013; Winning Post" and React, rightly, prints that as it
+ * stands. This turns the numeric ones and the handful of names that turn up
+ * back into characters. It is not an HTML parser and is not meant to be.
+ */
+const NAMED: Record<string, string> = {
+  amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: " ",
+  ndash: "–", mdash: "—", rsquo: "’", lsquo: "‘",
+  ldquo: "“", rdquo: "”", hellip: "…", deg: "°",
+};
+export function decodeEntities(text: string): string;
+export function decodeEntities(text: undefined): undefined;
+export function decodeEntities(text: string | undefined): string | undefined;
+export function decodeEntities(text: string | undefined): string | undefined {
+  if (!text || !text.includes("&")) return text;
+  return text.replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, body: string) => {
+    const b = body.toLowerCase();
+    if (b.startsWith("#x")) return String.fromCodePoint(parseInt(b.slice(2), 16));
+    if (b.startsWith("#")) return String.fromCodePoint(Number(b.slice(1)));
+    return NAMED[b] ?? whole;
+  });
+}
+
 export function price(n: number | undefined): string {
   if (n === undefined || !Number.isFinite(n) || n <= 0) return "—";
   if (n >= 100) return `$${Math.round(n)}`;

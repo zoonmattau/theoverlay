@@ -23,6 +23,7 @@ import type {
   Signal,
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
+import { decodeEntities } from "@/lib/format";
 import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
@@ -275,7 +276,7 @@ export function publishRace(
     raceId: race.raceId,
     meetingId: meeting.id,
     raceNumber: race.number,
-    name: race.name,
+    name: decodeEntities(race.name),
     distance: race.distance,
     className: classLabel(race.restrictions, points),
     // The par on the page sits on the ratings' scale, so a runner reads against it.
@@ -542,7 +543,7 @@ export function publishMeeting(
     state: meeting.state ?? "",
     code: "T",
     trackCondition: first ? goingLabel(first.going, first.goingNumber) : undefined,
-    railPosition: meeting.railPosition ?? first?.railPosition,
+    railPosition: decodeEntities(meeting.railPosition ?? first?.railPosition),
     races: races
       .map((r) => publishRace(r, meeting, speedmaps[r.raceId], kept))
       .sort((a, b) => a.raceNumber - b.raceNumber),
