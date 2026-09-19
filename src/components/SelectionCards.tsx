@@ -1,4 +1,3 @@
-import { BookieLink } from "./BookieLink";
 import { PickCard } from "./PickCard";
 import { MarketHover } from "./MarketHover";
 import { Factors } from "./Factors";
@@ -69,7 +68,6 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
               {r.weight ? ` · ${r.weight}kg` : ""}
               {r.jockey ? ` · ${r.jockey}` : ""}
             </div>
-            <BookieLink codes={r.bookies} raceId={race.raceId} className="block text-[11px] font-semibold" />
             <p className="pick-why">{r.why ?? ""}</p>
             <div className="flex items-center gap-3 pt-2 border-t border-line-soft">
               <div className="today-tile py-2 px-3 min-w-[84px]">
