@@ -22,6 +22,10 @@ export function PageView() {
   const last = useRef<{ path: string; at: number }>({ path: "", at: 0 });
   useEffect(() => {
     if (!path || path.startsWith("/admin") || path.startsWith("/api")) return;
+    // A driven browser is not a visitor. Screenshot and test runs used to land
+    // in the activity as a new person each time, since every run starts with a
+    // fresh cookie and so a fresh visitor id.
+    if (navigator.webdriver) return;
     const now = Date.now();
     if (last.current.path === path && now - last.current.at < 30_000) return;
     last.current = { path, at: now };

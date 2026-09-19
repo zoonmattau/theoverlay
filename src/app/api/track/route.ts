@@ -23,8 +23,9 @@ export async function POST(request: NextRequest) {
   if (body.kind === "page_view") {
     const path = String(body.path ?? "").slice(0, 200);
     if (!path.startsWith("/")) return NextResponse.json({ ok: false }, { status: 400 });
-    // Crawlers read the site too; their views say nothing about members.
-    if (/bot|crawl|spider|slurp|facebookexternalhit|preview/i.test(request.headers.get("user-agent") ?? "")) return NextResponse.json({ ok: true });
+    // Crawlers read the site too, and so do the browsers we drive ourselves
+    // for screenshots; neither says anything about members.
+    if (/bot|crawl|spider|slurp|facebookexternalhit|preview|headless|playwright|puppeteer/i.test(request.headers.get("user-agent") ?? "")) return NextResponse.json({ ok: true });
     Object.assign(meta, { path, ...areaOf(path) });
     if (body.vid) meta.vid = String(body.vid).slice(0, 24);
     if (body.referrer) meta.referrer = String(body.referrer).slice(0, 80);
