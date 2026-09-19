@@ -3,7 +3,7 @@ import "server-only";
 import type { MeetingSummary, RaceEntry, RaceSummary } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { rememberRuns, runRowsOf, type RunRow } from "./runs";
-import { classPoints, goingBand, rateEntries } from "./ratings";
+import { classPoints, goingBand, isJumps, rateEntries, runPoints } from "./ratings";
 import { publishRace } from "./publish";
 import type { GoingBand, PublishedRace, RunnerRatings } from "./types";
 
@@ -21,6 +21,10 @@ export interface StoredHorse {
   state: string | null;
   last_track: string | null;
   last_seen: string;
+  /** The best run it has put up, its last three against the three before, and the runs behind both. */
+  peak: number | null;
+  trend: number | null;
+  starts: number | null;
 }
 
 /** The entry without the market, Form King's own ratings, the result or the day's connections' form. */
@@ -53,12 +57,16 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
       if (!id || !e.horse?.name) continue;
       const g = byTab.get(String(e.number));
       runs.push(...runRowsOf(e, id));
+      const form = formShape(e, points, Date.parse(String(race.date ?? meeting.date ?? date)) || undefined);
       rows.push({
         id,
         name: e.horse.name,
         entry: trim(e),
         ratings: g && g.runs > 0 ? { class: g.class, early: g.early, mid: g.mid, late: g.late, pressure: g.pressure, tempo: g.tempo, going: g.going, runs: g.runs } : null,
         class: g && g.runs > 0 ? g.class : null,
+        peak: form.peak,
+        trend: form.trend,
+        starts: form.starts,
         age: e.horse.age ?? null,
         state: meeting.state ?? null,
         last_track: race.trackName ?? meeting.trackName ?? null,
@@ -79,6 +87,27 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
   }
 }
 
+/**
+ * A horse's shape from its own runs, scored the way the race page scores
+ * them: the best it has run, and its last three against the three before.
+ * The trend needs two on each side to say anything, so a lightly raced
+ * horse has none rather than a number made of one run.
+ */
+function formShape(e: RaceEntry, classPoints: number, asOf?: number): { peak: number | null; trend: number | null; starts: number | null } {
+  const past = (e.pastEvents ?? []).filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && p.date && !isJumps(p));
+  const pts = past.map((p) => runPoints(p, classPoints, e.horse?.age, asOf)).filter((v) => Number.isFinite(v));
+  if (pts.length === 0) return { peak: null, trend: null, starts: null };
+  const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;
+  const recent = pts.slice(0, 3);
+  const before = pts.slice(3, 6);
+  const round = (v: number) => Math.round(v * 10) / 10;
+  return {
+    peak: round(Math.max(...pts)),
+    trend: recent.length >= 2 && before.length >= 2 ? round(mean(recent) - mean(before)) : null,
+    starts: pts.length,
+  };
+}
+
 /** What a page may see of a horse: never the entry, which is licensed form. */
 export interface HorseSummary {
   id: string;
@@ -89,11 +118,21 @@ export interface HorseSummary {
   state: string | null;
   lastTrack: string | null;
   lastSeen: string;
+  /** The best run it has put up, in benchmark points. */
+  peak: number | null;
+  /** Its last three runs against the three before, in points: on the up or on the way down. */
+  trend: number | null;
+  /** Runs the peak and the trend are built on. */
+  starts: number | null;
 }
-const SUMMARY = "id, name, class, ratings, age, state, last_track, last_seen";
+const SUMMARY_BARE = "id, name, class, ratings, age, state, last_track, last_seen";
+const SUMMARY = `${SUMMARY_BARE}, peak, trend, starts`;
 const summary = (r: Record<string, unknown>): HorseSummary => ({
   id: String(r.id), name: String(r.name), class: r.class === null ? null : Number(r.class), ratings: (r.ratings as HorseRatings | null) ?? null,
   age: r.age === null ? null : Number(r.age), state: (r.state as string | null) ?? null, lastTrack: (r.last_track as string | null) ?? null, lastSeen: String(r.last_seen),
+  peak: r.peak === null || r.peak === undefined ? null : Number(r.peak),
+  trend: r.trend === null || r.trend === undefined ? null : Number(r.trend),
+  starts: r.starts === null || r.starts === undefined ? null : Number(r.starts),
 });
 
 /** Horses whose name contains the query, best rated first. */
@@ -113,8 +152,32 @@ async function getHorses(ids: string[]): Promise<StoredHorse[]> {
 }
 
 /** The power rankings: the best-rated horses we hold, enough for the page to sort and filter on its own. */
-export async function rankHorses(limit = 1000): Promise<{ rows: HorseSummary[]; total: number }> {
-  const { data, count } = await supabaseAdmin().from("horses").select(SUMMARY, { count: "exact" }).not("class", "is", null).order("class", { ascending: false }).order("name").limit(limit);
+/** The cuts the rankings page offers: where it races, how old, how lately seen. */
+export interface HorseFilter {
+  state?: string;
+  minAge?: number;
+  maxAge?: number;
+  /** Only horses seen on a card in the last this many days. */
+  sinceDays?: number;
+}
+
+export async function rankHorses(limit = 1000, filter: HorseFilter = {}): Promise<{ rows: HorseSummary[]; total: number }> {
+  let q = supabaseAdmin().from("horses").select(SUMMARY, { count: "exact" }).not("class", "is", null);
+  if (filter.state) q = q.eq("state", filter.state);
+  if (filter.minAge !== undefined) q = q.gte("age", filter.minAge);
+  if (filter.maxAge !== undefined) q = q.lte("age", filter.maxAge);
+  if (filter.sinceDays !== undefined) {
+    const since = new Date(Date.now() - filter.sinceDays * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    q = q.gte("last_seen", since);
+  }
+  const { data, count, error } = await q.order("class", { ascending: false }).order("name").limit(limit);
+  // Before the form columns exist the select is rejected whole, which would
+  // empty the rankings; the ladder reads the same without them.
+  if (error) {
+    console.error("[horses]", error.message);
+    const bare = await supabaseAdmin().from("horses").select(SUMMARY_BARE, { count: "exact" }).not("class", "is", null).order("class", { ascending: false }).order("name").limit(limit);
+    return { rows: (bare.data ?? []).map((r) => summary(r as Record<string, unknown>)), total: bare.count ?? 0 };
+  }
   return { rows: (data ?? []).map((r) => summary(r as Record<string, unknown>)), total: count ?? 0 };
 }
 

@@ -54,12 +54,15 @@ async function Horses({ searchParams }: { searchParams: Params }) {
   // numbers serve the comparison and the fantasy market.
   const race = open && ids.length >= 2 ? await priceFantasy(ids, { distance, going, classPoints }) : undefined;
   const hits = q ? await searchHorses(q) : [];
-  const ranked = await rankHorses(1000);
+  // The all-time list is led by horses long retired, so the page offers a cut
+  // on when a horse last ran; it changes which thousand load, so it is served.
+  const seen = ["30", "60", "180"].includes(str(sp.seen)) ? str(sp.seen) : "";
+  const ranked = await rankHorses(1000, seen ? { sinceDays: Number(seen) } : {});
 
   // Links that keep the rest of the query.
   const href = (over: Record<string, string | undefined>) => {
     const p = new URLSearchParams();
-    const all = { h: ids.join(","), q, d: String(distance), g: going, c: String(classPoints), ...over };
+    const all = { h: ids.join(","), q, d: String(distance), g: going, c: String(classPoints), seen, ...over };
     for (const [k, v] of Object.entries(all)) if (v) p.set(k, v);
     return `/data/horses${p.size ? `?${p}` : ""}`;
   };
@@ -194,7 +197,7 @@ async function Horses({ searchParams }: { searchParams: Params }) {
             <p className="text-xs text-ink-soft">Every horse we have rated, from every card we have run. Ratings are in benchmark points. Click a heading to sort{open ? ", a row to add it to the race" : ""}.</p>
           </div>
         </div>
-        <HorsesTable rows={ranked.rows} total={ranked.total} chosen={ids} query={{ d: String(distance), g: going, c: String(classPoints) }} canPick={open} />
+        <HorsesTable rows={ranked.rows} total={ranked.total} chosen={ids} query={{ d: String(distance), g: going, c: String(classPoints), h: ids.join(",") }} canPick={open} seen={seen} />
       </section>
     </>
   );
