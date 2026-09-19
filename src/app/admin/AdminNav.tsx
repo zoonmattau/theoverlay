@@ -12,7 +12,7 @@ const GROUPS: { title: string; items: { href: string; label: string; hint?: stri
       { href: "/tips", label: "Today's card", hint: "every call, as members see it" },
       { href: "/admin/review", label: "Weekly review", hint: "how the runs went against our marks" },
       { href: "/admin/reports", label: "Record", hint: "units over time, the model and the tipsters" },
-      { href: "/admin/lays", label: "Never lay", hint: "horses ruled out of the lays" },
+      { href: "/admin/off", label: "Calls taken off", hint: "what we pulled from today's card" },
     ],
   },
   {

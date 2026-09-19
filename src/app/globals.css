@@ -3098,8 +3098,7 @@ body {
     grid-template-areas:
       "race   jump   live  rated"
       "runner runner live  rated"
-      "result result pl    edge"
-      "yours  yours  yours yourpl";
+      "result result pl    edge";
     align-items: center;
     gap: 3px 8px;
     padding: 10px var(--sp-3);
@@ -3121,8 +3120,6 @@ body {
   tr.tip-row > td[data-col="result"] { grid-area: result; }
   tr.tip-row > td[data-col="edge"] { grid-area: edge; justify-self: end; font-size: 0.75rem; }
   tr.tip-row > td[data-col="pl"] { grid-area: pl; justify-self: end; font-size: 0.75rem; }
-  tr.tip-row > td[data-col="yours"] { grid-area: yours; justify-self: start; padding-top: 6px; }
-  tr.tip-row > td[data-col="yourpl"] { grid-area: yourpl; justify-self: end; align-self: end; }
   tr.tip-row > td[data-col="block"] { grid-column: 1 / -1; justify-self: start; padding-top: 6px; }
   /* A running total down a list of calls is a wide-screen column, and a dash
      where the units will go says nothing that "to run" has not already said. */

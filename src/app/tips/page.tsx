@@ -11,20 +11,17 @@ import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
 import { Section } from "@/components/Section";
 import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
-import { TakeBet } from "@/components/TakeBet";
 import { TipsterTips } from "@/components/TipsterTips";
-import { myBets, type MyBet } from "@/lib/mybets";
 import { ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
-import { readLayBlocks } from "@/lib/model/store";
-import { horseKey } from "@/lib/model/keys";
-import { blockLay, unblockLay } from "@/app/admin/actions";
-import { LayBlockButton } from "@/components/LayBlockButton";
-import type { LayAdmin } from "@/components/RunnerTable";
+import { readMutes } from "@/lib/model/store";
+import { setCallOff } from "@/app/admin/actions";
+import { CallOffButton } from "@/components/CallOffButton";
+import type { CallAdmin } from "@/components/RunnerTable";
 import { stakeOf, type PublishedMeeting, type PublishedRunner, type Signal } from "@/lib/model/types";
 import { callPrice } from "@/lib/model/types";
 
@@ -73,10 +70,6 @@ interface Call {
   price?: number;
   /** Units won or lost once the race has run. */
   profit?: number;
-  /** The member's own record of taking this call. */
-  mine?: MyBet;
-  /** Their own units on it, at their price and stake. */
-  myProfit?: number;
 }
 
 async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["searchParams"] }) {
@@ -88,7 +81,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   keepPrices(date, card);
   const open = hasAccess(viewer, date);
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
-  const [mine, ledger] = await Promise.all([myBets(viewer.id, date), ledgerFor(date)]);
+  const ledger = await ledgerFor(date);
   // A follower sees their tipsters' calls above ours, whether or not they have paid.
   const followed = await followedCalls(viewer, date);
   const records = await Promise.all(followed.map((f) => tipsterRecord(f.tipster.id)));
@@ -102,8 +95,6 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
             const row = ledger.get(`${r.raceId}:${x.tabNumber}`);
             const struck = callPrice(x) ?? x.marketPrice;
             const at = row?.price ?? struck;
-            const b = mine.get(`${r.raceId}:${x.tabNumber}`);
-            const my = b ? profit(x.signal!, b.price ?? struck, r.result ? x.finishPosition : undefined) : undefined;
             return {
               meeting: m,
               raceId: r.raceId,
@@ -114,26 +105,21 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               prime: prime.has(`${r.raceId}:${x.tabNumber}`),
               price: at,
               profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined, stakeOf(x)),
-              mine: b,
-              myProfit: my === undefined ? undefined : my * (b?.stake ?? 1),
             };
           }),
       ),
     )
     .sort((a, b) => (a.jumpTime ?? "").localeCompare(b.jumpTime ?? ""));
 
-  // Admin: rule a horse out of the lays from the list itself.
-  const layKeys = viewer.admin ? await readLayBlocks().catch(() => new Set<string>()) : undefined;
-  const layAdmin: LayAdmin | undefined = layKeys ? { blocked: [...layKeys], block: blockLay, unblock: unblockLay } : undefined;
+  // Admin: take a call off today's card from the list itself.
+  const offKeys = viewer.admin ? await readMutes(date).catch(() => new Set<string>()) : undefined;
+  const callAdmin: CallAdmin | undefined = offKeys ? { date, off: [...offKeys], setOff: setCallOff } : undefined;
 
   const bets = calls.filter((c) => c.runner.signal === "back");
   const lays = calls.filter((c) => c.runner.signal === "lay");
   const primes = bets.filter((c) => c.prime);
   const settled = calls.filter((c) => c.profit !== undefined);
   const total = settled.reduce((a, c) => a + (c.profit ?? 0), 0);
-  const taken = calls.filter((c) => c.mine);
-  const mySettled = taken.filter((c) => c.myProfit !== undefined);
-  const myTotal = mySettled.reduce((a, c) => a + (c.myProfit ?? 0), 0);
 
   // The day's calls as a list, so a search or answer engine can quote them once released.
   const list = released
@@ -172,14 +158,6 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               tone={total > 0 ? "prime" : total < 0 ? "lay" : undefined}
             />
           )}
-          {open && viewer.id && (
-            <StatCard
-              n={taken.length ? (mySettled.length ? units(myTotal) : `${taken.length} on`) : "—"}
-              label="your units"
-              sub={taken.length ? `${taken.length} taken, ${mySettled.length} settled` : "press I took it on a call"}
-              tone={myTotal > 0 ? "prime" : myTotal < 0 ? "lay" : undefined}
-            />
-          )}
         </div>
       </section>
 
@@ -210,8 +188,8 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
 
       {open ? (
         <div className="space-y-4">
-          <CallTable id="tips-bets" letter="B" title="Bets" side="back" calls={bets} date={date} member={Boolean(viewer.id)} />
-          <CallTable id="tips-lays" letter="L" title="Lays" side="lay" calls={lays} date={date} member={Boolean(viewer.id)} lays={layAdmin} />
+          <CallTable id="tips-bets" letter="B" title="Bets" side="back" calls={bets} date={date} admin={callAdmin} />
+          <CallTable id="tips-lays" letter="L" title="Lays" side="lay" calls={lays} date={date} admin={callAdmin} />
         </div>
       ) : (
         <div className="space-y-4">
@@ -248,8 +226,7 @@ function CallTable({
   side,
   calls,
   date,
-  member,
-  lays,
+  admin: callAdmin,
 }: {
   id: string;
   letter: string;
@@ -257,13 +234,10 @@ function CallTable({
   side: Signal;
   calls: Call[];
   date: string;
-  member: boolean;
-  /** Admin only, on the lays: rule a horse out of them from here. */
-  lays?: LayAdmin;
+  /** Admin only: take a call off today's card from here. */
+  admin?: CallAdmin;
 }) {
   const total = calls.reduce((a, x) => a + (x.profit ?? 0), 0);
-  const myTotal = calls.reduce((a, x) => a + (x.myProfit ?? 0), 0);
-  const anyMine = calls.some((x) => x.mine);
   return (
     <Section id={id} letter={letter} title={title} aside={<span className="nums">{calls.length}</span>}>
       {calls.length === 0 ? (
@@ -282,9 +256,7 @@ function CallTable({
                 <th data-col="result">Result</th>
                 <th data-col="pl" className="text-right">P/L</th>
                 <th data-col="sum" className="text-right">Sum</th>
-                {member && <th data-col="yours">Yours</th>}
-                {member && <th data-col="yourpl" className="text-right">Your P/L</th>}
-                {lays && <th data-col="block" className="text-right">Never lay</th>}
+                {callAdmin && <th data-col="block" className="text-right">Today</th>}
               </tr>
             </thead>
             <tbody>
@@ -345,23 +317,16 @@ function CallTable({
                   <td data-col="sum" className={`text-right nums ${running > 0 ? "text-accent" : running < 0 ? "text-red" : "text-ink-soft"}`}>
                     {anySettled ? units(running) : "—"}
                   </td>
-                  {member && (
-                    <td data-col="yours">
-                      <TakeBet date={date} raceId={c.raceId} tab={c.runner.tabNumber} side={side} live={c.runner.marketPrice} taken={c.mine ? { price: c.mine.price, stake: c.mine.stake } : undefined} />
-                    </td>
-                  )}
-                  {member && (
-                    <td data-col="yourpl" data-pending={c.myProfit === undefined && !c.mine ? "1" : undefined} className={`text-right nums font-semibold ${c.myProfit === undefined ? "text-ink-soft" : c.myProfit > 0 ? "text-accent" : c.myProfit < 0 ? "text-red" : ""}`}>
-                      {c.myProfit === undefined ? (c.mine ? "on" : "—") : units(c.myProfit)}
-                    </td>
-                  )}
-                  {lays && (
+                  {callAdmin && (
                     <td data-col="block" className="text-right">
-                      <LayBlockButton
+                      <CallOffButton
+                        date={callAdmin.date}
+                        raceId={c.raceId}
+                        tab={c.runner.tabNumber}
                         horse={c.runner.horseName}
-                        blocked={lays.blocked.includes(horseKey(c.runner.horseName))}
-                        block={lays.block}
-                        unblock={lays.unblock}
+                        side={side === "lay" ? "lay" : "back"}
+                        off={callAdmin.off.includes(`${c.raceId}:${c.runner.tabNumber}`)}
+                        setOff={callAdmin.setOff}
                         compact
                       />
                     </td>
@@ -374,8 +339,6 @@ function CallTable({
               <tr className="tip-total">
                 <td colSpan={7} className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Total, one unit a call</td>
                 <td className={`text-right nums font-extrabold ${total > 0 ? "text-accent" : total < 0 ? "text-red" : ""}`}>{units(total)}</td>
-                {member && <td className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Yours</td>}
-                {member && <td className={`text-right nums font-extrabold ${myTotal > 0 ? "text-accent" : myTotal < 0 ? "text-red" : ""}`}>{anyMine ? units(myTotal) : "—"}</td>}
               </tr>
             </tfoot>
           </table>

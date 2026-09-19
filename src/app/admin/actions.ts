@@ -14,7 +14,7 @@ import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
 import { pickFreeRace } from "@/lib/model/publish";
 import { buildCard, racingToday } from "@/lib/model/source";
-import { addLayBlock, horseKey, pinFreeRace, readStoredCard, removeLayBlock } from "@/lib/model/store";
+import { pinFreeRace, readStoredCard, setMute } from "@/lib/model/store";
 
 async function requireAdmin() {
   const viewer = await getViewer();
@@ -256,54 +256,42 @@ export async function unmakeTipster(userId: string): Promise<void> {
   revalidatePath("/admin");
 }
 
-
 /**
- * Rules a horse out of the lays for good. A lay risks the price rather than a
- * unit, so a horse we will not lay stays off every card until it is let back
- * in. The stored card loses the call now and the open ledger row with it, so
- * the site does not wait for the next rebuild.
+ * Takes one call off for the day, or puts it back. The runner is muted for
+ * every rebuild, the stored card loses the call now and its open ledger row
+ * with it, so the site does not wait for the next build. Tomorrow the model
+ * decides again: this is today's card, not a mark against the horse.
  */
-export async function blockLay(name: string, path?: string, reason?: string): Promise<void> {
+export async function setCallOff(date: string, raceId: string, tab: number, off: boolean, path?: string): Promise<void> {
   const admin = await requireAdmin();
-  const horse = name.trim();
-  if (!horse) return;
-  await addLayBlock(horse, admin.email ?? "admin", reason);
-  const key = horseKey(horse);
-  const date = racingToday();
-  const stored = await readStoredCard(date);
-  if (stored) {
-    const db = supabaseAdmin();
-    const gone: { raceId: string; tab: number }[] = [];
-    for (const m of stored.card.meetings) {
-      for (const r of m.races) {
-        for (const x of r.runners) {
-          if (x.signal === "lay" && horseKey(x.horseName) === key) {
+  await setMute(date, raceId, tab, off);
+  if (off) {
+    const stored = await readStoredCard(date);
+    if (stored) {
+      let hit = false;
+      for (const m of stored.card.meetings) {
+        for (const r of m.races) {
+          if (r.raceId !== raceId) continue;
+          for (const x of r.runners) {
+            if (x.tabNumber !== tab) continue;
             x.signal = undefined;
             x.prime = undefined;
-            gone.push({ raceId: r.raceId, tab: x.tabNumber });
+            hit = true;
           }
         }
       }
-    }
-    if (gone.length) {
-      stored.card.selections = stored.card.selections.filter((s) => !gone.some((g) => g.raceId === s.raceId && g.tab === s.tabNumber));
-      await db.from("cards").update({ card: stored.card }).eq("date", date);
-      for (const g of gone) {
-        await db.from("tips").delete().eq("date", date).eq("source", "model").eq("race_id", g.raceId).eq("tab_number", g.tab).is("settled_at", null);
+      if (hit) {
+        const db = supabaseAdmin();
+        stored.card.selections = stored.card.selections.filter((s) => !(s.raceId === raceId && s.tabNumber === tab));
+        await db.from("cards").update({ card: stored.card }).eq("date", date);
+        await db.from("tips").delete().eq("date", date).eq("source", "model").eq("race_id", raceId).eq("tab_number", tab).is("settled_at", null);
+        revalidateTag(`card-${date}`, "max");
       }
-      revalidateTag(`card-${date}`, "max");
     }
+  } else {
+    // Back on is the next build's call, not ours: the numbers decide again.
+    revalidateTag(`card-${date}`, "max");
   }
-  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "block_lay", horse, by: admin.email } });
-  revalidatePath("/admin/lays");
-  if (path) revalidatePath(path);
-}
-
-/** Lets a horse back into the lays; the next build decides on its own. */
-export async function unblockLay(key: string, path?: string): Promise<void> {
-  const admin = await requireAdmin();
-  await removeLayBlock(key);
-  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "unblock_lay", horse: key, by: admin.email } });
-  revalidatePath("/admin/lays");
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: off ? "call_off" : "call_on", date, raceId, tab, by: admin.email } });
   if (path) revalidatePath(path);
 }

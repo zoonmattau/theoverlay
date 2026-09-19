@@ -2,9 +2,8 @@ import Link from "next/link";
 import { Fragment, Suspense, use } from "react";
 
 import { BookieLink } from "./BookieLink";
-import { LayBlockButton } from "./LayBlockButton";
-import type { LayAdmin } from "./RunnerTable";
-import { horseKey } from "@/lib/model/keys";
+import { CallOffButton } from "./CallOffButton";
+import type { CallAdmin } from "./RunnerTable";
 import { Factors } from "./Factors";
 import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
@@ -152,7 +151,7 @@ function RunMore({ run }: { run: PublishedRun }) {
   return <span className="runs-more-line nums">{bits.join(" · ")}</span>;
 }
 
-export function RunnerDetail({ r, race, people, lays }: { r: PublishedRunner; race: PublishedRace; people?: Promise<Record<string, PersonPower>>; lays?: LayAdmin }) {
+export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; race: PublishedRace; people?: Promise<Record<string, PersonPower>>; calls?: CallAdmin }) {
   const h = r.horse;
   const runs = r.runs ?? [];
   const avg = fieldAverage(race);
@@ -361,8 +360,16 @@ export function RunnerDetail({ r, race, people, lays }: { r: PublishedRunner; ra
           {callLine(r)}
           {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block mt-1 font-bold" /> : null}
         </p>
-        {lays && (
-          <LayBlockButton horse={r.horseName} blocked={lays.blocked.includes(horseKey(r.horseName))} block={lays.block} unblock={lays.unblock} />
+        {calls && (r.signal || calls.off.includes(`${race.raceId}:${r.tabNumber}`)) && (
+          <CallOffButton
+            date={calls.date}
+            raceId={race.raceId}
+            tab={r.tabNumber}
+            horse={r.horseName}
+            side={r.signal === "lay" ? "lay" : "back"}
+            off={calls.off.includes(`${race.raceId}:${r.tabNumber}`)}
+            setOff={calls.setOff}
+          />
         )}
       </div>
     </div>

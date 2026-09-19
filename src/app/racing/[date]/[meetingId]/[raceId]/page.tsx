@@ -29,10 +29,9 @@ import { NextToGo } from "@/components/NextToGo";
 import { RaceNav } from "@/components/RaceNav";
 import { groupOf } from "@/components/RaceMatrix";
 import { getRaceCard, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
-import { readLayBlocks } from "@/lib/model/store";
-import { horseKey } from "@/lib/model/keys";
-import { blockLay, unblockLay } from "@/app/admin/actions";
-import type { LayAdmin } from "@/components/RunnerTable";
+import { readMutes } from "@/lib/model/store";
+import { setCallOff } from "@/app/admin/actions";
+import type { CallAdmin } from "@/components/RunnerTable";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
 import { DatahubStrip } from "@/components/DatahubStrip";
@@ -116,11 +115,9 @@ async function Race({ params }: { params: Props["params"] }) {
     : undefined;
   // The Datahub's standing of every jockey and trainer here, for members: not awaited, the runner table resolves it as it streams.
   const people = open ? racePeople({ jockeys: race.runners.map((r) => r.jockey), trainers: race.runners.map((r) => r.trainer) }).catch(() => ({})) : undefined;
-  // Admin: which horses in this race are already ruled out of the lays.
-  const layKeys = viewer.admin ? await readLayBlocks().catch(() => new Set<string>()) : undefined;
-  const lays: LayAdmin | undefined = layKeys
-    ? { blocked: race.runners.map((x) => horseKey(x.horseName)).filter((k) => layKeys.has(k)), block: blockLay, unblock: unblockLay }
-    : undefined;
+  // Admin: the calls already taken off today's card, so each can be put back.
+  const offKeys = viewer.admin ? await readMutes(date).catch(() => new Set<string>()) : undefined;
+  const calls: CallAdmin | undefined = offKeys ? { date, off: [...offKeys], setOff: setCallOff } : undefined;
   const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
   const initialsFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => f.tipster.name.trim()[0]?.toUpperCase() ?? "?").join("");
 
@@ -311,7 +308,7 @@ async function Race({ params }: { params: Props["params"] }) {
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
-      <RunnerTable race={race} locked={!open} people={people} tipping={tipping} lays={lays} />
+      <RunnerTable race={race} locked={!open} people={people} tipping={tipping} calls={calls} />
 
       {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} />}
     </div>

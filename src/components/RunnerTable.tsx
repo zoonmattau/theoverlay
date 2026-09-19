@@ -12,13 +12,13 @@ import { jumpTime, percent, price, signedPercent } from "@/lib/format";
 import type { PublishedRace, Signal } from "@/lib/model/types";
 
 /**
- * Admin only: the horses already ruled out of the lays, by key, and the
- * actions to rule one out or let it back in.
+ * Admin only: the calls already taken off today's card, as "raceId:tab", and
+ * the action to take one off or put it back.
  */
-export interface LayAdmin {
-  blocked: string[];
-  block: (name: string, path?: string, reason?: string) => Promise<void>;
-  unblock: (key: string, path?: string) => Promise<void>;
+export interface CallAdmin {
+  date: string;
+  off: string[];
+  setOff: (date: string, raceId: string, tab: number, off: boolean, path?: string) => Promise<void>;
 }
 
 /**
@@ -41,7 +41,7 @@ export interface Tipping {
  * the horse, its last runs, what to expect and our call. A tipster gets a Tip
  * column on the right to post their own call on a runner.
  */
-export function RunnerTable({ race, locked, people, tipping, lays }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Promise<Record<string, PersonPower>>; tipping?: Tipping; lays?: LayAdmin }) {
+export function RunnerTable({ race, locked, people, tipping, calls }: { race: PublishedRace; locked?: boolean; /** Jockeys' and trainers' standing in the Datahub, by person key. */ people?: Promise<Record<string, PersonPower>>; tipping?: Tipping; calls?: CallAdmin }) {
   const runners = race.runners.filter((r) => !r.scratched);
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
@@ -185,7 +185,7 @@ export function RunnerTable({ race, locked, people, tipping, lays }: { race: Pub
                   {isOpen && !locked && (
                     <tr className="runner-detail-row">
                       <td colSpan={cols}>
-                        <RunnerDetail r={r} race={race} people={people} lays={lays} />
+                        <RunnerDetail r={r} race={race} people={people} calls={calls} />
                       </td>
                     </tr>
                   )}

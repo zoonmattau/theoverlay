@@ -135,7 +135,6 @@ export function TipsterMatrix({ meetings, date, action, late }: { meetings: Matr
             <label className="field sm:col-span-4"><span>Why, one or two sentences</span><input name="comment" id={`why-${race.r.raceId}`} maxLength={280} className="field-input w-full" placeholder="Maps to lead on a track that favours leaders, and drops back in class." /></label>
             <button className="btn btn-primary btn-sm" type="submit">Post</button>
           </form>
-          <p className="mt-2 text-xs text-ink-soft">Runner prices in the list are the best we can see now. A price more than 20% above that gets a flag next to the call, so keep it to one you can actually get.</p>
         </div>
       )}
     </div>

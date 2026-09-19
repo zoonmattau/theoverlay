@@ -1,4 +1,5 @@
 import { CallFeed } from "./CallFeed";
+import { Section } from "./Section";
 import { SocialLinks } from "./SocialLinks";
 import type { CreatorTip, Tipster, TipsterRecord } from "@/lib/creators";
 
@@ -13,20 +14,22 @@ export async function TipsterTips({ tipster, tips, record, date, compact }: { ti
   const settled = tips.filter((t) => t.settled_at);
   const total = settled.reduce((a, t) => a + Number(t.units), 0);
   return (
-    <div className="section">
-      <div className="section-bar">
-        <span className="section-letter">{tipster.name.slice(0, 1).toUpperCase()}</span>
-        <h2>{tipster.name}&apos;s tips</h2>
-        <SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="social-links-bar" />
-        <span className="aside">
+    <Section
+      id={`tipster-${tipster.code}`}
+      letter={tipster.name.slice(0, 1).toUpperCase()}
+      title={`${tipster.name}'s tips`}
+      controls={<SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="social-links-bar" />}
+      aside={
+        <>
           {settled.length ? `${units(total)} today, ${settled.length} of ${tips.length} run` : `${tips.length} ${tips.length === 1 ? "call" : "calls"} today`}
           {record && record.n > 0 ? ` · ${units(record.units)} all time` : ""}
-        </span>
-      </div>
+        </>
+      }
+    >
       <div className="section-body">
         {tipster.blurb && !compact && <p className="text-xs text-ink-soft mb-3">{tipster.blurb}</p>}
         <CallFeed tips={tips} date={date} empty="No calls posted yet today." />
       </div>
-    </div>
+    </Section>
   );
 }

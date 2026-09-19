@@ -136,8 +136,8 @@ const RR_A = Number(process.env.OVERLAY_RR_A ?? 56);
 const RR_B = Number(process.env.OVERLAY_RR_B ?? 0.4);
 /** Below this a race rating is a placeholder, not a rating: the weakest real one in the cache is in the fifties. */
 const RR_FLOOR = 30;
-/** Our benchmark points onto the feed's class scale. */
-export const toFeedScale = (points: number) => (RR_PAR ? RR_A + RR_B * points : points);
+/** Our benchmark points onto the feed's class scale, to the tenth we show. */
+export const toFeedScale = (points: number) => (RR_PAR ? Math.round((RR_A + RR_B * points) * 10) / 10 : points);
 /**
  * What a length on the overall clock is worth, by trip. A length is the same
  * fifth of a second everywhere, but a smaller share of the race the further
