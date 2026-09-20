@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The smaller projection factors: weight, freshness. Each returns points to
  * add to Class on the way to Today, and each is capped so no single input
  * can swamp the sectional work.
@@ -16,17 +16,17 @@ const SHRINK = 2;
  * Weight today against the weight in past runs. Form King restates each
  * run's rating at today's weight, so the mean shift is the adjustment.
  */
-export function weightFactor(e: RaceEntry): number {
+export function weightFactor(e: RaceEntry, asOf?: number): number {
   const shifts = (e.pastEvents ?? [])
     .filter(
       (p) =>
-        p.race !== false && p.adjustedForTodaysWeight !== undefined && p.weightForAgeRating !== undefined,
+        p.race !== false && p.adjustedForTodaysWeight !== undefined && p.weightForAgeRating !== undefined && (!asOf || p.date < asOf),
     )
     .slice(0, 5)
     .map((p) => p.adjustedForTodaysWeight! - p.weightForAgeRating!);
   if (shifts.length) return clamp(mean(shifts) * WEIGHT_SCALE, -CAP.weight, CAP.weight);
   // No restated ratings: fall back to the kilos, at half a point a kilo.
-  const last = (e.pastEvents ?? []).find((p) => p.race !== false && p.weight);
+  const last = (e.pastEvents ?? []).find((p) => p.race !== false && p.weight && (!asOf || p.date < asOf));
   const today = e.weightCarried ?? e.weight;
   if (!last?.weight || !today) return 0;
   return clamp((last.weight - today) * 0.5, -CAP.weight, CAP.weight);
@@ -40,13 +40,14 @@ export function weightFactor(e: RaceEntry): number {
  * record costs a point, and a horse six or more runs in with nothing to
  * say it holds its form is docked half a point.
  */
-export function freshFactor(e: RaceEntry, cls: number, runPoints: (p: NonNullable<RaceEntry["pastEvents"]>[number]) => number): number {
+export function freshFactor(e: RaceEntry, cls: number, runPoints: (p: NonNullable<RaceEntry["pastEvents"]>[number]) => number, asOf?: number): number {
   const stage = prepStage(e);
   const firstUp = stage === 1;
   if (stage === 0) return 0;
 
   let out = 0;
-  const past = (e.pastEvents ?? []).filter((p) => p.race !== false);
+  // Only runs before the race: form fetched afterwards carries later starts.
+  const past = (e.pastEvents ?? []).filter((p) => p.race !== false && (!asOf || p.date < asOf));
   const same = firstUp ? past.filter((p) => (p.daysSincePreviousRace ?? 0) >= 80) : past.filter((p) => p.raceInPrep === stage);
   if (same.length) {
     const ps = same.slice(0, 3).map(runPoints);

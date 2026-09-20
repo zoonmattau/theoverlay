@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The ratings engine.
  *
  * Every number here is in benchmark points, the scale handicappers already
@@ -108,6 +108,32 @@ const MARGIN_WEIGHT = 0.5;
 const OHR_REACH = 10;
 /** Points above today's par a run may sit when today is a maiden or class 1; 25 above that. Sweep with scripts/sweep-caps.ts. */
 const LOW_REACH = Number(process.env.OVERLAY_LOW_REACH ?? 12);
+/**
+ * Points above today's par the feed's own rating for a past race may sit
+ * before it is capped, on our benchmark scale. The name's reach never
+ * applied to the feed's rating, so a horse beaten eight lengths in a race
+ * rated 90 dropped into a country BM58 as an 80 horse, top rated at $16;
+ * over the two Saturdays of 12 and 19 Sep 2026 only 16% of the distance
+ * we put between a horse and the field showed on the clock. Infinity is
+ * no cap. Sweep with scripts/sweep-caps.ts.
+ */
+const RR_REACH = Number(process.env.OVERLAY_RR_REACH ?? Infinity);
+/**
+ * Per-factor multipliers for sweeping, "going=0,distance=0.5"; a factor
+ * not named keeps its weight. Empty in production.
+ */
+const FACTOR_MULT: Partial<Record<string, number>> = Object.fromEntries(
+  (process.env.OVERLAY_FACTOR_MULT ?? "")
+    .split(",")
+    .map((s) => s.trim().split("="))
+    .filter(([k, v]) => k && v !== undefined && !Number.isNaN(Number(v)))
+    .map(([k, v]) => [k, Number(v)]),
+);
+/**
+ * How much of a horse's class rating's distance from the field's average
+ * class rating is kept, for sweeping; 1 keeps it all.
+ */
+const CLASS_SHRINK = Number(process.env.OVERLAY_CLASS_SHRINK ?? 1);
 /**
  * Lengths the clock may put a run below the beaten-margin reading of the same
  * run. The overall time in a slowly run staying race has every runner lengths
@@ -269,9 +295,9 @@ const STREAK_POINTS = Number(process.env.OVERLAY_STREAK_POINTS ?? 3);
  */
 const SPRINT_RESCUE = Number(process.env.OVERLAY_SPRINT_RESCUE ?? 0);
 const STREAK_MAX = 3;
-function streakFactor(e: RaceEntry): number {
+function streakFactor(e: RaceEntry, asOf?: number): number {
   let wins = 0;
-  for (const p of recentRuns(e)) { if (p.finishPosition === 1) wins++; else break; }
+  for (const p of recentRuns(e, asOf)) { if (p.finishPosition === 1) wins++; else break; }
   return STREAK_POINTS * Math.max(0, Math.min(wins, STREAK_MAX) - 1);
 }
 
@@ -284,6 +310,22 @@ export function rateEntries(
   const fk = zscores(live.map((e) => e.ratings?.peak12m ?? e.ratings?.peak));
 
   const base = live.map((e, i) => rateOne(e, race, fk[i]));
+  // For sweeping: pull every rated horse's class toward the field's average
+  // class, moving its other ratings with it so the factors stay the same.
+  if (CLASS_SHRINK !== 1) {
+    const withForm = base.filter((b) => b.runs > 0);
+    if (withForm.length >= 2) {
+      const fieldClass = mean(withForm.map((b) => b.class));
+      for (const b of base) {
+        if (b.runs === 0) continue;
+        const delta = (CLASS_SHRINK - 1) * (b.class - fieldClass);
+        b.class += delta; b.early += delta; b.mid += delta; b.late += delta; b.pressure += delta;
+        b.tempo = { fast: b.tempo.fast + delta, slow: b.tempo.slow + delta };
+        b.going = { good: b.going.good + delta, soft: b.going.soft + delta, heavy: b.going.heavy + delta };
+        b.distance += delta; b.track += delta;
+      }
+    }
+  }
 
   // Predicted settling order: the speed map first, settling positions in past
   // runs otherwise, both scaled 0-1 with 1 the fastest.
@@ -355,20 +397,20 @@ export function rateEntries(
     const factors: Partial<Record<Factor, number>> = {
       going: WEIGHTS.going * (r.going[race.going] - r.class),
       tempo: WEIGHTS.tempo * (tempoFit - r.class),
-      distance: WEIGHTS.distance * (r.distance - r.class) + distanceGapFactor(runDistances(e), race.distance),
+      distance: WEIGHTS.distance * (r.distance - r.class) + distanceGapFactor(runDistances(e, race.date), race.distance),
       track: WEIGHTS.track * (r.track - r.class),
-      weight: weightFactor(e),
-      fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age, race.date)) + layoffFactor(e),
+      weight: weightFactor(e, race.date),
+      fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age, race.date), race.date) + layoffFactor(e),
       jockey: clamp(((e.jockeyForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.06, -CAP.jockey, CAP.jockey),
       trainer: clamp(((e.trainerForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.04, -CAP.trainer, CAP.trainer),
       barrier: barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, map, race.distance),
       sections: r.runs > 0 ? SECTION_WEIGHT * (sectionFit - r.class) : 0,
       shape: shapeOf(r, map),
-      streak: streakFactor(e),
+      streak: streakFactor(e, race.date),
       market: fk[i] * FK_NUDGE,
     };
     for (const k of Object.keys(factors) as Factor[]) {
-      const v = round1(factors[k] ?? 0);
+      const v = round1((factors[k] ?? 0) * (FACTOR_MULT[k] ?? 1));
       if (v === 0) delete factors[k];
       else factors[k] = v;
     }
@@ -385,9 +427,16 @@ export function rateEntries(
 }
 
 /** The last runs the rating is built on: real races, most recent first. */
-function recentRuns(e: RaceEntry) {
+/**
+ * The last runs the rating is built on: real races, most recent first, and
+ * only those before the race when its date is known. Form fetched after a
+ * race carries the horse's later starts: the August Saturdays in the cache
+ * had 3,238 of 8,937 runners with a run from after the race in their form,
+ * 506 with a later win, and every sweep scored on them saw the future.
+ */
+export function recentRuns(e: RaceEntry, asOf?: number) {
   return (e.pastEvents ?? [])
-    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p))
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p) && (!asOf || p.date < asOf))
     .sort((a, b) => b.date - a.date)
     .slice(0, RUN_WEIGHTS.length);
 }
@@ -397,7 +446,7 @@ function rateOne(
   race: RaceContext,
   fkZ: number,
 ): Omit<RunnerRatings, "today" | "factors" | "ppir" | "map"> {
-  const runs = recentRuns(e);
+  const runs = recentRuns(e, race.date);
 
   // No form to go on: the official rating if there is one, else just under
   // today's par, and let Form King's view separate it from the others.
@@ -474,7 +523,7 @@ function rateOne(
 }
 
 /** The distances of the runs the rating is built on. */
-const runDistances = (e: RaceEntry) => recentRuns(e).map((r) => r.distance).filter((d): d is number => typeof d === "number" && d > 0);
+const runDistances = (e: RaceEntry, asOf?: number) => recentRuns(e, asOf).map((r) => r.distance).filter((d): d is number => typeof d === "number" && d > 0);
 
 const sameTrack = (a?: string, b?: string) =>
   Boolean(a && b) && a!.trim().toLowerCase() === b!.trim().toLowerCase();
@@ -524,7 +573,9 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   // maiden came through as 0 and put a run at -7.9), so anything under
   // RR_FLOOR is treated as missing.
   const rr = r.benchmark?.raceRating;
-  const par = RR_PAR ? (rr !== undefined && rr >= RR_FLOOR ? rr : toFeedScale(named)) : named;
+  // The feed's rating is capped within reach of today's par the same way a name is.
+  const rrCapped = rr !== undefined ? Math.min(rr, toFeedScale(todayPar + RR_REACH)) : undefined;
+  const par = RR_PAR ? (rrCapped !== undefined && rrCapped >= RR_FLOOR ? rrCapped : toFeedScale(named)) : named;
   // Overall time with no sectionals is a hand-held clock at a bush track, so
   // its lengths against class count for half.
   const trust = r.benchmark?.dataStage === "OVERALL_TIME_ONLY" ? TIME_ONLY_WEIGHT : 1;
