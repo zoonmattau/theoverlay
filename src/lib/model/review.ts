@@ -141,6 +141,26 @@ export async function reviewedDates(): Promise<Map<string, number>> {
   return out;
 }
 
+/** How many bets and lays a date has, and how many already have their run. */
+export interface CallsStatus {
+  date: string;
+  calls: number;
+  fetched: number;
+}
+
+/** The calls on each date on file against the runs bought, for the index. */
+export async function callsStatus(dates: string[]): Promise<CallsStatus[]> {
+  return Promise.all(
+    dates.map(async (date) => {
+      const [stored, runs] = await Promise.all([readStoredCard(date), readReview(date)]);
+      if (!stored) return { date, calls: 0, fetched: 0 };
+      const calls = wantedRunners(stored.card, "calls");
+      const fetched = calls.filter((c) => c.horseId && runs.has(c.horseId)).length;
+      return { date, calls: calls.length, fetched };
+    }),
+  );
+}
+
 const sydneyDate = (ms: number) => new Date(ms).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
 
 /** The run on the review date, trimmed to what the page reads. */
@@ -322,7 +342,9 @@ export interface MeetingStats {
   resulted: number;
   winnersInFour: number;
   topRatedWon: number;
-  topRatedPlaced: number;
+  /** Of the first three home across the resulted races, how many sat in our top four. */
+  placedInFour: number;
+  placed: number;
   bets: number;
   betUnits: number;
   lays: number;
@@ -484,6 +506,7 @@ function meetingStats(races: ReviewedRace[], bets: LedgerRow[], lays: LedgerRow[
       const resulted = rs.filter((r) => r.runners.some((x) => x.finish === 1));
       const winners = resulted.map((r) => r.runners.find((x) => x.finish === 1)!);
       const topRated = resulted.map((r) => [...r.runners].sort((a, b) => b.runner.ratings.today - a.runner.ratings.today)[0]);
+      const placegetters = resulted.flatMap((r) => r.runners.filter((x) => x.finish && x.finish <= 3));
       const mine = (rows: LedgerRow[]) => rows.filter((b) => b.meeting.meetingId === meeting.meetingId && b.units !== undefined);
       const b = mine(bets), l = mine(lays);
       const settledOf = (rows: ReviewedRunner[]) => rows.map((r) => r.run?.posSettling).filter((p): p is number => Boolean(p));
@@ -503,7 +526,8 @@ function meetingStats(races: ReviewedRace[], bets: LedgerRow[], lays: LedgerRow[
         resulted: resulted.length,
         winnersInFour: winners.filter((w) => w.runner.rank).length,
         topRatedWon: topRated.filter((t) => t.finish === 1).length,
-        topRatedPlaced: topRated.filter((t) => t.finish && t.finish <= 3).length,
+        placedInFour: placegetters.filter((r) => r.runner.rank).length,
+        placed: placegetters.length,
         bets: b.length,
         betUnits: round1(b.reduce((a, x) => a + x.units!, 0)),
         lays: l.length,

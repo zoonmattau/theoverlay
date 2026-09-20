@@ -265,7 +265,7 @@ function Meetings({ review }: { review: Review }) {
       <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm whitespace-nowrap">
           <thead>
-            <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right" title="Mean gap: how the meeting ran against what we expected">Vs expected</th><th className="text-right" title="Mean size of the gap, either way: how far the runs scattered around our expected marks">Scatter</th><th className="text-right" title="Mean size of the gap after the race's own level is taken out">Vs field</th><th className="text-right" title="Correlation of expected with ran to, 1 is perfect">Fit</th><th className="text-right" title="Where the winners settled in the run, on average: 1 is the lead">Winner settled</th><th className="text-right" title="Where the first three home settled in the run, on average">Placed settled</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
+            <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right" title="Runners with a full benchmark">Bench</th><th className="text-right" title="Mean gap: how the meeting ran against what we expected">Vs exp</th><th className="text-right" title="Mean size of the gap, either way: how far the runs scattered around our expected marks">Scatter</th><th className="text-right" title="Mean size of the gap after the race's own level is taken out">Vs field</th><th className="text-right" title="Correlation of expected with ran to, 1 is perfect">Fit</th><th className="text-right" title="Where the winners settled in the run, on average: 1 is the lead">Win pos</th><th className="text-right" title="Where the first three home settled in the run, on average">Place pos</th><th className="text-right" title="Winners that sat in our top four">Win in 4</th><th className="text-right" title="Races our top rated won">Top won</th><th className="text-right" title="Of the first three home, how many sat in our top four">Top 4 placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
           </thead>
           <tbody>
             {withData.map((m) => {
@@ -283,7 +283,7 @@ function Meetings({ review }: { review: Review }) {
                   <td className="text-right nums">{m.placedSettled?.toFixed(1) ?? ""}</td>
                   <td className="text-right nums">{m.resulted ? `${m.winnersInFour}/${m.resulted}` : ""}</td>
                   <td className="text-right nums">{m.resulted ? `${m.topRatedWon}/${m.resulted}` : ""}</td>
-                  <td className="text-right nums">{m.resulted ? `${m.topRatedPlaced}/${m.resulted}` : ""}</td>
+                  <td className="text-right nums">{m.placed ? `${m.placedInFour}/${m.placed}` : ""}</td>
                   <td className={`text-right nums ${unitsClass(m.betUnits)}`}>{m.bets ? `${m.bets} · ${signed(m.betUnits, 2)}` : ""}</td>
                   <td className={`text-right nums ${unitsClass(m.layUnits)}`}>{m.lays ? `${m.lays} · ${signed(m.layUnits, 2)}` : ""}</td>
                 </ClickRow>

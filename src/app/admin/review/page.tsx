@@ -7,7 +7,9 @@ import { Suspense } from "react";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { listStoredDates } from "@/lib/model/store";
-import { reviewedDates } from "@/lib/model/review";
+import { callsStatus, reviewedDates } from "@/lib/model/review";
+import { racingToday } from "@/lib/model/source";
+import { AllCallsButton } from "./AllCallsButton";
 
 export const metadata: Metadata = { title: "Weekly review", robots: { index: false } };
 
@@ -30,30 +32,42 @@ async function Index() {
   if (!isAdmin(viewer)) notFound();
   const [dates, reviewed, publishedRows] = await Promise.all([listStoredDates(120), reviewedDates(), publishedDates()]);
   const published = new Set(publishedRows);
-  // Saturdays, and any other day that has been reviewed.
-  const rows = dates.filter((d) => dayOf(d) === "Saturday" || reviewed.has(d));
+  const today = racingToday();
+  // Every day on file: the calls are reviewed all week, the full field on Saturdays.
+  const status = await callsStatus(dates);
+  const calls = new Map(status.map((c) => [c.date, c]));
+  // Today's races are still running, so its calls wait until tomorrow.
+  const toBuy = status.filter((c) => c.date < today);
+  const owed = toBuy.reduce((a, c) => a + (c.calls - c.fetched), 0);
   return (
     <>
-      <section className="py-6">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Weekly review</h1>
-        <p className="mt-1 text-sm text-ink-soft">Each Saturday, how every NSW and VIC runner ran against its benchmark, next to the mark we had it at. Open a day to fetch the runs.</p>
+      <section className="py-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight">Weekly review</h1>
+          <p className="mt-1 text-sm text-ink-soft">Every bet and lay against its run, all week; each Saturday, every NSW and VIC runner too. Open a day to fetch the runs.</p>
+        </div>
+        <AllCallsButton dates={toBuy.filter((c) => c.calls > c.fetched).map((c) => c.date)} toBuy={owed} />
       </section>
       <div className="card overflow-x-auto">
         <table className="data-table w-full">
           <thead>
-            <tr><th>Day</th><th>Date</th><th className="text-right">Runs fetched</th><th>Review</th><th>Public</th></tr>
+            <tr><th>Day</th><th>Date</th><th className="text-right">Calls with runs</th><th className="text-right">Runs fetched</th><th>Review</th><th>Public</th></tr>
           </thead>
           <tbody>
-            {rows.map((d) => (
-              <tr key={d}>
-                <td>{dayOf(d)}</td>
-                <td><Link href={`/admin/review/${d}`} className="font-semibold underline">{label(d)}</Link></td>
-                <td className="text-right nums">{reviewed.get(d) ?? 0}</td>
-                <td className="text-ink-soft">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>
-                <td>{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
-              </tr>
-            ))}
-            {rows.length === 0 && <tr><td colSpan={5} className="text-ink-soft">No Saturdays on file yet.</td></tr>}
+            {dates.map((d) => {
+              const c = calls.get(d);
+              return (
+                <tr key={d} className={dayOf(d) === "Saturday" ? "font-semibold" : ""}>
+                  <td>{dayOf(d)}</td>
+                  <td><Link href={`/admin/review/${d}`} className="font-semibold underline">{label(d)}</Link></td>
+                  <td className={`text-right nums ${c && c.calls > c.fetched && d < today ? "text-red-700" : ""}`}>{c ? `${c.fetched}/${c.calls}` : ""}</td>
+                  <td className="text-right nums">{reviewed.get(d) ?? 0}</td>
+                  <td className="text-ink-soft font-normal">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>
+                  <td className="font-normal">{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
+                </tr>
+              );
+            })}
+            {dates.length === 0 && <tr><td colSpan={6} className="text-ink-soft">No cards on file yet.</td></tr>}
           </tbody>
         </table>
       </div>
