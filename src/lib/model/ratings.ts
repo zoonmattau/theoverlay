@@ -119,6 +119,14 @@ const LOW_REACH = Number(process.env.OVERLAY_LOW_REACH ?? 12);
  */
 const RR_REACH = Number(process.env.OVERLAY_RR_REACH ?? Infinity);
 /**
+ * With the feed's rating as a run's par, how much of the beaten margin comes
+ * off it, in points a length at the trip: 1 the full margin, 0 keeps the
+ * lengths-against-class reading that counts the race's speed twice.
+ */
+const RR_MARGIN = Number(process.env.OVERLAY_RR_MARGIN ?? 0);
+/** Points above the race's own rating a beaten horse's run may sit; Infinity is no cap. Sweep with scripts/sweep-caps.ts. */
+const RR_BEATEN_CAP = Number(process.env.OVERLAY_RR_BEATEN_CAP ?? Infinity);
+/**
  * Per-factor multipliers for sweeping, "going=0,distance=0.5"; a factor
  * not named keeps its weight. Empty in production.
  */
@@ -586,12 +594,23 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   // overall figure the run moves that way by SPRINT_RESCUE of the gap.
   const closing = r.benchmark?.sections?.["6-F"]?.vsClass;
   const vsClass = r.benchmark ? (SPRINT_RESCUE > 0 && closing !== undefined && closing > r.benchmark.vsClass ? r.benchmark.vsClass + SPRINT_RESCUE * (closing - r.benchmark.vsClass) : r.benchmark.vsClass) : 0;
-  const raw = r.benchmark
+  // With the feed's rating as the par, the race's speed is already in the
+  // par, so the run is the race's strength less the lengths behind the
+  // winner, not plus the horse's lengths against a benchmark the rating
+  // was built from. Platinum Shot, Ascot 11 Apr 2026: last of eight, beaten
+  // 4.4 lengths at $31 in a fast Open, and the double count had the run at
+  // 93.3, above the Open's par. Sweep with scripts/sweep-caps.ts.
+  const usedRr = RR_PAR && rrCapped !== undefined && rrCapped >= RR_FLOOR;
+  const raw = usedRr && RR_MARGIN > 0 && r.margin !== undefined
+    ? par - Math.min(15, r.margin * clockPoints(r.distance) * RR_MARGIN)
+    : r.benchmark
     ? Math.max(par + (own !== undefined ? (1 - OWN_CLOCK_BLEND) * vsClass + OWN_CLOCK_BLEND * own : vsClass) * clockPoints(r.distance) * trust, byMargin - CLOCK_FLOOR * POINTS_PER_LENGTH)
     : own !== undefined && OWN_CLOCK_ALONE > 0
       ? par + own * clockPoints(r.distance) * OWN_CLOCK_ALONE
       : byMargin;
-  return clamp(raw, par - 25, par + (juvenile ? 8 : 15));
+  // A beaten horse in a race the feed has rated cannot have run above that race by more than the cap.
+  const beatenCap = usedRr && (r.finishPosition ?? 1) > 1 ? par + RR_BEATEN_CAP : Infinity;
+  return clamp(Math.min(raw, beatenCap), par - 25, par + (juvenile ? 8 : 15));
 }
 
 /** Black type by tradition whatever the name omits. */
