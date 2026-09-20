@@ -86,15 +86,15 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
           <div className="section-body overflow-x-auto">
             <table className="data-table w-full text-sm">
               <thead>
-                <tr><th className="text-right">Settled</th><th>Horse</th><th>Ours</th><th className="text-right">Mapped</th><th>Map</th><th className="text-right">800</th><th className="text-right">400</th><th>Result</th><th className="text-right">Early</th><th className="text-right">Last 600</th><th className="text-right">Ran to</th><th className="text-right">Gap</th></tr>
+                <tr><th>Horse</th><th>Ours</th><th className="text-right">Mapped</th><th className="text-right">Settled</th><th>Map</th><th className="text-right">800</th><th className="text-right">400</th><th>Result</th><th className="text-right">Early</th><th className="text-right">Last 600</th><th className="text-right">Ran to</th><th className="text-right">Gap</th></tr>
               </thead>
               <tbody>
                 {shape.map((x) => (
                   <tr key={x.runner.tabNumber}>
-                    <td className="text-right nums">{x.run!.posSettling}</td>
                     <td className="font-semibold">{x.runner.tabNumber}. {x.runner.horseName}</td>
                     <td className="text-xs">{x.runner.signal ? <Tag side={x.runner.signal} prime={x.runner.prime} /> : x.runner.rank ? <span className="text-ink-soft">#{x.runner.rank}</span> : ""}</td>
-                    <td className={`text-right nums ${settledClass(x)}`}>{x.runner.ratings.ppir || ""}</td>
+                    <td className="text-right nums">{x.runner.ratings.ppir || ""}</td>
+                    <td className={`text-right nums font-semibold ${settledClass(x)}`}>{x.run!.posSettling}</td>
                     <td className="text-ink-soft">{x.runner.ratings.map}</td>
                     <td className="text-right nums">{x.run?.pos800 ?? ""}</td>
                     <td className="text-right nums">{x.run?.pos400 ?? ""}</td>
