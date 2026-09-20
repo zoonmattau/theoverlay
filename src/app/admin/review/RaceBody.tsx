@@ -1,4 +1,4 @@
-import { stakeOf } from "@/lib/model/types";
+﻿import { stakeOf } from "@/lib/model/types";
 
 import { Section } from "@/components/Section";
 import type { Review, ReviewedRace } from "@/lib/model/review";
@@ -10,7 +10,7 @@ function Stat({ label, value, sub, className = "" }: { label: string; value: str
   return (
     <div className="card py-3">
       <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft">{label}</div>
-      <div className={`nums text-2xl font-extrabold ${className}`}>{value || "—"}</div>
+      <div className={`nums text-2xl font-extrabold ${className}`}>{value || "â€”"}</div>
       {sub && <div className="text-xs text-ink-soft mt-0.5">{sub}</div>}
     </div>
   );
@@ -47,8 +47,6 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
   const units = settled.reduce((a, x) => a + settle(x.runner.signal!, x.runner.marketPrice!, x.finish!, stakeOf(x.runner)), 0);
   const ours = r.runners.filter((x) => x.runner.rank).sort((a, b) => a.runner.rank! - b.runner.rank!);
   const talking = review.talking.filter((t) => t.runner.race.race.raceId === raceId);
-  // The field front to back as it settled, with our map beside it.
-  const shape = [...r.runners].filter((x) => x.run?.posSettling).sort((a, b) => a.run!.posSettling! - b.run!.posSettling!);
   const ourLeader = r.runners.find((x) => x.runner.ratings.ppir === 1);
 
   return (
@@ -82,36 +80,6 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
         </div>
       )}
 
-      {shape.length > 0 && (
-        <Section className="mb-4" id={`review-race-shape-${raceId}`} letter="S" title="How it was run" aside={`Front to back as it settled, mapped ${r.race.pace.tempo} and ran ${r.tempo ?? "untimed"}`} defaultOpen={sections}>
-          <div className="section-body overflow-x-auto">
-            <table className="data-table w-full text-sm">
-              <thead>
-                <tr><th>Horse</th><th>Ours</th><th>Map</th><th className="text-right">Mapped</th><th className="text-right">Settled</th><th className="text-right">800</th><th className="text-right">400</th><th>Result</th><th className="text-right">Early</th><th className="text-right">Last 600</th><th className="text-right">Ran to</th><th className="text-right">Gap</th></tr>
-              </thead>
-              <tbody>
-                {shape.map((x) => (
-                  <tr key={x.runner.tabNumber}>
-                    <td className="font-semibold">{x.runner.tabNumber}. {x.runner.horseName}</td>
-                    <td className="text-xs">{x.runner.signal ? <Tag side={x.runner.signal} prime={x.runner.prime} /> : x.runner.rank ? <span className="text-ink-soft">#{x.runner.rank}</span> : ""}</td>
-                    <td className="text-ink-soft">{x.runner.ratings.map}</td>
-                    <td className="text-right nums">{x.runner.ratings.ppir || ""}</td>
-                    <td className={`text-right nums font-semibold ${settledClass(x)}`}>{x.run!.posSettling}</td>
-                    <td className="text-right nums">{x.run?.pos800 ?? ""}</td>
-                    <td className="text-right nums">{x.run?.pos400 ?? ""}</td>
-                    <td className="nums">{finish(x)}</td>
-                    <td className="text-right nums">{signed(x.early)}</td>
-                    <td className="text-right nums">{signed(x.late)}{x.ownLast600 ? <span className="text-ink-soft"> {x.ownLast600.toFixed(2)}</span> : ""}</td>
-                    <td className="text-right nums">{x.ranTo?.toFixed(1) ?? ""}</td>
-                    <td className={`text-right nums ${gapClass(x.gap)}`}>{signed(x.gap)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Section>
-      )}
-
       <Section className="mb-4" id={`review-race-ours-${raceId}`} letter="O" title="Our top four and calls" aside="Rated against the market, and how each went" defaultOpen={sections}>
         <div className="section-body overflow-x-auto">
           <table className="data-table w-full text-sm">
@@ -142,7 +110,8 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
         </div>
       </Section>
 
-      <Section className="mb-4" id={`review-race-runners-${raceId}`} letter="E" title="Every runner against its run" aside={`${r.full} of ${r.runners.length} with a full benchmark`} defaultOpen={sections}>
+
+      <Section className="mb-4" id={`review-race-runners-${raceId}`} letter="E" title="Every runner: how it was run and what it ran to" aside={`Mapped ${r.race.pace.tempo}, ran ${r.tempo ?? "untimed"}. ${r.full} of ${r.runners.length} with a full benchmark`} defaultOpen={sections}>
         <div className="section-body overflow-x-auto">
           <RunnerTable r={r} />
         </div>

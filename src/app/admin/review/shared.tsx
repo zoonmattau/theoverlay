@@ -46,12 +46,23 @@ export function Tag({ tag, side, prime }: { tag?: string; side: "back" | "lay"; 
   return <span className="badge badge-back">Bet</span>;
 }
 
-/** Every runner in a race against its run: the table the race page is built on. */
+/**
+ * Every runner in a race, in finishing order: where we mapped it and where
+ * it settled, then what the run was worth against what we expected, with
+ * its clocks and sections. The table the race page is built on.
+ */
 export function RunnerTable({ r }: { r: ReviewedRace }) {
   return (
     <table className="data-table w-full text-sm">
       <thead>
-        <tr><th>Result</th><th>Horse</th><th>Ours</th><th className="text-right" title={EXPECTED_TIP}>Expected</th><th className="text-right">Ran to</th><th className="text-right" title={GAP_TIP}>Gap</th><th className="text-right">Vs class</th><th className="text-right" title={TIME_TIP}>Time</th><th className="text-right" title={L600_TIP}>L600</th><th className="text-right">Early</th><th className="text-right">Last 600</th><th className="text-right">Fin. speed</th><th className="text-right">Settled</th><th className="text-right">800</th><th className="text-right">400</th><th className="text-right">Rated</th><th className="text-right">SP</th><th>Data</th></tr>
+        <tr>
+          <th>Result</th><th>Horse</th><th>Ours</th>
+          <th>Map</th><th className="text-right" title="Where we mapped the horse to settle, 1 is the lead">Mapped</th><th className="text-right" title="Where it settled; red when three or more places off our map">Settled</th><th className="text-right">800</th><th className="text-right">400</th>
+          <th className="text-right" title={EXPECTED_TIP}>Expected</th><th className="text-right">Ran to</th><th className="text-right" title={GAP_TIP}>Gap</th><th className="text-right" title="Lengths against the class benchmark over the whole race">Vs class</th>
+          <th className="text-right" title="Lengths against the class benchmark over the first section">Early</th><th className="text-right" title="Lengths against the class benchmark over the last 600, and its rank in the field">Last 600</th><th className="text-right" title="Last 600 speed as a share of the speed to the 600">Fin. speed</th>
+          <th className="text-right" title={TIME_TIP}>Time</th><th className="text-right" title={L600_TIP}>L600</th>
+          <th className="text-right">Rated</th><th className="text-right">SP</th><th>Data</th>
+        </tr>
       </thead>
       <tbody>
         {r.runners.map((x) => (
@@ -59,18 +70,20 @@ export function RunnerTable({ r }: { r: ReviewedRace }) {
             <td className="nums">{finish(x)}</td>
             <td className="font-semibold">{x.runner.tabNumber}. {x.runner.horseName}</td>
             <td className="text-xs">{x.runner.signal ? <Tag side={x.runner.signal} prime={x.runner.prime} /> : x.runner.rank ? <span className="text-ink-soft">#{x.runner.rank}</span> : ""}</td>
+            <td className="text-ink-soft">{x.runner.ratings.map}</td>
+            <td className="text-right nums">{x.runner.ratings.ppir || ""}</td>
+            <td className={`text-right nums font-semibold ${settledClass(x)}`}>{x.run?.posSettling ?? ""}</td>
+            <td className="text-right nums">{x.run?.pos800 ?? ""}</td>
+            <td className="text-right nums">{x.run?.pos400 ?? ""}</td>
             <td className="text-right nums">{x.expected.toFixed(1)}</td>
             <td className="text-right nums">{x.ranTo?.toFixed(1) ?? ""}</td>
             <td className={`text-right nums ${gapClass(x.gap)}`}>{signed(x.gap)}</td>
             <td className="text-right nums">{signed(x.run?.vsClass)}</td>
-            <td className="text-right nums">{clock(x.ownTime)}</td>
-            <td className="text-right nums">{x.ownLast600?.toFixed(2) ?? ""}</td>
             <td className="text-right nums">{signed(x.early)}</td>
             <td className="text-right nums">{signed(x.late)}{x.lateRank ? ` (${x.lateRank})` : ""}</td>
             <td className="text-right nums">{x.run?.finishingSpeed ? `${x.run.finishingSpeed.toFixed(1)}%` : ""}</td>
-            <td className={`text-right nums ${settledClass(x)}`}>{settledOf(x)}</td>
-            <td className="text-right nums">{x.run?.pos800 ?? ""}</td>
-            <td className="text-right nums">{x.run?.pos400 ?? ""}</td>
+            <td className="text-right nums">{clock(x.ownTime)}</td>
+            <td className="text-right nums">{x.ownLast600?.toFixed(2) ?? ""}</td>
             <td className="text-right nums">{price(x.runner.ratedPrice)}</td>
             <td className="text-right nums">{price(x.sp)}</td>
             <td className="text-ink-soft text-xs">{stageOf(x)}</td>
