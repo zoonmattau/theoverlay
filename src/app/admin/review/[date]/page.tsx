@@ -95,10 +95,9 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
           <Ledger title="Our bets" rows={review.bets} date={date} />
           <Ledger title="Our lays" rows={review.lays} date={date} />
           <Ranking review={review} />
-          <Section className="mb-4" id="review-runs" letter="W" title="Runs of the day" aside="Best and worst against class, and the fastest last 600" defaultOpen={false}>
-            <div className="section-body grid gap-4 lg:grid-cols-3">
+          <Section className="mb-4" id="review-runs" letter="W" title="Runs of the day" aside="Best against class, and the fastest last 600" defaultOpen={false}>
+            <div className="section-body grid gap-4 lg:grid-cols-2">
               <Runs title="Best runs against class" rows={review.best} date={date} />
-              <Runs title="Worst runs against class" rows={review.worst} date={date} />
               <Runs title="Fastest last 600 against class" rows={review.closers} date={date} late />
             </div>
           </Section>

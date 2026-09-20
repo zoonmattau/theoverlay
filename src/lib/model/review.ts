@@ -387,7 +387,6 @@ export interface Review {
   /** Races with a benchmarked winner, strongest first. */
   ranking: ReviewedRace[];
   best: (ReviewedRunner & { race: ReviewedRace })[];
-  worst: (ReviewedRunner & { race: ReviewedRace })[];
   closers: (ReviewedRunner & { race: ReviewedRace })[];
   bets: LedgerRow[];
   lays: LedgerRow[];
@@ -679,7 +678,6 @@ export async function buildReview(date: string): Promise<Review | undefined> {
     talking: talkingPoints(withRace),
     ranking: races.filter((r) => r.strength !== undefined).sort((a, b) => b.strength! - a.strength!),
     best: byVsClass.slice(0, 10),
-    worst: byVsClass.slice(-10).reverse(),
     closers: closers.slice(0, 10),
     bets,
     lays,
