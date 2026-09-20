@@ -57,3 +57,6 @@ ds-bundle/
 scripts/out/
 __pycache__/
 email-preview.html
+
+# OBS recordings
+/YouTube/
