@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { decodeEntities } from "@/lib/format";
-import { classPoints, explain, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
+import { classPoints, explain, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
 
@@ -109,13 +109,19 @@ export function publishRace(
   speedmap?: Speedmap,
   kept: KeptSignals = new Map(),
 ): PublishedRace {
-  const points = classPoints(race.restrictions, race.name);
+  let points = classPoints(race.restrictions, race.name);
   const going = goingBand(race.going);
-  const { rated, pace } = rateEntries(
-    race.entries,
-    { classPoints: points, going, distance: race.distance, track: race.trackName ?? meeting.trackName, date: race.date },
-    speedmap,
-  );
+  const context = () => ({ classPoints: points, going, distance: race.distance, track: race.trackName ?? meeting.trackName, date: race.date });
+  let { rated, pace } = rateEntries(race.entries, context(), speedmap);
+  // A race whose label does not pin its grade takes its par from the horses
+  // in it, then rates again against that par.
+  if (PAR_FROM_FIELD > 0 && !labelPinsGrade(race.restrictions, race.name)) {
+    const cls = rated.filter((r) => r.ratings.runs > 0).map((r) => r.ratings.class);
+    if (cls.length >= 4) {
+      points = parFromField(cls.reduce((a, b) => a + b, 0) / cls.length);
+      ({ rated, pace } = rateEntries(race.entries, context(), speedmap));
+    }
+  }
   const ratedByTab = new Map(rated.map((r) => [r.key, r]));
 
   const priced = rateRace(

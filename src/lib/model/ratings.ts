@@ -70,6 +70,32 @@ export function classPoints(restrictions?: string, raceName?: string): number {
 }
 
 /**
+ * Whether a race's label pins its grade down: a benchmark, class, maiden,
+ * group or listed tag. "Open", "Hcp" and the WA and NT codes the parser
+ * does not know all fall to 90, which over the cache sat ten points over
+ * the horses that turned up (a bush "Open Hcp" fields BM66 horses) where a
+ * benchmark label sits two or three over its field.
+ */
+export function labelPinsGrade(restrictions?: string, raceName?: string): boolean {
+  const s = `${restrictions ?? ""} ${raceName ?? ""}`;
+  return /(?:^|\(|\s)(?:bm|benchmark)\s*\d{2,3}|^\d{2,3}[BR+]|(?:^|\(|\s)c\s?[1-6]\b|class\s*[1-6]\b|^g[123]\b|group\s*[123]|^lr\b|listed|^mdn\b|maiden|\bmdn\b|^cb\b/i.test(restrictions ?? "") ||
+    /(?:^|\(|\s)(?:bm|benchmark)\s*\d{2,3}|class\s*[1-6]\b|group\s*[123]|\bg[123]\b|listed|maiden|\bmdn\b/i.test(raceName ?? "") || /group|listed|\bg[123]\b/i.test(s);
+}
+
+/**
+ * Today's par for a race whose label does not pin its grade: the field's
+ * mean class rating plus the points a benchmark race sits over its field,
+ * on our scale. 0 keeps the label's par. Sweep with scripts/sweep-caps.ts.
+ */
+export const PAR_FROM_FIELD = Number(process.env.OVERLAY_PAR_FROM_FIELD ?? 0);
+/** Points a benchmark race's par sits over its field's mean class, on the feed scale: 2 to 3 over the cache. */
+const PAR_OVER_FIELD = 2.5;
+export function parFromField(fieldClass: number): number {
+  // Back from the feed scale onto ours: feed = 56 + 0.4 * points.
+  return Math.round(((fieldClass + PAR_OVER_FIELD - RR_A) / RR_B) * 10) / 10;
+}
+
+/**
  * Three bands from a going string. Form King still prints the old words
  * ("Dead 5", "Slow 6"), so the number decides where one is present: 1-4 good,
  * 5-7 soft, 8-10 heavy.
