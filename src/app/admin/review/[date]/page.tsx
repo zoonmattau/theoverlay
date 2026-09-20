@@ -64,9 +64,12 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
         <div>
           <p className="text-xs uppercase tracking-[0.1em] text-ink-soft font-bold"><Link href="/admin/review" className="underline">Weekly review</Link></p>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">{label(date)}</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            {c.wanted} runners wanted: every NSW and VIC runner plus the ten best bets and ten best lays. {c.fetched} fetched, {c.full} with full benchmarks, {c.partial} partial, {c.missing} to go. {c.credits} credits spent.
-          </p>
+          {/* The tally only matters while there is something left to buy. */}
+          {c.missing > 0 && (
+            <p className="mt-1 text-sm text-ink-soft">
+              {c.wanted} runners wanted: every NSW and VIC runner plus the ten best bets and ten best lays. {c.fetched} fetched, {c.missing} to go, {c.credits} credits spent.
+            </p>
+          )}
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} callsMissing={c.callsMissing} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
