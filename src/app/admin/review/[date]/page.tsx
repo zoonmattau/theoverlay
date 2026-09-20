@@ -11,7 +11,7 @@ import { readPublishedReview } from "@/lib/reviews";
 import { ClickRow } from "../ClickRow";
 import { FetchButton } from "../FetchButton";
 import { PublishButton } from "../PublishButton";
-import { dayLabel as label, finish, gapClass, price, raceLabel, reviewHref, signed, stageOf, unitsClass } from "../shared";
+import { clock, dayLabel as label, EXPECTED_TIP, finish, GAP_TIP, gapClass, L600_TIP, price, raceLabel, reviewHref, settledClass, settledOf, signed, stageOf, tempoClass, tempoOf, TIME_TIP, unitsClass } from "../shared";
 
 export const metadata: Metadata = { title: "Weekly review", robots: { index: false } };
 /** A fetch batch runs for minutes. */
@@ -69,7 +69,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
-          {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
+          {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} callsMissing={c.callsMissing} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
           {c.fetched > 0 && <Link href={`/admin/review/${date}/preview`} className="btn btn-secondary btn-sm">Preview the public review</Link>}
           {c.fetched > 0 && <PublishButton date={date} published={published?.publishedAt} />}
         </div>
@@ -77,7 +77,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
 
       {c.fetched === 0 ? (
         <div className="card text-sm text-ink-soft">
-          Fetch the runs once the meetings are done. NSW, VIC and WA metro benchmarks are complete by Monday; QLD and SA take most of the week, so refetch those later.
+          Fetch the runs once the meetings are done. The calls alone are enough for the bets and lays ledgers; the full fetch adds every NSW and VIC runner for the talking points and meeting stats. NSW, VIC and WA metro benchmarks are complete by Monday; QLD and SA take most of the week, so refetch those later.
         </div>
       ) : (
         <>
@@ -138,30 +138,33 @@ function Ledger({ title, rows, date }: { title: string; rows: LedgerRow[]; date:
           <thead>
             <tr>
               <th>Race</th><th>Horse</th><th>Call</th>
-              <th className="text-right">Edge</th><th className="text-right">Mark</th><th className="text-right">Rated</th><th className="text-right">Market</th><th className="text-right">SP</th>
-              <th>Result</th><th className="text-right">Ran to</th><th className="text-right">Gap</th><th className="text-right">Vs field</th><th className="text-right">Units</th><th>Data</th>
+              <th className="text-right">Edge</th><th className="text-right" title={EXPECTED_TIP}>Expected</th><th className="text-right">Rated</th><th className="text-right">Market</th><th className="text-right">SP</th>
+              <th>Result</th><th className="text-right">Ran to</th><th className="text-right" title={GAP_TIP}>Gap</th><th className="text-right" title={TIME_TIP}>Time</th><th className="text-right" title={L600_TIP}>L600</th><th className="text-right">Units</th><th title="The tempo we mapped, then the one the leader set">Tempo</th><th className="text-right" title="Where we mapped the horse to settle, then where it did">Settled</th><th>Data</th>
             </tr>
           </thead>
           <tbody>
             {rows.map((r) => (
               <ClickRow key={`${r.race.raceId}:${r.runner.tabNumber}`} href={`/admin/review/${date}/${r.race.raceId}`}>
                 <td><Link href={`/admin/review/${date}/${r.race.raceId}`} className="underline">{r.meeting.track} R{r.race.raceNumber}</Link></td>
-                <td className="font-semibold">{r.runner.tabNumber}. {r.runner.horseName}</td>
+                <td className="font-semibold">{r.runner.horseName}</td>
                 <td><Chip tag={r.tag} side={r.side} prime={r.runner.prime} /></td>
                 <td className="text-right nums">{r.runner.edge !== undefined ? `${signed(r.runner.edge * 100, 0)}%` : ""}</td>
-                <td className="text-right nums">{r.runner.ratings.today.toFixed(1)}</td>
+                <td className="text-right nums">{r.expected.toFixed(1)}</td>
                 <td className="text-right nums">{price(r.runner.ratedPrice)}</td>
                 <td className="text-right nums">{price(r.runner.marketPrice)}</td>
                 <td className="text-right nums">{price(r.sp)}</td>
                 <td className="nums">{finish(r)}</td>
                 <td className="text-right nums">{r.ranTo?.toFixed(1) ?? ""}</td>
                 <td className={`text-right nums ${gapClass(r.gap)}`}>{signed(r.gap)}</td>
-                <td className={`text-right nums ${gapClass(r.relGap)}`}>{signed(r.relGap)}</td>
+                <td className="text-right nums">{clock(r.ownTime)}</td>
+                <td className="text-right nums">{r.ownLast600?.toFixed(2) ?? ""}</td>
                 <td className={`text-right nums ${unitsClass(r.units)}`}>{signed(r.units, 2)}</td>
+                <td className={tempoClass(r.reviewed)}>{tempoOf(r.reviewed)}</td>
+                <td className={`text-right nums ${settledClass(r)}`}>{settledOf(r)}</td>
                 <td className="text-ink-soft text-xs">{stageOf(r)}</td>
               </ClickRow>
             ))}
-            {rows.length === 0 && <tr><td colSpan={14} className="text-ink-soft">None on the card.</td></tr>}
+            {rows.length === 0 && <tr><td colSpan={17} className="text-ink-soft">None on the card.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -176,7 +179,7 @@ function Features({ review }: { review: Review }) {
       <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm">
           <thead>
-            <tr><th>Grade</th><th>Race</th><th>Winner</th><th className="text-right">Our #</th><th className="text-right">Ran to</th><th>Our top rated</th><th>Placings, our marks</th><th>Our calls</th><th className="text-right">Units</th><th className="text-right">Strength</th><th className="text-right">Data</th></tr>
+            <tr><th>Grade</th><th>Race</th><th>Winner</th><th className="text-right">Our #</th><th className="text-right">Ran to</th><th>Our top rated</th><th>Placings, expected</th><th>Our calls</th><th className="text-right">Units</th><th className="text-right">Strength</th><th className="text-right">Data</th></tr>
           </thead>
           <tbody>
             {review.features.map((f) => (
@@ -186,11 +189,11 @@ function Features({ review }: { review: Review }) {
                   <Link href={reviewHref(f.race, review.date)} className="underline font-semibold whitespace-nowrap">{raceLabel(f.race)}</Link>
                   <div className="text-xs text-ink-soft">{f.race.race.name}, {f.race.race.distance}m</div>
                 </td>
-                <td className="font-semibold whitespace-nowrap">{f.winner ? `${f.winner.runner.tabNumber}. ${f.winner.runner.horseName}` : "—"}{f.winner?.sp ? <span className="text-ink-soft font-normal"> {price(f.winner.sp)}</span> : ""}</td>
+                <td className="font-semibold whitespace-nowrap">{f.winner ? f.winner.runner.horseName : "—"}{f.winner?.sp ? <span className="text-ink-soft font-normal"> {price(f.winner.sp)}</span> : ""}</td>
                 <td className="text-right nums">{f.winner?.runner.rank ?? <span className="text-ink-soft">out</span>}</td>
                 <td className="text-right nums">{f.winner?.ranTo?.toFixed(1) ?? ""}</td>
-                <td className="whitespace-nowrap">{f.topRated ? <>{f.topRated.runner.horseName} <span className="nums text-ink-soft">{f.topRated.runner.ratings.today.toFixed(1)}</span>, {finish(f.topRated) || "to run"}</> : ""}</td>
-                <td className="text-xs">{f.placings.map((p) => <div key={p.finish} className="whitespace-nowrap">{p.finish}. {p.runner.horseName} <span className="nums text-ink-soft">{p.runner.ratings.today.toFixed(1)}{p.runner.rank ? `, our #${p.runner.rank}` : ""}</span></div>)}</td>
+                <td className="whitespace-nowrap">{f.topRated ? <>{f.topRated.runner.horseName} <span className="nums text-ink-soft">{f.topRated.expected.toFixed(1)}</span>, {finish(f.topRated) || "to run"}</> : ""}</td>
+                <td className="text-xs">{f.placings.map((p) => <div key={p.finish} className="whitespace-nowrap">{p.finish}. {p.runner.horseName} <span className="nums text-ink-soft">{p.expected.toFixed(1)}</span></div>)}</td>
                 <td className="text-xs">{f.calls.length ? f.calls.map((x) => <div key={x.runner.tabNumber} className="whitespace-nowrap">{x.runner.signal === "lay" ? "Lay" : "Bet"} {x.runner.horseName}, {finish(x)}</div>) : <span className="text-ink-soft">none</span>}</td>
                 <td className={`text-right nums ${unitsClass(f.units)}`}>{f.units !== undefined ? signed(f.units, 2) : ""}</td>
                 <td className="text-right nums whitespace-nowrap">{f.race.strength !== undefined ? `${signed(f.race.strength)}L` : ""}</td>
@@ -209,7 +212,6 @@ const KIND_CLASS: Record<string, string> = {
   "under the radar": "badge-back",
   disappointing: "badge-lay",
   improver: "badge-accent",
-  "on the mark": "",
 };
 
 function Talking({ review }: { review: Review }) {
@@ -221,10 +223,11 @@ function Talking({ review }: { review: Review }) {
           <li key={i} className="grid grid-cols-[9.5rem_1fr] gap-3 items-start">
             <span className={`badge ${KIND_CLASS[t.kind] || "badge-muted"} justify-self-start whitespace-nowrap`}>{t.kind}</span>
             <span>
-              {t.text}{" "}
-              <Link href={reviewHref(t.runner.race, review.date)} className="underline text-ink-soft whitespace-nowrap">
-                {raceLabel(t.runner.race)} →
+              <strong>{t.runner.runner.horseName}</strong>,{" "}
+              <Link href={reviewHref(t.runner.race, review.date)} className="underline whitespace-nowrap">
+                {raceLabel(t.runner.race)}
               </Link>
+              . {t.text}
             </span>
           </li>
         ))}
@@ -237,11 +240,11 @@ function Meetings({ review }: { review: Review }) {
   const withData = review.meetings.filter((m) => m.full > 0);
   const without = review.meetings.filter((m) => m.full === 0);
   return (
-    <Section className="mb-4" id="review-meetings" letter="M" title="By meeting" aside="Bias reads the race's par against our marks; vs field is how far runners strayed from their place in our order; fit is how well our order matched the run">
+    <Section className="mb-4" id="review-meetings" letter="M" title="By meeting" aside="How each meeting ran against what we expected, where the winners settled, and how our order matched the run">
       <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm whitespace-nowrap">
           <thead>
-            <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right">Bias</th><th className="text-right">Spread</th><th className="text-right">Vs field</th><th className="text-right">Fit</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
+            <tr><th>Meeting</th><th className="text-right">Races</th><th className="text-right">Benchmarked</th><th className="text-right" title="Mean gap: how the meeting ran against what we expected">Vs expected</th><th className="text-right" title="Mean size of the gap, either way: how far the runs scattered around our expected marks">Scatter</th><th className="text-right" title="Mean size of the gap after the race's own level is taken out">Vs field</th><th className="text-right" title="Correlation of expected with ran to, 1 is perfect">Fit</th><th className="text-right" title="Where the winners settled in the run, on average: 1 is the lead">Winner settled</th><th className="text-right" title="Where the first three home settled in the run, on average">Placed settled</th><th className="text-right">Winner in our four</th><th className="text-right">Top rated won</th><th className="text-right">Top rated placed</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr>
           </thead>
           <tbody>
             {withData.map((m) => {
@@ -255,6 +258,8 @@ function Meetings({ review }: { review: Review }) {
                   <td className="text-right nums">{m.spread?.toFixed(1) ?? ""}</td>
                   <td className="text-right nums">{m.relSpread?.toFixed(1) ?? ""}</td>
                   <td className="text-right nums">{m.fit?.toFixed(2) ?? ""}</td>
+                  <td className="text-right nums">{m.winnerSettled?.toFixed(1) ?? ""}</td>
+                  <td className="text-right nums">{m.placedSettled?.toFixed(1) ?? ""}</td>
                   <td className="text-right nums">{m.resulted ? `${m.winnersInFour}/${m.resulted}` : ""}</td>
                   <td className="text-right nums">{m.resulted ? `${m.topRatedWon}/${m.resulted}` : ""}</td>
                   <td className="text-right nums">{m.resulted ? `${m.topRatedPlaced}/${m.resulted}` : ""}</td>
@@ -325,10 +330,10 @@ function Runs({ title, rows, date, late }: { title: string; rows: (ReviewedRunne
               <td className="font-semibold">{r.runner.horseName}{r.runner.signal ? <span className="text-ink-soft text-xs"> {r.runner.signal === "lay" ? "lay" : "bet"}</span> : ""}</td>
               <td><Link href={reviewHref(r.race, date)} className="underline">{raceLabel(r.race)}</Link></td>
               <td className="nums">{finish(r)}</td>
-              <td className="text-right nums font-semibold">{signed(late ? r.late : r.run?.vsClass)}L{late && r.run?.last600 ? <span className="text-ink-soft font-normal"> {r.run.last600.toFixed(2)}s</span> : ""}</td>
+              <td className="text-right nums font-semibold">{signed(late ? r.late : r.run?.vsClass)}L{late && r.ownLast600 ? <span className="text-ink-soft font-normal"> {r.ownLast600.toFixed(2)}s</span> : ""}</td>
               <td className="text-right nums">{r.ranTo?.toFixed(1) ?? ""}</td>
-              <td className="text-right nums">{r.runner.ratings.today.toFixed(1)}</td>
-              <td className={`text-right nums ${gapClass(r.relGap)}`}>{signed(r.relGap)}</td>
+              <td className="text-right nums">{r.expected.toFixed(1)}</td>
+              <td className={`text-right nums ${gapClass(r.gap)}`}>{signed(r.gap)}</td>
             </ClickRow>
           ))}
           {rows.length === 0 && <tr><td colSpan={7} className="text-ink-soft">Nothing benchmarked yet.</td></tr>}
@@ -366,7 +371,7 @@ function Races({ review }: { review: Review }) {
               <div className="overflow-x-auto py-2">
                 <table className="data-table w-full text-sm whitespace-nowrap">
                   <thead>
-                    <tr><th>Race</th><th>Class</th><th className="text-right">Par</th><th className="text-right">Strength</th><th>Tempo</th><th className="text-right">Leader early</th><th>Winner</th><th className="text-right">Ran to</th><th className="text-right">Bias</th><th className="text-right">Spread</th><th>Our calls</th><th className="text-right">Data</th></tr>
+                    <tr><th>Race</th><th>Class</th><th className="text-right">Par</th><th className="text-right">Strength</th><th>Tempo</th><th className="text-right">Leader early</th><th>Winner</th><th className="text-right">Ran to</th><th className="text-right" title="Mean gap: how the race ran against what we expected">Vs expected</th><th className="text-right" title="How many of the first four home sat in our top four">Our four</th><th>Our calls</th><th className="text-right">Data</th></tr>
                   </thead>
                   <tbody>
                     {races.map((r) => {
@@ -383,7 +388,7 @@ function Races({ review }: { review: Review }) {
                           <td>{winner ? `${winner.runner.tabNumber}. ${winner.runner.horseName}` : ""}{winner?.runner.rank ? <span className="text-ink-soft"> (our #{winner.runner.rank})</span> : ""}</td>
                           <td className="text-right nums">{r.winnerRanTo?.toFixed(1) ?? ""}</td>
                           <td className={`text-right nums ${gapClass(r.bias)}`}>{signed(r.bias)}</td>
-                          <td className="text-right nums">{r.spread?.toFixed(1) ?? ""}</td>
+                          <td className="text-right nums">{r.ourFour !== undefined ? `${r.ourFour}/4` : ""}</td>
                           <td className="text-xs">{ours.map((x) => `${x.runner.signal === "lay" ? "Lay" : "Bet"} ${x.runner.horseName} ${finish(x)}`).join(", ")}</td>
                           <td className="text-right nums">{r.full}/{r.runners.length}</td>
                         </ClickRow>

@@ -87,13 +87,12 @@ export function storylinesOf(review: Review): Storyline[] {
     const r = t.runner;
     const where = `${r.race.meeting.track} R${r.race.race.raceNumber}`;
     const result = r.finish === 1 ? "won" : r.finish ? `ran ${ordinal(r.finish)}${r.margin !== undefined ? `, beaten ${r.margin.toFixed(1)} lengths` : ""}` : "ran";
-    const mark = r.runner.ratings.today.toFixed(1);
+    const mark = r.expected.toFixed(1);
     let text: string | undefined;
-    if (t.kind === "run of the day") text = `${r.runner.horseName} put up the run of the day at ${where}: a run worth ${r.ranTo?.toFixed(1)} on our scale against the ${mark} we had it at, and ${result}${money(r.sp)}.`;
-    else if (t.kind === "under the radar" && r.gap !== undefined) text = `${r.runner.horseName} slipped under the radar at ${where}: ${result}${money(r.sp)}, but the run was worth ${r.ranTo?.toFixed(1)}, ${pts(r.gap)} above our mark. One to follow.`;
-    else if (t.kind === "disappointing" && r.relGap !== undefined) text = `${r.runner.horseName} was the disappointment at ${where}: ${result}${money(r.sp)}, ${pts(r.relGap)} below where we had it against the field.`;
+    if (t.kind === "run of the day") text = `${r.runner.horseName} put up the run of the day at ${where}: a run worth ${r.ranTo?.toFixed(1)} on our scale against the ${mark} we expected, and ${result}${money(r.sp)}.`;
+    else if (t.kind === "under the radar" && r.gap !== undefined) text = `${r.runner.horseName} slipped under the radar at ${where}: ${result}${money(r.sp)}, but the run was worth ${r.ranTo?.toFixed(1)}, ${pts(r.gap)} above what we expected. One to follow.`;
+    else if (t.kind === "disappointing" && r.relGap !== undefined) text = `${r.runner.horseName} was the disappointment at ${where}: ${result}${money(r.sp)}, ${pts(r.relGap)} below its place in our order.`;
     else if (t.kind === "improver" && r.relGap !== undefined) text = `${r.runner.horseName} improved the most on our numbers: ${pts(r.relGap)} above its place in our order at ${where}, and ${result}${money(r.sp)}.`;
-    else if (t.kind === "on the mark") text = t.text;
     if (!text) continue;
     out.push({ kind: t.kind, horse: r.runner.horseName, track: r.race.meeting.track, raceNumber: r.race.race.raceNumber, meetingId: r.race.meeting.meetingId, raceId: r.race.race.raceId, text });
   }
@@ -127,11 +126,11 @@ export function featuresOf(review: Review): FeatureLine[] {
       winnerRank: w?.runner.rank ?? undefined,
       topRated: t?.runner.horseName,
       topRatedFinish: t?.finish,
-      placings: f.placings.map((p) => ({ finish: p.finish!, horse: p.runner.horseName, sp: p.sp, mark: p.runner.ratings.today, rank: p.runner.rank ?? undefined, ranTo: p.ranTo })),
+      placings: f.placings.map((p) => ({ finish: p.finish!, horse: p.runner.horseName, sp: p.sp, mark: p.expected, rank: p.runner.rank ?? undefined, ranTo: p.ranTo })),
       ourFour: f.race.runners
         .filter((x) => x.runner.rank)
         .sort((a, b) => a.runner.rank! - b.runner.rank!)
-        .map((x) => ({ rank: x.runner.rank!, horse: x.runner.horseName, mark: x.runner.ratings.today, ratedPrice: x.runner.ratedPrice, marketPrice: x.runner.marketPrice, finish: x.finish, call: x.runner.signal })),
+        .map((x) => ({ rank: x.runner.rank!, horse: x.runner.horseName, mark: x.expected, ratedPrice: x.runner.ratedPrice, marketPrice: x.runner.marketPrice, finish: x.finish, call: x.runner.signal })),
       calls: f.calls.map((c) => ({ side: c.runner.signal!, horse: c.runner.horseName, marketPrice: c.runner.marketPrice!, finish: c.finish, units: c.finish !== undefined ? settle(c.runner.signal!, c.runner.marketPrice!, c.finish, stakeOf(c.runner)) : undefined })),
       units: f.units,
       text: w ? `${w.runner.horseName} won${money(w.sp)}, ${rankWord}.${top}${ran}${calls}` : "Not run yet.",
@@ -155,7 +154,7 @@ function introOf(date: string, record: DayRecord): string {
   const day = new Date(`${date}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
   const where = record.meetings.length ? ` The clock is in for ${record.meetings.slice(0, -1).join(", ")}${record.meetings.length > 1 ? " and " : ""}${record.meetings.at(-1)}.` : "";
   const units = (n: number) => `${n > 0 ? "+" : ""}${n.toFixed(2)}`;
-  return `${day}, every runner's run against the mark we had it at.${where} The model's calls: ${record.bets} bets for ${units(record.betUnits)} units and ${record.lays} lays for ${units(record.layUnits)}, level stakes.`;
+  return `${day}, every runner's run against what we expected of it.${where} The model's calls: ${record.bets} bets for ${units(record.betUnits)} units and ${record.lays} lays for ${units(record.layUnits)}, level stakes.`;
 }
 
 /** The review as it would be published now, for the admin preview: nothing stored, nothing posted. */

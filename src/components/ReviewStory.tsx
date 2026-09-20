@@ -8,14 +8,12 @@ const KIND_LABEL: Record<Storyline["kind"], string> = {
   "under the radar": "Under the radar",
   disappointing: "The disappointment",
   improver: "The improver",
-  "on the mark": "On the mark",
 };
 const KIND_CLASS: Record<Storyline["kind"], string> = {
   "run of the day": "badge-prime",
   "under the radar": "badge-back",
   disappointing: "badge-lay",
   improver: "badge-accent",
-  "on the mark": "",
 };
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(2)}`;
@@ -33,11 +31,9 @@ export function ReviewStory({ review, full = true }: { review: PublishedReview; 
           <li key={i} className={`card ${s.kind === "run of the day" ? "border-lime bg-lime-soft md:col-span-2" : ""}`}>
             <span className={`badge ${KIND_CLASS[s.kind]}`}>{KIND_LABEL[s.kind]}</span>
             <p className="mt-2 text-sm leading-relaxed">{s.text}</p>
-            {s.kind !== "on the mark" && (
-              <Link href={raceHref(s)} className="mt-2 inline-block text-xs underline text-ink-soft">
-                {s.track} R{s.raceNumber}
-              </Link>
-            )}
+            <Link href={raceHref(s)} className="mt-2 inline-block text-xs underline text-ink-soft">
+              {s.track} R{s.raceNumber}
+            </Link>
           </li>
         ))}
       </ul>
@@ -75,7 +71,7 @@ function Features({ features, raceHref }: { features: FeatureLine[]; raceHref: (
               <div className="overflow-x-auto">
                 <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mb-1">The first three</div>
                 <table className="data-table w-full text-sm">
-                  <thead><tr><th>Fin</th><th>Horse</th><th className="text-right">SP</th><th className="text-right">Our mark</th><th className="text-right">Ran to</th><th className="text-right">Our #</th></tr></thead>
+                  <thead><tr><th>Fin</th><th>Horse</th><th className="text-right">SP</th><th className="text-right">Expected</th><th className="text-right">Ran to</th><th className="text-right">Our #</th></tr></thead>
                   <tbody>
                     {f.placings.map((p) => (
                       <tr key={p.finish}>
@@ -93,7 +89,7 @@ function Features({ features, raceHref }: { features: FeatureLine[]; raceHref: (
               <div className="overflow-x-auto">
                 <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mb-1">Our top four</div>
                 <table className="data-table w-full text-sm">
-                  <thead><tr><th>#</th><th>Horse</th><th className="text-right">Mark</th><th className="text-right">Rated</th><th className="text-right">Market</th><th>Call</th><th>Result</th></tr></thead>
+                  <thead><tr><th>#</th><th>Horse</th><th className="text-right">Expected</th><th className="text-right">Rated</th><th className="text-right">Market</th><th>Call</th><th>Result</th></tr></thead>
                   <tbody>
                     {f.ourFour.map((x) => (
                       <tr key={x.rank}>
