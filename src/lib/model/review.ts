@@ -21,6 +21,14 @@ import { settle } from "@/lib/tips";
 const REVIEW_STATES = new Set(["NSW", "VIC"]);
 /** A length is about a sixth of a second, the convention the standards use too. */
 const SECONDS_PER_LENGTH = 0.167;
+/**
+ * Points a field runs below its class benchmark on average. The benchmark
+ * is a winner's level: over 546 benchmarked runs in 52 races (12 and 19
+ * Sep 2026) winners averaged 0.8 lengths under it, fourth 3.3, the field
+ * 4.6, the same at every field size, trip and grade. A horse marked at the
+ * field's average is expected to run this far under par, not on it.
+ */
+const FIELD_BELOW_BENCHMARK = 4.6;
 const TOP_CALLS = 10;
 /** Starts per second stay under Form King's 300 per 300 s with room for the live poll. */
 const REQUEST_GAP_MS = 1100;
@@ -259,10 +267,11 @@ export interface ReviewedRunner {
   /** Points the run was worth on our scale: class par plus lengths vs class. */
   ranTo?: number;
   /**
-   * What we expected the horse to run to: the race's par plus how far its
-   * mark sat above or below the field's average mark. A three-year-old field
-   * marked in the 80s for a Group 3 at 97 reads against the 97, so the gap
-   * says how the horse ran against the race, not against a scale.
+   * What we expected the horse to run to: the race's par, less the points
+   * a field averages below its benchmark, plus how far the horse's mark sat
+   * above or below the field's average mark. A three-year-old field marked
+   * in the 80s for a Group 3 at 97 reads against the 97, so the gap says
+   * how the horse ran against the race, not against a scale.
    */
   expected: number;
   /** ranTo minus expected. */
@@ -577,7 +586,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
           const run = byRunner.get(key)?.run;
           const placing = race.placings?.find((p) => p.tabNumber === runner.tabNumber);
           const ranTo = run?.vsClass !== undefined ? round1(par + run.vsClass * clockPoints(race.distance)) : undefined;
-          const expected = round1(par + runner.ratings.today - fieldMark);
+          const expected = round1(par - FIELD_BELOW_BENCHMARK + runner.ratings.today - fieldMark);
           const early = firstSection(run);
           const late = lastSection(run);
           const margin = run?.margin ?? placing?.margin;

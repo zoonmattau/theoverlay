@@ -27,7 +27,7 @@ export const settledOf = (x: ReviewedRunner) => `${x.runner.ratings.ppir || "?"}
 /** Tone for a runner's settled position: red when it was three or more places off our map. */
 export const settledClass = (x: ReviewedRunner) => (x.run?.posSettling === undefined || !x.runner.ratings.ppir ? "text-ink-soft" : Math.abs(x.run.posSettling - x.runner.ratings.ppir) >= 3 ? "text-red-700 font-semibold" : "");
 /** How a mark and a gap are read, for the column heads. */
-export const EXPECTED_TIP = "The race's par plus how far the horse's mark sat above or below the field's average mark: what we expected it to run to.";
+export const EXPECTED_TIP = "What we expected the horse to run to: the race's par, less the 4.6 points a field averages below its benchmark, plus how far the horse's mark sat above or below the field's average mark.";
 export const GAP_TIP = "Ran to minus expected, in points. A length is about a point.";
 export const TIME_TIP = "The horse's own time, read off the winner's by the margin at a sixth of a second a length.";
 export const L600_TIP = "The horse's own last 600, read off the winner's clock by how the two ran against the class benchmark over that section. Blank where the feed sent no last 600 for the race.";
