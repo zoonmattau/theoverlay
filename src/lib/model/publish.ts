@@ -1,4 +1,4 @@
-/**
+﻿/**
  * THE COMPLIANCE BOUNDARY.
  *
  * Form King's licence permits publishing our own selections and our own model's
@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { decodeEntities } from "@/lib/format";
-import { classPoints, explain, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
+import { classPoints, explain, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, isJumps, mapOf, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
 
@@ -131,6 +131,8 @@ export function publishRace(
         scratched: e.scratched,
       };
     }),
+    // The fitted rating's spread is its own, so it prices at its own temperature.
+    FITTED ? { temperature: FIT_TEMPERATURE } : {},
   );
   const priceByTab = new Map(priced.runners.map((r) => [r.key, r]));
   // Once the race has jumped the market is over: bookmakers leave quotes up
@@ -509,13 +511,13 @@ const GROUP_ONES = new Set([
   "empire rose stakes", "champions sprint", "champions mile", "myer classic", "william reid stakes", "kennedy oaks",
 ]);
 
-/** "Australian Derby" → "G1"; a feature race the table does not name is undefined. */
+/** "Australian Derby" â†’ "G1"; a feature race the table does not name is undefined. */
 function groupOf(name: string): string | undefined {
   const plain = name.toLowerCase().replace(/^\d(?:,\d)*yo\+?\s+/, "").replace(/\s+/g, " ").trim();
   return GROUP_ONES.has(plain) ? "G1" : undefined;
 }
 
-/** "Midway (Bm72)" → "Bm72", "3yo+ Mdn Plate" → "Mdn", "Australian Derby" → "G1", else the name trimmed. */
+/** "Midway (Bm72)" â†’ "Bm72", "3yo+ Mdn Plate" â†’ "Mdn", "Australian Derby" â†’ "G1", else the name trimmed. */
 function classOf(name?: string): string | undefined {
   if (!name) return undefined;
   const bm = name.match(/\((bm\s?\d+|[^)]*)\)/i);

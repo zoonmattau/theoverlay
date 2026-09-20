@@ -13,7 +13,8 @@
 
 import type { BenchmarkedRun, PastEvent, RaceEntry, Speedmap } from "@/lib/formking/types";
 import { ownClock } from "./standards";
-import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, weightFactor } from "./factors";
+import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, prepStage, weightFactor } from "./factors";
+import fit from "./fit.json";
 import type {
   Factor,
   GoingBand,
@@ -442,7 +443,53 @@ export function rateEntries(
     };
   });
 
+  // The fitted rating: the same pieces, weighted by what predicted a run
+  // against its field over the cache, centred on the field's mean class.
+  if (FITTED) {
+    const withForm = rated.map((x, i) => ({ x, e: live[i] })).filter(({ x }) => x.ratings.runs > 0);
+    if (withForm.length >= 2) {
+      const feats = withForm.map(({ x, e }) => fitFeatures(e, x.ratings, race));
+      const centre = FIT.features.map((_, j) => mean(feats.map((f) => f[j])));
+      const meanClass = mean(withForm.map(({ x }) => x.ratings.class));
+      for (const [i, { x }] of withForm.entries()) {
+        const y = FIT.beta.reduce((a, b, j) => a + (b * (feats[i][j] - centre[j])) / FIT.sd[j], 0);
+        x.ratings.today = round1(meanClass + y);
+      }
+    }
+  }
+
   return { rated, pace };
+}
+
+/**
+ * The rating fitted over the cache (scripts/fit-rating.ts, 20 Sep 2026):
+ * weights on the form's pieces estimated by least squares to predict a
+ * run's beaten margin against its field, on August's races, and tested on
+ * September's. On the test days it explained 13.5% of the run against the
+ * field to the hand-set rating's 10.7%, put a $12+ shot on top in 49 races
+ * where the hand-set rating did in 82, and picked the winner as often. Its
+ * spread is honest, so it prices at its own temperature.
+ */
+export const FITTED = process.env.OVERLAY_FITTED === "1";
+export const FIT_TEMPERATURE: number = Number(process.env.OVERLAY_FIT_TEMPERATURE ?? fit.temperature);
+const FIT = fit as { features: readonly string[]; sd: number[]; beta: number[]; temperature: number };
+
+/** The fitted rating's inputs for one runner, in the fit's feature order. */
+export function fitFeatures(e: RaceEntry, g: RunnerRatings, race: RaceContext): number[] {
+  const runs = recentRuns(e, race.date);
+  const pts = runs.map((p) => runPoints(p, race.classPoints, e.horse.age, race.date));
+  const f = g.factors as Record<string, number>;
+  const best2 = [...pts].sort((a, b) => b - a).slice(0, 2);
+  const v: Record<string, number> = {
+    cls: g.class, last: pts[0] ?? g.class, second: pts[1] ?? pts[0] ?? g.class, best2: best2.length ? mean(best2) : g.class, meanRun: pts.length ? mean(pts) : g.class,
+    trend: pts.length >= 3 ? mean(pts.slice(0, 2)) - mean(pts.slice(2)) : 0,
+    early: g.early - g.class, mid: g.mid - g.class, late: g.late - g.class, pressure: g.pressure - g.class,
+    tempoFit: f.tempo ?? 0, goingFit: f.going ?? 0, distFit: f.distance ?? 0, trackFit: f.track ?? 0,
+    weight: f.weight ?? 0, fresh: f.fresh ?? 0, jockey: f.jockey ?? 0, trainer: f.trainer ?? 0, barrier: f.barrier ?? 0, streak: f.streak ?? 0, shape: f.shape ?? 0, fk: f.market ?? 0,
+    trust: g.trust, runs: g.runs, ppir: g.ppir, lastMargin: runs[0]?.margin ?? 0, daysSince: Math.min(400, e.daysSinceLastRace ?? 30), prep: prepStage(e),
+    ohr: e.benchmarkRating && e.benchmarkRating > 0 ? e.benchmarkRating - race.classPoints : 0,
+  };
+  return FIT.features.map((k) => v[k] ?? 0);
 }
 
 /** The last runs the rating is built on: real races, most recent first. */

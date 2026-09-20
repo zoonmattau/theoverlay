@@ -19,7 +19,10 @@ const races = readdirSync(".formking-cache")
     if (!want) return true;
     const d = new Date(Number(r.date) + 10 * 3600_000);
     const sat = d.getUTCDay() === 6;
-    return want === "midweek" ? !sat : want === "saturday" ? sat : d.toISOString().startsWith(want);
+    const day = d.toISOString().slice(0, 10);
+    // "from:2026-09-11" keeps that day and everything after it: the days a fit never saw.
+    if (want.startsWith("from:")) return day >= want.slice(5);
+    return want === "midweek" ? !sat : want === "saturday" ? sat : day.startsWith(want);
   });
 
 interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
