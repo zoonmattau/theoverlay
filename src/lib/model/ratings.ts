@@ -161,6 +161,13 @@ const CLOCK_FLOOR = Number(process.env.OVERLAY_CLOCK_FLOOR ?? Infinity);
  * Infinity trusts the clock outright.
  */
 const CLOCK_CEILING = Number(process.env.OVERLAY_CLOCK_CEILING ?? 4);
+/**
+ * Share of a run's worth that comes from the beaten margin at full weight
+ * rather than the clock: 0 is the clock alone (with the ceiling), 1 the
+ * margin alone. The fit of 20 Sep 2026 had the margin last start among the
+ * five strongest signals on top of the clock. Sweep with scripts/sweep-caps.ts.
+ */
+const MARGIN_BLEND = Number(process.env.OVERLAY_MARGIN_BLEND ?? 0);
 /** Level for a derby, oaks or guineas with no group tag in its name; 0 leaves it to the official rating. */
 const STAKES_LEVEL = Number(process.env.OVERLAY_STAKES_LEVEL ?? 0);
 /** How far a raced horse's class is pulled toward its current official rating, 0-1. */
@@ -671,7 +678,10 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   // Nor may the clock sit more than CLOCK_CEILING lengths above what the beaten margin says, at full weight.
   const marginFull = r.margin !== undefined ? par - r.margin * clockPoints(r.distance) : Infinity;
   const clockCeiling = r.benchmark && Number.isFinite(CLOCK_CEILING) ? marginFull + CLOCK_CEILING * clockPoints(r.distance) : Infinity;
-  return clamp(Math.min(raw, beatenCap, clockCeiling), par - 25, par + (juvenile ? 8 : 15));
+  const capped = Math.min(raw, beatenCap, clockCeiling);
+  // Part of the run's worth from the margin itself, where we have one.
+  const blended = MARGIN_BLEND > 0 && Number.isFinite(marginFull) ? capped + MARGIN_BLEND * (marginFull - capped) : capped;
+  return clamp(blended, par - 25, par + (juvenile ? 8 : 15));
 }
 
 /** Black type by tradition whatever the name omits. */
