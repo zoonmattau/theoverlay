@@ -4,7 +4,7 @@ import { Section } from "@/components/Section";
 import type { Review, ReviewedRace } from "@/lib/model/review";
 import { settle } from "@/lib/tips";
 import { RaceFetchButton } from "./RaceFetchButton";
-import { clock, EXPECTED_TIP, finish, GAP_TIP, gapClass, L600_TIP, price, RunnerTable, settledClass, settledOf, signed, Tag, tempoClass, tempoOf, TIME_TIP, unitsClass } from "./shared";
+import { clock, EXPECTED_TIP, finish, GAP_TIP, gapClass, L600_TIP, price, RunnerTable, settledClass, settledOf, signed, Tag, tempoClass, TIME_TIP, unitsClass } from "./shared";
 
 function Stat({ label, value, sub, className = "" }: { label: string; value: string; sub?: string; className?: string }) {
   return (
@@ -59,9 +59,10 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
           <RaceFetchButton date={review.date} raceId={raceId} missing={missing} partial={partial} />
         </div>
       )}
-      <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-8 mb-4">
+      <div className="grid gap-3 grid-cols-3 md:grid-cols-5 lg:grid-cols-9 mb-4">
         <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub={r.suspect ? "first three vs class: benchmark suspect, left out of the stats" : "first three vs class"} className={r.suspect ? "text-red-700" : ""} />
-        <Stat label="Tempo" value={tempoOf(r)} sub={r.leaderEarly !== undefined ? `our map, then how it ran: the leader went ${signed(r.leaderEarly)}L against class early` : "our map, then how it ran: no sections timed yet"} className={tempoClass(r)} />
+        <Stat label="Mapped tempo" value={r.race.pace.tempo} sub="before the race" />
+        <Stat label="Ran" value={r.tempo ?? ""} sub={r.leaderEarly !== undefined ? `leader ${signed(r.leaderEarly)}L against class early` : "no sections timed yet"} className={tempoClass(r)} />
         <Stat label="Map" value={r.mapFit !== undefined ? `${r.mapFit.toFixed(1)} off` : ""} sub={r.leaderLed === undefined ? "places off our map on average" : `places off our map on average, ${ourLeader?.runner.horseName ?? "our leader"} ${r.leaderLed ? "led as mapped" : `settled ${ourLeader?.run?.posSettling ?? "?"}`}`} className={r.leaderLed === false ? "text-red-700" : ""} />
         <Stat label="Winner ran to" value={r.winnerRanTo?.toFixed(1) ?? ""} sub={winner ? `${winner.runner.horseName}${winner.runner.rank ? `, our #${winner.runner.rank}` : ", not in our four"}${winner.gap !== undefined ? `, ${signed(winner.gap)} on expected` : ""}` : undefined} />
         <Stat label="Vs expected" value={signed(r.bias)} sub="mean gap: how the race ran against what we expected" className={gapClass(r.bias)} />
