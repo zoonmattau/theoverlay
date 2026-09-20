@@ -488,7 +488,7 @@ function featureRaces(races: ReviewedRace[]): FeatureRace[] {
       const settled = calls.filter((r) => r.finish !== undefined);
       return {
         race,
-        grade: `Group ${m[1]}`,
+        grade: `G${m[1]}`,
         winner,
         topRated,
         placings,
