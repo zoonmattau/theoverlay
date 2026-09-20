@@ -153,9 +153,13 @@ const CLOCK_FLOOR = Number(process.env.OVERLAY_CLOCK_FLOOR ?? Infinity);
  * Lengths the clock may put a run above the full beaten-margin reading of
  * the same run. Every $10+ bet on 19 Sep 2026 rested on one run where the
  * clock said the horse ran well and the margin said it was beaten lengths;
- * the market believes the margin. Infinity trusts the clock.
+ * the market believes the margin. Four from scripts/sweep-caps.ts on the
+ * clean cache, 20 Sep 2026: bets went from -13% to -4% (Saturday -26% to
+ * -16%, midweek +26% to +31%) for five fewer top-pick winners in 921
+ * races; at two the bets gave some back, at nought the rating broke.
+ * Infinity trusts the clock outright.
  */
-const CLOCK_CEILING = Number(process.env.OVERLAY_CLOCK_CEILING ?? Infinity);
+const CLOCK_CEILING = Number(process.env.OVERLAY_CLOCK_CEILING ?? 4);
 /** Level for a derby, oaks or guineas with no group tag in its name; 0 leaves it to the official rating. */
 const STAKES_LEVEL = Number(process.env.OVERLAY_STAKES_LEVEL ?? 0);
 /** How far a raced horse's class is pulled toward its current official rating, 0-1. */
