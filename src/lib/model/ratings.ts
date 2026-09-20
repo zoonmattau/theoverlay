@@ -85,9 +85,11 @@ export function labelPinsGrade(restrictions?: string, raceName?: string): boolea
 /**
  * Today's par for a race whose label does not pin its grade: the field's
  * mean class rating plus the points a benchmark race sits over its field,
- * on our scale. 0 keeps the label's par. Sweep with scripts/sweep-caps.ts.
+ * on our scale. On since 20 Sep 2026: it changes neither the rating nor the
+ * calls, and the par on screen and the review's ran-to stop reading a bush
+ * "Open" as open company. 0 keeps the label's par.
  */
-export const PAR_FROM_FIELD = Number(process.env.OVERLAY_PAR_FROM_FIELD ?? 0);
+export const PAR_FROM_FIELD = Number(process.env.OVERLAY_PAR_FROM_FIELD ?? 1);
 /** Points a benchmark race's par sits over its field's mean class, on the feed scale: 2 to 3 over the cache. */
 const PAR_OVER_FIELD = 2.5;
 export function parFromField(fieldClass: number): number {
