@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The rating model.
  *
  * Turns our benchmark ratings into probabilities and rated prices. This has to
@@ -60,6 +60,20 @@ const SHORT_WEIGHT = Number(process.env.OVERLAY_SHORT_WEIGHT ?? 0.8);
 const FL_POWER = Number(process.env.OVERLAY_FL_POWER ?? 1);
 const SHORT_FROM = 0.25;
 const SHORT_TO = 0.5;
+/**
+ * The same on the bet side for long shots, where the form knows least and
+ * the market most: over the clean cache a horse the form put on top at $12+
+ * won 7% of the time. The bet-side ceiling climbs from the usual one at
+ * LONG_FROM (about $6.70) to LONG_WEIGHT at LONG_TO (about $20) and below.
+ * 0.95 from scripts/sweep-caps.ts on the clean cache, 20 Sep 2026: the
+ * rated price's log loss fell from 0.2809 to 0.2803, under the market's
+ * 0.2807 for the first time; bets 250 at -7% to 204 at -6% (Saturday
+ * still -26%, midweek +37% to +52%), lays 224 at +6% to 162 at +9%. The
+ * usual ceiling turns it off.
+ */
+const LONG_WEIGHT = Number(process.env.OVERLAY_LONG_WEIGHT ?? 0.95);
+const LONG_FROM = 0.15;
+const LONG_TO = 0.05;
 /**
  * A lay is struck on the exchange, not at a bookmaker's best quote, and the
  * exchange price sits above it: over 76 settled lays the Betfair SP ran 12%
@@ -148,7 +162,10 @@ export function rateRace(
     // The lay-side ceiling climbs toward SHORT_WEIGHT as the market's chance climbs toward SHORT_TO.
     const short = Math.min(1, Math.max(0, (market - SHORT_FROM) / (SHORT_TO - SHORT_FROM)));
     const layCeiling = layOutlierWeight + (Math.max(layOutlierWeight, SHORT_WEIGHT) - layOutlierWeight) * short;
-    const base = gap >= 0 ? outlierWeight : layCeiling;
+    // The bet-side ceiling climbs toward LONG_WEIGHT as the market's chance falls toward LONG_TO.
+    const long = Math.min(1, Math.max(0, (LONG_FROM - market) / (LONG_FROM - LONG_TO)));
+    const betCeiling = outlierWeight + (Math.max(outlierWeight, LONG_WEIGHT) - outlierWeight) * long;
+    const base = gap >= 0 ? betCeiling : layCeiling;
     // A rating we cannot trust leans harder on the market, up to NO_TRUST_CEILING with no trust at all.
     const trust = r.trust ?? 1;
     const ceiling = base + Math.max(0, NO_TRUST_CEILING - base) * (1 - trust);

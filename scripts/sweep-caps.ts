@@ -68,3 +68,10 @@ console.log(
   `\n   fav: ${calib(rows.filter((x) => x.fav))}\n   form top: ${calib(rows.filter((x) => x.formTop))}\n   slow-run: ${calib(rows.filter((x) => x.slow))}\n   class drop: ${calib(rows.filter((x) => x.classDrop))}\n   ohr 8+ over par: ${calib(rows.filter((x) => x.ohrAbove))}` +
   `\n   ${bets.length} bets ${betU.toFixed(1)}u (${((100 * betU) / Math.max(1, bets.length)).toFixed(0)}%) | ${lays.length} lays ${layU.toFixed(1)}u (${((100 * layU) / Math.max(1, lays.length)).toFixed(0)}%)`,
 );
+// The bets by market price, so the short end is visible on its own.
+for (const [lo, hi] of [[1, 2], [2, 3], [3, 4], [4, 6], [6, 10], [10, 27]]) {
+  const b = bets.filter((x) => x.market >= lo && x.market < hi);
+  if (!b.length) continue;
+  const u = b.reduce((a, x) => a + (x.won ? x.market - 1 : -1), 0);
+  console.log(`   bets $${lo}-${hi}: ${b.length}, won ${b.filter((x) => x.won).length}, ${u.toFixed(1)}u (${((100 * u) / b.length).toFixed(0)}%)`);
+}
