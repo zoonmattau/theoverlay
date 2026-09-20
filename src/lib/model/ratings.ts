@@ -149,6 +149,13 @@ const CLASS_SHRINK = Number(process.env.OVERLAY_CLASS_SHRINK ?? 1);
  * beaten four; this bounds the clock by the margin. Infinity trusts the clock.
  */
 const CLOCK_FLOOR = Number(process.env.OVERLAY_CLOCK_FLOOR ?? Infinity);
+/**
+ * Lengths the clock may put a run above the full beaten-margin reading of
+ * the same run. Every $10+ bet on 19 Sep 2026 rested on one run where the
+ * clock said the horse ran well and the margin said it was beaten lengths;
+ * the market believes the margin. Infinity trusts the clock.
+ */
+const CLOCK_CEILING = Number(process.env.OVERLAY_CLOCK_CEILING ?? Infinity);
 /** Level for a derby, oaks or guineas with no group tag in its name; 0 leaves it to the official rating. */
 const STAKES_LEVEL = Number(process.env.OVERLAY_STAKES_LEVEL ?? 0);
 /** How far a raced horse's class is pulled toward its current official rating, 0-1. */
@@ -610,7 +617,10 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
       : byMargin;
   // A beaten horse in a race the feed has rated cannot have run above that race by more than the cap.
   const beatenCap = usedRr && (r.finishPosition ?? 1) > 1 ? par + RR_BEATEN_CAP : Infinity;
-  return clamp(Math.min(raw, beatenCap), par - 25, par + (juvenile ? 8 : 15));
+  // Nor may the clock sit more than CLOCK_CEILING lengths above what the beaten margin says, at full weight.
+  const marginFull = r.margin !== undefined ? par - r.margin * clockPoints(r.distance) : Infinity;
+  const clockCeiling = r.benchmark && Number.isFinite(CLOCK_CEILING) ? marginFull + CLOCK_CEILING * clockPoints(r.distance) : Infinity;
+  return clamp(Math.min(raw, beatenCap, clockCeiling), par - 25, par + (juvenile ? 8 : 15));
 }
 
 /** Black type by tradition whatever the name omits. */
