@@ -70,6 +70,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
         </div>
         <div className="flex flex-wrap items-center gap-3">
           {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} callsMissing={c.callsMissing} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
+          {c.fetched > 0 && <Link href={`/admin/review/${date}/story`} className="btn btn-secondary btn-sm">The story, race by race</Link>}
           {c.fetched > 0 && <Link href={`/admin/review/${date}/preview`} className="btn btn-secondary btn-sm">Preview the public review</Link>}
           {c.fetched > 0 && <PublishButton date={date} published={published?.publishedAt} />}
         </div>
