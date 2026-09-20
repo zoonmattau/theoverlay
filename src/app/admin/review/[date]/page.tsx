@@ -30,8 +30,8 @@ export default function Page({ params }: PageProps<"/admin/review/[date]">) {
 /** The sections in page order, for the jump bar. */
 const JUMPS: [string, string][] = [
   ["review-talking", "Talking points"],
-  ["review-features", "Features"],
   ["review-meetings", "By meeting"],
+  ["review-features", "Features"],
   ["review-our-bets", "Bets"],
   ["review-our-lays", "Lays"],
   ["review-ranking", "Strength"],
@@ -90,8 +90,8 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
             ))}
           </nav>
           <Talking review={review} />
-          <Features review={review} />
           <Meetings review={review} />
+          <Features review={review} />
           <Ledger title="Our bets" rows={review.bets} date={date} />
           <Ledger title="Our lays" rows={review.lays} date={date} />
           <Ranking review={review} />
