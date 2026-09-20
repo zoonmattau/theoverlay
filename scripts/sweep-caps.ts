@@ -52,7 +52,8 @@ for (const r of races) {
 }
 const ll = (xs: Row[], p: (x: Row) => number) => -xs.reduce((a, x) => a + Math.log(Math.min(0.999, Math.max(0.001, x.won ? p(x) : 1 - p(x)))), 0) / Math.max(1, xs.length);
 const calib = (xs: Row[]) => `${xs.length} runners, ${xs.filter((x) => x.won).length} won, form said ${xs.reduce((a, x) => a + x.form, 0).toFixed(0)}, market ${xs.reduce((a, x) => a + 1 / x.market, 0).toFixed(0)}`;
-const bets = rows.filter((x) => x.conf >= 0.35 && x.edge >= 0.025 && x.rated >= 0.08 && x.market <= 26);
+const BET_EDGE = Number(process.env.OVERLAY_BET_EDGE ?? 0.025);
+const bets = rows.filter((x) => x.conf >= 0.35 && x.edge >= BET_EDGE && x.rated >= 0.08 && x.market <= 26);
 const LAY = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
 const lays = rows.filter((x) => x.conf >= 0.35 && x.layEdge <= LAY && x.layPrice <= 12);
 const betU = bets.reduce((a, x) => a + (x.won ? x.market - 1 : -1), 0);
