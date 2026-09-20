@@ -93,7 +93,6 @@ async function Story({ params, searchParams }: { params: PageProps<"/admin/revie
           <h1 className="font-display text-3xl font-extrabold tracking-tight">The story of {dayLabel(date)}</h1>
           <p className="mt-1 text-sm text-ink-soft">
             {review.bets.length} bets, {bets.filter((b) => b.units! > 0).length} of {bets.length} won, {signed(sum(bets), 2)}u. {review.lays.length} lays, {lays.filter((l) => l.units! > 0).length} of {lays.length} held, {signed(sum(lays), 2)}u.
-            {" "}{races.length} races to talk about{picked ? ", in the order set for the day" : ": the talking points' races, then the features"}. Each race folds up once you are done with it.
           </p>
         </div>
         <StoryOrder date={date} races={races.map((s) => s.r.race.raceId)} saved={saved.length > 0} />
