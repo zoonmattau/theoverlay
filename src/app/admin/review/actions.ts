@@ -12,12 +12,15 @@ import { publishReview, type PublishedReview } from "@/lib/reviews";
  * One batch of the review's Form King buys for a date, as far as the time
  * budget allows. The button calls again while `remaining` is above zero.
  */
-export async function fetchReview(date: string, refresh = false, scope: FetchScope = "all"): Promise<FetchProgress> {
+export async function fetchReview(date: string, refresh = false, scope: FetchScope = "all", raceId?: string): Promise<FetchProgress> {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) throw new Error("Not allowed.");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error("Bad date.");
-  const progress = await fetchReviewBatch(date, { refresh, scope });
+  if (raceId && !/^[A-Za-z0-9_-]+$/.test(raceId)) throw new Error("Bad race.");
+  const progress = await fetchReviewBatch(date, { refresh, scope, raceId });
   revalidatePath(`/admin/review/${date}`);
+  revalidatePath(`/admin/review/${date}/story`);
+  if (raceId) revalidatePath(`/admin/review/${date}/${raceId}`);
   revalidatePath("/admin/review");
   return progress;
 }

@@ -3,6 +3,7 @@ import { stakeOf } from "@/lib/model/types";
 import { Section } from "@/components/Section";
 import type { Review, ReviewedRace } from "@/lib/model/review";
 import { settle } from "@/lib/tips";
+import { RaceFetchButton } from "./RaceFetchButton";
 import { clock, EXPECTED_TIP, finish, GAP_TIP, gapClass, L600_TIP, price, RunnerTable, settledClass, settledOf, signed, Tag, tempoClass, tempoOf, TIME_TIP, unitsClass } from "./shared";
 
 function Stat({ label, value, sub, className = "" }: { label: string; value: string; sub?: string; className?: string }) {
@@ -36,6 +37,9 @@ export function RaceLine({ r }: { r: ReviewedRace }) {
  */
 export function RaceBody({ review, r, sections = true }: { review: Review; r: ReviewedRace; sections?: boolean }) {
   const raceId = r.race.raceId;
+  const missing = r.runners.filter((x) => x.run === undefined).length;
+  const partial = r.runners.filter((x) => x.run !== undefined && x.run?.stage !== "FULL_SECTIONAL_DATA").length;
+  const resulted = r.runners.some((x) => x.finish !== undefined);
   const winner = r.runners.find((x) => x.finish === 1);
   const topRated = [...r.runners].sort((a, b) => b.runner.ratings.today - a.runner.ratings.today)[0];
   const calls = r.runners.filter((x) => x.runner.signal && x.runner.marketPrice);
@@ -49,6 +53,12 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
 
   return (
     <>
+      {resulted && (missing > 0 || partial > 0) && (
+        <div className="mb-4 text-sm text-ink-soft flex flex-wrap items-center gap-3">
+          <span>{missing > 0 ? `${missing} of ${r.runners.length} runs not bought yet.` : `${partial} of ${r.runners.length} runs without a full benchmark: the time and last 600 are in, the sections are not.`}</span>
+          <RaceFetchButton date={review.date} raceId={raceId} missing={missing} partial={partial} />
+        </div>
+      )}
       <div className="grid gap-3 grid-cols-2 md:grid-cols-4 lg:grid-cols-8 mb-4">
         <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub={r.suspect ? "first three vs class: benchmark suspect, left out of the stats" : "first three vs class"} className={r.suspect ? "text-red-700" : ""} />
         <Stat label="Tempo" value={tempoOf(r)} sub={r.leaderEarly !== undefined ? `we mapped it, then the leader ${signed(r.leaderEarly)}L early` : "we mapped it, nothing timed yet"} className={tempoClass(r)} />

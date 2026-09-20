@@ -204,12 +204,17 @@ export interface FetchProgress {
  * the time budget is spent. With `refresh`, runs bought before the
  * benchmarks were finished are bought again.
  */
-export async function fetchReviewBatch(date: string, opts: { budgetMs?: number; refresh?: boolean; scope?: FetchScope } = {}): Promise<FetchProgress> {
+export async function fetchReviewBatch(date: string, opts: { budgetMs?: number; refresh?: boolean; scope?: FetchScope; raceId?: string } = {}): Promise<FetchProgress> {
   const started = Date.now();
   const budget = opts.budgetMs ?? 240_000;
   const stored = await readStoredCard(date);
   if (!stored) throw new Error(`No card for ${date}.`);
-  const wanted = await resolveIds(wantedRunners(stored.card, opts.scope));
+  // One race on its own buys every runner in it, wanted or not.
+  const wanted = await resolveIds(
+    opts.raceId
+      ? stored.card.meetings.flatMap((m) => m.races.filter((r) => r.raceId === opts.raceId).flatMap((r) => r.runners.filter((x) => !x.scratched).map((x) => ({ meetingId: m.meetingId, raceId: r.raceId, tabNumber: x.tabNumber, horseName: x.horseName, horseId: x.horseId }))))
+      : wantedRunners(stored.card, opts.scope),
+  );
   const have = await readReview(date);
   const known = wanted.filter((w): w is Wanted & { horseId: string } => Boolean(w.horseId));
   const due = known.filter((w) => {
