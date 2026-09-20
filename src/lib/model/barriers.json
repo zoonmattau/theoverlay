@@ -1,0 +1,7772 @@
+{
+ "built": "2026-09-20",
+ "before": "2026-09-11",
+ "k": 150,
+ "runs": 205056,
+ "bands": [
+  1150,
+  1350,
+  1650,
+  2050,
+  null
+ ],
+ "band": {
+  "2|1": 0.054846453710643665,
+  "2|0": 0.2570035249379046,
+  "2|2": -0.30304262072576915,
+  "0|1": 0.04828687998322938,
+  "0|2": -0.25225209223131284,
+  "0|0": 0.20639632597533072,
+  "3|1": 0.05320114319162624,
+  "3|2": -0.29902837327816884,
+  "3|0": 0.26111530350593953,
+  "4|1": -0.008401637897397271,
+  "4|2": -0.25399104863621325,
+  "4|0": 0.26728039150870075,
+  "1|2": -0.30843519251953977,
+  "1|0": 0.25982501401459956,
+  "1|1": 0.047303254491386906
+ },
+ "cells": {
+  "Northam|2|1": {
+   "effect": -0.04,
+   "runs": 1197
+  },
+  "Northam|2|0": {
+   "effect": 0.43,
+   "runs": 1320
+  },
+  "Northam|2|2": {
+   "effect": -0.44,
+   "runs": 1116
+  },
+  "Northam|0|1": {
+   "effect": -0.08,
+   "runs": 1012
+  },
+  "Northam|0|2": {
+   "effect": -0.36,
+   "runs": 925
+  },
+  "Northam|0|0": {
+   "effect": 0.37,
+   "runs": 1142
+  },
+  "Northam|3|1": {
+   "effect": 0.11,
+   "runs": 32
+  },
+  "Northam|3|2": {
+   "effect": -0.37,
+   "runs": 29
+  },
+  "Northam|3|0": {
+   "effect": 0.26,
+   "runs": 35
+  },
+  "Northam|4|1": {
+   "effect": 0,
+   "runs": 271
+  },
+  "Northam|4|2": {
+   "effect": -0.43,
+   "runs": 253
+  },
+  "Northam|4|0": {
+   "effect": 0.38,
+   "runs": 303
+  },
+  "Broome|1|2": {
+   "effect": -0.58,
+   "runs": 357
+  },
+  "Broome|1|0": {
+   "effect": 0.53,
+   "runs": 412
+  },
+  "Broome|1|1": {
+   "effect": 0,
+   "runs": 362
+  },
+  "Broome|2|0": {
+   "effect": 0.84,
+   "runs": 357
+  },
+  "Broome|2|1": {
+   "effect": -0.23,
+   "runs": 320
+  },
+  "Broome|2|2": {
+   "effect": -0.66,
+   "runs": 325
+  },
+  "Broome|3|2": {
+   "effect": -0.53,
+   "runs": 98
+  },
+  "Broome|3|0": {
+   "effect": 0.49,
+   "runs": 114
+  },
+  "Broome|3|1": {
+   "effect": 0.02,
+   "runs": 103
+  },
+  "Belmont Park|1|2": {
+   "effect": -0.41,
+   "runs": 2751
+  },
+  "Belmont Park|1|1": {
+   "effect": 0.04,
+   "runs": 2875
+  },
+  "Belmont Park|1|0": {
+   "effect": 0.32,
+   "runs": 3180
+  },
+  "Belmont Park|0|0": {
+   "effect": 0.39,
+   "runs": 1635
+  },
+  "Belmont Park|0|2": {
+   "effect": -0.39,
+   "runs": 1353
+  },
+  "Belmont Park|0|1": {
+   "effect": -0.06,
+   "runs": 1473
+  },
+  "Belmont Park|2|2": {
+   "effect": -0.24,
+   "runs": 2363
+  },
+  "Belmont Park|2|1": {
+   "effect": -0.12,
+   "runs": 2444
+  },
+  "Belmont Park|2|0": {
+   "effect": 0.32,
+   "runs": 2721
+  },
+  "Belmont Park|3|1": {
+   "effect": -0.24,
+   "runs": 903
+  },
+  "Belmont Park|3|0": {
+   "effect": 0.54,
+   "runs": 985
+  },
+  "Belmont Park|3|2": {
+   "effect": -0.34,
+   "runs": 849
+  },
+  "Pinjarra|0|1": {
+   "effect": 0.14,
+   "runs": 686
+  },
+  "Pinjarra|0|0": {
+   "effect": -0.49,
+   "runs": 771
+  },
+  "Pinjarra|0|2": {
+   "effect": 0.43,
+   "runs": 641
+  },
+  "Pinjarra|2|0": {
+   "effect": 0.28,
+   "runs": 2024
+  },
+  "Pinjarra|2|1": {
+   "effect": -0.11,
+   "runs": 1862
+  },
+  "Pinjarra|2|2": {
+   "effect": -0.2,
+   "runs": 1811
+  },
+  "Pinjarra|4|2": {
+   "effect": -0.03,
+   "runs": 138
+  },
+  "Pinjarra|4|1": {
+   "effect": -0.21,
+   "runs": 141
+  },
+  "Pinjarra|4|0": {
+   "effect": 0.24,
+   "runs": 153
+  },
+  "Pinjarra|3|0": {
+   "effect": 0.1,
+   "runs": 491
+  },
+  "Pinjarra|3|2": {
+   "effect": -0.19,
+   "runs": 446
+  },
+  "Pinjarra|3|1": {
+   "effect": 0.09,
+   "runs": 445
+  },
+  "Pinjarra|1|1": {
+   "effect": 0.17,
+   "runs": 1863
+  },
+  "Pinjarra|1|2": {
+   "effect": -0.44,
+   "runs": 1798
+  },
+  "Pinjarra|1|0": {
+   "effect": 0.24,
+   "runs": 2019
+  },
+  "Belmont Park|4|0": {
+   "effect": 0.3,
+   "runs": 731
+  },
+  "Belmont Park|4|1": {
+   "effect": 0.14,
+   "runs": 657
+  },
+  "Belmont Park|4|2": {
+   "effect": -0.46,
+   "runs": 641
+  },
+  "Carnarvon|1|2": {
+   "effect": -0.03,
+   "runs": 367
+  },
+  "Carnarvon|1|0": {
+   "effect": -0.38,
+   "runs": 427
+  },
+  "Carnarvon|1|1": {
+   "effect": 0.44,
+   "runs": 388
+  },
+  "Carnarvon|0|0": {
+   "effect": -0.02,
+   "runs": 335
+  },
+  "Carnarvon|0|1": {
+   "effect": 0.04,
+   "runs": 307
+  },
+  "Carnarvon|0|2": {
+   "effect": -0.03,
+   "runs": 287
+  },
+  "Carnarvon|2|0": {
+   "effect": -0.36,
+   "runs": 613
+  },
+  "Carnarvon|2|2": {
+   "effect": 0,
+   "runs": 522
+  },
+  "Carnarvon|2|1": {
+   "effect": 0.39,
+   "runs": 557
+  },
+  "Carnarvon|3|1": {
+   "effect": 0.21,
+   "runs": 120
+  },
+  "Carnarvon|3|0": {
+   "effect": -0.26,
+   "runs": 132
+  },
+  "Carnarvon|3|2": {
+   "effect": 0.07,
+   "runs": 113
+  },
+  "Kalgoorlie|1|0": {
+   "effect": 0.35,
+   "runs": 1294
+  },
+  "Kalgoorlie|1|1": {
+   "effect": 0.05,
+   "runs": 1154
+  },
+  "Kalgoorlie|1|2": {
+   "effect": -0.46,
+   "runs": 1093
+  },
+  "Kalgoorlie|2|1": {
+   "effect": -0.04,
+   "runs": 1141
+  },
+  "Kalgoorlie|2|2": {
+   "effect": -0.24,
+   "runs": 1082
+  },
+  "Kalgoorlie|2|0": {
+   "effect": 0.25,
+   "runs": 1241
+  },
+  "Kalgoorlie|0|1": {
+   "effect": 0.11,
+   "runs": 575
+  },
+  "Kalgoorlie|0|2": {
+   "effect": -0.45,
+   "runs": 541
+  },
+  "Kalgoorlie|0|0": {
+   "effect": 0.29,
+   "runs": 649
+  },
+  "Broome|0|0": {
+   "effect": 0.44,
+   "runs": 173
+  },
+  "Broome|0|1": {
+   "effect": -0.08,
+   "runs": 149
+  },
+  "Broome|0|2": {
+   "effect": -0.4,
+   "runs": 148
+  },
+  "Northam|1|0": {
+   "effect": 0.48,
+   "runs": 877
+  },
+  "Northam|1|1": {
+   "effect": 0.02,
+   "runs": 803
+  },
+  "Northam|1|2": {
+   "effect": -0.55,
+   "runs": 760
+  },
+  "Kalgoorlie|3|1": {
+   "effect": 0.1,
+   "runs": 210
+  },
+  "Kalgoorlie|3|0": {
+   "effect": 0.19,
+   "runs": 236
+  },
+  "Kalgoorlie|3|2": {
+   "effect": -0.3,
+   "runs": 212
+  },
+  "Kalgoorlie|4|1": {
+   "effect": 0.01,
+   "runs": 91
+  },
+  "Kalgoorlie|4|0": {
+   "effect": 0.29,
+   "runs": 100
+  },
+  "Kalgoorlie|4|2": {
+   "effect": -0.31,
+   "runs": 81
+  },
+  "Bunbury|1|0": {
+   "effect": 0.28,
+   "runs": 679
+  },
+  "Bunbury|1|2": {
+   "effect": -0.38,
+   "runs": 587
+  },
+  "Bunbury|1|1": {
+   "effect": 0.06,
+   "runs": 624
+  },
+  "Bunbury|3|1": {
+   "effect": -0.16,
+   "runs": 594
+  },
+  "Bunbury|3|2": {
+   "effect": -0.3,
+   "runs": 567
+  },
+  "Bunbury|3|0": {
+   "effect": 0.43,
+   "runs": 642
+  },
+  "Bunbury|4|0": {
+   "effect": 0.34,
+   "runs": 102
+  },
+  "Bunbury|4|1": {
+   "effect": -0.24,
+   "runs": 90
+  },
+  "Bunbury|4|2": {
+   "effect": -0.12,
+   "runs": 85
+  },
+  "Bunbury|0|0": {
+   "effect": 0.41,
+   "runs": 523
+  },
+  "Bunbury|0|2": {
+   "effect": -0.61,
+   "runs": 442
+  },
+  "Bunbury|0|1": {
+   "effect": 0.13,
+   "runs": 469
+  },
+  "Bunbury|2|2": {
+   "effect": -0.38,
+   "runs": 655
+  },
+  "Bunbury|2|0": {
+   "effect": 0.21,
+   "runs": 736
+  },
+  "Bunbury|2|1": {
+   "effect": 0.14,
+   "runs": 672
+  },
+  "Geraldton|1|1": {
+   "effect": -0.18,
+   "runs": 837
+  },
+  "Geraldton|1|0": {
+   "effect": 0.48,
+   "runs": 912
+  },
+  "Geraldton|1|2": {
+   "effect": -0.37,
+   "runs": 749
+  },
+  "Geraldton|2|0": {
+   "effect": 0.14,
+   "runs": 1372
+  },
+  "Geraldton|2|2": {
+   "effect": -0.27,
+   "runs": 1137
+  },
+  "Geraldton|2|1": {
+   "effect": 0.1,
+   "runs": 1235
+  },
+  "Ascot|0|1": {
+   "effect": -0.01,
+   "runs": 1910
+  },
+  "Ascot|0|2": {
+   "effect": -0.2,
+   "runs": 1786
+  },
+  "Ascot|0|0": {
+   "effect": 0.18,
+   "runs": 2150
+  },
+  "Ascot|2|1": {
+   "effect": 0.08,
+   "runs": 3190
+  },
+  "Ascot|2|0": {
+   "effect": 0.26,
+   "runs": 3508
+  },
+  "Ascot|2|2": {
+   "effect": -0.39,
+   "runs": 2976
+  },
+  "Ascot|3|0": {
+   "effect": 0.19,
+   "runs": 884
+  },
+  "Ascot|3|1": {
+   "effect": 0.07,
+   "runs": 811
+  },
+  "Ascot|3|2": {
+   "effect": -0.29,
+   "runs": 756
+  },
+  "Ascot|4|1": {
+   "effect": -0.09,
+   "runs": 751
+  },
+  "Ascot|4|2": {
+   "effect": -0.39,
+   "runs": 702
+  },
+  "Ascot|4|0": {
+   "effect": 0.42,
+   "runs": 833
+  },
+  "Ascot|1|0": {
+   "effect": 0.21,
+   "runs": 2101
+  },
+  "Ascot|1|2": {
+   "effect": -0.32,
+   "runs": 1802
+  },
+  "Ascot|1|1": {
+   "effect": 0.08,
+   "runs": 1901
+  },
+  "Geraldton|3|0": {
+   "effect": -0.13,
+   "runs": 165
+  },
+  "Geraldton|3|2": {
+   "effect": 0.01,
+   "runs": 150
+  },
+  "Geraldton|3|1": {
+   "effect": 0.13,
+   "runs": 155
+  },
+  "Mt Barker|1|1": {
+   "effect": -0.07,
+   "runs": 251
+  },
+  "Mt Barker|1|2": {
+   "effect": -0.37,
+   "runs": 218
+  },
+  "Mt Barker|1|0": {
+   "effect": 0.38,
+   "runs": 276
+  },
+  "Mt Barker|0|1": {
+   "effect": -0.16,
+   "runs": 193
+  },
+  "Mt Barker|0|0": {
+   "effect": 0.33,
+   "runs": 221
+  },
+  "Mt Barker|0|2": {
+   "effect": -0.2,
+   "runs": 182
+  },
+  "York|2|2": {
+   "effect": -0.64,
+   "runs": 203
+  },
+  "York|2|0": {
+   "effect": 0.34,
+   "runs": 230
+  },
+  "York|2|1": {
+   "effect": 0.28,
+   "runs": 207
+  },
+  "York|1|0": {
+   "effect": 0.34,
+   "runs": 383
+  },
+  "York|1|1": {
+   "effect": -0.06,
+   "runs": 346
+  },
+  "York|1|2": {
+   "effect": -0.33,
+   "runs": 314
+  },
+  "York|3|1": {
+   "effect": 0.39,
+   "runs": 149
+  },
+  "York|3|0": {
+   "effect": 0.01,
+   "runs": 164
+  },
+  "York|3|2": {
+   "effect": -0.42,
+   "runs": 137
+  },
+  "Narrogin|0|1": {
+   "effect": 0.01,
+   "runs": 177
+  },
+  "Narrogin|0|2": {
+   "effect": -0.16,
+   "runs": 171
+  },
+  "Narrogin|0|0": {
+   "effect": 0.13,
+   "runs": 208
+  },
+  "Narrogin|1|1": {
+   "effect": 0.07,
+   "runs": 184
+  },
+  "Narrogin|1|2": {
+   "effect": -0.31,
+   "runs": 181
+  },
+  "Narrogin|1|0": {
+   "effect": 0.21,
+   "runs": 227
+  },
+  "Narrogin|3|1": {
+   "effect": 0.03,
+   "runs": 239
+  },
+  "Narrogin|3|0": {
+   "effect": 0.04,
+   "runs": 268
+  },
+  "Narrogin|3|2": {
+   "effect": -0.07,
+   "runs": 232
+  },
+  "Albany|2|0": {
+   "effect": 0.35,
+   "runs": 819
+  },
+  "Albany|2|1": {
+   "effect": 0.04,
+   "runs": 752
+  },
+  "Albany|2|2": {
+   "effect": -0.44,
+   "runs": 699
+  },
+  "Albany|0|1": {
+   "effect": -0.14,
+   "runs": 503
+  },
+  "Albany|0|0": {
+   "effect": 0.42,
+   "runs": 559
+  },
+  "Albany|0|2": {
+   "effect": -0.33,
+   "runs": 463
+  },
+  "York|0|0": {
+   "effect": 0.36,
+   "runs": 172
+  },
+  "York|0|1": {
+   "effect": -0.23,
+   "runs": 155
+  },
+  "York|0|2": {
+   "effect": -0.16,
+   "runs": 134
+  },
+  "Geraldton|0|0": {
+   "effect": 0.34,
+   "runs": 710
+  },
+  "Geraldton|0|2": {
+   "effect": -0.37,
+   "runs": 588
+  },
+  "Geraldton|0|1": {
+   "effect": -0.02,
+   "runs": 643
+  },
+  "Albany|1|1": {
+   "effect": -0.27,
+   "runs": 662
+  },
+  "Albany|1|0": {
+   "effect": 0.23,
+   "runs": 735
+  },
+  "Albany|1|2": {
+   "effect": 0.02,
+   "runs": 605
+  },
+  "Albany|4|0": {
+   "effect": 0.08,
+   "runs": 71
+  },
+  "Albany|4|2": {
+   "effect": -0.22,
+   "runs": 69
+  },
+  "Albany|4|1": {
+   "effect": 0.15,
+   "runs": 63
+  },
+  "Albany|3|0": {
+   "effect": 0.25,
+   "runs": 217
+  },
+  "Albany|3|2": {
+   "effect": -0.33,
+   "runs": 181
+  },
+  "Albany|3|1": {
+   "effect": 0.06,
+   "runs": 196
+  },
+  "Broome|4|0": {
+   "effect": 0.35,
+   "runs": 38
+  },
+  "Broome|4|2": {
+   "effect": 0.07,
+   "runs": 42
+  },
+  "Broome|4|1": {
+   "effect": -0.42,
+   "runs": 35
+  },
+  "Esperance|0|0": {
+   "effect": -0.02,
+   "runs": 313
+  },
+  "Esperance|0|1": {
+   "effect": 0.14,
+   "runs": 284
+  },
+  "Esperance|0|2": {
+   "effect": -0.11,
+   "runs": 273
+  },
+  "Esperance|1|2": {
+   "effect": 0.17,
+   "runs": 451
+  },
+  "Esperance|1|1": {
+   "effect": 0.08,
+   "runs": 498
+  },
+  "Esperance|1|0": {
+   "effect": -0.22,
+   "runs": 534
+  },
+  "Mt Barker|3|0": {
+   "effect": 0.22,
+   "runs": 117
+  },
+  "Mt Barker|3|1": {
+   "effect": 0.14,
+   "runs": 97
+  },
+  "Mt Barker|3|2": {
+   "effect": -0.37,
+   "runs": 96
+  },
+  "Esperance|2|0": {
+   "effect": 0.28,
+   "runs": 576
+  },
+  "Esperance|2|2": {
+   "effect": -0.18,
+   "runs": 488
+  },
+  "Esperance|2|1": {
+   "effect": -0.12,
+   "runs": 530
+  },
+  "Geraldton|4|2": {
+   "effect": -0.19,
+   "runs": 58
+  },
+  "Geraldton|4|0": {
+   "effect": 0.07,
+   "runs": 72
+  },
+  "Geraldton|4|1": {
+   "effect": 0.11,
+   "runs": 64
+  },
+  "Esperance|3|1": {
+   "effect": 0.13,
+   "runs": 109
+  },
+  "Esperance|3|2": {
+   "effect": -0.29,
+   "runs": 104
+  },
+  "Esperance|3|0": {
+   "effect": 0.16,
+   "runs": 114
+  },
+  "Longford|1|2": {
+   "effect": -0.25,
+   "runs": 6
+  },
+  "Longford|1|0": {
+   "effect": 0.27,
+   "runs": 7
+  },
+  "Longford|1|1": {
+   "effect": -0.03,
+   "runs": 6
+  },
+  "Longford|2|1": {
+   "effect": 0.09,
+   "runs": 5
+  },
+  "Longford|2|2": {
+   "effect": -0.25,
+   "runs": 9
+  },
+  "Longford|2|0": {
+   "effect": 0.18,
+   "runs": 6
+  },
+  "King Island|0|0": {
+   "effect": 0.26,
+   "runs": 4
+  },
+  "King Island|0|2": {
+   "effect": -0.22,
+   "runs": 4
+  },
+  "King Island|0|1": {
+   "effect": -0.03,
+   "runs": 4
+  },
+  "Devonport Synthetic|0|0": {
+   "effect": 0.28,
+   "runs": 93
+  },
+  "Devonport Synthetic|0|2": {
+   "effect": -0.12,
+   "runs": 144
+  },
+  "Devonport Synthetic|0|1": {
+   "effect": -0.14,
+   "runs": 84
+  },
+  "Devonport Synthetic|3|2": {
+   "effect": -0.17,
+   "runs": 317
+  },
+  "Devonport Synthetic|3|0": {
+   "effect": 0.2,
+   "runs": 157
+  },
+  "Devonport Synthetic|1|1": {
+   "effect": 0.15,
+   "runs": 161
+  },
+  "Devonport Synthetic|1|2": {
+   "effect": -0.3,
+   "runs": 296
+  },
+  "Devonport Synthetic|1|0": {
+   "effect": 0.26,
+   "runs": 181
+  },
+  "Hobart|0|2": {
+   "effect": -0.07,
+   "runs": 69
+  },
+  "Hobart|0|1": {
+   "effect": 0.14,
+   "runs": 31
+  },
+  "Hobart|2|0": {
+   "effect": 0.24,
+   "runs": 12
+  },
+  "Hobart|2|2": {
+   "effect": -0.39,
+   "runs": 20
+  },
+  "Hobart|2|1": {
+   "effect": 0.18,
+   "runs": 9
+  },
+  "Launceston|2|0": {
+   "effect": 0.3,
+   "runs": 24
+  },
+  "Launceston|2|2": {
+   "effect": -0.36,
+   "runs": 47
+  },
+  "Launceston|2|1": {
+   "effect": 0.12,
+   "runs": 16
+  },
+  "Launceston|1|2": {
+   "effect": -0.15,
+   "runs": 53
+  },
+  "Launceston|1|1": {
+   "effect": -0.08,
+   "runs": 22
+  },
+  "Launceston|4|0": {
+   "effect": 0.15,
+   "runs": 8
+  },
+  "Launceston|4|2": {
+   "effect": -0.15,
+   "runs": 12
+  },
+  "Launceston|4|1": {
+   "effect": 0.01,
+   "runs": 7
+  },
+  "Launceston|0|1": {
+   "effect": -0.08,
+   "runs": 22
+  },
+  "Launceston|0|0": {
+   "effect": 0.31,
+   "runs": 24
+  },
+  "Launceston|0|2": {
+   "effect": -0.21,
+   "runs": 39
+  },
+  "Launceston|1|0": {
+   "effect": 0.26,
+   "runs": 25
+  },
+  "Hobart|0|0": {
+   "effect": -0.05,
+   "runs": 36
+  },
+  "Hobart|3|2": {
+   "effect": -0.26,
+   "runs": 18
+  },
+  "Hobart|3|0": {
+   "effect": 0.24,
+   "runs": 8
+  },
+  "Hobart|3|1": {
+   "effect": 0.05,
+   "runs": 8
+  },
+  "Launceston|3|2": {
+   "effect": -0.33,
+   "runs": 32
+  },
+  "Launceston|3|1": {
+   "effect": 0.17,
+   "runs": 13
+  },
+  "Launceston|3|0": {
+   "effect": 0.21,
+   "runs": 17
+  },
+  "Hobart|1|2": {
+   "effect": -0.33,
+   "runs": 19
+  },
+  "Hobart|1|1": {
+   "effect": 0.03,
+   "runs": 12
+  },
+  "Hobart|1|0": {
+   "effect": 0.32,
+   "runs": 9
+  },
+  "Hobart|4|1": {
+   "effect": -0.05,
+   "runs": 3
+  },
+  "Hobart|4|2": {
+   "effect": -0.16,
+   "runs": 5
+  },
+  "Hobart|4|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Devonport Synthetic|2|2": {
+   "effect": -0.28,
+   "runs": 194
+  },
+  "Devonport Synthetic|2|0": {
+   "effect": 0.39,
+   "runs": 121
+  },
+  "Devonport Synthetic|2|1": {
+   "effect": -0.03,
+   "runs": 110
+  },
+  "Devonport Synthetic|3|1": {
+   "effect": 0.07,
+   "runs": 150
+  },
+  "King Island|2|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "King Island|2|0": {
+   "effect": 0.28,
+   "runs": 1
+  },
+  "King Island|2|2": {
+   "effect": -0.34,
+   "runs": 3
+  },
+  "Doomben|3|0": {
+   "effect": 0.28,
+   "runs": 19
+  },
+  "Doomben|3|2": {
+   "effect": -0.35,
+   "runs": 39
+  },
+  "Doomben|3|1": {
+   "effect": 0.13,
+   "runs": 17
+  },
+  "Toowoomba|1|1": {
+   "effect": -0.02,
+   "runs": 48
+  },
+  "Toowoomba|1|0": {
+   "effect": 0.39,
+   "runs": 50
+  },
+  "Toowoomba|1|2": {
+   "effect": -0.29,
+   "runs": 107
+  },
+  "Ipswich|0|1": {
+   "effect": -0.03,
+   "runs": 17
+  },
+  "Ipswich|0|2": {
+   "effect": -0.09,
+   "runs": 29
+  },
+  "Ipswich|0|0": {
+   "effect": 0.13,
+   "runs": 19
+  },
+  "Ipswich|2|0": {
+   "effect": 0.3,
+   "runs": 25
+  },
+  "Ipswich|2|2": {
+   "effect": -0.37,
+   "runs": 52
+  },
+  "Ipswich|2|1": {
+   "effect": 0.14,
+   "runs": 25
+  },
+  "Sunshine Coast|2|1": {
+   "effect": 0.06,
+   "runs": 34
+  },
+  "Sunshine Coast|2|2": {
+   "effect": -0.17,
+   "runs": 78
+  },
+  "Sunshine Coast|2|0": {
+   "effect": 0.15,
+   "runs": 41
+  },
+  "Doomben|2|2": {
+   "effect": -0.28,
+   "runs": 170
+  },
+  "Doomben|2|0": {
+   "effect": 0.32,
+   "runs": 89
+  },
+  "Doomben|2|1": {
+   "effect": 0.07,
+   "runs": 81
+  },
+  "Townsville|2|1": {
+   "effect": -0.01,
+   "runs": 91
+  },
+  "Townsville|2|2": {
+   "effect": -0.2,
+   "runs": 160
+  },
+  "Townsville|2|0": {
+   "effect": 0.25,
+   "runs": 105
+  },
+  "Eagle Farm|1|0": {
+   "effect": 0.07,
+   "runs": 38
+  },
+  "Eagle Farm|1|2": {
+   "effect": -0.16,
+   "runs": 77
+  },
+  "Eagle Farm|1|1": {
+   "effect": 0.12,
+   "runs": 32
+  },
+  "Mackay|3|1": {
+   "effect": 0.07,
+   "runs": 8
+  },
+  "Mackay|3|0": {
+   "effect": 0.4,
+   "runs": 17
+  },
+  "Mackay|3|2": {
+   "effect": -0.43,
+   "runs": 26
+  },
+  "Sandown Hillside|2|2": {
+   "effect": -0.27,
+   "runs": 293
+  },
+  "Sandown Hillside|2|0": {
+   "effect": 0.09,
+   "runs": 236
+  },
+  "Sandown Hillside|2|1": {
+   "effect": 0.24,
+   "runs": 212
+  },
+  "Sandown Hillside|0|2": {
+   "effect": 0,
+   "runs": 150
+  },
+  "Sandown Hillside|0|1": {
+   "effect": 0.08,
+   "runs": 95
+  },
+  "Sandown Hillside|0|0": {
+   "effect": -0.07,
+   "runs": 112
+  },
+  "Sandown Hillside|3|0": {
+   "effect": 0.1,
+   "runs": 71
+  },
+  "Sandown Hillside|3|2": {
+   "effect": -0.15,
+   "runs": 97
+  },
+  "Sandown Hillside|3|1": {
+   "effect": 0.08,
+   "runs": 71
+  },
+  "Ballarat|1|0": {
+   "effect": 0.37,
+   "runs": 172
+  },
+  "Ballarat|1|2": {
+   "effect": -0.54,
+   "runs": 193
+  },
+  "Ballarat|1|1": {
+   "effect": 0.22,
+   "runs": 145
+  },
+  "Ballarat|0|0": {
+   "effect": 0.67,
+   "runs": 160
+  },
+  "Ballarat|0|2": {
+   "effect": -0.71,
+   "runs": 210
+  },
+  "Ballarat|0|1": {
+   "effect": 0.16,
+   "runs": 142
+  },
+  "Ballarat|2|1": {
+   "effect": -0.3,
+   "runs": 304
+  },
+  "Ballarat|2|0": {
+   "effect": 0.56,
+   "runs": 343
+  },
+  "Ballarat|2|2": {
+   "effect": -0.26,
+   "runs": 386
+  },
+  "Ballarat|3|1": {
+   "effect": -0.01,
+   "runs": 78
+  },
+  "Ballarat|3|0": {
+   "effect": 0.63,
+   "runs": 79
+  },
+  "Ballarat|3|2": {
+   "effect": -0.57,
+   "runs": 94
+  },
+  "Swan Hill|0|0": {
+   "effect": 0.12,
+   "runs": 86
+  },
+  "Swan Hill|0|2": {
+   "effect": -0.18,
+   "runs": 109
+  },
+  "Swan Hill|0|1": {
+   "effect": 0.07,
+   "runs": 83
+  },
+  "Swan Hill|2|1": {
+   "effect": 0.01,
+   "runs": 90
+  },
+  "Swan Hill|2|2": {
+   "effect": -0.3,
+   "runs": 135
+  },
+  "Swan Hill|2|0": {
+   "effect": 0.33,
+   "runs": 103
+  },
+  "Swan Hill|1|2": {
+   "effect": -0.36,
+   "runs": 185
+  },
+  "Swan Hill|1|1": {
+   "effect": 0.08,
+   "runs": 124
+  },
+  "Swan Hill|1|0": {
+   "effect": 0.34,
+   "runs": 140
+  },
+  "Swan Hill|4|1": {
+   "effect": 0.13,
+   "runs": 50
+  },
+  "Swan Hill|4|0": {
+   "effect": 0.11,
+   "runs": 57
+  },
+  "Swan Hill|4|2": {
+   "effect": -0.22,
+   "runs": 68
+  },
+  "Pakenham Synthetic|1|2": {
+   "effect": -0.25,
+   "runs": 31
+  },
+  "Pakenham Synthetic|1|0": {
+   "effect": 0.2,
+   "runs": 18
+  },
+  "Pakenham Synthetic|1|1": {
+   "effect": 0.07,
+   "runs": 17
+  },
+  "Pakenham Synthetic|2|1": {
+   "effect": 0.09,
+   "runs": 31
+  },
+  "Pakenham Synthetic|2|0": {
+   "effect": 0.28,
+   "runs": 38
+  },
+  "Pakenham Synthetic|2|2": {
+   "effect": -0.34,
+   "runs": 48
+  },
+  "Geelong|0|0": {
+   "effect": 0.39,
+   "runs": 154
+  },
+  "Geelong|0|1": {
+   "effect": 0.09,
+   "runs": 131
+  },
+  "Geelong|0|2": {
+   "effect": -0.45,
+   "runs": 170
+  },
+  "Geelong|1|1": {
+   "effect": 0.05,
+   "runs": 309
+  },
+  "Geelong|1|2": {
+   "effect": -0.39,
+   "runs": 391
+  },
+  "Geelong|1|0": {
+   "effect": 0.39,
+   "runs": 338
+  },
+  "Geelong|4|1": {
+   "effect": -0.1,
+   "runs": 119
+  },
+  "Geelong|4|2": {
+   "effect": -0.09,
+   "runs": 138
+  },
+  "Geelong|4|0": {
+   "effect": 0.2,
+   "runs": 126
+  },
+  "Geelong|2|2": {
+   "effect": -0.2,
+   "runs": 293
+  },
+  "Geelong|2|0": {
+   "effect": 0.15,
+   "runs": 243
+  },
+  "Geelong|2|1": {
+   "effect": 0.09,
+   "runs": 212
+  },
+  "Geelong|3|2": {
+   "effect": -0.46,
+   "runs": 190
+  },
+  "Geelong|3|1": {
+   "effect": 0.14,
+   "runs": 139
+  },
+  "Geelong|3|0": {
+   "effect": 0.37,
+   "runs": 159
+  },
+  "Moonee Valley|1|2": {
+   "effect": -0.34,
+   "runs": 233
+  },
+  "Moonee Valley|1|0": {
+   "effect": 0.23,
+   "runs": 213
+  },
+  "Moonee Valley|1|1": {
+   "effect": 0.13,
+   "runs": 185
+  },
+  "Moonee Valley|2|0": {
+   "effect": 0.07,
+   "runs": 185
+  },
+  "Moonee Valley|2|1": {
+   "effect": -0.12,
+   "runs": 152
+  },
+  "Moonee Valley|2|2": {
+   "effect": 0.04,
+   "runs": 197
+  },
+  "Moonee Valley|4|2": {
+   "effect": -0.33,
+   "runs": 71
+  },
+  "Moonee Valley|4|0": {
+   "effect": 0.23,
+   "runs": 63
+  },
+  "Moonee Valley|4|1": {
+   "effect": 0.12,
+   "runs": 57
+  },
+  "Warrnambool|3|2": {
+   "effect": -0.44,
+   "runs": 172
+  },
+  "Warrnambool|3|0": {
+   "effect": 0.38,
+   "runs": 143
+  },
+  "Warrnambool|3|1": {
+   "effect": 0.11,
+   "runs": 139
+  },
+  "Moonee Valley|3|0": {
+   "effect": 0.11,
+   "runs": 109
+  },
+  "Moonee Valley|3|1": {
+   "effect": 0.3,
+   "runs": 94
+  },
+  "Moonee Valley|3|2": {
+   "effect": -0.37,
+   "runs": 119
+  },
+  "Warrnambool|4|2": {
+   "effect": -0.26,
+   "runs": 71
+  },
+  "Warrnambool|4|0": {
+   "effect": 0.67,
+   "runs": 62
+  },
+  "Warrnambool|4|1": {
+   "effect": -0.4,
+   "runs": 57
+  },
+  "Moonee Valley|0|2": {
+   "effect": -0.21,
+   "runs": 144
+  },
+  "Moonee Valley|0|1": {
+   "effect": 0.09,
+   "runs": 111
+  },
+  "Moonee Valley|0|0": {
+   "effect": 0.15,
+   "runs": 126
+  },
+  "Warrnambool|0|2": {
+   "effect": -0.37,
+   "runs": 95
+  },
+  "Warrnambool|0|0": {
+   "effect": 0.13,
+   "runs": 90
+  },
+  "Warrnambool|0|1": {
+   "effect": 0.26,
+   "runs": 78
+  },
+  "Warrnambool|1|1": {
+   "effect": 0.13,
+   "runs": 90
+  },
+  "Warrnambool|1|0": {
+   "effect": 0.15,
+   "runs": 103
+  },
+  "Warrnambool|1|2": {
+   "effect": -0.26,
+   "runs": 107
+  },
+  "Warrnambool|2|1": {
+   "effect": 0.05,
+   "runs": 94
+  },
+  "Warrnambool|2|0": {
+   "effect": 0.12,
+   "runs": 94
+  },
+  "Warrnambool|2|2": {
+   "effect": -0.16,
+   "runs": 113
+  },
+  "Flemington|1|1": {
+   "effect": 0.07,
+   "runs": 143
+  },
+  "Flemington|1|0": {
+   "effect": -0.07,
+   "runs": 144
+  },
+  "Flemington|1|2": {
+   "effect": 0,
+   "runs": 188
+  },
+  "Murtoa|0|1": {
+   "effect": 0.08,
+   "runs": 11
+  },
+  "Murtoa|0|2": {
+   "effect": -0.18,
+   "runs": 15
+  },
+  "Murtoa|0|0": {
+   "effect": 0.11,
+   "runs": 13
+  },
+  "Flemington|0|2": {
+   "effect": 0.06,
+   "runs": 291
+  },
+  "Flemington|0|1": {
+   "effect": -0.02,
+   "runs": 220
+  },
+  "Flemington|0|0": {
+   "effect": -0.05,
+   "runs": 239
+  },
+  "Murtoa|1|0": {
+   "effect": 0.23,
+   "runs": 37
+  },
+  "Murtoa|1|1": {
+   "effect": 0.04,
+   "runs": 36
+  },
+  "Murtoa|1|2": {
+   "effect": -0.26,
+   "runs": 46
+  },
+  "Flemington|3|2": {
+   "effect": -0.33,
+   "runs": 241
+  },
+  "Flemington|3|1": {
+   "effect": 0.35,
+   "runs": 178
+  },
+  "Flemington|3|0": {
+   "effect": 0.04,
+   "runs": 192
+  },
+  "Murtoa|2|2": {
+   "effect": -0.54,
+   "runs": 42
+  },
+  "Murtoa|2|1": {
+   "effect": 0.22,
+   "runs": 25
+  },
+  "Murtoa|2|0": {
+   "effect": 0.36,
+   "runs": 29
+  },
+  "Flemington|2|2": {
+   "effect": -0.07,
+   "runs": 458
+  },
+  "Flemington|2|0": {
+   "effect": 0.12,
+   "runs": 387
+  },
+  "Flemington|2|1": {
+   "effect": -0.04,
+   "runs": 344
+  },
+  "Murtoa|4|2": {
+   "effect": -0.3,
+   "runs": 44
+  },
+  "Murtoa|4|1": {
+   "effect": -0.1,
+   "runs": 31
+  },
+  "Murtoa|4|0": {
+   "effect": 0.42,
+   "runs": 34
+  },
+  "Flemington|4|0": {
+   "effect": 0.15,
+   "runs": 121
+  },
+  "Flemington|4|2": {
+   "effect": -0.05,
+   "runs": 150
+  },
+  "Flemington|4|1": {
+   "effect": -0.09,
+   "runs": 102
+  },
+  "Bendigo|2|2": {
+   "effect": -0.22,
+   "runs": 408
+  },
+  "Bendigo|2|0": {
+   "effect": 0.49,
+   "runs": 335
+  },
+  "Bendigo|2|1": {
+   "effect": -0.24,
+   "runs": 316
+  },
+  "Bendigo|1|2": {
+   "effect": -0.25,
+   "runs": 223
+  },
+  "Bendigo|1|0": {
+   "effect": 0.24,
+   "runs": 188
+  },
+  "Bendigo|1|1": {
+   "effect": 0.03,
+   "runs": 164
+  },
+  "Bendigo|0|2": {
+   "effect": -0.08,
+   "runs": 366
+  },
+  "Bendigo|0|1": {
+   "effect": 0.03,
+   "runs": 266
+  },
+  "Bendigo|0|0": {
+   "effect": 0.07,
+   "runs": 302
+  },
+  "Pakenham Synthetic|0|1": {
+   "effect": 0.08,
+   "runs": 14
+  },
+  "Pakenham Synthetic|0|0": {
+   "effect": 0.11,
+   "runs": 17
+  },
+  "Pakenham Synthetic|0|2": {
+   "effect": -0.17,
+   "runs": 34
+  },
+  "Pakenham Synthetic|4|0": {
+   "effect": 0.28,
+   "runs": 11
+  },
+  "Pakenham Synthetic|4|1": {
+   "effect": 0,
+   "runs": 12
+  },
+  "Pakenham Synthetic|4|2": {
+   "effect": -0.27,
+   "runs": 12
+  },
+  "Mornington|1|1": {
+   "effect": -0.07,
+   "runs": 208
+  },
+  "Mornington|1|0": {
+   "effect": 0.25,
+   "runs": 234
+  },
+  "Mornington|1|2": {
+   "effect": -0.17,
+   "runs": 257
+  },
+  "Mornington|0|2": {
+   "effect": -0.29,
+   "runs": 155
+  },
+  "Mornington|0|1": {
+   "effect": 0.13,
+   "runs": 113
+  },
+  "Mornington|0|0": {
+   "effect": 0.19,
+   "runs": 131
+  },
+  "Mornington|2|1": {
+   "effect": 0.02,
+   "runs": 168
+  },
+  "Mornington|2|0": {
+   "effect": 0.31,
+   "runs": 178
+  },
+  "Mornington|2|2": {
+   "effect": -0.31,
+   "runs": 202
+  },
+  "Mornington|3|2": {
+   "effect": -0.29,
+   "runs": 54
+  },
+  "Mornington|3|1": {
+   "effect": 0.04,
+   "runs": 46
+  },
+  "Mornington|3|0": {
+   "effect": 0.26,
+   "runs": 56
+  },
+  "Sale|0|2": {
+   "effect": -0.25,
+   "runs": 206
+  },
+  "Sale|0|1": {
+   "effect": 0.2,
+   "runs": 147
+  },
+  "Sale|0|0": {
+   "effect": 0.09,
+   "runs": 167
+  },
+  "Sale|2|0": {
+   "effect": 0,
+   "runs": 225
+  },
+  "Sale|2|2": {
+   "effect": -0.21,
+   "runs": 241
+  },
+  "Sale|2|1": {
+   "effect": 0.24,
+   "runs": 194
+  },
+  "Sale|3|1": {
+   "effect": 0.24,
+   "runs": 119
+  },
+  "Sale|3|2": {
+   "effect": -0.2,
+   "runs": 145
+  },
+  "Sale|3|0": {
+   "effect": -0.01,
+   "runs": 119
+  },
+  "Sale|1|0": {
+   "effect": 0.18,
+   "runs": 77
+  },
+  "Sale|1|2": {
+   "effect": -0.36,
+   "runs": 81
+  },
+  "Sale|1|1": {
+   "effect": 0.19,
+   "runs": 72
+  },
+  "Kyneton|1|2": {
+   "effect": -0.25,
+   "runs": 144
+  },
+  "Kyneton|1|1": {
+   "effect": 0.18,
+   "runs": 118
+  },
+  "Kyneton|1|0": {
+   "effect": 0.09,
+   "runs": 127
+  },
+  "Kyneton|2|2": {
+   "effect": -0.46,
+   "runs": 146
+  },
+  "Kyneton|2|0": {
+   "effect": 0.28,
+   "runs": 113
+  },
+  "Kyneton|2|1": {
+   "effect": 0.26,
+   "runs": 105
+  },
+  "Kyneton|3|2": {
+   "effect": -0.28,
+   "runs": 141
+  },
+  "Kyneton|3|1": {
+   "effect": -0.33,
+   "runs": 105
+  },
+  "Kyneton|3|0": {
+   "effect": 0.62,
+   "runs": 117
+  },
+  "Cranbourne|1|2": {
+   "effect": -0.33,
+   "runs": 261
+  },
+  "Cranbourne|1|1": {
+   "effect": -0.21,
+   "runs": 208
+  },
+  "Cranbourne|1|0": {
+   "effect": 0.56,
+   "runs": 225
+  },
+  "Cranbourne|2|2": {
+   "effect": -0.56,
+   "runs": 319
+  },
+  "Cranbourne|2|1": {
+   "effect": 0.24,
+   "runs": 258
+  },
+  "Cranbourne|2|0": {
+   "effect": 0.39,
+   "runs": 282
+  },
+  "Cranbourne|4|1": {
+   "effect": 0.32,
+   "runs": 67
+  },
+  "Cranbourne|4|0": {
+   "effect": 0.02,
+   "runs": 72
+  },
+  "Cranbourne|4|2": {
+   "effect": -0.32,
+   "runs": 76
+  },
+  "Cranbourne|3|1": {
+   "effect": 0.05,
+   "runs": 70
+  },
+  "Cranbourne|3|2": {
+   "effect": -0.53,
+   "runs": 85
+  },
+  "Cranbourne|3|0": {
+   "effect": 0.5,
+   "runs": 78
+  },
+  "Caulfield|3|1": {
+   "effect": -0.07,
+   "runs": 163
+  },
+  "Caulfield|3|0": {
+   "effect": 0.39,
+   "runs": 174
+  },
+  "Caulfield|3|2": {
+   "effect": -0.28,
+   "runs": 221
+  },
+  "Caulfield|1|1": {
+   "effect": 0.08,
+   "runs": 125
+  },
+  "Caulfield|1|0": {
+   "effect": -0.19,
+   "runs": 134
+  },
+  "Caulfield|1|2": {
+   "effect": 0.09,
+   "runs": 180
+  },
+  "Hamilton|0|0": {
+   "effect": 0.13,
+   "runs": 60
+  },
+  "Hamilton|0|1": {
+   "effect": 0.23,
+   "runs": 54
+  },
+  "Hamilton|0|2": {
+   "effect": -0.35,
+   "runs": 58
+  },
+  "Hamilton|2|1": {
+   "effect": 0.06,
+   "runs": 120
+  },
+  "Hamilton|2|0": {
+   "effect": 0.23,
+   "runs": 127
+  },
+  "Hamilton|2|2": {
+   "effect": -0.26,
+   "runs": 146
+  },
+  "Caulfield|4|2": {
+   "effect": -0.38,
+   "runs": 66
+  },
+  "Caulfield|4|0": {
+   "effect": 0.54,
+   "runs": 52
+  },
+  "Caulfield|4|1": {
+   "effect": -0.13,
+   "runs": 47
+  },
+  "Caulfield|0|1": {
+   "effect": 0.09,
+   "runs": 173
+  },
+  "Caulfield|0|0": {
+   "effect": -0.06,
+   "runs": 194
+  },
+  "Caulfield|0|2": {
+   "effect": -0.02,
+   "runs": 241
+  },
+  "Hamilton|4|1": {
+   "effect": -0.02,
+   "runs": 60
+  },
+  "Hamilton|4|2": {
+   "effect": -0.38,
+   "runs": 61
+  },
+  "Hamilton|4|0": {
+   "effect": 0.41,
+   "runs": 61
+  },
+  "Caulfield|2|1": {
+   "effect": 0.17,
+   "runs": 299
+  },
+  "Caulfield|2|0": {
+   "effect": 0.09,
+   "runs": 328
+  },
+  "Caulfield|2|2": {
+   "effect": -0.21,
+   "runs": 409
+  },
+  "Manangatang|2|1": {
+   "effect": 0.04,
+   "runs": 24
+  },
+  "Manangatang|2|0": {
+   "effect": 0.06,
+   "runs": 28
+  },
+  "Manangatang|2|2": {
+   "effect": -0.1,
+   "runs": 28
+  },
+  "Manangatang|1|0": {
+   "effect": 0.25,
+   "runs": 22
+  },
+  "Manangatang|1|2": {
+   "effect": -0.32,
+   "runs": 23
+  },
+  "Manangatang|1|1": {
+   "effect": 0.07,
+   "runs": 17
+  },
+  "Manangatang|3|2": {
+   "effect": -0.27,
+   "runs": 15
+  },
+  "Manangatang|3|1": {
+   "effect": 0.14,
+   "runs": 14
+  },
+  "Manangatang|3|0": {
+   "effect": 0.14,
+   "runs": 16
+  },
+  "Eagle Farm|2|2": {
+   "effect": -0.32,
+   "runs": 110
+  },
+  "Eagle Farm|2|0": {
+   "effect": 0.24,
+   "runs": 63
+  },
+  "Eagle Farm|2|1": {
+   "effect": 0.17,
+   "runs": 51
+  },
+  "Kilmore|2|2": {
+   "effect": -0.39,
+   "runs": 85
+  },
+  "Kilmore|2|0": {
+   "effect": 0.33,
+   "runs": 93
+  },
+  "Kilmore|2|1": {
+   "effect": 0.05,
+   "runs": 84
+  },
+  "Kilmore|1|0": {
+   "effect": 0.2,
+   "runs": 43
+  },
+  "Kilmore|1|2": {
+   "effect": -0.5,
+   "runs": 41
+  },
+  "Kilmore|1|1": {
+   "effect": 0.31,
+   "runs": 40
+  },
+  "Kilmore|0|1": {
+   "effect": 0.07,
+   "runs": 46
+  },
+  "Kilmore|0|2": {
+   "effect": -0.35,
+   "runs": 47
+  },
+  "Kilmore|0|0": {
+   "effect": 0.28,
+   "runs": 49
+  },
+  "Kilmore|3|2": {
+   "effect": -0.34,
+   "runs": 19
+  },
+  "Kilmore|3|0": {
+   "effect": 0.43,
+   "runs": 23
+  },
+  "Kilmore|3|1": {
+   "effect": -0.09,
+   "runs": 18
+  },
+  "Echuca|4|0": {
+   "effect": 0.16,
+   "runs": 41
+  },
+  "Echuca|4|1": {
+   "effect": -0.11,
+   "runs": 33
+  },
+  "Echuca|4|2": {
+   "effect": -0.05,
+   "runs": 47
+  },
+  "Echuca|0|1": {
+   "effect": 0.26,
+   "runs": 91
+  },
+  "Echuca|0|0": {
+   "effect": 0.19,
+   "runs": 94
+  },
+  "Echuca|0|2": {
+   "effect": -0.39,
+   "runs": 128
+  },
+  "Echuca|2|0": {
+   "effect": 0.72,
+   "runs": 144
+  },
+  "Echuca|2|2": {
+   "effect": -0.62,
+   "runs": 175
+  },
+  "Echuca|2|1": {
+   "effect": -0.03,
+   "runs": 130
+  },
+  "Echuca|1|0": {
+   "effect": 0.39,
+   "runs": 114
+  },
+  "Echuca|1|2": {
+   "effect": -0.36,
+   "runs": 150
+  },
+  "Echuca|1|1": {
+   "effect": 0.02,
+   "runs": 117
+  },
+  "Pakenham|3|0": {
+   "effect": 0.23,
+   "runs": 46
+  },
+  "Pakenham|3|2": {
+   "effect": -0.32,
+   "runs": 53
+  },
+  "Pakenham|3|1": {
+   "effect": 0.12,
+   "runs": 40
+  },
+  "Moe|2|1": {
+   "effect": -0.16,
+   "runs": 115
+  },
+  "Moe|2|2": {
+   "effect": -0.13,
+   "runs": 154
+  },
+  "Moe|2|0": {
+   "effect": 0.31,
+   "runs": 121
+  },
+  "Pakenham|2|1": {
+   "effect": 0.28,
+   "runs": 534
+  },
+  "Pakenham|2|2": {
+   "effect": -0.37,
+   "runs": 739
+  },
+  "Pakenham|2|0": {
+   "effect": 0.19,
+   "runs": 557
+  },
+  "Moe|0|2": {
+   "effect": -0.2,
+   "runs": 139
+  },
+  "Moe|0|0": {
+   "effect": 0.08,
+   "runs": 103
+  },
+  "Moe|0|1": {
+   "effect": 0.15,
+   "runs": 95
+  },
+  "Moe|4|0": {
+   "effect": 0.03,
+   "runs": 119
+  },
+  "Moe|4|1": {
+   "effect": 0.16,
+   "runs": 115
+  },
+  "Moe|4|2": {
+   "effect": -0.16,
+   "runs": 144
+  },
+  "Pakenham|1|1": {
+   "effect": 0.28,
+   "runs": 261
+  },
+  "Pakenham|1|0": {
+   "effect": 0.09,
+   "runs": 298
+  },
+  "Pakenham|1|2": {
+   "effect": -0.3,
+   "runs": 359
+  },
+  "Moe|1|2": {
+   "effect": -0.41,
+   "runs": 122
+  },
+  "Moe|1|1": {
+   "effect": 0.12,
+   "runs": 97
+  },
+  "Moe|1|0": {
+   "effect": 0.32,
+   "runs": 101
+  },
+  "Avoca|3|2": {
+   "effect": -0.34,
+   "runs": 35
+  },
+  "Avoca|3|1": {
+   "effect": 0.02,
+   "runs": 23
+  },
+  "Avoca|3|0": {
+   "effect": 0.34,
+   "runs": 32
+  },
+  "Avoca|1|0": {
+   "effect": 0.18,
+   "runs": 61
+  },
+  "Avoca|1|1": {
+   "effect": 0.03,
+   "runs": 56
+  },
+  "Avoca|1|2": {
+   "effect": -0.2,
+   "runs": 76
+  },
+  "Wodonga|0|0": {
+   "effect": 0.08,
+   "runs": 93
+  },
+  "Wodonga|0|1": {
+   "effect": 0,
+   "runs": 87
+  },
+  "Wodonga|0|2": {
+   "effect": -0.07,
+   "runs": 112
+  },
+  "Wodonga|2|0": {
+   "effect": 0.42,
+   "runs": 87
+  },
+  "Wodonga|2|1": {
+   "effect": -0.12,
+   "runs": 85
+  },
+  "Wodonga|2|2": {
+   "effect": -0.27,
+   "runs": 104
+  },
+  "Wodonga|4|1": {
+   "effect": 0.07,
+   "runs": 61
+  },
+  "Wodonga|4|0": {
+   "effect": 0.19,
+   "runs": 64
+  },
+  "Wodonga|4|2": {
+   "effect": -0.26,
+   "runs": 67
+  },
+  "Bendigo|4|0": {
+   "effect": 0.39,
+   "runs": 96
+  },
+  "Bendigo|4|2": {
+   "effect": -0.15,
+   "runs": 126
+  },
+  "Bendigo|4|1": {
+   "effect": -0.23,
+   "runs": 87
+  },
+  "Seymour|1|1": {
+   "effect": 0.13,
+   "runs": 141
+  },
+  "Seymour|1|0": {
+   "effect": 0.01,
+   "runs": 158
+  },
+  "Seymour|1|2": {
+   "effect": -0.11,
+   "runs": 231
+  },
+  "Seymour|2|0": {
+   "effect": -0.03,
+   "runs": 171
+  },
+  "Seymour|2|1": {
+   "effect": 0.42,
+   "runs": 155
+  },
+  "Seymour|2|2": {
+   "effect": -0.32,
+   "runs": 217
+  },
+  "Seymour|3|2": {
+   "effect": -0.15,
+   "runs": 41
+  },
+  "Seymour|3|0": {
+   "effect": -0.06,
+   "runs": 39
+  },
+  "Seymour|3|1": {
+   "effect": 0.23,
+   "runs": 32
+  },
+  "Seymour|0|0": {
+   "effect": -0.02,
+   "runs": 119
+  },
+  "Seymour|0|2": {
+   "effect": -0.21,
+   "runs": 126
+  },
+  "Seymour|0|1": {
+   "effect": 0.24,
+   "runs": 104
+  },
+  "Sunshine Coast|4|1": {
+   "effect": 0.01,
+   "runs": 8
+  },
+  "Sunshine Coast|4|2": {
+   "effect": -0.28,
+   "runs": 20
+  },
+  "Sunshine Coast|4|0": {
+   "effect": 0.29,
+   "runs": 8
+  },
+  "Sunshine Coast|0|2": {
+   "effect": -0.24,
+   "runs": 81
+  },
+  "Sunshine Coast|0|1": {
+   "effect": 0.13,
+   "runs": 44
+  },
+  "Sunshine Coast|0|0": {
+   "effect": 0.16,
+   "runs": 45
+  },
+  "Kyneton|0|1": {
+   "effect": 0.1,
+   "runs": 90
+  },
+  "Kyneton|0|2": {
+   "effect": -0.47,
+   "runs": 113
+  },
+  "Kyneton|0|0": {
+   "effect": 0.4,
+   "runs": 100
+  },
+  "Mornington|4|1": {
+   "effect": 0,
+   "runs": 66
+  },
+  "Mornington|4|0": {
+   "effect": 0.24,
+   "runs": 79
+  },
+  "Mornington|4|2": {
+   "effect": -0.23,
+   "runs": 95
+  },
+  "St Arnaud|3|2": {
+   "effect": -0.32,
+   "runs": 20
+  },
+  "St Arnaud|3|0": {
+   "effect": 0.28,
+   "runs": 14
+  },
+  "St Arnaud|3|1": {
+   "effect": 0.07,
+   "runs": 11
+  },
+  "Yarra Glen|0|2": {
+   "effect": -0.15,
+   "runs": 55
+  },
+  "Yarra Glen|0|1": {
+   "effect": 0.12,
+   "runs": 48
+  },
+  "Yarra Glen|0|0": {
+   "effect": 0.04,
+   "runs": 52
+  },
+  "St Arnaud|0|1": {
+   "effect": -0.07,
+   "runs": 14
+  },
+  "St Arnaud|0|2": {
+   "effect": -0.23,
+   "runs": 17
+  },
+  "St Arnaud|0|0": {
+   "effect": 0.3,
+   "runs": 17
+  },
+  "Yarra Glen|3|2": {
+   "effect": 0.03,
+   "runs": 88
+  },
+  "Yarra Glen|3|1": {
+   "effect": -0.15,
+   "runs": 69
+  },
+  "Yarra Glen|3|0": {
+   "effect": 0.12,
+   "runs": 77
+  },
+  "St Arnaud|2|0": {
+   "effect": 0.25,
+   "runs": 4
+  },
+  "St Arnaud|2|2": {
+   "effect": -0.38,
+   "runs": 9
+  },
+  "St Arnaud|2|1": {
+   "effect": 0.15,
+   "runs": 6
+  },
+  "Yarra Glen|2|2": {
+   "effect": -0.36,
+   "runs": 68
+  },
+  "Yarra Glen|2|1": {
+   "effect": 0.13,
+   "runs": 53
+  },
+  "Yarra Glen|2|0": {
+   "effect": 0.26,
+   "runs": 56
+  },
+  "St Arnaud|1|2": {
+   "effect": -0.3,
+   "runs": 11
+  },
+  "St Arnaud|1|0": {
+   "effect": 0.31,
+   "runs": 11
+  },
+  "St Arnaud|1|1": {
+   "effect": -0.01,
+   "runs": 8
+  },
+  "Yarra Glen|1|2": {
+   "effect": -0.21,
+   "runs": 87
+  },
+  "Yarra Glen|1|1": {
+   "effect": -0.02,
+   "runs": 49
+  },
+  "Yarra Glen|1|0": {
+   "effect": 0.27,
+   "runs": 53
+  },
+  "Collie|1|1": {
+   "effect": 0.12,
+   "runs": 2
+  },
+  "Collie|1|2": {
+   "effect": -0.3,
+   "runs": 2
+  },
+  "Collie|1|0": {
+   "effect": 0.18,
+   "runs": 3
+  },
+  "Collie|0|0": {
+   "effect": 0.08,
+   "runs": 7
+  },
+  "Collie|0|2": {
+   "effect": -0.11,
+   "runs": 5
+  },
+  "Collie|0|1": {
+   "effect": 0.04,
+   "runs": 5
+  },
+  "Collie|2|2": {
+   "effect": -0.09,
+   "runs": 6
+  },
+  "Collie|2|0": {
+   "effect": 0.09,
+   "runs": 7
+  },
+  "Collie|2|1": {
+   "effect": 0.01,
+   "runs": 6
+  },
+  "Collie|3|1": {
+   "effect": 0.04,
+   "runs": 2
+  },
+  "Collie|3|2": {
+   "effect": -0.35,
+   "runs": 2
+  },
+  "Collie|3|0": {
+   "effect": 0.33,
+   "runs": 3
+  },
+  "Sale|4|2": {
+   "effect": -0.36,
+   "runs": 23
+  },
+  "Sale|4|0": {
+   "effect": 0.15,
+   "runs": 20
+  },
+  "Sale|4|1": {
+   "effect": 0.22,
+   "runs": 21
+  },
+  "Benalla|1|1": {
+   "effect": 0.2,
+   "runs": 74
+  },
+  "Benalla|1|0": {
+   "effect": 0.19,
+   "runs": 79
+  },
+  "Benalla|1|2": {
+   "effect": -0.37,
+   "runs": 88
+  },
+  "Benalla|2|2": {
+   "effect": -0.59,
+   "runs": 205
+  },
+  "Benalla|2|0": {
+   "effect": 0.32,
+   "runs": 187
+  },
+  "Benalla|2|1": {
+   "effect": 0.31,
+   "runs": 177
+  },
+  "Benalla|3|0": {
+   "effect": 0.24,
+   "runs": 5
+  },
+  "Benalla|3|2": {
+   "effect": -0.31,
+   "runs": 7
+  },
+  "Benalla|3|1": {
+   "effect": 0.09,
+   "runs": 5
+  },
+  "Benalla|0|0": {
+   "effect": 0.02,
+   "runs": 69
+  },
+  "Benalla|0|2": {
+   "effect": -0.17,
+   "runs": 74
+  },
+  "Benalla|0|1": {
+   "effect": 0.17,
+   "runs": 57
+  },
+  "Mortlake|2|1": {
+   "effect": -0.01,
+   "runs": 3
+  },
+  "Mortlake|2|0": {
+   "effect": 0.31,
+   "runs": 3
+  },
+  "Mortlake|2|2": {
+   "effect": -0.29,
+   "runs": 3
+  },
+  "Mortlake|1|0": {
+   "effect": 0.35,
+   "runs": 11
+  },
+  "Mortlake|1|1": {
+   "effect": -0.1,
+   "runs": 7
+  },
+  "Mortlake|1|2": {
+   "effect": -0.25,
+   "runs": 12
+  },
+  "Pakenham|0|1": {
+   "effect": 0.13,
+   "runs": 128
+  },
+  "Pakenham|0|2": {
+   "effect": -0.49,
+   "runs": 188
+  },
+  "Pakenham|0|0": {
+   "effect": 0.43,
+   "runs": 154
+  },
+  "Mortlake|0|2": {
+   "effect": -0.2,
+   "runs": 8
+  },
+  "Mortlake|0|1": {
+   "effect": -0.08,
+   "runs": 9
+  },
+  "Mortlake|0|0": {
+   "effect": 0.29,
+   "runs": 10
+  },
+  "Mortlake|3|1": {
+   "effect": 0.05,
+   "runs": 3
+  },
+  "Mortlake|3|0": {
+   "effect": 0.24,
+   "runs": 3
+  },
+  "Mortlake|3|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Ballarat|4|2": {
+   "effect": -0.22,
+   "runs": 60
+  },
+  "Ballarat|4|0": {
+   "effect": 0.08,
+   "runs": 57
+  },
+  "Ballarat|4|1": {
+   "effect": 0.15,
+   "runs": 49
+  },
+  "Hamilton|1|0": {
+   "effect": 0.45,
+   "runs": 27
+  },
+  "Hamilton|1|2": {
+   "effect": -0.32,
+   "runs": 30
+  },
+  "Hamilton|1|1": {
+   "effect": -0.13,
+   "runs": 22
+  },
+  "Ararat|1|1": {
+   "effect": 0.04,
+   "runs": 81
+  },
+  "Ararat|1|0": {
+   "effect": 0.46,
+   "runs": 87
+  },
+  "Ararat|1|2": {
+   "effect": -0.49,
+   "runs": 96
+  },
+  "Ararat|0|2": {
+   "effect": -0.39,
+   "runs": 93
+  },
+  "Ararat|0|0": {
+   "effect": 0.34,
+   "runs": 86
+  },
+  "Ararat|0|1": {
+   "effect": 0.06,
+   "runs": 74
+  },
+  "Ararat|2|0": {
+   "effect": 0.25,
+   "runs": 62
+  },
+  "Ararat|2|2": {
+   "effect": -0.52,
+   "runs": 68
+  },
+  "Ararat|2|1": {
+   "effect": 0.31,
+   "runs": 48
+  },
+  "Ararat|4|0": {
+   "effect": 0.28,
+   "runs": 65
+  },
+  "Ararat|4|2": {
+   "effect": -0.3,
+   "runs": 64
+  },
+  "Ararat|4|1": {
+   "effect": 0.02,
+   "runs": 59
+  },
+  "Ipswich|3|2": {
+   "effect": -0.36,
+   "runs": 46
+  },
+  "Ipswich|3|0": {
+   "effect": 0.35,
+   "runs": 29
+  },
+  "Ipswich|3|1": {
+   "effect": 0.06,
+   "runs": 18
+  },
+  "Dunkeld|0|0": {
+   "effect": 0.34,
+   "runs": 12
+  },
+  "Dunkeld|0|2": {
+   "effect": -0.42,
+   "runs": 12
+  },
+  "Dunkeld|0|1": {
+   "effect": 0.08,
+   "runs": 10
+  },
+  "Dunkeld|1|0": {
+   "effect": 0.28,
+   "runs": 16
+  },
+  "Dunkeld|1|1": {
+   "effect": 0.01,
+   "runs": 13
+  },
+  "Dunkeld|1|2": {
+   "effect": -0.3,
+   "runs": 13
+  },
+  "Dunkeld|3|1": {
+   "effect": 0.01,
+   "runs": 12
+  },
+  "Dunkeld|3|0": {
+   "effect": 0.35,
+   "runs": 12
+  },
+  "Dunkeld|3|2": {
+   "effect": -0.35,
+   "runs": 11
+  },
+  "Donald|2|2": {
+   "effect": -0.58,
+   "runs": 128
+  },
+  "Donald|2|1": {
+   "effect": 0.13,
+   "runs": 101
+  },
+  "Donald|2|0": {
+   "effect": 0.49,
+   "runs": 114
+  },
+  "Donald|4|1": {
+   "effect": -0.11,
+   "runs": 20
+  },
+  "Donald|4|2": {
+   "effect": -0.26,
+   "runs": 28
+  },
+  "Donald|4|0": {
+   "effect": 0.37,
+   "runs": 23
+  },
+  "Donald|1|0": {
+   "effect": 0.51,
+   "runs": 48
+  },
+  "Donald|1|1": {
+   "effect": -0.09,
+   "runs": 49
+  },
+  "Donald|1|2": {
+   "effect": -0.4,
+   "runs": 58
+  },
+  "Bairnsdale|2|1": {
+   "effect": 0.11,
+   "runs": 71
+  },
+  "Bairnsdale|2|0": {
+   "effect": 0.2,
+   "runs": 78
+  },
+  "Bairnsdale|2|2": {
+   "effect": -0.29,
+   "runs": 82
+  },
+  "Bairnsdale|1|2": {
+   "effect": -0.15,
+   "runs": 118
+  },
+  "Bairnsdale|1|1": {
+   "effect": -0.01,
+   "runs": 82
+  },
+  "Bairnsdale|1|0": {
+   "effect": 0.17,
+   "runs": 98
+  },
+  "Bairnsdale|0|1": {
+   "effect": 0.13,
+   "runs": 55
+  },
+  "Bairnsdale|0|2": {
+   "effect": -0.23,
+   "runs": 64
+  },
+  "Bairnsdale|0|0": {
+   "effect": 0.11,
+   "runs": 59
+  },
+  "Bairnsdale|4|2": {
+   "effect": -0.38,
+   "runs": 38
+  },
+  "Bairnsdale|4|1": {
+   "effect": 0.24,
+   "runs": 27
+  },
+  "Bairnsdale|4|0": {
+   "effect": 0.16,
+   "runs": 33
+  },
+  "Sandown Lakeside|2|1": {
+   "effect": 0.08,
+   "runs": 161
+  },
+  "Sandown Lakeside|2|2": {
+   "effect": -0.18,
+   "runs": 239
+  },
+  "Sandown Lakeside|2|0": {
+   "effect": 0.14,
+   "runs": 184
+  },
+  "Sandown Lakeside|1|2": {
+   "effect": -0.28,
+   "runs": 193
+  },
+  "Sandown Lakeside|1|1": {
+   "effect": 0.09,
+   "runs": 135
+  },
+  "Sandown Lakeside|1|0": {
+   "effect": 0.22,
+   "runs": 159
+  },
+  "Sandown Lakeside|4|2": {
+   "effect": -0.22,
+   "runs": 88
+  },
+  "Sandown Lakeside|4|1": {
+   "effect": 0.34,
+   "runs": 58
+  },
+  "Sandown Lakeside|4|0": {
+   "effect": -0.08,
+   "runs": 69
+  },
+  "Wodonga|1|1": {
+   "effect": 0.02,
+   "runs": 82
+  },
+  "Wodonga|1|0": {
+   "effect": 0.24,
+   "runs": 86
+  },
+  "Wodonga|1|2": {
+   "effect": -0.24,
+   "runs": 110
+  },
+  "Tatura|2|2": {
+   "effect": -0.31,
+   "runs": 64
+  },
+  "Tatura|2|0": {
+   "effect": 0.39,
+   "runs": 64
+  },
+  "Tatura|2|1": {
+   "effect": -0.07,
+   "runs": 60
+  },
+  "Tatura|0|0": {
+   "effect": 0.26,
+   "runs": 29
+  },
+  "Tatura|0|2": {
+   "effect": -0.3,
+   "runs": 27
+  },
+  "Tatura|3|1": {
+   "effect": 0.24,
+   "runs": 26
+  },
+  "Tatura|3|0": {
+   "effect": 0.23,
+   "runs": 30
+  },
+  "Tatura|3|2": {
+   "effect": -0.45,
+   "runs": 32
+  },
+  "Cranbourne|0|2": {
+   "effect": -0.35,
+   "runs": 167
+  },
+  "Cranbourne|0|1": {
+   "effect": 0.2,
+   "runs": 134
+  },
+  "Cranbourne|0|0": {
+   "effect": 0.18,
+   "runs": 153
+  },
+  "Toowoomba|4|2": {
+   "effect": -0.06,
+   "runs": 6
+  },
+  "Toowoomba|4|0": {
+   "effect": 0.01,
+   "runs": 7
+  },
+  "Toowoomba|4|1": {
+   "effect": 0.05,
+   "runs": 4
+  },
+  "Ipswich|1|2": {
+   "effect": -0.27,
+   "runs": 22
+  },
+  "Ipswich|1|0": {
+   "effect": 0.32,
+   "runs": 14
+  },
+  "Wangaratta|1|2": {
+   "effect": -0.19,
+   "runs": 171
+  },
+  "Wangaratta|1|0": {
+   "effect": 0.19,
+   "runs": 142
+  },
+  "Wangaratta|1|1": {
+   "effect": 0.02,
+   "runs": 128
+  },
+  "Wangaratta|2|1": {
+   "effect": 0.43,
+   "runs": 137
+  },
+  "Wangaratta|2|2": {
+   "effect": -0.29,
+   "runs": 190
+  },
+  "Wangaratta|2|0": {
+   "effect": -0.08,
+   "runs": 151
+  },
+  "Wangaratta|3|1": {
+   "effect": 0.24,
+   "runs": 58
+  },
+  "Wangaratta|3|2": {
+   "effect": -0.26,
+   "runs": 76
+  },
+  "Wangaratta|3|0": {
+   "effect": 0.05,
+   "runs": 65
+  },
+  "Wangaratta|0|2": {
+   "effect": -0.32,
+   "runs": 119
+  },
+  "Wangaratta|0|0": {
+   "effect": 0.25,
+   "runs": 100
+  },
+  "Wangaratta|0|1": {
+   "effect": 0.09,
+   "runs": 97
+  },
+  "Traralgon|3|1": {
+   "effect": 0.12,
+   "runs": 16
+  },
+  "Traralgon|3|0": {
+   "effect": 0.44,
+   "runs": 14
+  },
+  "Traralgon|3|2": {
+   "effect": -0.53,
+   "runs": 18
+  },
+  "Traralgon|2|2": {
+   "effect": -0.54,
+   "runs": 19
+  },
+  "Traralgon|2|1": {
+   "effect": 0.02,
+   "runs": 16
+  },
+  "Traralgon|2|0": {
+   "effect": 0.52,
+   "runs": 20
+  },
+  "Werribee|4|0": {
+   "effect": 0.35,
+   "runs": 30
+  },
+  "Werribee|4|2": {
+   "effect": -0.42,
+   "runs": 37
+  },
+  "Werribee|4|1": {
+   "effect": 0.09,
+   "runs": 28
+  },
+  "Traralgon|0|1": {
+   "effect": 0.04,
+   "runs": 21
+  },
+  "Traralgon|0|2": {
+   "effect": -0.36,
+   "runs": 27
+  },
+  "Traralgon|0|0": {
+   "effect": 0.34,
+   "runs": 19
+  },
+  "Werribee|0|0": {
+   "effect": 0.17,
+   "runs": 68
+  },
+  "Werribee|0|2": {
+   "effect": -0.35,
+   "runs": 69
+  },
+  "Werribee|0|1": {
+   "effect": 0.2,
+   "runs": 59
+  },
+  "Werribee|2|2": {
+   "effect": -0.32,
+   "runs": 122
+  },
+  "Werribee|2|1": {
+   "effect": 0.28,
+   "runs": 98
+  },
+  "Werribee|2|0": {
+   "effect": 0.07,
+   "runs": 107
+  },
+  "Colac|2|1": {
+   "effect": 0.04,
+   "runs": 11
+  },
+  "Colac|2|2": {
+   "effect": -0.31,
+   "runs": 19
+  },
+  "Colac|2|0": {
+   "effect": 0.29,
+   "runs": 13
+  },
+  "Colac|0|1": {
+   "effect": -0.07,
+   "runs": 22
+  },
+  "Colac|0|2": {
+   "effect": -0.23,
+   "runs": 23
+  },
+  "Colac|0|0": {
+   "effect": 0.3,
+   "runs": 23
+  },
+  "Benalla|4|0": {
+   "effect": 0.22,
+   "runs": 40
+  },
+  "Benalla|4|2": {
+   "effect": -0.31,
+   "runs": 43
+  },
+  "Benalla|4|1": {
+   "effect": 0.09,
+   "runs": 36
+  },
+  "Colac|1|2": {
+   "effect": -0.29,
+   "runs": 24
+  },
+  "Colac|1|0": {
+   "effect": 0.3,
+   "runs": 24
+  },
+  "Colac|1|1": {
+   "effect": -0.02,
+   "runs": 22
+  },
+  "Colac|3|0": {
+   "effect": 0.34,
+   "runs": 20
+  },
+  "Colac|3|1": {
+   "effect": 0.06,
+   "runs": 20
+  },
+  "Colac|3|2": {
+   "effect": -0.38,
+   "runs": 25
+  },
+  "Mackay|0|2": {
+   "effect": -0.07,
+   "runs": 22
+  },
+  "Mackay|0|0": {
+   "effect": 0.08,
+   "runs": 5
+  },
+  "Mackay|0|1": {
+   "effect": -0.01,
+   "runs": 9
+  },
+  "Toowoomba|3|2": {
+   "effect": -0.12,
+   "runs": 28
+  },
+  "Toowoomba|3|0": {
+   "effect": 0.12,
+   "runs": 11
+  },
+  "Toowoomba|3|1": {
+   "effect": 0.03,
+   "runs": 12
+  },
+  "Horsham|0|1": {
+   "effect": 0.15,
+   "runs": 31
+  },
+  "Horsham|0|2": {
+   "effect": -0.29,
+   "runs": 36
+  },
+  "Horsham|0|0": {
+   "effect": 0.15,
+   "runs": 35
+  },
+  "Horsham|2|2": {
+   "effect": -0.26,
+   "runs": 54
+  },
+  "Horsham|2|1": {
+   "effect": 0.08,
+   "runs": 38
+  },
+  "Horsham|2|0": {
+   "effect": 0.2,
+   "runs": 46
+  },
+  "Horsham|3|0": {
+   "effect": 0.08,
+   "runs": 41
+  },
+  "Horsham|3|1": {
+   "effect": 0.16,
+   "runs": 39
+  },
+  "Horsham|3|2": {
+   "effect": -0.22,
+   "runs": 48
+  },
+  "Horsham|1|0": {
+   "effect": 0.38,
+   "runs": 23
+  },
+  "Horsham|1|1": {
+   "effect": -0.06,
+   "runs": 17
+  },
+  "Horsham|1|2": {
+   "effect": -0.32,
+   "runs": 25
+  },
+  "Terang|0|0": {
+   "effect": 0.23,
+   "runs": 38
+  },
+  "Terang|0|2": {
+   "effect": -0.36,
+   "runs": 40
+  },
+  "Terang|0|1": {
+   "effect": 0.13,
+   "runs": 36
+  },
+  "Terang|1|2": {
+   "effect": -0.32,
+   "runs": 62
+  },
+  "Terang|1|0": {
+   "effect": 0.42,
+   "runs": 47
+  },
+  "Terang|1|1": {
+   "effect": -0.07,
+   "runs": 40
+  },
+  "Terang|2|2": {
+   "effect": -0.15,
+   "runs": 148
+  },
+  "Terang|2|0": {
+   "effect": 0.26,
+   "runs": 117
+  },
+  "Terang|2|1": {
+   "effect": -0.1,
+   "runs": 101
+  },
+  "Terang|3|2": {
+   "effect": -0.37,
+   "runs": 23
+  },
+  "Terang|3|0": {
+   "effect": 0.25,
+   "runs": 25
+  },
+  "Terang|3|1": {
+   "effect": 0.13,
+   "runs": 23
+  },
+  "Seymour|4|0": {
+   "effect": 0.38,
+   "runs": 13
+  },
+  "Seymour|4|2": {
+   "effect": -0.31,
+   "runs": 14
+  },
+  "Seymour|4|1": {
+   "effect": -0.06,
+   "runs": 11
+  },
+  "Nhill|3|2": {
+   "effect": -0.27,
+   "runs": 18
+  },
+  "Nhill|3|1": {
+   "effect": 0.05,
+   "runs": 13
+  },
+  "Nhill|3|0": {
+   "effect": 0.24,
+   "runs": 13
+  },
+  "Nhill|1|0": {
+   "effect": 0.26,
+   "runs": 10
+  },
+  "Nhill|1|2": {
+   "effect": -0.33,
+   "runs": 10
+  },
+  "Nhill|1|1": {
+   "effect": 0.08,
+   "runs": 8
+  },
+  "Nhill|0|2": {
+   "effect": -0.26,
+   "runs": 6
+  },
+  "Nhill|0|0": {
+   "effect": 0.25,
+   "runs": 4
+  },
+  "Nhill|0|1": {
+   "effect": 0.01,
+   "runs": 2
+  },
+  "Nhill|4|2": {
+   "effect": -0.25,
+   "runs": 6
+  },
+  "Nhill|4|0": {
+   "effect": 0.24,
+   "runs": 2
+  },
+  "Nhill|4|1": {
+   "effect": 0.02,
+   "runs": 1
+  },
+  "Stony Creek|4|2": {
+   "effect": -0.21,
+   "runs": 58
+  },
+  "Stony Creek|4|0": {
+   "effect": 0.25,
+   "runs": 46
+  },
+  "Stony Creek|4|1": {
+   "effect": -0.02,
+   "runs": 42
+  },
+  "Stony Creek|3|0": {
+   "effect": 0.17,
+   "runs": 17
+  },
+  "Stony Creek|3|2": {
+   "effect": -0.27,
+   "runs": 15
+  },
+  "Stony Creek|3|1": {
+   "effect": 0.11,
+   "runs": 16
+  },
+  "Stony Creek|0|0": {
+   "effect": 0.39,
+   "runs": 86
+  },
+  "Stony Creek|0|1": {
+   "effect": 0.28,
+   "runs": 78
+  },
+  "Stony Creek|0|2": {
+   "effect": -0.65,
+   "runs": 91
+  },
+  "Kerang|3|1": {
+   "effect": -0.14,
+   "runs": 19
+  },
+  "Kerang|3|2": {
+   "effect": -0.25,
+   "runs": 21
+  },
+  "Kerang|3|0": {
+   "effect": 0.4,
+   "runs": 22
+  },
+  "Kerang|2|1": {
+   "effect": 0.09,
+   "runs": 10
+  },
+  "Kerang|2|2": {
+   "effect": -0.38,
+   "runs": 15
+  },
+  "Kerang|2|0": {
+   "effect": 0.3,
+   "runs": 13
+  },
+  "Kerang|0|2": {
+   "effect": -0.2,
+   "runs": 36
+  },
+  "Kerang|0|1": {
+   "effect": 0.07,
+   "runs": 31
+  },
+  "Kerang|0|0": {
+   "effect": 0.14,
+   "runs": 33
+  },
+  "Sunshine Coast|3|2": {
+   "effect": -0.26,
+   "runs": 16
+  },
+  "Sunshine Coast|3|0": {
+   "effect": 0.24,
+   "runs": 6
+  },
+  "Sunshine Coast|3|1": {
+   "effect": 0.05,
+   "runs": 10
+  },
+  "Terang|4|1": {
+   "effect": -0.18,
+   "runs": 22
+  },
+  "Terang|4|0": {
+   "effect": 0.39,
+   "runs": 22
+  },
+  "Terang|4|2": {
+   "effect": -0.2,
+   "runs": 27
+  },
+  "Murray Bridge|0|0": {
+   "effect": 0.26,
+   "runs": 138
+  },
+  "Murray Bridge|0|2": {
+   "effect": -0.12,
+   "runs": 214
+  },
+  "Murray Bridge|0|1": {
+   "effect": -0.11,
+   "runs": 124
+  },
+  "Murray Bridge|2|0": {
+   "effect": 0.13,
+   "runs": 56
+  },
+  "Murray Bridge|2|1": {
+   "effect": 0.04,
+   "runs": 48
+  },
+  "Murray Bridge|2|2": {
+   "effect": -0.14,
+   "runs": 93
+  },
+  "Stawell|0|1": {
+   "effect": 0.16,
+   "runs": 29
+  },
+  "Stawell|0|2": {
+   "effect": -0.11,
+   "runs": 30
+  },
+  "Stawell|0|0": {
+   "effect": -0.04,
+   "runs": 29
+  },
+  "Stawell|1|2": {
+   "effect": -0.29,
+   "runs": 35
+  },
+  "Stawell|1|1": {
+   "effect": 0.1,
+   "runs": 24
+  },
+  "Stawell|1|0": {
+   "effect": 0.2,
+   "runs": 29
+  },
+  "Stawell|2|0": {
+   "effect": 0.27,
+   "runs": 18
+  },
+  "Stawell|2|2": {
+   "effect": -0.52,
+   "runs": 22
+  },
+  "Stawell|2|1": {
+   "effect": 0.27,
+   "runs": 16
+  },
+  "Stawell|3|1": {
+   "effect": 0.02,
+   "runs": 16
+  },
+  "Stawell|3|2": {
+   "effect": -0.39,
+   "runs": 19
+  },
+  "Stawell|3|0": {
+   "effect": 0.39,
+   "runs": 17
+  },
+  "Sandown Hillside|1|0": {
+   "effect": 0.32,
+   "runs": 102
+  },
+  "Sandown Hillside|1|1": {
+   "effect": 0.04,
+   "runs": 90
+  },
+  "Sandown Hillside|1|2": {
+   "effect": -0.31,
+   "runs": 142
+  },
+  "Sandown Hillside|4|1": {
+   "effect": 0.38,
+   "runs": 50
+  },
+  "Sandown Hillside|4|2": {
+   "effect": -0.37,
+   "runs": 75
+  },
+  "Sandown Hillside|4|0": {
+   "effect": 0.04,
+   "runs": 57
+  },
+  "Port Lincoln|1|2": {
+   "effect": -0.05,
+   "runs": 391
+  },
+  "Port Lincoln|1|1": {
+   "effect": 0.1,
+   "runs": 397
+  },
+  "Port Lincoln|1|0": {
+   "effect": -0.05,
+   "runs": 413
+  },
+  "Stony Creek|2|2": {
+   "effect": -0.25,
+   "runs": 36
+  },
+  "Stony Creek|2|1": {
+   "effect": 0.02,
+   "runs": 34
+  },
+  "Stony Creek|2|0": {
+   "effect": 0.24,
+   "runs": 36
+  },
+  "Gawler|0|2": {
+   "effect": -0.27,
+   "runs": 73
+  },
+  "Gawler|0|0": {
+   "effect": 0.18,
+   "runs": 55
+  },
+  "Gawler|0|1": {
+   "effect": 0.12,
+   "runs": 49
+  },
+  "Ipswich|4|1": {
+   "effect": -0.12,
+   "runs": 11
+  },
+  "Ipswich|4|2": {
+   "effect": -0.23,
+   "runs": 28
+  },
+  "Ipswich|4|0": {
+   "effect": 0.38,
+   "runs": 10
+  },
+  "Mt Gambier|1|1": {
+   "effect": 0.14,
+   "runs": 322
+  },
+  "Mt Gambier|1|0": {
+   "effect": -0.17,
+   "runs": 343
+  },
+  "Mt Gambier|1|2": {
+   "effect": 0.04,
+   "runs": 334
+  },
+  "Morphettville|0|2": {
+   "effect": -0.14,
+   "runs": 170
+  },
+  "Morphettville|0|0": {
+   "effect": 0.06,
+   "runs": 108
+  },
+  "Morphettville|0|1": {
+   "effect": 0.12,
+   "runs": 102
+  },
+  "Great Western|1|0": {
+   "effect": 0.29,
+   "runs": 8
+  },
+  "Great Western|1|1": {
+   "effect": 0.08,
+   "runs": 7
+  },
+  "Great Western|1|2": {
+   "effect": -0.37,
+   "runs": 9
+  },
+  "Great Western|2|0": {
+   "effect": 0.21,
+   "runs": 7
+  },
+  "Great Western|2|2": {
+   "effect": -0.34,
+   "runs": 10
+  },
+  "Great Western|2|1": {
+   "effect": 0.15,
+   "runs": 6
+  },
+  "Great Western|3|0": {
+   "effect": 0.26,
+   "runs": 9
+  },
+  "Great Western|3|2": {
+   "effect": -0.31,
+   "runs": 7
+  },
+  "Great Western|3|1": {
+   "effect": 0.06,
+   "runs": 7
+  },
+  "Balaklava|1|1": {
+   "effect": -0.12,
+   "runs": 401
+  },
+  "Balaklava|1|0": {
+   "effect": 0.9,
+   "runs": 420
+  },
+  "Balaklava|1|2": {
+   "effect": -0.8,
+   "runs": 408
+  },
+  "Pakenham|4|2": {
+   "effect": -0.13,
+   "runs": 51
+  },
+  "Pakenham|4|1": {
+   "effect": 0.01,
+   "runs": 30
+  },
+  "Pakenham|4|0": {
+   "effect": 0.14,
+   "runs": 34
+  },
+  "Oakbank|1|1": {
+   "effect": 0.11,
+   "runs": 198
+  },
+  "Oakbank|1|0": {
+   "effect": 0.14,
+   "runs": 222
+  },
+  "Oakbank|1|2": {
+   "effect": -0.25,
+   "runs": 206
+  },
+  "Naracoorte|1|0": {
+   "effect": 0.36,
+   "runs": 177
+  },
+  "Naracoorte|1|2": {
+   "effect": -0.28,
+   "runs": 159
+  },
+  "Naracoorte|1|1": {
+   "effect": -0.1,
+   "runs": 165
+  },
+  "Kingscote|1|2": {
+   "effect": -0.32,
+   "runs": 32
+  },
+  "Kingscote|1|1": {
+   "effect": -0.03,
+   "runs": 32
+  },
+  "Kingscote|1|0": {
+   "effect": 0.34,
+   "runs": 40
+  },
+  "Rockhampton|0|1": {
+   "effect": 0.18,
+   "runs": 11
+  },
+  "Rockhampton|0|0": {
+   "effect": 0.35,
+   "runs": 9
+  },
+  "Rockhampton|0|2": {
+   "effect": -0.49,
+   "runs": 19
+  },
+  "Morphettville Parks|2|0": {
+   "effect": 0.27,
+   "runs": 75
+  },
+  "Morphettville Parks|2|1": {
+   "effect": 0.12,
+   "runs": 60
+  },
+  "Morphettville Parks|2|2": {
+   "effect": -0.33,
+   "runs": 112
+  },
+  "Strathalbyn|1|0": {
+   "effect": 0.04,
+   "runs": 468
+  },
+  "Strathalbyn|1|2": {
+   "effect": -0.15,
+   "runs": 428
+  },
+  "Strathalbyn|1|1": {
+   "effect": 0.1,
+   "runs": 426
+  },
+  "Sandown Lakeside|0|0": {
+   "effect": 0.22,
+   "runs": 15
+  },
+  "Sandown Lakeside|0|2": {
+   "effect": -0.21,
+   "runs": 17
+  },
+  "Sandown Lakeside|0|1": {
+   "effect": -0.01,
+   "runs": 11
+  },
+  "Mackay|1|1": {
+   "effect": 0.06,
+   "runs": 25
+  },
+  "Mackay|1|0": {
+   "effect": 0.4,
+   "runs": 24
+  },
+  "Mackay|1|2": {
+   "effect": -0.41,
+   "runs": 45
+  },
+  "Bordertown|1|0": {
+   "effect": 0.68,
+   "runs": 192
+  },
+  "Bordertown|1|1": {
+   "effect": 0,
+   "runs": 192
+  },
+  "Bordertown|1|2": {
+   "effect": -0.67,
+   "runs": 201
+  },
+  "Gawler|3|1": {
+   "effect": 0.04,
+   "runs": 8
+  },
+  "Gawler|3|2": {
+   "effect": -0.39,
+   "runs": 11
+  },
+  "Gawler|3|0": {
+   "effect": 0.37,
+   "runs": 11
+  },
+  "Gawler|2|1": {
+   "effect": 0.25,
+   "runs": 27
+  },
+  "Gawler|2|2": {
+   "effect": -0.11,
+   "runs": 48
+  },
+  "Gawler|2|0": {
+   "effect": -0.12,
+   "runs": 28
+  },
+  "Morphettville Parks|0|1": {
+   "effect": 0.07,
+   "runs": 67
+  },
+  "Morphettville Parks|0|2": {
+   "effect": -0.2,
+   "runs": 98
+  },
+  "Morphettville Parks|0|0": {
+   "effect": 0.15,
+   "runs": 76
+  },
+  "Townsville|0|1": {
+   "effect": 0.06,
+   "runs": 45
+  },
+  "Townsville|0|2": {
+   "effect": -0.16,
+   "runs": 96
+  },
+  "Gold Coast|1|2": {
+   "effect": -0.25,
+   "runs": 58
+  },
+  "Gold Coast|1|1": {
+   "effect": 0.06,
+   "runs": 18
+  },
+  "Gold Coast|1|0": {
+   "effect": 0.24,
+   "runs": 20
+  },
+  "Gold Coast|3|2": {
+   "effect": -0.45,
+   "runs": 37
+  },
+  "Gold Coast|3|0": {
+   "effect": 0.45,
+   "runs": 26
+  },
+  "Clare|1|2": {
+   "effect": -0.3,
+   "runs": 97
+  },
+  "Clare|1|0": {
+   "effect": 0.12,
+   "runs": 110
+  },
+  "Clare|1|1": {
+   "effect": 0.18,
+   "runs": 103
+  },
+  "Morphettville|3|2": {
+   "effect": -0.19,
+   "runs": 50
+  },
+  "Morphettville|3|1": {
+   "effect": -0.13,
+   "runs": 30
+  },
+  "Morphettville|3|0": {
+   "effect": 0.35,
+   "runs": 32
+  },
+  "Horsham|4|0": {
+   "effect": 0.35,
+   "runs": 19
+  },
+  "Horsham|4|2": {
+   "effect": -0.12,
+   "runs": 24
+  },
+  "Horsham|4|1": {
+   "effect": -0.23,
+   "runs": 16
+  },
+  "Morphettville|2|0": {
+   "effect": 0.07,
+   "runs": 81
+  },
+  "Morphettville|2|2": {
+   "effect": -0.18,
+   "runs": 163
+  },
+  "Warracknabeal|3|2": {
+   "effect": -0.43,
+   "runs": 22
+  },
+  "Warracknabeal|3|0": {
+   "effect": 0.28,
+   "runs": 20
+  },
+  "Warracknabeal|3|1": {
+   "effect": 0.17,
+   "runs": 18
+  },
+  "Warracknabeal|0|0": {
+   "effect": 0.45,
+   "runs": 22
+  },
+  "Warracknabeal|0|1": {
+   "effect": 0.19,
+   "runs": 19
+  },
+  "Warracknabeal|0|2": {
+   "effect": -0.62,
+   "runs": 26
+  },
+  "Warracknabeal|1|1": {
+   "effect": 0.06,
+   "runs": 31
+  },
+  "Warracknabeal|1|0": {
+   "effect": 0.3,
+   "runs": 33
+  },
+  "Warracknabeal|1|2": {
+   "effect": -0.32,
+   "runs": 53
+  },
+  "Warracknabeal|2|0": {
+   "effect": 0.35,
+   "runs": 25
+  },
+  "Warracknabeal|2|2": {
+   "effect": -0.3,
+   "runs": 38
+  },
+  "Warracknabeal|2|1": {
+   "effect": -0.02,
+   "runs": 24
+  },
+  "Penola|1|0": {
+   "effect": 0.02,
+   "runs": 194
+  },
+  "Penola|1|2": {
+   "effect": 0.01,
+   "runs": 182
+  },
+  "Penola|1|1": {
+   "effect": -0.04,
+   "runs": 181
+  },
+  "Toowoomba|0|2": {
+   "effect": -0.36,
+   "runs": 42
+  },
+  "Toowoomba|0|1": {
+   "effect": 0.08,
+   "runs": 14
+  },
+  "Avoca|0|0": {
+   "effect": 0.14,
+   "runs": 10
+  },
+  "Avoca|0|1": {
+   "effect": 0.15,
+   "runs": 8
+  },
+  "Avoca|0|2": {
+   "effect": -0.28,
+   "runs": 11
+  },
+  "Kyneton|4|1": {
+   "effect": 0.33,
+   "runs": 10
+  },
+  "Kyneton|4|0": {
+   "effect": 0.03,
+   "runs": 14
+  },
+  "Kyneton|4|2": {
+   "effect": -0.35,
+   "runs": 15
+  },
+  "Morphettville|2|1": {
+   "effect": 0.18,
+   "runs": 75
+  },
+  "Rockhampton|3|0": {
+   "effect": 0.25,
+   "runs": 2
+  },
+  "Rockhampton|3|2": {
+   "effect": -0.26,
+   "runs": 3
+  },
+  "Rockhampton|3|1": {
+   "effect": 0.03,
+   "runs": 2
+  },
+  "Eagle Farm|0|2": {
+   "effect": -0.3,
+   "runs": 62
+  },
+  "Eagle Farm|0|1": {
+   "effect": 0.12,
+   "runs": 22
+  },
+  "Eagle Farm|0|0": {
+   "effect": 0.23,
+   "runs": 30
+  },
+  "Morphettville Parks|3|2": {
+   "effect": -0.42,
+   "runs": 56
+  },
+  "Morphettville Parks|3|0": {
+   "effect": 0.46,
+   "runs": 36
+  },
+  "Mildura|0|0": {
+   "effect": 0.49,
+   "runs": 51
+  },
+  "Mildura|0|1": {
+   "effect": 0.06,
+   "runs": 55
+  },
+  "Mildura|0|2": {
+   "effect": -0.52,
+   "runs": 63
+  },
+  "Mildura|2|0": {
+   "effect": 0.53,
+   "runs": 68
+  },
+  "Mildura|2|2": {
+   "effect": -0.4,
+   "runs": 95
+  },
+  "Mildura|2|1": {
+   "effect": -0.07,
+   "runs": 67
+  },
+  "Mildura|3|0": {
+   "effect": 0.21,
+   "runs": 59
+  },
+  "Mildura|3|2": {
+   "effect": -0.15,
+   "runs": 67
+  },
+  "Mildura|3|1": {
+   "effect": -0.04,
+   "runs": 48
+  },
+  "Townsville|0|0": {
+   "effect": 0.13,
+   "runs": 54
+  },
+  "Port Augusta|1|0": {
+   "effect": 0.34,
+   "runs": 197
+  },
+  "Port Augusta|1|1": {
+   "effect": -0.06,
+   "runs": 184
+  },
+  "Port Augusta|1|2": {
+   "effect": -0.32,
+   "runs": 161
+  },
+  "Ipswich|1|1": {
+   "effect": -0.04,
+   "runs": 10
+  },
+  "Toowoomba|0|0": {
+   "effect": 0.33,
+   "runs": 19
+  },
+  "Ballarat Synthetic|0|0": {
+   "effect": 0.15,
+   "runs": 47
+  },
+  "Ballarat Synthetic|0|1": {
+   "effect": -0.01,
+   "runs": 37
+  },
+  "Ballarat Synthetic|0|2": {
+   "effect": -0.13,
+   "runs": 56
+  },
+  "Ballarat Synthetic|2|0": {
+   "effect": 0.24,
+   "runs": 74
+  },
+  "Ballarat Synthetic|2|2": {
+   "effect": -0.36,
+   "runs": 103
+  },
+  "Ballarat Synthetic|2|1": {
+   "effect": 0.17,
+   "runs": 68
+  },
+  "Ballarat Synthetic|1|1": {
+   "effect": -0.11,
+   "runs": 40
+  },
+  "Ballarat Synthetic|1|0": {
+   "effect": 0.27,
+   "runs": 45
+  },
+  "Ballarat Synthetic|1|2": {
+   "effect": -0.15,
+   "runs": 65
+  },
+  "Tatura|0|1": {
+   "effect": 0.04,
+   "runs": 22
+  },
+  "Mildura|1|1": {
+   "effect": 0.04,
+   "runs": 42
+  },
+  "Mildura|1|0": {
+   "effect": 0.29,
+   "runs": 45
+  },
+  "Mildura|1|2": {
+   "effect": -0.31,
+   "runs": 56
+  },
+  "Ballarat Synthetic|4|0": {
+   "effect": 0.53,
+   "runs": 20
+  },
+  "Ballarat Synthetic|4|1": {
+   "effect": -0.31,
+   "runs": 18
+  },
+  "Ballarat Synthetic|4|2": {
+   "effect": -0.21,
+   "runs": 28
+  },
+  "Morphettville Parks|3|1": {
+   "effect": 0.02,
+   "runs": 23
+  },
+  "Edenhope|1|2": {
+   "effect": -0.34,
+   "runs": 14
+  },
+  "Edenhope|1|0": {
+   "effect": 0.34,
+   "runs": 13
+  },
+  "Edenhope|1|1": {
+   "effect": 0,
+   "runs": 13
+  },
+  "Edenhope|2|0": {
+   "effect": 0.34,
+   "runs": 14
+  },
+  "Edenhope|2|2": {
+   "effect": -0.29,
+   "runs": 18
+  },
+  "Edenhope|2|1": {
+   "effect": -0.04,
+   "runs": 11
+  },
+  "Edenhope|0|1": {
+   "effect": 0.06,
+   "runs": 6
+  },
+  "Edenhope|0|2": {
+   "effect": -0.31,
+   "runs": 6
+  },
+  "Edenhope|0|0": {
+   "effect": 0.25,
+   "runs": 6
+  },
+  "Edenhope|3|0": {
+   "effect": 0.26,
+   "runs": 13
+  },
+  "Edenhope|3|2": {
+   "effect": -0.25,
+   "runs": 15
+  },
+  "Edenhope|3|1": {
+   "effect": 0,
+   "runs": 12
+  },
+  "Donald|0|2": {
+   "effect": -0.11,
+   "runs": 29
+  },
+  "Donald|0|1": {
+   "effect": -0.04,
+   "runs": 25
+  },
+  "Donald|0|0": {
+   "effect": 0.14,
+   "runs": 31
+  },
+  "Casterton|0|1": {
+   "effect": 0.09,
+   "runs": 8
+  },
+  "Casterton|0|2": {
+   "effect": -0.32,
+   "runs": 9
+  },
+  "Casterton|0|0": {
+   "effect": 0.23,
+   "runs": 7
+  },
+  "Casterton|2|2": {
+   "effect": -0.4,
+   "runs": 20
+  },
+  "Casterton|2|1": {
+   "effect": -0.01,
+   "runs": 14
+  },
+  "Casterton|2|0": {
+   "effect": 0.43,
+   "runs": 16
+  },
+  "Murray Bridge|3|1": {
+   "effect": 0.01,
+   "runs": 19
+  },
+  "Murray Bridge|3|2": {
+   "effect": -0.15,
+   "runs": 61
+  },
+  "Murray Bridge|3|0": {
+   "effect": 0.18,
+   "runs": 25
+  },
+  "Casterton|1|1": {
+   "effect": 0.08,
+   "runs": 5
+  },
+  "Casterton|1|2": {
+   "effect": -0.4,
+   "runs": 8
+  },
+  "Casterton|1|0": {
+   "effect": 0.32,
+   "runs": 5
+  },
+  "Halidon|1|0": {
+   "effect": 0.15,
+   "runs": 8
+  },
+  "Halidon|1|2": {
+   "effect": -0.17,
+   "runs": 7
+  },
+  "Halidon|1|1": {
+   "effect": 0.02,
+   "runs": 7
+  },
+  "Coleraine|2|1": {
+   "effect": 0.14,
+   "runs": 12
+  },
+  "Coleraine|2|0": {
+   "effect": 0.17,
+   "runs": 12
+  },
+  "Coleraine|2|2": {
+   "effect": -0.31,
+   "runs": 11
+  },
+  "Coleraine|1|0": {
+   "effect": 0.28,
+   "runs": 9
+  },
+  "Coleraine|1|1": {
+   "effect": 0.06,
+   "runs": 8
+  },
+  "Coleraine|1|2": {
+   "effect": -0.33,
+   "runs": 13
+  },
+  "Coleraine|4|1": {
+   "effect": 0.02,
+   "runs": 3
+  },
+  "Coleraine|4|0": {
+   "effect": 0.28,
+   "runs": 4
+  },
+  "Coleraine|4|2": {
+   "effect": -0.29,
+   "runs": 3
+  },
+  "Coleraine|3|0": {
+   "effect": 0.24,
+   "runs": 7
+  },
+  "Coleraine|3|1": {
+   "effect": 0.03,
+   "runs": 6
+  },
+  "Coleraine|3|2": {
+   "effect": -0.26,
+   "runs": 5
+  },
+  "Caulfield Heath|0|2": {
+   "effect": -0.18,
+   "runs": 24
+  },
+  "Caulfield Heath|0|1": {
+   "effect": 0.11,
+   "runs": 20
+  },
+  "Caulfield Heath|0|0": {
+   "effect": 0.07,
+   "runs": 20
+  },
+  "Caulfield Heath|1|2": {
+   "effect": -0.16,
+   "runs": 32
+  },
+  "Caulfield Heath|1|0": {
+   "effect": 0.19,
+   "runs": 31
+  },
+  "Caulfield Heath|1|1": {
+   "effect": -0.03,
+   "runs": 26
+  },
+  "Caulfield Heath|3|1": {
+   "effect": 0,
+   "runs": 15
+  },
+  "Caulfield Heath|3|0": {
+   "effect": 0.32,
+   "runs": 15
+  },
+  "Caulfield Heath|3|2": {
+   "effect": -0.31,
+   "runs": 14
+  },
+  "Caulfield Heath|2|0": {
+   "effect": 0.17,
+   "runs": 10
+  },
+  "Caulfield Heath|2|2": {
+   "effect": -0.37,
+   "runs": 11
+  },
+  "Caulfield Heath|2|1": {
+   "effect": 0.21,
+   "runs": 10
+  },
+  "Penshurst|0|0": {
+   "effect": 0.32,
+   "runs": 7
+  },
+  "Penshurst|0|1": {
+   "effect": 0.04,
+   "runs": 6
+  },
+  "Penshurst|0|2": {
+   "effect": -0.35,
+   "runs": 5
+  },
+  "Penshurst|1|2": {
+   "effect": -0.31,
+   "runs": 3
+  },
+  "Penshurst|1|0": {
+   "effect": 0.36,
+   "runs": 4
+  },
+  "Penshurst|1|1": {
+   "effect": -0.05,
+   "runs": 3
+  },
+  "Penshurst|2|2": {
+   "effect": -0.26,
+   "runs": 8
+  },
+  "Penshurst|2|1": {
+   "effect": 0,
+   "runs": 6
+  },
+  "Penshurst|2|0": {
+   "effect": 0.28,
+   "runs": 4
+  },
+  "Burrumbeet|0|0": {
+   "effect": 0.22,
+   "runs": 7
+  },
+  "Burrumbeet|0|1": {
+   "effect": 0,
+   "runs": 6
+  },
+  "Burrumbeet|0|2": {
+   "effect": -0.23,
+   "runs": 5
+  },
+  "Burrumbeet|2|1": {
+   "effect": 0.05,
+   "runs": 11
+  },
+  "Burrumbeet|2|2": {
+   "effect": -0.38,
+   "runs": 11
+  },
+  "Burrumbeet|2|0": {
+   "effect": 0.33,
+   "runs": 14
+  },
+  "Burrumbeet|3|2": {
+   "effect": -0.37,
+   "runs": 10
+  },
+  "Burrumbeet|3|0": {
+   "effect": 0.28,
+   "runs": 8
+  },
+  "Burrumbeet|3|1": {
+   "effect": 0.1,
+   "runs": 8
+  },
+  "Kensington|0|2": {
+   "effect": -0.28,
+   "runs": 3
+  },
+  "Kensington|0|0": {
+   "effect": 0.22,
+   "runs": 2
+  },
+  "Kensington|0|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Kensington|2|0": {
+   "effect": 0.21,
+   "runs": 7
+  },
+  "Kensington|2|2": {
+   "effect": -0.24,
+   "runs": 9
+  },
+  "Kensington|2|1": {
+   "effect": 0.05,
+   "runs": 3
+  },
+  "Morphettville|1|1": {
+   "effect": 0.12,
+   "runs": 42
+  },
+  "Morphettville|1|0": {
+   "effect": 0.06,
+   "runs": 35
+  },
+  "Morphettville|1|2": {
+   "effect": -0.15,
+   "runs": 88
+  },
+  "Gawler|1|1": {
+   "effect": 0.1,
+   "runs": 19
+  },
+  "Gawler|1|0": {
+   "effect": 0.02,
+   "runs": 17
+  },
+  "Gawler|1|2": {
+   "effect": -0.13,
+   "runs": 20
+  },
+  "Gawler|4|0": {
+   "effect": 0.28,
+   "runs": 4
+  },
+  "Gawler|4|1": {
+   "effect": -0.09,
+   "runs": 4
+  },
+  "Gawler|4|2": {
+   "effect": -0.18,
+   "runs": 3
+  },
+  "Morphettville|4|1": {
+   "effect": 0.01,
+   "runs": 24
+  },
+  "Morphettville|4|0": {
+   "effect": 0.51,
+   "runs": 25
+  },
+  "Morphettville|4|2": {
+   "effect": -0.46,
+   "runs": 47
+  },
+  "Tatura|1|1": {
+   "effect": -0.04,
+   "runs": 6
+  },
+  "Tatura|1|2": {
+   "effect": -0.29,
+   "runs": 14
+  },
+  "Tatura|1|0": {
+   "effect": 0.34,
+   "runs": 7
+  },
+  "Rosehill|2|1": {
+   "effect": 0.2,
+   "runs": 37
+  },
+  "Rosehill|2|2": {
+   "effect": -0.34,
+   "runs": 126
+  },
+  "Rosehill|2|0": {
+   "effect": 0.29,
+   "runs": 52
+  },
+  "Morphettville Parks|4|2": {
+   "effect": -0.14,
+   "runs": 14
+  },
+  "Morphettville Parks|4|0": {
+   "effect": 0.24,
+   "runs": 7
+  },
+  "Morphettville Parks|4|1": {
+   "effect": -0.09,
+   "runs": 8
+  },
+  "Gunbower|1|1": {
+   "effect": 0.06,
+   "runs": 4
+  },
+  "Gunbower|1|2": {
+   "effect": -0.32,
+   "runs": 7
+  },
+  "Gunbower|1|0": {
+   "effect": 0.26,
+   "runs": 5
+  },
+  "Gunbower|3|2": {
+   "effect": -0.35,
+   "runs": 6
+  },
+  "Gunbower|3|1": {
+   "effect": 0.07,
+   "runs": 5
+  },
+  "Gunbower|3|0": {
+   "effect": 0.29,
+   "runs": 6
+  },
+  "Gunbower|0|0": {
+   "effect": 0.29,
+   "runs": 5
+  },
+  "Gunbower|0|2": {
+   "effect": -0.33,
+   "runs": 7
+  },
+  "Gunbower|0|1": {
+   "effect": 0.05,
+   "runs": 4
+  },
+  "Randwick|0|1": {
+   "effect": 0.1,
+   "runs": 24
+  },
+  "Randwick|0|2": {
+   "effect": -0.3,
+   "runs": 61
+  },
+  "Randwick|0|0": {
+   "effect": 0.26,
+   "runs": 28
+  },
+  "Randwick|2|2": {
+   "effect": -0.07,
+   "runs": 147
+  },
+  "Randwick|2|0": {
+   "effect": 0.15,
+   "runs": 64
+  },
+  "Randwick|4|1": {
+   "effect": -0.11,
+   "runs": 12
+  },
+  "Randwick|4|2": {
+   "effect": -0.24,
+   "runs": 26
+  },
+  "Randwick|4|0": {
+   "effect": 0.37,
+   "runs": 13
+  },
+  "Rosehill|0|0": {
+   "effect": 0.24,
+   "runs": 25
+  },
+  "Rosehill|0|2": {
+   "effect": -0.29,
+   "runs": 54
+  },
+  "Rosehill|0|1": {
+   "effect": 0.1,
+   "runs": 22
+  },
+  "Rosehill|1|0": {
+   "effect": 0.3,
+   "runs": 47
+  },
+  "Rosehill|1|1": {
+   "effect": 0.24,
+   "runs": 28
+  },
+  "Rosehill|1|2": {
+   "effect": -0.41,
+   "runs": 96
+  },
+  "Randwick|1|0": {
+   "effect": 0.12,
+   "runs": 52
+  },
+  "Randwick|1|2": {
+   "effect": -0.18,
+   "runs": 114
+  },
+  "Randwick|1|1": {
+   "effect": 0.12,
+   "runs": 42
+  },
+  "Randwick|2|1": {
+   "effect": -0.04,
+   "runs": 59
+  },
+  "Rosehill|3|0": {
+   "effect": 0.3,
+   "runs": 11
+  },
+  "Rosehill|3|2": {
+   "effect": -0.24,
+   "runs": 29
+  },
+  "Newcastle|4|1": {
+   "effect": 0.05,
+   "runs": 3
+  },
+  "Newcastle|4|0": {
+   "effect": 0.18,
+   "runs": 4
+  },
+  "Newcastle|4|2": {
+   "effect": -0.22,
+   "runs": 6
+  },
+  "Scone|2|2": {
+   "effect": -0.25,
+   "runs": 18
+  },
+  "Scone|2|0": {
+   "effect": 0.21,
+   "runs": 3
+  },
+  "Murray Bridge|1|0": {
+   "effect": 0.32,
+   "runs": 10
+  },
+  "Murray Bridge|1|2": {
+   "effect": -0.4,
+   "runs": 24
+  },
+  "Murray Bridge|1|1": {
+   "effect": 0.11,
+   "runs": 11
+  },
+  "Newcastle|2|2": {
+   "effect": -0.32,
+   "runs": 27
+  },
+  "Newcastle|2|1": {
+   "effect": 0.12,
+   "runs": 8
+  },
+  "Penshurst|3|1": {
+   "effect": 0.02,
+   "runs": 3
+  },
+  "Penshurst|3|2": {
+   "effect": -0.35,
+   "runs": 2
+  },
+  "Penshurst|3|0": {
+   "effect": 0.34,
+   "runs": 3
+  },
+  "Kembla Grange|2|1": {
+   "effect": -0.02,
+   "runs": 18
+  },
+  "Kembla Grange|2|2": {
+   "effect": -0.18,
+   "runs": 43
+  },
+  "Canberra|2|2": {
+   "effect": -0.34,
+   "runs": 10
+  },
+  "Canberra|2|0": {
+   "effect": 0.3,
+   "runs": 4
+  },
+  "Canberra|2|1": {
+   "effect": 0.05,
+   "runs": 4
+  },
+  "Balaklava|2|1": {
+   "effect": 0.19,
+   "runs": 14
+  },
+  "Balaklava|2|2": {
+   "effect": -0.46,
+   "runs": 28
+  },
+  "Balaklava|2|0": {
+   "effect": 0.31,
+   "runs": 18
+  },
+  "Doomben|1|1": {
+   "effect": -0.05,
+   "runs": 30
+  },
+  "Doomben|1|2": {
+   "effect": -0.24,
+   "runs": 58
+  },
+  "Doomben|1|0": {
+   "effect": 0.33,
+   "runs": 28
+  },
+  "Canberra|3|0": {
+   "effect": 0.24,
+   "runs": 3
+  },
+  "Canberra|3|2": {
+   "effect": -0.22,
+   "runs": 6
+  },
+  "Canberra|3|1": {
+   "effect": 0,
+   "runs": 3
+  },
+  "Hawkesbury|0|1": {
+   "effect": 0.1,
+   "runs": 5
+  },
+  "Hawkesbury|0|0": {
+   "effect": 0.16,
+   "runs": 6
+  },
+  "Hawkesbury|0|2": {
+   "effect": -0.25,
+   "runs": 11
+  },
+  "Nowra|2|2": {
+   "effect": -0.26,
+   "runs": 13
+  },
+  "Nowra|2|1": {
+   "effect": 0.04,
+   "runs": 4
+  },
+  "Warwick Farm|0|2": {
+   "effect": -0.2,
+   "runs": 25
+  },
+  "Warwick Farm|0|1": {
+   "effect": 0.02,
+   "runs": 9
+  },
+  "Warwick Farm|0|0": {
+   "effect": 0.2,
+   "runs": 13
+  },
+  "Strathalbyn|4|2": {
+   "effect": -0.16,
+   "runs": 9
+  },
+  "Strathalbyn|4|1": {
+   "effect": -0.01,
+   "runs": 3
+  },
+  "Strathalbyn|4|0": {
+   "effect": 0.19,
+   "runs": 5
+  },
+  "Canterbury|3|2": {
+   "effect": -0.3,
+   "runs": 16
+  },
+  "Canterbury|3|0": {
+   "effect": 0.3,
+   "runs": 5
+  },
+  "Canterbury|3|1": {
+   "effect": 0.04,
+   "runs": 4
+  },
+  "Kembla Grange|0|2": {
+   "effect": -0.17,
+   "runs": 8
+  },
+  "Kembla Grange|0|0": {
+   "effect": 0.19,
+   "runs": 2
+  },
+  "Kembla Grange|0|1": {
+   "effect": -0.02,
+   "runs": 2
+  },
+  "Strathalbyn|2|2": {
+   "effect": -0.33,
+   "runs": 23
+  },
+  "Strathalbyn|2|1": {
+   "effect": 0.05,
+   "runs": 8
+  },
+  "Strathalbyn|2|0": {
+   "effect": 0.31,
+   "runs": 11
+  },
+  "Strathalbyn|0|0": {
+   "effect": 0.16,
+   "runs": 6
+  },
+  "Strathalbyn|0|1": {
+   "effect": 0.02,
+   "runs": 2
+  },
+  "Strathalbyn|0|2": {
+   "effect": -0.18,
+   "runs": 8
+  },
+  "Gold Coast|0|2": {
+   "effect": -0.21,
+   "runs": 50
+  },
+  "Gold Coast|0|1": {
+   "effect": 0.06,
+   "runs": 22
+  },
+  "Gold Coast|0|0": {
+   "effect": 0.19,
+   "runs": 20
+  },
+  "Wyong|0|2": {
+   "effect": -0.32,
+   "runs": 23
+  },
+  "Wyong|0|0": {
+   "effect": 0.17,
+   "runs": 16
+  },
+  "Wyong|0|1": {
+   "effect": 0.17,
+   "runs": 12
+  },
+  "Coffs Harbour|2|1": {
+   "effect": 0.15,
+   "runs": 9
+  },
+  "Coffs Harbour|2|2": {
+   "effect": -0.34,
+   "runs": 24
+  },
+  "Sunshine Coast|1|2": {
+   "effect": -0.3,
+   "runs": 40
+  },
+  "Sunshine Coast|1|0": {
+   "effect": 0.49,
+   "runs": 24
+  },
+  "Gold Coast|2|2": {
+   "effect": -0.33,
+   "runs": 46
+  },
+  "Gold Coast|2|0": {
+   "effect": 0.2,
+   "runs": 19
+  },
+  "Gold Coast|2|1": {
+   "effect": 0.18,
+   "runs": 21
+  },
+  "Camperdown|2|0": {
+   "effect": 0.2,
+   "runs": 12
+  },
+  "Camperdown|2|2": {
+   "effect": -0.33,
+   "runs": 21
+  },
+  "Camperdown|2|1": {
+   "effect": 0.15,
+   "runs": 12
+  },
+  "Camperdown|0|1": {
+   "effect": 0.08,
+   "runs": 5
+  },
+  "Camperdown|0|0": {
+   "effect": 0.19,
+   "runs": 5
+  },
+  "Camperdown|0|2": {
+   "effect": -0.26,
+   "runs": 8
+  },
+  "Camperdown|4|0": {
+   "effect": 0.3,
+   "runs": 4
+  },
+  "Camperdown|4|2": {
+   "effect": -0.2,
+   "runs": 4
+  },
+  "Camperdown|4|1": {
+   "effect": -0.1,
+   "runs": 4
+  },
+  "Albury|2|2": {
+   "effect": -0.35,
+   "runs": 10
+  },
+  "Albury|2|1": {
+   "effect": 0.1,
+   "runs": 2
+  },
+  "Kensington|1|1": {
+   "effect": 0.05,
+   "runs": 4
+  },
+  "Kensington|1|2": {
+   "effect": -0.32,
+   "runs": 8
+  },
+  "Kensington|1|0": {
+   "effect": 0.28,
+   "runs": 3
+  },
+  "Canterbury|1|2": {
+   "effect": -0.31,
+   "runs": 14
+  },
+  "Canterbury|1|0": {
+   "effect": 0.2,
+   "runs": 8
+  },
+  "Newcastle|3|2": {
+   "effect": -0.24,
+   "runs": 11
+  },
+  "Newcastle|3|0": {
+   "effect": 0.2,
+   "runs": 4
+  },
+  "Newcastle|3|1": {
+   "effect": 0.07,
+   "runs": 4
+  },
+  "Newcastle|2|0": {
+   "effect": 0.24,
+   "runs": 13
+  },
+  "Sunshine Coast|1|1": {
+   "effect": -0.18,
+   "runs": 17
+  },
+  "Hanging Rock|0|1": {
+   "effect": 0.12,
+   "runs": 6
+  },
+  "Hanging Rock|0|0": {
+   "effect": 0.23,
+   "runs": 5
+  },
+  "Hanging Rock|0|2": {
+   "effect": -0.35,
+   "runs": 6
+  },
+  "Hanging Rock|2|1": {
+   "effect": 0.12,
+   "runs": 6
+  },
+  "Hanging Rock|2|0": {
+   "effect": 0.25,
+   "runs": 7
+  },
+  "Hanging Rock|2|2": {
+   "effect": -0.37,
+   "runs": 5
+  },
+  "Hanging Rock|4|2": {
+   "effect": -0.28,
+   "runs": 3
+  },
+  "Hanging Rock|4|1": {
+   "effect": 0.02,
+   "runs": 1
+  },
+  "Hanging Rock|4|0": {
+   "effect": 0.26,
+   "runs": 3
+  },
+  "Hanging Rock|3|1": {
+   "effect": 0.02,
+   "runs": 6
+  },
+  "Hanging Rock|3|0": {
+   "effect": 0.34,
+   "runs": 7
+  },
+  "Hanging Rock|3|2": {
+   "effect": -0.36,
+   "runs": 5
+  },
+  "Wagga|2|2": {
+   "effect": -0.33,
+   "runs": 23
+  },
+  "Wagga|2|1": {
+   "effect": 0.09,
+   "runs": 12
+  },
+  "Goulburn|1|2": {
+   "effect": -0.27,
+   "runs": 11
+  },
+  "Goulburn|1|0": {
+   "effect": 0.21,
+   "runs": 10
+  },
+  "Sapphire Coast|2|0": {
+   "effect": 0.32,
+   "runs": 7
+  },
+  "Sapphire Coast|2|2": {
+   "effect": -0.43,
+   "runs": 15
+  },
+  "Sapphire Coast|2|1": {
+   "effect": 0.14,
+   "runs": 6
+  },
+  "Albury|2|0": {
+   "effect": 0.28,
+   "runs": 1
+  },
+  "Kembla Grange|1|0": {
+   "effect": 0.22,
+   "runs": 12
+  },
+  "Kembla Grange|1|2": {
+   "effect": -0.21,
+   "runs": 24
+  },
+  "Goulburn|2|2": {
+   "effect": -0.36,
+   "runs": 27
+  },
+  "Goulburn|2|1": {
+   "effect": 0.03,
+   "runs": 10
+  },
+  "Canterbury|0|2": {
+   "effect": -0.26,
+   "runs": 18
+  },
+  "Canterbury|0|0": {
+   "effect": 0.19,
+   "runs": 8
+  },
+  "Canterbury|0|1": {
+   "effect": 0.09,
+   "runs": 9
+  },
+  "Eagle Farm|3|2": {
+   "effect": -0.4,
+   "runs": 28
+  },
+  "Eagle Farm|3|1": {
+   "effect": 0.07,
+   "runs": 12
+  },
+  "Eagle Farm|3|0": {
+   "effect": 0.38,
+   "runs": 16
+  },
+  "Randwick|3|2": {
+   "effect": -0.48,
+   "runs": 44
+  },
+  "Randwick|3|0": {
+   "effect": 0.23,
+   "runs": 20
+  },
+  "Coffs Harbour|0|2": {
+   "effect": -0.22,
+   "runs": 13
+  },
+  "Coffs Harbour|0|1": {
+   "effect": 0.06,
+   "runs": 8
+  },
+  "Coffs Harbour|0|0": {
+   "effect": 0.17,
+   "runs": 8
+  },
+  "Queanbeyan|3|2": {
+   "effect": -0.33,
+   "runs": 4
+  },
+  "Queanbeyan|3|1": {
+   "effect": 0.09,
+   "runs": 2
+  },
+  "Warwick Farm|4|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Warwick Farm|4|0": {
+   "effect": 0.31,
+   "runs": 1
+  },
+  "Warwick Farm|4|1": {
+   "effect": -0.03,
+   "runs": 2
+  },
+  "Hawkesbury|1|2": {
+   "effect": -0.33,
+   "runs": 8
+  },
+  "Hawkesbury|1|1": {
+   "effect": 0.03,
+   "runs": 6
+  },
+  "Hawkesbury|1|0": {
+   "effect": 0.3,
+   "runs": 7
+  },
+  "Mudgee|2|0": {
+   "effect": 0.15,
+   "runs": 4
+  },
+  "Mudgee|2|2": {
+   "effect": -0.26,
+   "runs": 7
+  },
+  "Rosehill|3|1": {
+   "effect": -0.02,
+   "runs": 11
+  },
+  "Tuncurry|1|2": {
+   "effect": -0.32,
+   "runs": 8
+  },
+  "Tuncurry|1|1": {
+   "effect": 0.08,
+   "runs": 3
+  },
+  "Tuncurry|1|0": {
+   "effect": 0.25,
+   "runs": 3
+  },
+  "Pinjarra Scarpside|1|0": {
+   "effect": 0.19,
+   "runs": 5
+  },
+  "Pinjarra Scarpside|1|2": {
+   "effect": -0.23,
+   "runs": 13
+  },
+  "Doomben|0|1": {
+   "effect": 0.08,
+   "runs": 19
+  },
+  "Doomben|0|2": {
+   "effect": -0.22,
+   "runs": 24
+  },
+  "Doomben|0|0": {
+   "effect": 0.15,
+   "runs": 22
+  },
+  "Fannie Bay|0|0": {
+   "effect": 0.47,
+   "runs": 26
+  },
+  "Fannie Bay|0|2": {
+   "effect": -0.41,
+   "runs": 33
+  },
+  "Fannie Bay|0|1": {
+   "effect": -0.04,
+   "runs": 26
+  },
+  "Grafton|1|1": {
+   "effect": 0.05,
+   "runs": 18
+  },
+  "Grafton|1|0": {
+   "effect": 0.28,
+   "runs": 21
+  },
+  "Grafton|1|2": {
+   "effect": -0.29,
+   "runs": 41
+  },
+  "Newcastle|1|0": {
+   "effect": 0.27,
+   "runs": 3
+  },
+  "Newcastle|1|2": {
+   "effect": -0.29,
+   "runs": 13
+  },
+  "Newcastle|1|1": {
+   "effect": 0.03,
+   "runs": 3
+  },
+  "Hawkesbury|2|2": {
+   "effect": -0.21,
+   "runs": 18
+  },
+  "Hawkesbury|2|1": {
+   "effect": 0.13,
+   "runs": 9
+  },
+  "Hawkesbury|2|0": {
+   "effect": 0.1,
+   "runs": 12
+  },
+  "Towong|2|0": {
+   "effect": 0.22,
+   "runs": 4
+  },
+  "Towong|2|2": {
+   "effect": -0.36,
+   "runs": 3
+  },
+  "Towong|2|1": {
+   "effect": 0.15,
+   "runs": 3
+  },
+  "Balaklava|0|2": {
+   "effect": -0.34,
+   "runs": 13
+  },
+  "Balaklava|0|1": {
+   "effect": 0.12,
+   "runs": 6
+  },
+  "Balaklava|0|0": {
+   "effect": 0.24,
+   "runs": 7
+  },
+  "Armidale|2|2": {
+   "effect": -0.32,
+   "runs": 4
+  },
+  "Armidale|2|0": {
+   "effect": 0.26,
+   "runs": 1
+  },
+  "Armidale|2|1": {
+   "effect": 0.07,
+   "runs": 1
+  },
+  "Fannie Bay|2|2": {
+   "effect": -0.49,
+   "runs": 37
+  },
+  "Fannie Bay|2|0": {
+   "effect": 0.3,
+   "runs": 19
+  },
+  "Fannie Bay|2|1": {
+   "effect": 0.25,
+   "runs": 17
+  },
+  "Gold Coast|3|1": {
+   "effect": 0.04,
+   "runs": 18
+  },
+  "Gold Coast|4|1": {
+   "effect": -0.06,
+   "runs": 4
+  },
+  "Gold Coast|4|0": {
+   "effect": 0.33,
+   "runs": 4
+  },
+  "Gold Coast|4|2": {
+   "effect": -0.26,
+   "runs": 5
+  },
+  "Rosehill|4|1": {
+   "effect": 0.12,
+   "runs": 6
+  },
+  "Rosehill|4|2": {
+   "effect": -0.19,
+   "runs": 11
+  },
+  "Rosehill|4|0": {
+   "effect": 0.07,
+   "runs": 8
+  },
+  "Goulburn|2|0": {
+   "effect": 0.38,
+   "runs": 9
+  },
+  "Orange|0|1": {
+   "effect": 0.05,
+   "runs": 2
+  },
+  "Orange|0|2": {
+   "effect": -0.29,
+   "runs": 3
+  },
+  "Orange|0|0": {
+   "effect": 0.25,
+   "runs": 1
+  },
+  "Ballina|0|1": {
+   "effect": -0.03,
+   "runs": 2
+  },
+  "Ballina|0|2": {
+   "effect": -0.18,
+   "runs": 3
+  },
+  "Ballina|0|0": {
+   "effect": 0.22,
+   "runs": 1
+  },
+  "Wyong|2|0": {
+   "effect": 0.22,
+   "runs": 12
+  },
+  "Wyong|2|2": {
+   "effect": -0.25,
+   "runs": 21
+  },
+  "Warwick Farm|1|2": {
+   "effect": -0.25,
+   "runs": 14
+  },
+  "Warwick Farm|1|1": {
+   "effect": -0.05,
+   "runs": 6
+  },
+  "Warwick Farm|1|0": {
+   "effect": 0.31,
+   "runs": 5
+  },
+  "Warwick Farm|2|1": {
+   "effect": 0.09,
+   "runs": 8
+  },
+  "Warwick Farm|2|2": {
+   "effect": -0.27,
+   "runs": 18
+  },
+  "Warwick Farm|2|0": {
+   "effect": 0.2,
+   "runs": 8
+  },
+  "Oakbank|2|0": {
+   "effect": 0.21,
+   "runs": 3
+  },
+  "Oakbank|2|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Oakbank|2|2": {
+   "effect": -0.26,
+   "runs": 2
+  },
+  "Oakbank|3|2": {
+   "effect": -0.23,
+   "runs": 6
+  },
+  "Oakbank|3|0": {
+   "effect": 0.22,
+   "runs": 1
+  },
+  "Oakbank|3|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Oakbank|4|2": {
+   "effect": -0.2,
+   "runs": 4
+  },
+  "Oakbank|4|1": {
+   "effect": -0.06,
+   "runs": 2
+  },
+  "Oakbank|0|2": {
+   "effect": -0.23,
+   "runs": 8
+  },
+  "Oakbank|0|0": {
+   "effect": 0.18,
+   "runs": 2
+  },
+  "Oakbank|0|1": {
+   "effect": 0.05,
+   "runs": 2
+  },
+  "Randwick|3|1": {
+   "effect": 0.34,
+   "runs": 12
+  },
+  "Fannie Bay|1|0": {
+   "effect": 0.33,
+   "runs": 57
+  },
+  "Fannie Bay|1|1": {
+   "effect": 0.33,
+   "runs": 55
+  },
+  "Fannie Bay|1|2": {
+   "effect": -0.55,
+   "runs": 88
+  },
+  "Pioneer Park|2|2": {
+   "effect": -0.21,
+   "runs": 28
+  },
+  "Pioneer Park|2|1": {
+   "effect": 0.07,
+   "runs": 13
+  },
+  "Pioneer Park|0|1": {
+   "effect": 0.15,
+   "runs": 9
+  },
+  "Pioneer Park|0|0": {
+   "effect": 0.24,
+   "runs": 10
+  },
+  "Pioneer Park|0|2": {
+   "effect": -0.36,
+   "runs": 20
+  },
+  "Morphettville Parks|1|2": {
+   "effect": -0.06,
+   "runs": 55
+  },
+  "Morphettville Parks|1|1": {
+   "effect": -0.06,
+   "runs": 25
+  },
+  "Morphettville Parks|1|0": {
+   "effect": 0.13,
+   "runs": 27
+  },
+  "Wagga|1|1": {
+   "effect": 0.07,
+   "runs": 16
+  },
+  "Wagga|1|2": {
+   "effect": -0.3,
+   "runs": 33
+  },
+  "Wagga|1|0": {
+   "effect": 0.26,
+   "runs": 15
+  },
+  "Pioneer Park|1|0": {
+   "effect": 0.28,
+   "runs": 11
+  },
+  "Pioneer Park|1|2": {
+   "effect": -0.32,
+   "runs": 15
+  },
+  "Pioneer Park|1|1": {
+   "effect": 0.08,
+   "runs": 12
+  },
+  "Pioneer Park|2|0": {
+   "effect": 0.17,
+   "runs": 14
+  },
+  "Gold Coast Poly|1|2": {
+   "effect": -0.32,
+   "runs": 4
+  },
+  "Gold Coast Poly|1|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Gold Coast Poly|1|0": {
+   "effect": 0.28,
+   "runs": 1
+  },
+  "Mt Garnet|0|2": {
+   "effect": -0.26,
+   "runs": 3
+  },
+  "Mt Garnet|0|0": {
+   "effect": 0.21,
+   "runs": 1
+  },
+  "Mt Garnet|0|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Pioneer Park|3|2": {
+   "effect": -0.22,
+   "runs": 8
+  },
+  "Pioneer Park|3|0": {
+   "effect": 0.28,
+   "runs": 2
+  },
+  "Pioneer Park|3|1": {
+   "effect": -0.03,
+   "runs": 2
+  },
+  "Gosford|4|0": {
+   "effect": 0.18,
+   "runs": 2
+  },
+  "Gosford|4|2": {
+   "effect": -0.14,
+   "runs": 11
+  },
+  "Port Hedland|1|2": {
+   "effect": -0.47,
+   "runs": 25
+  },
+  "Port Hedland|1|0": {
+   "effect": 0.28,
+   "runs": 24
+  },
+  "Port Hedland|1|1": {
+   "effect": 0.2,
+   "runs": 15
+  },
+  "Moruya|1|0": {
+   "effect": 0.21,
+   "runs": 9
+  },
+  "Moruya|1|2": {
+   "effect": -0.21,
+   "runs": 22
+  },
+  "Moruya|1|1": {
+   "effect": 0.02,
+   "runs": 5
+  },
+  "Cairns|1|2": {
+   "effect": -0.3,
+   "runs": 42
+  },
+  "Cairns|1|1": {
+   "effect": 0.03,
+   "runs": 18
+  },
+  "Cairns|1|0": {
+   "effect": 0.3,
+   "runs": 22
+  },
+  "Scone|0|0": {
+   "effect": 0.11,
+   "runs": 9
+  },
+  "Scone|0|2": {
+   "effect": -0.12,
+   "runs": 19
+  },
+  "Scone|1|2": {
+   "effect": -0.27,
+   "runs": 20
+  },
+  "Scone|1|0": {
+   "effect": 0.31,
+   "runs": 10
+  },
+  "Scone|2|1": {
+   "effect": 0.08,
+   "runs": 3
+  },
+  "Grafton|0|2": {
+   "effect": -0.18,
+   "runs": 57
+  },
+  "Grafton|0|0": {
+   "effect": 0.19,
+   "runs": 21
+  },
+  "Grafton|0|1": {
+   "effect": 0.03,
+   "runs": 22
+  },
+  "Scone|1|1": {
+   "effect": -0.02,
+   "runs": 7
+  },
+  "Scone|0|1": {
+   "effect": 0.02,
+   "runs": 10
+  },
+  "Tennant Creek|1|2": {
+   "effect": -0.35,
+   "runs": 3
+  },
+  "Tennant Creek|1|1": {
+   "effect": 0.02,
+   "runs": 1
+  },
+  "Tennant Creek|1|0": {
+   "effect": 0.34,
+   "runs": 2
+  },
+  "Inverell|3|2": {
+   "effect": -0.27,
+   "runs": 3
+  },
+  "Inverell|3|1": {
+   "effect": 0.03,
+   "runs": 2
+  },
+  "Inverell|3|0": {
+   "effect": 0.25,
+   "runs": 1
+  },
+  "Inverell|1|0": {
+   "effect": 0.2,
+   "runs": 3
+  },
+  "Inverell|1|2": {
+   "effect": -0.27,
+   "runs": 3
+  },
+  "Inverell|1|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Mt Gambier|2|1": {
+   "effect": 0.02,
+   "runs": 7
+  },
+  "Mt Gambier|2|0": {
+   "effect": 0.23,
+   "runs": 7
+  },
+  "Mt Gambier|2|2": {
+   "effect": -0.22,
+   "runs": 21
+  },
+  "Wagga Riverside|3|2": {
+   "effect": -0.24,
+   "runs": 4
+  },
+  "Wagga Riverside|3|1": {
+   "effect": 0.05,
+   "runs": 1
+  },
+  "Wagga Riverside|3|0": {
+   "effect": 0.21,
+   "runs": 1
+  },
+  "Wagga Riverside|1|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Wagga Riverside|1|2": {
+   "effect": -0.36,
+   "runs": 4
+  },
+  "Wagga Riverside|1|0": {
+   "effect": 0.33,
+   "runs": 1
+  },
+  "Townsville|1|0": {
+   "effect": 0.28,
+   "runs": 52
+  },
+  "Townsville|1|1": {
+   "effect": 0.14,
+   "runs": 48
+  },
+  "Townsville|1|2": {
+   "effect": -0.37,
+   "runs": 79
+  },
+  "Doomben|4|2": {
+   "effect": -0.27,
+   "runs": 12
+  },
+  "Doomben|4|0": {
+   "effect": 0.31,
+   "runs": 7
+  },
+  "Eagle Farm|4|0": {
+   "effect": 0.27,
+   "runs": 12
+  },
+  "Eagle Farm|4|1": {
+   "effect": -0.05,
+   "runs": 11
+  },
+  "Eagle Farm|4|2": {
+   "effect": -0.21,
+   "runs": 19
+  },
+  "Port Hedland|2|2": {
+   "effect": -0.23,
+   "runs": 13
+  },
+  "Port Hedland|2|1": {
+   "effect": -0.06,
+   "runs": 5
+  },
+  "Port Hedland|2|0": {
+   "effect": 0.3,
+   "runs": 8
+  },
+  "Corowa|1|0": {
+   "effect": 0.31,
+   "runs": 8
+  },
+  "Corowa|1|2": {
+   "effect": -0.32,
+   "runs": 8
+  },
+  "Corowa|1|1": {
+   "effect": 0.01,
+   "runs": 5
+  },
+  "Moree|0|2": {
+   "effect": -0.28,
+   "runs": 17
+  },
+  "Moree|0|1": {
+   "effect": 0.07,
+   "runs": 6
+  },
+  "Gatton|0|2": {
+   "effect": -0.26,
+   "runs": 27
+  },
+  "Gatton|0|1": {
+   "effect": 0.11,
+   "runs": 11
+  },
+  "Gatton|0|0": {
+   "effect": 0.18,
+   "runs": 15
+  },
+  "Wagga|0|2": {
+   "effect": -0.29,
+   "runs": 14
+  },
+  "Wagga|0|0": {
+   "effect": 0.2,
+   "runs": 7
+  },
+  "Wagga|0|1": {
+   "effect": 0.11,
+   "runs": 8
+  },
+  "Wagga|2|0": {
+   "effect": 0.27,
+   "runs": 9
+  },
+  "Dubbo|1|2": {
+   "effect": -0.36,
+   "runs": 8
+  },
+  "Dubbo|1|0": {
+   "effect": 0.21,
+   "runs": 3
+  },
+  "Dubbo|1|1": {
+   "effect": 0.16,
+   "runs": 3
+  },
+  "Grafton|2|2": {
+   "effect": -0.28,
+   "runs": 56
+  },
+  "Grafton|2|0": {
+   "effect": 0.23,
+   "runs": 27
+  },
+  "Grafton|2|1": {
+   "effect": 0.11,
+   "runs": 18
+  },
+  "Gulgong|1|2": {
+   "effect": -0.23,
+   "runs": 4
+  },
+  "Gulgong|1|0": {
+   "effect": 0.18,
+   "runs": 2
+  },
+  "Mt Gambier|3|0": {
+   "effect": 0.2,
+   "runs": 3
+  },
+  "Mt Gambier|3|1": {
+   "effect": 0.17,
+   "runs": 3
+  },
+  "Mt Gambier|3|2": {
+   "effect": -0.35,
+   "runs": 4
+  },
+  "Atherton|3|2": {
+   "effect": -0.25,
+   "runs": 2
+  },
+  "Atherton|3|0": {
+   "effect": 0.2,
+   "runs": 2
+  },
+  "Atherton|3|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Narrandera|1|2": {
+   "effect": -0.29,
+   "runs": 12
+  },
+  "Narrandera|1|1": {
+   "effect": 0.01,
+   "runs": 5
+  },
+  "Narrandera|1|0": {
+   "effect": 0.29,
+   "runs": 4
+  },
+  "Toowoomba|2|1": {
+   "effect": 0.05,
+   "runs": 8
+  },
+  "Toowoomba|2|0": {
+   "effect": 0.26,
+   "runs": 10
+  },
+  "Toowoomba|2|2": {
+   "effect": -0.29,
+   "runs": 15
+  },
+  "Balaklava|4|0": {
+   "effect": 0.3,
+   "runs": 3
+  },
+  "Balaklava|4|1": {
+   "effect": 0.08,
+   "runs": 3
+  },
+  "Balaklava|4|2": {
+   "effect": -0.36,
+   "runs": 7
+  },
+  "Warren|2|2": {
+   "effect": -0.32,
+   "runs": 5
+  },
+  "Warren|2|1": {
+   "effect": 0.08,
+   "runs": 1
+  },
+  "Tamworth|2|2": {
+   "effect": -0.25,
+   "runs": 19
+  },
+  "Tamworth|2|1": {
+   "effect": 0.08,
+   "runs": 6
+  },
+  "Tamworth|2|0": {
+   "effect": 0.19,
+   "runs": 9
+  },
+  "Dalby|2|1": {
+   "effect": 0.1,
+   "runs": 7
+  },
+  "Dalby|2|2": {
+   "effect": -0.28,
+   "runs": 15
+  },
+  "Dalby|2|0": {
+   "effect": 0.21,
+   "runs": 4
+  },
+  "Innisfail|2|2": {
+   "effect": -0.31,
+   "runs": 3
+  },
+  "Innisfail|2|0": {
+   "effect": 0.3,
+   "runs": 2
+  },
+  "Innisfail|2|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Innisfail|3|1": {
+   "effect": 0.03,
+   "runs": 4
+  },
+  "Innisfail|3|0": {
+   "effect": 0.34,
+   "runs": 5
+  },
+  "Innisfail|3|2": {
+   "effect": -0.35,
+   "runs": 4
+  },
+  "Goulburn|4|0": {
+   "effect": 0.27,
+   "runs": 2
+  },
+  "Goulburn|4|2": {
+   "effect": -0.2,
+   "runs": 4
+  },
+  "Goulburn|4|1": {
+   "effect": -0.06,
+   "runs": 1
+  },
+  "Narromine|2|2": {
+   "effect": -0.36,
+   "runs": 3
+  },
+  "Narromine|2|0": {
+   "effect": 0.26,
+   "runs": 2
+  },
+  "Narromine|2|1": {
+   "effect": 0.11,
+   "runs": 2
+  },
+  "Narromine|1|2": {
+   "effect": -0.27,
+   "runs": 22
+  },
+  "Narromine|1|0": {
+   "effect": 0.28,
+   "runs": 7
+  },
+  "Casino|2|2": {
+   "effect": -0.34,
+   "runs": 7
+  },
+  "Casino|2|0": {
+   "effect": 0.2,
+   "runs": 3
+  },
+  "Casino|2|1": {
+   "effect": 0.16,
+   "runs": 4
+  },
+  "Canberra Acton|1|2": {
+   "effect": -0.5,
+   "runs": 16
+  },
+  "Canberra Acton|1|1": {
+   "effect": 0.1,
+   "runs": 4
+  },
+  "Canberra Acton|1|0": {
+   "effect": 0.43,
+   "runs": 6
+  },
+  "Beaudesert|2|1": {
+   "effect": 0.1,
+   "runs": 8
+  },
+  "Beaudesert|2|2": {
+   "effect": -0.25,
+   "runs": 16
+  },
+  "Beaudesert|2|0": {
+   "effect": 0.18,
+   "runs": 8
+  },
+  "Tamworth|0|2": {
+   "effect": -0.24,
+   "runs": 7
+  },
+  "Tamworth|0|0": {
+   "effect": 0.18,
+   "runs": 2
+  },
+  "Tamworth|0|1": {
+   "effect": 0.07,
+   "runs": 3
+  },
+  "Gatton|2|2": {
+   "effect": -0.46,
+   "runs": 23
+  },
+  "Gatton|2|0": {
+   "effect": 0.41,
+   "runs": 10
+  },
+  "Gatton|2|1": {
+   "effect": 0.1,
+   "runs": 5
+  },
+  "Gatton|3|1": {
+   "effect": 0.12,
+   "runs": 5
+  },
+  "Gatton|3|2": {
+   "effect": -0.33,
+   "runs": 6
+  },
+  "Gatton|3|0": {
+   "effect": 0.23,
+   "runs": 5
+  },
+  "Dubbo|0|2": {
+   "effect": -0.23,
+   "runs": 22
+  },
+  "Dubbo|0|1": {
+   "effect": 0.02,
+   "runs": 3
+  },
+  "Dubbo|0|0": {
+   "effect": 0.23,
+   "runs": 7
+  },
+  "Kilcoy|1|1": {
+   "effect": 0.1,
+   "runs": 6
+  },
+  "Kilcoy|1|2": {
+   "effect": -0.33,
+   "runs": 16
+  },
+  "Kilcoy|1|0": {
+   "effect": 0.26,
+   "runs": 8
+  },
+  "Tamworth|4|0": {
+   "effect": 0.27,
+   "runs": 5
+  },
+  "Tamworth|4|1": {
+   "effect": -0.02,
+   "runs": 2
+  },
+  "Tamworth|4|2": {
+   "effect": -0.25,
+   "runs": 6
+  },
+  "Marble Bar|2|2": {
+   "effect": -0.26,
+   "runs": 3
+  },
+  "Marble Bar|2|0": {
+   "effect": 0.2,
+   "runs": 3
+  },
+  "Marble Bar|2|1": {
+   "effect": 0.07,
+   "runs": 1
+  },
+  "Port Macquarie|3|2": {
+   "effect": -0.26,
+   "runs": 5
+  },
+  "Port Macquarie|3|0": {
+   "effect": 0.26,
+   "runs": 1
+  },
+  "Port Macquarie|3|1": {
+   "effect": 0.02,
+   "runs": 1
+  },
+  "Port Macquarie|0|1": {
+   "effect": 0.15,
+   "runs": 5
+  },
+  "Port Macquarie|0|2": {
+   "effect": -0.25,
+   "runs": 12
+  },
+  "Port Macquarie|1|1": {
+   "effect": 0.06,
+   "runs": 6
+  },
+  "Port Macquarie|1|0": {
+   "effect": 0.3,
+   "runs": 9
+  },
+  "Port Macquarie|1|2": {
+   "effect": -0.35,
+   "runs": 16
+  },
+  "Casterton|3|1": {
+   "effect": 0.12,
+   "runs": 7
+  },
+  "Casterton|3|2": {
+   "effect": -0.5,
+   "runs": 16
+  },
+  "Goondiwindi|1|2": {
+   "effect": -0.31,
+   "runs": 12
+  },
+  "Goondiwindi|1|0": {
+   "effect": 0.28,
+   "runs": 3
+  },
+  "Goondiwindi|1|1": {
+   "effect": 0.05,
+   "runs": 3
+  },
+  "Grafton|3|1": {
+   "effect": 0.02,
+   "runs": 7
+  },
+  "Grafton|3|2": {
+   "effect": -0.23,
+   "runs": 18
+  },
+  "Grafton|3|0": {
+   "effect": 0.23,
+   "runs": 10
+  },
+  "Townsville|3|1": {
+   "effect": 0.11,
+   "runs": 9
+  },
+  "Townsville|3|0": {
+   "effect": 0.28,
+   "runs": 8
+  },
+  "Townsville|3|2": {
+   "effect": -0.36,
+   "runs": 16
+  },
+  "Beaudesert|4|1": {
+   "effect": -0.07,
+   "runs": 2
+  },
+  "Beaudesert|4|0": {
+   "effect": 0.29,
+   "runs": 3
+  },
+  "Beaudesert|4|2": {
+   "effect": -0.22,
+   "runs": 2
+  },
+  "Canterbury|1|1": {
+   "effect": 0.12,
+   "runs": 4
+  },
+  "Rockhampton|1|2": {
+   "effect": -0.31,
+   "runs": 6
+  },
+  "Rockhampton|1|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Moruya|2|0": {
+   "effect": 0.24,
+   "runs": 9
+  },
+  "Moruya|2|2": {
+   "effect": -0.28,
+   "runs": 14
+  },
+  "Moruya|2|1": {
+   "effect": 0.06,
+   "runs": 7
+  },
+  "Moruya|3|0": {
+   "effect": 0.21,
+   "runs": 5
+  },
+  "Moruya|3|2": {
+   "effect": -0.32,
+   "runs": 9
+  },
+  "Moruya|3|1": {
+   "effect": 0.13,
+   "runs": 6
+  },
+  "Cowra|0|2": {
+   "effect": -0.27,
+   "runs": 5
+  },
+  "Cowra|0|1": {
+   "effect": 0.04,
+   "runs": 2
+  },
+  "Cowra|0|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Esk|0|2": {
+   "effect": -0.27,
+   "runs": 5
+  },
+  "Esk|0|0": {
+   "effect": 0.23,
+   "runs": 1
+  },
+  "Esk|2|2": {
+   "effect": -0.3,
+   "runs": 4
+  },
+  "Esk|2|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Ingham|1|2": {
+   "effect": -0.3,
+   "runs": 4
+  },
+  "Ingham|1|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Ingham|1|0": {
+   "effect": 0.26,
+   "runs": 2
+  },
+  "Ingham|2|2": {
+   "effect": -0.3,
+   "runs": 2
+  },
+  "Ingham|2|1": {
+   "effect": 0.04,
+   "runs": 3
+  },
+  "Ingham|2|0": {
+   "effect": 0.27,
+   "runs": 3
+  },
+  "Rockhampton|2|0": {
+   "effect": 0.33,
+   "runs": 5
+  },
+  "Rockhampton|2|1": {
+   "effect": 0.06,
+   "runs": 3
+  },
+  "Rockhampton|2|2": {
+   "effect": -0.37,
+   "runs": 7
+  },
+  "Roma|0|1": {
+   "effect": -0.03,
+   "runs": 4
+  },
+  "Roma|0|2": {
+   "effect": -0.23,
+   "runs": 5
+  },
+  "Roma|0|0": {
+   "effect": 0.26,
+   "runs": 4
+  },
+  "Narrandera|2|0": {
+   "effect": 0.25,
+   "runs": 7
+  },
+  "Narrandera|2|2": {
+   "effect": -0.3,
+   "runs": 16
+  },
+  "Narrandera|0|0": {
+   "effect": 0.29,
+   "runs": 5
+  },
+  "Narrandera|0|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Narrandera|0|1": {
+   "effect": -0.02,
+   "runs": 4
+  },
+  "Narrandera|2|1": {
+   "effect": 0.07,
+   "runs": 4
+  },
+  "Port Hedland|4|1": {
+   "effect": -0.05,
+   "runs": 4
+  },
+  "Port Hedland|4|2": {
+   "effect": -0.23,
+   "runs": 5
+  },
+  "Port Hedland|4|0": {
+   "effect": 0.29,
+   "runs": 5
+  },
+  "Dubbo|2|2": {
+   "effect": -0.32,
+   "runs": 15
+  },
+  "Dubbo|2|0": {
+   "effect": 0.26,
+   "runs": 8
+  },
+  "Grafton|4|1": {
+   "effect": -0.08,
+   "runs": 4
+  },
+  "Grafton|4|2": {
+   "effect": -0.2,
+   "runs": 7
+  },
+  "Grafton|4|0": {
+   "effect": 0.29,
+   "runs": 2
+  },
+  "Kembla Grange|1|1": {
+   "effect": 0,
+   "runs": 11
+  },
+  "Mackay|2|2": {
+   "effect": -0.23,
+   "runs": 12
+  },
+  "Mackay|2|1": {
+   "effect": 0.06,
+   "runs": 8
+  },
+  "Mackay|2|0": {
+   "effect": 0.19,
+   "runs": 8
+  },
+  "Derby|2|1": {
+   "effect": -0.09,
+   "runs": 5
+  },
+  "Derby|2|0": {
+   "effect": 0.27,
+   "runs": 3
+  },
+  "Derby|2|2": {
+   "effect": -0.17,
+   "runs": 6
+  },
+  "Derby|0|2": {
+   "effect": -0.31,
+   "runs": 3
+  },
+  "Derby|0|0": {
+   "effect": 0.2,
+   "runs": 2
+  },
+  "Derby|0|1": {
+   "effect": 0.11,
+   "runs": 2
+  },
+  "Derby|3|0": {
+   "effect": 0.2,
+   "runs": 2
+  },
+  "Derby|3|2": {
+   "effect": -0.26,
+   "runs": 4
+  },
+  "Derby|3|1": {
+   "effect": 0.08,
+   "runs": 3
+  },
+  "Fannie Bay|4|2": {
+   "effect": -0.33,
+   "runs": 9
+  },
+  "Fannie Bay|4|0": {
+   "effect": 0.35,
+   "runs": 4
+  },
+  "Goondiwindi|2|2": {
+   "effect": -0.29,
+   "runs": 6
+  },
+  "Gosford|0|2": {
+   "effect": -0.21,
+   "runs": 6
+  },
+  "Gosford|0|0": {
+   "effect": 0.15,
+   "runs": 2
+  },
+  "Gosford|0|1": {
+   "effect": 0.06,
+   "runs": 4
+  },
+  "Inverell|2|2": {
+   "effect": -0.31,
+   "runs": 4
+  },
+  "Inverell|2|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Inverell|2|0": {
+   "effect": 0.26,
+   "runs": 1
+  },
+  "Inverell|0|2": {
+   "effect": -0.19,
+   "runs": 3
+  },
+  "Inverell|0|1": {
+   "effect": -0.03,
+   "runs": 2
+  },
+  "Inverell|0|0": {
+   "effect": 0.23,
+   "runs": 1
+  },
+  "Gunnedah|2|2": {
+   "effect": -0.29,
+   "runs": 16
+  },
+  "Gunnedah|2|0": {
+   "effect": 0.24,
+   "runs": 7
+  },
+  "Gunnedah|1|1": {
+   "effect": 0.02,
+   "runs": 2
+  },
+  "Gunnedah|1|0": {
+   "effect": 0.27,
+   "runs": 1
+  },
+  "Gunnedah|1|2": {
+   "effect": -0.29,
+   "runs": 3
+  },
+  "Warren|1|0": {
+   "effect": 0.26,
+   "runs": 4
+  },
+  "Warren|1|2": {
+   "effect": -0.32,
+   "runs": 7
+  },
+  "Warren|1|1": {
+   "effect": 0.07,
+   "runs": 3
+  },
+  "Pinjarra Scarpside|1|1": {
+   "effect": 0.06,
+   "runs": 3
+  },
+  "Pinjarra Scarpside|2|1": {
+   "effect": 0,
+   "runs": 7
+  },
+  "Pinjarra Scarpside|2|2": {
+   "effect": -0.25,
+   "runs": 17
+  },
+  "Pinjarra Scarpside|2|0": {
+   "effect": 0.27,
+   "runs": 8
+  },
+  "Cairns|0|2": {
+   "effect": -0.17,
+   "runs": 10
+  },
+  "Cairns|0|0": {
+   "effect": 0.17,
+   "runs": 5
+  },
+  "Cairns|0|1": {
+   "effect": 0,
+   "runs": 5
+  },
+  "Cairns|4|2": {
+   "effect": -0.24,
+   "runs": 2
+  },
+  "Cairns|4|1": {
+   "effect": 0,
+   "runs": 2
+  },
+  "Cairns|4|0": {
+   "effect": 0.25,
+   "runs": 3
+  },
+  "Cairns|2|1": {
+   "effect": 0.03,
+   "runs": 11
+  },
+  "Cairns|2|0": {
+   "effect": 0.18,
+   "runs": 11
+  },
+  "Cairns|2|2": {
+   "effect": -0.18,
+   "runs": 21
+  },
+  "Wyong|2|1": {
+   "effect": 0.05,
+   "runs": 8
+  },
+  "Canberra Acton|0|2": {
+   "effect": -0.22,
+   "runs": 10
+  },
+  "Canberra Acton|3|1": {
+   "effect": 0.09,
+   "runs": 2
+  },
+  "Canberra Acton|3|2": {
+   "effect": -0.32,
+   "runs": 4
+  },
+  "Naracoorte|0|2": {
+   "effect": -0.21,
+   "runs": 7
+  },
+  "Naracoorte|0|0": {
+   "effect": 0.2,
+   "runs": 8
+  },
+  "Naracoorte|0|1": {
+   "effect": 0.01,
+   "runs": 7
+  },
+  "Naracoorte|2|1": {
+   "effect": 0.04,
+   "runs": 10
+  },
+  "Naracoorte|2|0": {
+   "effect": 0.18,
+   "runs": 14
+  },
+  "Naracoorte|2|2": {
+   "effect": -0.21,
+   "runs": 19
+  },
+  "Naracoorte|3|2": {
+   "effect": -0.29,
+   "runs": 7
+  },
+  "Naracoorte|3|0": {
+   "effect": 0.24,
+   "runs": 4
+  },
+  "Naracoorte|3|1": {
+   "effect": 0.07,
+   "runs": 5
+  },
+  "Atherton|0|2": {
+   "effect": -0.38,
+   "runs": 3
+  },
+  "Atherton|0|1": {
+   "effect": 0.1,
+   "runs": 3
+  },
+  "Atherton|0|0": {
+   "effect": 0.29,
+   "runs": 2
+  },
+  "Coonabarabran|2|0": {
+   "effect": 0.28,
+   "runs": 3
+  },
+  "Coonabarabran|2|2": {
+   "effect": -0.31,
+   "runs": 3
+  },
+  "Coonabarabran|2|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Roebourne|1|0": {
+   "effect": 0.29,
+   "runs": 4
+  },
+  "Roebourne|1|2": {
+   "effect": -0.3,
+   "runs": 3
+  },
+  "Roebourne|1|1": {
+   "effect": 0.02,
+   "runs": 3
+  },
+  "Roebourne|3|2": {
+   "effect": -0.33,
+   "runs": 5
+  },
+  "Roebourne|3|0": {
+   "effect": 0.3,
+   "runs": 2
+  },
+  "Roebourne|2|2": {
+   "effect": -0.28,
+   "runs": 4
+  },
+  "Roebourne|2|0": {
+   "effect": 0.26,
+   "runs": 2
+  },
+  "Roebourne|2|1": {
+   "effect": 0.04,
+   "runs": 2
+  },
+  "Roebourne|4|2": {
+   "effect": -0.17,
+   "runs": 4
+  },
+  "Roebourne|4|1": {
+   "effect": -0.08,
+   "runs": 2
+  },
+  "Muswellbrook|1|2": {
+   "effect": -0.34,
+   "runs": 5
+  },
+  "Muswellbrook|1|0": {
+   "effect": 0.27,
+   "runs": 3
+  },
+  "Muswellbrook|1|1": {
+   "effect": 0.08,
+   "runs": 2
+  },
+  "Sapphire Coast|0|0": {
+   "effect": 0.19,
+   "runs": 2
+  },
+  "Sapphire Coast|0|2": {
+   "effect": -0.27,
+   "runs": 3
+  },
+  "Sapphire Coast|0|1": {
+   "effect": 0.09,
+   "runs": 1
+  },
+  "Sapphire Coast|1|2": {
+   "effect": -0.36,
+   "runs": 3
+  },
+  "Sapphire Coast|1|1": {
+   "effect": 0.08,
+   "runs": 2
+  },
+  "Sapphire Coast|1|0": {
+   "effect": 0.28,
+   "runs": 1
+  },
+  "Albury|1|2": {
+   "effect": -0.3,
+   "runs": 3
+  },
+  "Albury|1|1": {
+   "effect": 0.02,
+   "runs": 2
+  },
+  "Albury|1|0": {
+   "effect": 0.28,
+   "runs": 2
+  },
+  "Albury|0|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Albury|0|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Illawarra Grange|1|0": {
+   "effect": 0.17,
+   "runs": 9
+  },
+  "Illawarra Grange|1|2": {
+   "effect": -0.28,
+   "runs": 14
+  },
+  "Illawarra Grange|1|1": {
+   "effect": 0.11,
+   "runs": 9
+  },
+  "Illawarra Grange|2|2": {
+   "effect": -0.24,
+   "runs": 6
+  },
+  "Illawarra Grange|2|0": {
+   "effect": 0.25,
+   "runs": 4
+  },
+  "Illawarra Grange|2|1": {
+   "effect": 0.01,
+   "runs": 3
+  },
+  "Port Macquarie|0|0": {
+   "effect": 0.12,
+   "runs": 6
+  },
+  "Gilgandra|1|0": {
+   "effect": 0.28,
+   "runs": 2
+  },
+  "Gilgandra|1|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Gilgandra|1|2": {
+   "effect": -0.34,
+   "runs": 2
+  },
+  "Newcastle|0|2": {
+   "effect": -0.26,
+   "runs": 7
+  },
+  "Newcastle|0|0": {
+   "effect": 0.18,
+   "runs": 4
+  },
+  "Newcastle|0|1": {
+   "effect": 0.09,
+   "runs": 2
+  },
+  "Roma|1|2": {
+   "effect": -0.33,
+   "runs": 3
+  },
+  "Roma|1|0": {
+   "effect": 0.29,
+   "runs": 3
+  },
+  "Roma|1|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Forbes|0|2": {
+   "effect": -0.25,
+   "runs": 10
+  },
+  "Forbes|0|0": {
+   "effect": 0.19,
+   "runs": 2
+  },
+  "Forbes|0|1": {
+   "effect": 0.08,
+   "runs": 3
+  },
+  "Forbes|2|2": {
+   "effect": -0.33,
+   "runs": 11
+  },
+  "Forbes|2|0": {
+   "effect": 0.27,
+   "runs": 7
+  },
+  "Forbes|2|1": {
+   "effect": 0.08,
+   "runs": 4
+  },
+  "Darwin|0|2": {
+   "effect": -0.26,
+   "runs": 1
+  },
+  "Darwin|1|1": {
+   "effect": 0.02,
+   "runs": 1
+  },
+  "Goulburn|1|1": {
+   "effect": 0.06,
+   "runs": 5
+  },
+  "Gundagai|1|2": {
+   "effect": -0.27,
+   "runs": 18
+  },
+  "Gundagai|1|0": {
+   "effect": 0.26,
+   "runs": 9
+  },
+  "Gundagai|1|1": {
+   "effect": 0.03,
+   "runs": 8
+  },
+  "Gundagai|0|2": {
+   "effect": -0.22,
+   "runs": 3
+  },
+  "Gundagai|0|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Gundagai|0|0": {
+   "effect": 0.15,
+   "runs": 2
+  },
+  "Gundagai|2|2": {
+   "effect": -0.28,
+   "runs": 8
+  },
+  "Gundagai|2|0": {
+   "effect": 0.24,
+   "runs": 4
+  },
+  "Quirindi|3|0": {
+   "effect": 0.22,
+   "runs": 2
+  },
+  "Quirindi|3|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Quirindi|3|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Quirindi|2|2": {
+   "effect": -0.35,
+   "runs": 9
+  },
+  "Quirindi|2|0": {
+   "effect": 0.25,
+   "runs": 1
+  },
+  "Quirindi|2|1": {
+   "effect": 0.12,
+   "runs": 2
+  },
+  "Warwick|2|0": {
+   "effect": 0.29,
+   "runs": 6
+  },
+  "Warwick|2|2": {
+   "effect": -0.3,
+   "runs": 19
+  },
+  "Warwick|2|1": {
+   "effect": 0.04,
+   "runs": 6
+  },
+  "Warwick|0|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Warwick|0|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Warwick|0|0": {
+   "effect": 0.22,
+   "runs": 2
+  },
+  "Moree|2|0": {
+   "effect": 0.14,
+   "runs": 9
+  },
+  "Moree|2|1": {
+   "effect": 0.05,
+   "runs": 6
+  },
+  "Moree|2|2": {
+   "effect": -0.17,
+   "runs": 15
+  },
+  "Moree|0|0": {
+   "effect": 0.23,
+   "runs": 5
+  },
+  "Coffs Harbour|2|0": {
+   "effect": 0.24,
+   "runs": 6
+  },
+  "Mt Gambier|0|2": {
+   "effect": -0.22,
+   "runs": 3
+  },
+  "Mt Gambier|0|1": {
+   "effect": 0.07,
+   "runs": 1
+  },
+  "Mt Gambier|0|0": {
+   "effect": 0.15,
+   "runs": 2
+  },
+  "Mt Gambier|4|0": {
+   "effect": 0.25,
+   "runs": 3
+  },
+  "Mt Gambier|4|2": {
+   "effect": -0.24,
+   "runs": 3
+  },
+  "Mt Gambier|4|1": {
+   "effect": 0,
+   "runs": 1
+  },
+  "Casino|0|0": {
+   "effect": 0.2,
+   "runs": 1
+  },
+  "Casino|0|2": {
+   "effect": -0.29,
+   "runs": 3
+  },
+  "Casino|0|1": {
+   "effect": 0.09,
+   "runs": 2
+  },
+  "Casino|1|2": {
+   "effect": -0.28,
+   "runs": 7
+  },
+  "Casino|1|0": {
+   "effect": 0.21,
+   "runs": 5
+  },
+  "Casino|1|1": {
+   "effect": 0.07,
+   "runs": 3
+  },
+  "Casino|3|2": {
+   "effect": -0.26,
+   "runs": 5
+  },
+  "Casino|3|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Kembla Grange|2|0": {
+   "effect": 0.24,
+   "runs": 8
+  },
+  "Casterton|3|0": {
+   "effect": 0.43,
+   "runs": 8
+  },
+  "Dubbo|2|1": {
+   "effect": 0.09,
+   "runs": 5
+  },
+  "Kilcoy|3|2": {
+   "effect": -0.31,
+   "runs": 8
+  },
+  "Kilcoy|3|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Nowra|0|2": {
+   "effect": -0.21,
+   "runs": 9
+  },
+  "Nowra|0|0": {
+   "effect": 0.19,
+   "runs": 2
+  },
+  "Nowra|2|0": {
+   "effect": 0.24,
+   "runs": 2
+  },
+  "Nowra|1|2": {
+   "effect": -0.32,
+   "runs": 4
+  },
+  "Nowra|1|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Nowra|0|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Ballina|3|2": {
+   "effect": -0.26,
+   "runs": 4
+  },
+  "Ballina|3|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Ballina|3|0": {
+   "effect": 0.21,
+   "runs": 1
+  },
+  "Dalby|0|0": {
+   "effect": 0.22,
+   "runs": 3
+  },
+  "Dalby|0|1": {
+   "effect": 0.02,
+   "runs": 1
+  },
+  "Dalby|0|2": {
+   "effect": -0.24,
+   "runs": 4
+  },
+  "Pinjarra Scarpside|3|2": {
+   "effect": -0.27,
+   "runs": 3
+  },
+  "Pinjarra Scarpside|3|0": {
+   "effect": 0.24,
+   "runs": 1
+  },
+  "Pinjarra Scarpside|3|1": {
+   "effect": 0.05,
+   "runs": 2
+  },
+  "Gunnedah|0|2": {
+   "effect": -0.2,
+   "runs": 8
+  },
+  "Gunnedah|0|0": {
+   "effect": 0.18,
+   "runs": 3
+  },
+  "Gunnedah|0|1": {
+   "effect": 0.03,
+   "runs": 3
+  },
+  "Gunnedah|2|1": {
+   "effect": 0.08,
+   "runs": 4
+  },
+  "Taree|1|2": {
+   "effect": -0.37,
+   "runs": 12
+  },
+  "Taree|1|1": {
+   "effect": 0.09,
+   "runs": 7
+  },
+  "Taree|1|0": {
+   "effect": 0.29,
+   "runs": 7
+  },
+  "Taree|3|2": {
+   "effect": -0.27,
+   "runs": 11
+  },
+  "Taree|3|1": {
+   "effect": 0.05,
+   "runs": 1
+  },
+  "Taree|2|2": {
+   "effect": -0.3,
+   "runs": 18
+  },
+  "Taree|2|1": {
+   "effect": 0.01,
+   "runs": 7
+  },
+  "Taree|2|0": {
+   "effect": 0.33,
+   "runs": 8
+  },
+  "Taree|0|2": {
+   "effect": -0.17,
+   "runs": 13
+  },
+  "Taree|0|1": {
+   "effect": 0.03,
+   "runs": 4
+  },
+  "Taree|0|0": {
+   "effect": 0.15,
+   "runs": 8
+  },
+  "Bowen|0|0": {
+   "effect": 0.18,
+   "runs": 3
+  },
+  "Bowen|0|2": {
+   "effect": -0.25,
+   "runs": 2
+  },
+  "Bowen|0|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Bowen|1|1": {
+   "effect": 0.08,
+   "runs": 4
+  },
+  "Bowen|1|0": {
+   "effect": 0.26,
+   "runs": 5
+  },
+  "Bowen|1|2": {
+   "effect": -0.35,
+   "runs": 4
+  },
+  "Bowen|2|2": {
+   "effect": -0.33,
+   "runs": 3
+  },
+  "Bowen|2|0": {
+   "effect": 0.3,
+   "runs": 3
+  },
+  "Bowen|2|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Gold Coast Poly|2|1": {
+   "effect": 0.06,
+   "runs": 4
+  },
+  "Gold Coast Poly|2|0": {
+   "effect": 0.27,
+   "runs": 3
+  },
+  "Gold Coast Poly|2|2": {
+   "effect": -0.32,
+   "runs": 7
+  },
+  "Innisfail|1|0": {
+   "effect": 0.26,
+   "runs": 3
+  },
+  "Innisfail|1|1": {
+   "effect": 0.03,
+   "runs": 3
+  },
+  "Innisfail|1|2": {
+   "effect": -0.3,
+   "runs": 2
+  },
+  "Katherine|0|2": {
+   "effect": -0.26,
+   "runs": 4
+  },
+  "Katherine|0|0": {
+   "effect": 0.24,
+   "runs": 3
+  },
+  "Katherine|0|1": {
+   "effect": 0.02,
+   "runs": 2
+  },
+  "Katherine|1|2": {
+   "effect": -0.35,
+   "runs": 7
+  },
+  "Katherine|1|1": {
+   "effect": 0.11,
+   "runs": 4
+  },
+  "Katherine|1|0": {
+   "effect": 0.25,
+   "runs": 3
+  },
+  "Katherine|3|2": {
+   "effect": -0.39,
+   "runs": 3
+  },
+  "Katherine|3|0": {
+   "effect": 0.31,
+   "runs": 2
+  },
+  "Katherine|3|1": {
+   "effect": 0.1,
+   "runs": 1
+  },
+  "Bathurst|0|0": {
+   "effect": 0.21,
+   "runs": 2
+  },
+  "Bathurst|0|2": {
+   "effect": -0.26,
+   "runs": 4
+  },
+  "Canberra Acton|0|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Canberra Acton|0|0": {
+   "effect": 0.2,
+   "runs": 2
+  },
+  "Beaudesert|1|2": {
+   "effect": -0.37,
+   "runs": 3
+  },
+  "Beaudesert|1|0": {
+   "effect": 0.34,
+   "runs": 3
+  },
+  "Beaudesert|1|1": {
+   "effect": 0.03,
+   "runs": 2
+  },
+  "Beaudesert|0|2": {
+   "effect": -0.25,
+   "runs": 4
+  },
+  "Beaudesert|0|0": {
+   "effect": 0.21,
+   "runs": 1
+  },
+  "Beaudesert|0|1": {
+   "effect": 0.05,
+   "runs": 1
+  },
+  "Beaudesert|3|0": {
+   "effect": 0.22,
+   "runs": 2
+  },
+  "Beaudesert|3|2": {
+   "effect": -0.26,
+   "runs": 3
+  },
+  "Beaudesert|3|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Murwillumbah|3|2": {
+   "effect": -0.28,
+   "runs": 2
+  },
+  "Murwillumbah|3|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Murwillumbah|3|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Murwillumbah|0|1": {
+   "effect": 0.05,
+   "runs": 2
+  },
+  "Murwillumbah|0|2": {
+   "effect": -0.25,
+   "runs": 4
+  },
+  "Murwillumbah|1|1": {
+   "effect": 0.02,
+   "runs": 3
+  },
+  "Murwillumbah|1|0": {
+   "effect": 0.25,
+   "runs": 3
+  },
+  "Murwillumbah|1|2": {
+   "effect": -0.27,
+   "runs": 7
+  },
+  "Murwillumbah|2|0": {
+   "effect": 0.29,
+   "runs": 4
+  },
+  "Murwillumbah|2|2": {
+   "effect": -0.31,
+   "runs": 5
+  },
+  "Murwillumbah|2|1": {
+   "effect": 0.03,
+   "runs": 3
+  },
+  "Berrigan|0|2": {
+   "effect": -0.2,
+   "runs": 5
+  },
+  "Berrigan|0|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Berrigan|0|0": {
+   "effect": 0.17,
+   "runs": 2
+  },
+  "Berrigan|2|1": {
+   "effect": 0.11,
+   "runs": 6
+  },
+  "Berrigan|2|0": {
+   "effect": 0.3,
+   "runs": 4
+  },
+  "Berrigan|2|2": {
+   "effect": -0.39,
+   "runs": 8
+  },
+  "Cairns|3|2": {
+   "effect": -0.32,
+   "runs": 4
+  },
+  "Cairns|3|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Cairns|3|0": {
+   "effect": 0.31,
+   "runs": 2
+  },
+  "Doomben|4|1": {
+   "effect": -0.04,
+   "runs": 1
+  },
+  "Kununurra|2|0": {
+   "effect": 0.26,
+   "runs": 4
+  },
+  "Kununurra|2|2": {
+   "effect": -0.31,
+   "runs": 4
+  },
+  "Kununurra|2|1": {
+   "effect": 0.06,
+   "runs": 4
+  },
+  "Kununurra|1|0": {
+   "effect": 0.29,
+   "runs": 2
+  },
+  "Kununurra|1|2": {
+   "effect": -0.37,
+   "runs": 2
+  },
+  "Kununurra|1|1": {
+   "effect": 0.08,
+   "runs": 2
+  },
+  "Kununurra|0|0": {
+   "effect": 0.19,
+   "runs": 3
+  },
+  "Kununurra|0|2": {
+   "effect": -0.25,
+   "runs": 2
+  },
+  "Kununurra|0|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Port Macquarie|2|0": {
+   "effect": 0.25,
+   "runs": 3
+  },
+  "Port Macquarie|2|2": {
+   "effect": -0.36,
+   "runs": 3
+  },
+  "Port Macquarie|2|1": {
+   "effect": 0.11,
+   "runs": 2
+  },
+  "Kilcoy|2|2": {
+   "effect": -0.26,
+   "runs": 9
+  },
+  "Kilcoy|2|1": {
+   "effect": 0.03,
+   "runs": 2
+  },
+  "Kilcoy|0|2": {
+   "effect": -0.19,
+   "runs": 3
+  },
+  "Kilcoy|0|0": {
+   "effect": 0.16,
+   "runs": 2
+  },
+  "Kilcoy|0|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Kilcoy|3|0": {
+   "effect": 0.26,
+   "runs": 2
+  },
+  "Kilcoy|2|0": {
+   "effect": 0.25,
+   "runs": 1
+  },
+  "Narromine|0|2": {
+   "effect": -0.2,
+   "runs": 11
+  },
+  "Narromine|0|1": {
+   "effect": -0.04,
+   "runs": 6
+  },
+  "Narromine|0|0": {
+   "effect": 0.25,
+   "runs": 6
+  },
+  "Narromine|1|1": {
+   "effect": 0.01,
+   "runs": 6
+  },
+  "Tuncurry|2|2": {
+   "effect": -0.32,
+   "runs": 8
+  },
+  "Tuncurry|2|1": {
+   "effect": 0.05,
+   "runs": 4
+  },
+  "Tuncurry|0|2": {
+   "effect": -0.23,
+   "runs": 11
+  },
+  "Tuncurry|0|0": {
+   "effect": 0.19,
+   "runs": 6
+  },
+  "Tuncurry|0|1": {
+   "effect": 0.05,
+   "runs": 5
+  },
+  "Tuncurry|2|0": {
+   "effect": 0.28,
+   "runs": 3
+  },
+  "Beaumont|1|2": {
+   "effect": -0.33,
+   "runs": 8
+  },
+  "Beaumont|1|0": {
+   "effect": 0.32,
+   "runs": 3
+  },
+  "Beaumont|1|1": {
+   "effect": 0.02,
+   "runs": 2
+  },
+  "Beaumont|2|2": {
+   "effect": -0.32,
+   "runs": 8
+  },
+  "Beaumont|2|1": {
+   "effect": 0.16,
+   "runs": 3
+  },
+  "Beaumont|2|0": {
+   "effect": 0.17,
+   "runs": 3
+  },
+  "Tamworth|1|0": {
+   "effect": 0.3,
+   "runs": 3
+  },
+  "Tamworth|1|1": {
+   "effect": 0.01,
+   "runs": 3
+  },
+  "Tamworth|1|2": {
+   "effect": -0.3,
+   "runs": 8
+  },
+  "Belmont|3|2": {
+   "effect": -0.32,
+   "runs": 2
+  },
+  "Canterbury|2|2": {
+   "effect": -0.31,
+   "runs": 3
+  },
+  "Canterbury|2|0": {
+   "effect": 0.26,
+   "runs": 1
+  },
+  "Canterbury|2|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Wagga|3|2": {
+   "effect": -0.3,
+   "runs": 2
+  },
+  "Wagga|3|1": {
+   "effect": 0.04,
+   "runs": 2
+  },
+  "Wagga|3|0": {
+   "effect": 0.28,
+   "runs": 2
+  },
+  "Alice Springs|1|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Alice Springs|1|0": {
+   "effect": 0.22,
+   "runs": 2
+  },
+  "Alice Springs|1|2": {
+   "effect": -0.3,
+   "runs": 1
+  },
+  "Alice Springs|2|2": {
+   "effect": -0.31,
+   "runs": 1
+  },
+  "Gosford|1|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Gosford|1|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Gosford|4|1": {
+   "effect": -0.03,
+   "runs": 2
+  },
+  "Moruya|0|1": {
+   "effect": 0.07,
+   "runs": 7
+  },
+  "Moruya|0|0": {
+   "effect": 0.21,
+   "runs": 9
+  },
+  "Moruya|0|2": {
+   "effect": -0.28,
+   "runs": 10
+  },
+  "Betoota|0|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Betoota|0|0": {
+   "effect": 0.2,
+   "runs": 2
+  },
+  "Betoota|0|2": {
+   "effect": -0.25,
+   "runs": 2
+  },
+  "Gulargambone|3|1": {
+   "effect": 0.02,
+   "runs": 3
+  },
+  "Gulargambone|3|2": {
+   "effect": -0.24,
+   "runs": 3
+  },
+  "Gulargambone|3|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Gulargambone|2|2": {
+   "effect": -0.32,
+   "runs": 5
+  },
+  "Gulargambone|2|0": {
+   "effect": 0.25,
+   "runs": 2
+  },
+  "Gulargambone|2|1": {
+   "effect": 0.08,
+   "runs": 2
+  },
+  "Gulargambone|1|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Gulargambone|1|1": {
+   "effect": -0.02,
+   "runs": 1
+  },
+  "Gulargambone|1|0": {
+   "effect": 0.29,
+   "runs": 3
+  },
+  "Warra|2|2": {
+   "effect": -0.29,
+   "runs": 3
+  },
+  "Warra|2|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Warra|2|0": {
+   "effect": 0.24,
+   "runs": 2
+  },
+  "Mudgee|0|1": {
+   "effect": 0.05,
+   "runs": 1
+  },
+  "Mudgee|0|2": {
+   "effect": -0.22,
+   "runs": 3
+  },
+  "Mudgee|0|0": {
+   "effect": 0.17,
+   "runs": 3
+  },
+  "Mudgee|2|1": {
+   "effect": 0.12,
+   "runs": 3
+  },
+  "Mudgee|1|0": {
+   "effect": 0.23,
+   "runs": 4
+  },
+  "Mudgee|1|1": {
+   "effect": 0.06,
+   "runs": 4
+  },
+  "Mudgee|1|2": {
+   "effect": -0.28,
+   "runs": 6
+  },
+  "Corowa|2|1": {
+   "effect": 0.12,
+   "runs": 4
+  },
+  "Corowa|2|2": {
+   "effect": -0.39,
+   "runs": 6
+  },
+  "Corowa|2|0": {
+   "effect": 0.28,
+   "runs": 6
+  },
+  "Corowa|0|2": {
+   "effect": -0.28,
+   "runs": 6
+  },
+  "Corowa|0|0": {
+   "effect": 0.23,
+   "runs": 4
+  },
+  "Corowa|0|1": {
+   "effect": 0.06,
+   "runs": 4
+  },
+  "Scone|4|1": {
+   "effect": -0.06,
+   "runs": 2
+  },
+  "Scone|4|2": {
+   "effect": -0.27,
+   "runs": 4
+  },
+  "Scone|4|0": {
+   "effect": 0.33,
+   "runs": 2
+  },
+  "Belmont|1|0": {
+   "effect": 0.26,
+   "runs": 1
+  },
+  "Belmont|1|2": {
+   "effect": -0.31,
+   "runs": 2
+  },
+  "Belmont|4|0": {
+   "effect": 0.19,
+   "runs": 1
+  },
+  "Coffs Harbour|1|2": {
+   "effect": -0.33,
+   "runs": 6
+  },
+  "Coffs Harbour|1|1": {
+   "effect": 0.05,
+   "runs": 1
+  },
+  "Coffs Harbour|1|0": {
+   "effect": 0.29,
+   "runs": 2
+  },
+  "Canberra|0|0": {
+   "effect": 0.28,
+   "runs": 2
+  },
+  "Canberra|0|2": {
+   "effect": -0.34,
+   "runs": 4
+  },
+  "Canberra|0|1": {
+   "effect": 0.07,
+   "runs": 3
+  },
+  "Canberra|1|2": {
+   "effect": -0.28,
+   "runs": 6
+  },
+  "Canberra|1|1": {
+   "effect": 0.03,
+   "runs": 2
+  },
+  "Wyong|4|2": {
+   "effect": -0.25,
+   "runs": 2
+  },
+  "Wyong|4|0": {
+   "effect": 0.27,
+   "runs": 3
+  },
+  "Wyong|4|1": {
+   "effect": -0.02,
+   "runs": 2
+  },
+  "Goondiwindi|3|2": {
+   "effect": -0.32,
+   "runs": 4
+  },
+  "Goondiwindi|3|0": {
+   "effect": 0.31,
+   "runs": 3
+  },
+  "Goondiwindi|3|1": {
+   "effect": 0.03,
+   "runs": 1
+  },
+  "Junction|2|1": {
+   "effect": 0.09,
+   "runs": 3
+  },
+  "Junction|2|2": {
+   "effect": -0.27,
+   "runs": 7
+  },
+  "Junction|2|0": {
+   "effect": 0.19,
+   "runs": 2
+  },
+  "Junction|3|0": {
+   "effect": 0.34,
+   "runs": 3
+  },
+  "Junction|3|2": {
+   "effect": -0.32,
+   "runs": 3
+  },
+  "Junction|3|1": {
+   "effect": 0,
+   "runs": 1
+  },
+  "Kempsey|2|1": {
+   "effect": 0.09,
+   "runs": 3
+  },
+  "Kempsey|2|2": {
+   "effect": -0.28,
+   "runs": 7
+  },
+  "Kempsey|2|0": {
+   "effect": 0.21,
+   "runs": 2
+  },
+  "Kempsey|1|2": {
+   "effect": -0.3,
+   "runs": 4
+  },
+  "Kempsey|1|1": {
+   "effect": 0.04,
+   "runs": 1
+  },
+  "Kempsey|1|0": {
+   "effect": 0.27,
+   "runs": 1
+  },
+  "Mendooran|1|0": {
+   "effect": 0.25,
+   "runs": 4
+  },
+  "Mendooran|1|2": {
+   "effect": -0.33,
+   "runs": 4
+  },
+  "Mendooran|1|1": {
+   "effect": 0.08,
+   "runs": 3
+  },
+  "Mendooran|0|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Mendooran|0|2": {
+   "effect": -0.28,
+   "runs": 4
+  },
+  "Mareeba|3|1": {
+   "effect": 0.07,
+   "runs": 2
+  },
+  "Mareeba|3|2": {
+   "effect": -0.38,
+   "runs": 2
+  },
+  "Mareeba|3|0": {
+   "effect": 0.32,
+   "runs": 3
+  },
+  "Gundagai|2|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Dubbo|4|0": {
+   "effect": 0.27,
+   "runs": 2
+  },
+  "Dubbo|4|2": {
+   "effect": -0.25,
+   "runs": 5
+  },
+  "Muswellbrook|0|2": {
+   "effect": -0.25,
+   "runs": 4
+  },
+  "Muswellbrook|0|1": {
+   "effect": 0.06,
+   "runs": 1
+  },
+  "Muswellbrook|0|0": {
+   "effect": 0.2,
+   "runs": 1
+  },
+  "Queanbeyan|0|1": {
+   "effect": 0.09,
+   "runs": 3
+  },
+  "Queanbeyan|0|2": {
+   "effect": -0.27,
+   "runs": 9
+  },
+  "Queanbeyan|0|0": {
+   "effect": 0.2,
+   "runs": 1
+  },
+  "Belmont|3|0": {
+   "effect": 0.23,
+   "runs": 2
+  },
+  "Kensington|3|0": {
+   "effect": 0.32,
+   "runs": 3
+  },
+  "Kensington|3|1": {
+   "effect": 0.06,
+   "runs": 2
+  },
+  "Kensington|3|2": {
+   "effect": -0.37,
+   "runs": 3
+  },
+  "Lismore|1|0": {
+   "effect": 0.26,
+   "runs": 2
+  },
+  "Lismore|1|2": {
+   "effect": -0.31,
+   "runs": 5
+  },
+  "Lismore|1|1": {
+   "effect": 0.06,
+   "runs": 1
+  }
+ }
+}

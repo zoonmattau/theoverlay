@@ -13,7 +13,8 @@
 
 import type { BenchmarkedRun, PastEvent, RaceEntry, Speedmap } from "@/lib/formking/types";
 import { ownClock } from "./standards";
-import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, prepStage, weightFactor } from "./factors";
+import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, parseRecord, prepStage, weightFactor } from "./factors";
+import { barrierEffect } from "./barriers";
 import fit from "./fit.json";
 import type {
   Factor,
@@ -155,17 +156,89 @@ const RR_REACH = Number(process.env.OVERLAY_RR_REACH ?? Infinity);
 const RR_MARGIN = Number(process.env.OVERLAY_RR_MARGIN ?? 0);
 /** Points above the race's own rating a beaten horse's run may sit; Infinity is no cap. Sweep with scripts/sweep-caps.ts. */
 const RR_BEATEN_CAP = Number(process.env.OVERLAY_RR_BEATEN_CAP ?? Infinity);
+/** 1 caps the feed's race rating, as a run's par, at the horse's official rating then plus OHR_REACH; 0 lets it stand. Sweep with scripts/sweep-caps.ts. */
+const RR_OHR_CAP = Number(process.env.OVERLAY_RR_OHR_CAP ?? 0) === 1;
+/** 0 ignores a race rating the feed built from overall time alone (no sectionals); 1 uses it. Sweep with scripts/sweep-caps.ts. */
+const RR_TIME_ONLY = Number(process.env.OVERLAY_RR_TIME_ONLY ?? 1);
+/** 1 gives every run today's par, ignoring the race it was in: the clock alone rates it. Sweep with scripts/sweep-caps.ts. */
+const FLAT_PAR = Number(process.env.OVERLAY_FLAT_PAR ?? 0) === 1;
+/** Share of a run's par's distance from today's par that counts, 0-1. Sweep with scripts/sweep-caps.ts. */
+const RR_SHRINK = Number(process.env.OVERLAY_RR_SHRINK ?? 1);
 /**
- * Per-factor multipliers for sweeping, "going=0,distance=0.5"; a factor
- * not named keeps its weight. Empty in production.
+ * Which factors count, and how much. Six are off since 20 Sep 2026: going,
+ * distance, weight, fresh, trainer and barrier. Three separate readings
+ * found them worthless or worse. Regressing runs on the marks (12 and 19
+ * Sep) gave going −0.04 and distance −0.02 per point; the least-squares
+ * rating (fit.json) put weight, barrier, going and tempo fit at nothing;
+ * and over the 461 clean races of 11 to 20 Sep taking the six out moved
+ * the form's log loss from 0.3139 to 0.3119, its top pick from 111 to 119
+ * winners, the market favourite ranked fourth or worse from 148 races to
+ * 124 and a $10+ shot on top from 112 races to 98, with both Saturdays and
+ * midweek improving (scripts/sweep-caps.ts, scripts/out/top-price.ts).
+ * Bairnsdale R5 the same day: the winner rated 1.7 points above our top
+ * pick on class and 3.4 below it on Today, the gap all going, distance and
+ * weight. Jockey, sections, shape, streak, tempo, track and the feed's
+ * nudge stay: each one taken out costs top-pick winners.
+ * OVERLAY_FACTOR_MULT="going=1,distance=0.5" overrides any of these for a sweep.
  */
-const FACTOR_MULT: Partial<Record<string, number>> = Object.fromEntries(
-  (process.env.OVERLAY_FACTOR_MULT ?? "")
-    .split(",")
-    .map((s) => s.trim().split("="))
-    .filter(([k, v]) => k && v !== undefined && !Number.isNaN(Number(v)))
-    .map(([k, v]) => [k, Number(v)]),
-);
+/**
+ * The rebuilt going and barrier, 20 Sep 2026, each behind a switch. Going:
+ * the horse's career win record on today's ground (the feed's goingForm,
+ * every start it has had) over what its career record overall predicts,
+ * shrunk by GOING_K starts, times GOING_MODEL points per unit of surplus;
+ * over the clean cache the surplus predicted the run at about 2 to 3 points
+ * a unit (scripts/out/going-surplus.ts). Barrier: the gate's measured effect
+ * at this track and trip from 205,000 runs (barriers.ts), in points.
+ */
+const GOING_MODEL = Number(process.env.OVERLAY_GOING_MODEL ?? 0);
+const GOING_K = Number(process.env.OVERLAY_GOING_K ?? 4);
+/**
+ * On since 20 Sep 2026: over the 461 clean races the measured gate took the
+ * form's log loss from 0.3117 to 0.3113, the top pick from 121 to 122
+ * winners, the favourite ranked fourth or worse from 129 to 127 races and a
+ * $10+ shot on top from 90 to 88, where the old hand-set barrier factor
+ * cost winners (116). 0 turns it off. The going model stays off by default:
+ * at 2 to 4 points a unit it is within noise of nothing on the rating, and
+ * its value against the market is tested in scripts/fit-prob.ts as a price input.
+ */
+const BARRIER_MODEL = Number(process.env.OVERLAY_BARRIER_MODEL ?? 1) === 1;
+const FACTOR_DEFAULT: Partial<Record<string, number>> = { going: GOING_MODEL > 0 ? 1 : 0, distance: 0, weight: 0, fresh: 0, trainer: 0, barrier: BARRIER_MODEL ? 1 : 0 };
+/** Career starts and wins on a set of the feed's going buckets. */
+function goingRecord(form: Record<string, string> | undefined, buckets: string[]) {
+  let starts = 0, wins = 0;
+  for (const b of buckets) { const rec = parseRecord(form?.[b]); if (rec) { starts += rec.starts; wins += rec.wins; } }
+  return { starts, wins };
+}
+/**
+ * Wins on today's ground over what the horse's career win rate predicts,
+ * per start, shrunk by GOING_K starts. Wet is the feed's slow and heavy;
+ * dry its fast, good and dead. Nought with no starts on the ground. This is
+ * an input to the fitted price (rate.ts): over the clean cache it carried
+ * more weight against the market than the rating itself did (+0.11 per
+ * standard deviation to the rating's +0.09, scripts/fit-prob.ts).
+ */
+export function goingSurplus(form: Record<string, string> | undefined, going: GoingBand): number {
+  if (!form) return 0;
+  const on = goingRecord(form, going === "good" ? ["fast", "good", "dead"] : ["slow", "heavy"]);
+  const all = goingRecord(form, Object.keys(form));
+  if (on.starts === 0) return 0;
+  const winRate = (all.wins + 0.5) / (all.starts + 4);
+  return (on.wins - on.starts * winRate) / (on.starts + GOING_K);
+}
+/** The same surplus as points on the rating, GOING_MODEL a unit; off by default. */
+function goingModelFactor(e: RaceEntry, going: GoingBand): number {
+  return GOING_MODEL * goingSurplus(e.form?.goingForm, going);
+}
+const FACTOR_MULT: Partial<Record<string, number>> = {
+  ...FACTOR_DEFAULT,
+  ...Object.fromEntries(
+    (process.env.OVERLAY_FACTOR_MULT ?? "")
+      .split(",")
+      .map((s) => s.trim().split("="))
+      .filter(([k, v]) => k && v !== undefined && !Number.isNaN(Number(v)))
+      .map(([k, v]) => [k, Number(v)]),
+  ),
+};
 /**
  * How much of a horse's class rating's distance from the field's average
  * class rating is kept, for sweeping; 1 keeps it all.
@@ -189,6 +262,17 @@ const CLOCK_FLOOR = Number(process.env.OVERLAY_CLOCK_FLOOR ?? Infinity);
  * Infinity trusts the clock outright.
  */
 const CLOCK_CEILING = Number(process.env.OVERLAY_CLOCK_CEILING ?? 4);
+/**
+ * Lengths of beaten margin at which the clock's forgiveness above the margin
+ * has faded to nothing: a horse beaten a length keeps the full CLOCK_CEILING,
+ * one beaten eight or more gets none, since an eleventh beaten ten lengths
+ * was the eleventh best horse there however fast they went. Eight from
+ * scripts/sweep-caps.ts on the clean days, 20 Sep 2026, with the six weak
+ * factors already off: form log loss 0.3119 to 0.3117, top pick 119 to 121
+ * winners, a $10+ shot on top in 98 races to 90, the favourite ranked
+ * fourth or worse 124 to 129. Infinity keeps the forgiveness constant.
+ */
+const CEILING_FADE = Number(process.env.OVERLAY_CEILING_FADE ?? 8);
 /**
  * Share of a run's worth that comes from the beaten margin at full weight
  * rather than the clock: 0 is the clock alone (with the ceiling), 1 the
@@ -256,8 +340,12 @@ const JUVENILE_DROP = Number(process.env.OVERLAY_JUVENILE_DROP ?? 0);
 const TIME_ONLY_WEIGHT = 0.5;
 /** Recency weights over the last runs, most recent first. */
 export const RUN_WEIGHTS = [0.35, 0.25, 0.2, 0.12, 0.08];
+/** Share of the class rating from the peak (the mean of the best two of the last three runs); the rest is the recency-weighted average. Sweep with scripts/sweep-caps.ts. */
+const PEAK_SHARE = Number(process.env.OVERLAY_PEAK_SHARE ?? 0.4);
 /** Prior weight, in runs, that pulls a thin category back toward class. */
 const SHRINK = 2;
+/** What a condition's runs are judged against: "class" (40% peak) or "weighted" (the horse's recency-weighted average). Sweep with scripts/sweep-caps.ts. */
+const CATEGORY_BASE = process.env.OVERLAY_CATEGORY_BASE ?? "class";
 /** How far a within-field Form King edge can move a runner. */
 const FK_NUDGE = 1.5;
 /**
@@ -450,7 +538,7 @@ export function rateEntries(
 
     // Every adjustment is named, so the card can say why Today is not Class.
     const factors: Partial<Record<Factor, number>> = {
-      going: WEIGHTS.going * (r.going[race.going] - r.class),
+      going: GOING_MODEL > 0 ? goingModelFactor(e, race.going) : WEIGHTS.going * (r.going[race.going] - r.class),
       tempo: WEIGHTS.tempo * (tempoFit - r.class),
       distance: WEIGHTS.distance * (r.distance - r.class) + distanceGapFactor(runDistances(e, race.date), race.distance),
       track: WEIGHTS.track * (r.track - r.class),
@@ -458,7 +546,9 @@ export function rateEntries(
       fresh: freshFactor(e, r.class, (p) => runPoints(p, race.classPoints, e.horse.age, race.date), race.date) + layoffFactor(e),
       jockey: clamp(((e.jockeyForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.06, -CAP.jockey, CAP.jockey),
       trainer: clamp(((e.trainerForm?.lastTwelveMonthWinPercentage ?? 12) - 12) * 0.04, -CAP.trainer, CAP.trainer),
-      barrier: barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, map, race.distance),
+      barrier: BARRIER_MODEL
+        ? round1(barrierEffect(race.track, race.distance, live.filter((o) => o.barrier < e.barrier).length + 1, n) * clockPoints(race.distance))
+        : barrierFactor(live.filter((o) => o.barrier < e.barrier).length + 1, n, map, race.distance),
       sections: r.runs > 0 ? SECTION_WEIGHT * (sectionFit - r.class) : 0,
       shape: shapeOf(r, map),
       streak: streakFactor(e, race.date),
@@ -573,7 +663,7 @@ function rateOne(
   // run lifts the rating but cannot carry it on its own.
   const best = [...points.slice(0, 3)].sort((a, b) => b - a);
   const peak = best.length >= 2 ? (best[0] + best[1]) / 2 : best[0];
-  const formCls = 0.4 * peak + 0.6 * weighted;
+  const formCls = PEAK_SHARE * peak + (1 - PEAK_SHARE) * weighted;
   // The handicapper's number is public form too: a raced horse's class can be pulled toward it.
   const ohrNow = e.benchmarkRating && e.benchmarkRating > 0 ? toFeedScale(clamp(e.benchmarkRating, race.classPoints - 15, race.classPoints + 25)) : undefined;
   const cls = ohrNow !== undefined ? formCls + OHR_PULL * (ohrNow - formCls) : formCls;
@@ -589,9 +679,22 @@ function rateOne(
     return ps.length ? cls + mean(ps) : cls;
   };
 
+  // A condition's rating (tempo, going, distance, track) is the mean of the
+  // runs under that condition, shrunk toward a baseline, and its factor is
+  // the gap to Class. Class is 40% peak, so against Class every plain mean
+  // sits low for a horse with one standout run, and every factor reads
+  // negative: Gambler, Sunshine Coast R6 20 Sep 2026, class 88 off runs
+  // worth 92, 87, 87, 83 and 71, and tempo, going, distance and sections
+  // together took 7.4 off it for conditions it had met in every one of
+  // those runs; it was laid at $3.60 and won. With CATEGORY_BASE weighted
+  // the condition is judged against the horse's own recency-weighted
+  // average, so a horse that runs to its average under today's conditions
+  // carries no factor, and only a real difference under them moves it.
+  const base = CATEGORY_BASE === "weighted" ? weighted : cls;
   const subset = (keep: (r: PastEvent) => boolean) => {
     const ps = runs.filter(keep).map((r) => runPoints(r, race.classPoints, e.horse.age, race.date));
-    return (ps.reduce((a, b) => a + b, 0) + cls * SHRINK) / (ps.length + SHRINK);
+    const shrunk = (ps.reduce((a, b) => a + b, 0) + base * SHRINK) / (ps.length + SHRINK);
+    return cls + (shrunk - base);
   };
 
   const late = section((s) => s.late);
@@ -673,10 +776,25 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   // onto that scale. A rating of nought is a race never rated (a Leeton
   // maiden came through as 0 and put a run at -7.9), so anything under
   // RR_FLOOR is treated as missing.
-  const rr = r.benchmark?.raceRating;
-  // The feed's rating is capped within reach of today's par the same way a name is.
-  const rrCapped = rr !== undefined ? Math.min(rr, toFeedScale(todayPar + RR_REACH)) : undefined;
-  const par = RR_PAR ? (rrCapped !== undefined && rrCapped >= RR_FLOOR ? rrCapped : toFeedScale(named)) : named;
+  // A race rating built from a hand-held overall time alone (a bush track with
+  // no sectionals) can read like a Group race: Goondiwindi's BM50 of 5 Sep 2026
+  // was rated 96, above a city BM72, and two horses beaten 2 and 11 lengths in
+  // it were top rated at $12 and $14 a fortnight later. RR_TIME_ONLY 0 leaves
+  // such a rating out and falls back to the name.
+  const rrRaw = r.benchmark?.raceRating;
+  const rr = rrRaw !== undefined && r.benchmark?.dataStage === "OVERALL_TIME_ONLY" && RR_TIME_ONLY === 0 ? undefined : rrRaw;
+  // The feed's rating is capped within reach of today's par the same way a
+  // name is, and with RR_OHR_CAP within reach of the horse's official rating
+  // at the time too: the name's cap (OHR_REACH) never applied to the feed's
+  // rating, so a 47-rated horse ran in a "96" race.
+  const rrCapped = rr !== undefined
+    ? Math.min(rr, toFeedScale(todayPar + RR_REACH), RR_OHR_CAP && ohr !== undefined ? toFeedScale(ohr + OHR_REACH) : Infinity)
+    : undefined;
+  // FLAT_PAR: every run starts from today's par, whatever race it was in, so
+  // the run's worth is the clock alone and a time is a time. For sweeping.
+  const parRaw = FLAT_PAR ? toFeedScale(todayPar) : RR_PAR ? (rrCapped !== undefined && rrCapped >= RR_FLOOR ? rrCapped : toFeedScale(named)) : named;
+  // RR_SHRINK keeps that share of the run's par's distance from today's par: 1 all of it, 0 none (flat). For sweeping.
+  const par = RR_SHRINK === 1 ? parRaw : toFeedScale(todayPar) + RR_SHRINK * (parRaw - toFeedScale(todayPar));
   // Overall time with no sectionals is a hand-held clock at a bush track, so
   // its lengths against class count for half.
   const trust = r.benchmark?.dataStage === "OVERALL_TIME_ONLY" ? TIME_ONLY_WEIGHT : 1;
@@ -705,7 +823,9 @@ export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?
   const beatenCap = usedRr && (r.finishPosition ?? 1) > 1 ? par + RR_BEATEN_CAP : Infinity;
   // Nor may the clock sit more than CLOCK_CEILING lengths above what the beaten margin says, at full weight.
   const marginFull = r.margin !== undefined ? par - r.margin * clockPoints(r.distance) : Infinity;
-  const clockCeiling = r.benchmark && Number.isFinite(CLOCK_CEILING) ? marginFull + CLOCK_CEILING * clockPoints(r.distance) : Infinity;
+  // The clock's forgiveness fades with the margin when CEILING_FADE is finite: full at a narrow defeat, none at CEILING_FADE lengths.
+  const forgive = Number.isFinite(CEILING_FADE) && r.margin !== undefined ? CLOCK_CEILING * Math.max(0, 1 - r.margin / CEILING_FADE) : CLOCK_CEILING;
+  const clockCeiling = r.benchmark && Number.isFinite(CLOCK_CEILING) ? marginFull + forgive * clockPoints(r.distance) : Infinity;
   const capped = Math.min(raw, beatenCap, clockCeiling);
   // Part of the run's worth from the margin itself, where we have one.
   const blended = MARGIN_BLEND > 0 && Number.isFinite(marginFull) ? capped + MARGIN_BLEND * (marginFull - capped) : capped;

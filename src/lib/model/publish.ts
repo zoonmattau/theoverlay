@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { decodeEntities } from "@/lib/format";
-import { classPoints, explain, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
+import { classPoints, explain, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
 
@@ -63,6 +63,14 @@ const BET_MIN_PROB = 0.08;
 const BET_MAX_PRICE = 26;
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
+/**
+ * What the best prices over a field may add to before the market counts as
+ * whole. A best-of-bookmakers book runs 105% to 115% in nearly every race
+ * (394 of the 462 clean races in the cache); under 100% means a runner is
+ * missing or a quote is stale, well over means the prices are not live.
+ */
+const BOOK_MIN = 1.0;
+const BOOK_MAX = 1.4;
 /**
  * Below this trust in the rating there is no bet: 0.3 lets a horse on one
  * run (trust 0.35) in, which the user asked for on 18 Sep 2026 (Far And
@@ -132,6 +140,7 @@ export function publishRace(
         // No runs means no opinion: the market, which has seen the trials, is our number.
         rating: r && r.runs > 0 ? r.today : undefined,
         trust: r?.trust,
+        goingWin: goingSurplus(e.form?.goingForm, going),
         layQuote: e.odds?.exchange?.lay,
         marketPrice: e.odds?.bestNow,
         scratched: e.scratched,
@@ -153,8 +162,15 @@ export function publishRace(
   const locked = jumped || (process.env.OVERLAY_REPLAY !== "1" && inCallLock(jumpTime));
   // Below the confidence floor the model is guessing and no call is made,
   // on the runner as well as in the day's selections, so the race page and
-  // the home page count agree with the email.
-  const guessing = priced.confidence < MIN_CONFIDENCE;
+  // the home page count agree with the email. Nor is a call made against a
+  // market that is not whole: a runner with no price, or a book that does
+  // not add up, means runners are missing or quotes are stale, and every
+  // horse left reads as an overlay. Bairnsdale R2, 20 Sep 2026: three
+  // runners, the winner among them, missing from the field, a book of 70%,
+  // and ten of the eleven left were bets.
+  const book = race.entries.filter((e) => !e.scratched && e.odds?.bestNow && e.odds.bestNow > 1).reduce((a, e) => a + 1 / e.odds!.bestNow, 0);
+  const marketWhole = priced.marketComplete && book >= BOOK_MIN && book <= BOOK_MAX;
+  const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole;
   const signalByTab = new Map(
     priced.runners.map((p) => {
       const held = kept.get(`${race.raceId}:${p.key}`);

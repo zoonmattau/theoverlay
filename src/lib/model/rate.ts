@@ -8,9 +8,33 @@
  * Pipeline:
  *   ratings          -> model probabilities   (exponential / softmax)
  *   market prices    -> market probabilities  (de-vigged, power method)
- *   the two          -> blended probabilities (shrunk toward the market)
+ *   the two          -> blended probabilities (the fitted price, or the meld)
  *   blended          -> rated price + edge
  */
+
+import priceFit from "./price-fit.json";
+
+/**
+ * The fitted price: a conditional logit over the field on two inputs, the
+ * log of the market's fair chance and our rating's distance from the field
+ * in eights of a point, with the weights estimated on the clean cached races
+ * by scripts/fit-prob.ts. It says how much of the form the market already
+ * has: on the 462 races of 11 to 20 Sep 2026 the rating earns about a fifth
+ * of the say the form-only price gives it, which is why a horse the form
+ * had ten points clear at $12 kept running like a $12 horse. Walking forward
+ * a day at a time over 317 of those races the fitted price's log loss was
+ * 1.8096 against the market's 1.8098 and the meld's 1.8167, with 59 bets to
+ * the meld's 95. Refit as the clean cache grows:
+ *   OVERLAY_PROB_FEATURES=lnFair,dev OVERLAY_PROB_OUT=src/lib/model/price-fit.json npx tsx --tsconfig tsconfig.json scripts/fit-prob.ts
+ * 0 prices with the hand-set meld below instead.
+ */
+const PRICE_FIT = Number(process.env.OVERLAY_PRICE_FIT ?? 1) === 1;
+const FIT = priceFit as { features: string[]; sd: number[]; beta: number[] };
+/** A fitted weight per unit of the feature, 0 for one the fit does not have. */
+const fitWeight = (name: string) => {
+  const j = FIT.features.indexOf(name);
+  return j < 0 ? 0 : FIT.beta[j] / FIT.sd[j];
+};
 
 /**
  * Benchmark points that correspond to an e-fold change in win odds. Set on
@@ -97,6 +121,8 @@ export interface RateInput {
   rating?: number;
   /** How much that rating can be trusted, 0-1; 1 when absent. */
   trust?: number;
+  /** Career wins on today's ground over what the horse's record predicts, per start (ratings.ts goingSurplus); an input to the fitted price. */
+  goingWin?: number;
   /** The exchange's best lay on offer now, when BetWatch has it; a lay is struck here instead of the estimate. */
   layQuote?: number;
   /** Best available market price at publish time. */
@@ -123,6 +149,8 @@ export interface RateResult {
   runners: RateOutput[];
   /** 0-1. Falls when ratings are sparse or the field is unreadable. */
   confidence: number;
+  /** Whether every live runner had a market price: without one the prices are the form's alone and no edge can be read. */
+  marketComplete: boolean;
 }
 
 export function rateRace(
@@ -136,7 +164,7 @@ export function rateRace(
   const outlierScale = opts.outlierScale ?? OUTLIER_SCALE;
 
   const live = inputs.filter((r) => !r.scratched);
-  if (live.length === 0) return { runners: [], confidence: 0 };
+  if (live.length === 0) return { runners: [], confidence: 0, marketComplete: false };
 
   const modelProbs = ratingsToProbabilities(live, temperature);
   const marketProbs = devig(live.map((r) => r.marketPrice));
@@ -145,10 +173,11 @@ export function rateRace(
   const haveFullMarket = marketProbs.every((p) => p !== undefined);
   const weight = haveFullMarket ? marketWeight : 0;
 
-  // Blend in log-odds, not probability: averaging probabilities lets the
-  // model's long-shot tails swamp the market, and it is the tails where the
-  // market is least often wrong.
-  const blended = live.map((r, i) => {
+  // The fitted price where the market is whole; the meld otherwise.
+  // The meld blends in log-odds, not probability: averaging probabilities
+  // lets the model's long-shot tails swamp the market, and it is the tails
+  // where the market is least often wrong.
+  const blended = PRICE_FIT && haveFullMarket ? fittedProbabilities(live, marketProbs as number[]) : live.map((r, i) => {
     const model = modelProbs[i];
     const market = marketProbs[i];
     if (market === undefined) return model;
@@ -192,7 +221,27 @@ export function rateRace(
     return { key: r.key, probability, ratedPrice, modelPrice, marketPrice: r.marketPrice, edge, layPrice, layEdge };
   });
 
-  return { runners, confidence: confidenceOf(live, modelProbs) };
+  return { runners, confidence: confidenceOf(live, modelProbs), marketComplete: haveFullMarket };
+}
+
+/**
+ * The fitted price for a field: exp(a * ln(fair) + b * dev), normalised,
+ * where fair is the market's de-vigged chance and dev the rating's distance
+ * from the mean rating of the runners that have one, in eights of a point.
+ * A runner with no rating sits at the field's mean, so the market alone
+ * prices it, sharpened by the same a as the rest.
+ */
+function fittedProbabilities(inputs: RateInput[], market: number[]): number[] {
+  const rated = inputs.map((r) => r.rating).filter((r): r is number => r !== undefined);
+  const fieldMean = rated.length ? rated.reduce((a, b) => a + b, 0) / rated.length : 0;
+  const a = fitWeight("lnFair");
+  const b = fitWeight("dev");
+  const c = fitWeight("goingWin");
+  const z = inputs.map((r, i) => a * Math.log(Math.max(1e-4, market[i])) + (r.rating === undefined ? 0 : (b * (r.rating - fieldMean)) / 8) + c * (r.goingWin ?? 0));
+  const max = Math.max(...z);
+  const weights = z.map((v) => Math.exp(v - max));
+  const total = weights.reduce((x, y) => x + y, 0);
+  return weights.map((w) => w / total);
 }
 
 /**

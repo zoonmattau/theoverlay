@@ -102,7 +102,7 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   const db = supabaseAdmin();
   const rows = rowsFor(date, card);
   if (rows.length === 0) return;
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, settled_at, market_price, stake, tag").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, settled_at, market_price, stake, tag").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
@@ -141,6 +141,32 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     if (!change) continue;
     const { error: e } = await db.from("tips").update(change).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
     if (e) console.error("[tips] update", e.message);
+  }
+  // A call that left the card before the race ran, because the price moved
+  // and the edge went with it, is still a call a member saw, and nothing is
+  // ever removed from the record: it settles on the result at the best price
+  // it was up at, like any other. Until 20 Sep 2026 such a call never
+  // settled, since only runners still carrying a signal made a row above:
+  // 74 of the 424 calls since 11 Sep sat open that way, and because a price
+  // moves toward us when the money comes, they were the bets that won
+  // (Vanessi, Strenuous, Saffron Veil, Wiluna Lass, Lin Thizzy) and the lays
+  // that lost.
+  const covered = new Set(rows.map((r) => `${r.race_id}:${r.tab_number}`));
+  const racesById = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
+  for (const was of existing ?? []) {
+    if (was.settled_at || covered.has(`${was.race_id}:${was.tab_number}`)) continue;
+    const r = racesById.get(was.race_id);
+    const x = r?.runners.find((y) => y.tabNumber === was.tab_number);
+    if (!r?.result?.length || !x || x.scratched) continue;
+    const side = was.side as Signal;
+    const finish = x.finishPosition ?? 0;
+    const placing = r.placings?.find((p) => p.tabNumber === was.tab_number);
+    const price = settledAt(side, Number(was.market_price), placing?.bsp);
+    const { error: e } = await db
+      .from("tips")
+      .update({ market_price: price, finish_position: finish, sp: placing?.sp ?? null, units: settle(side, price, finish, Number(was.stake ?? 1)), settled_at: new Date().toISOString() })
+      .eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
+    if (e) console.error("[tips] settle withdrawn", e.message);
   }
 }
 
