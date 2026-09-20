@@ -16,6 +16,9 @@ export interface MarketDetail {
   marketMove?: number;
   /** When Form King last saw the price move. */
   marketAt?: string;
+  /** Named on the phone's sheet, which sits away from the price that was tapped. */
+  tabNumber?: number;
+  horseName?: string;
 }
 
 /**
@@ -44,7 +47,16 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
     >
       {children}
       {open && (
-        <span className="market-pop" role="tooltip" onClick={(e) => e.stopPropagation()}>
+        <span
+          className="market-pop"
+          role="tooltip"
+          onClick={(e) => {
+            // On a phone the panel is a sheet, and a tap on it is how it closes.
+            e.stopPropagation();
+            setOpen(false);
+          }}
+        >
+          {r.horseName && <span className="market-title sm:hidden">{r.tabNumber ? `${r.tabNumber}. ` : ""}{r.horseName}</span>}
           <span className="market-row">
             <span className="market-k">Best</span>
             <span className="market-v nums">{price(r.marketPrice)}</span>

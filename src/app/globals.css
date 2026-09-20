@@ -518,6 +518,32 @@ body {
   left: auto;
   right: 0;
 }
+/* A phone has no room either side of what was tapped: the market and the
+   small speed map open as a sheet at the foot of the screen instead, and a
+   tap on the sheet closes it. */
+@media (hover: none), (max-width: 640px) {
+  .market-pop,
+  .map-pop,
+  .map-pop.is-left,
+  .map-pop.is-up,
+  .market-hover.market-right .market-pop {
+    position: fixed;
+    z-index: 200;
+    left: 12px;
+    right: 12px;
+    top: auto;
+    bottom: 12px;
+    min-width: 0;
+    max-width: none;
+    white-space: normal;
+  }
+}
+.market-title {
+  font-weight: 700;
+  padding-bottom: 4px;
+  margin-bottom: 2px;
+  border-bottom: 1px solid var(--color-line-soft);
+}
 .market-row {
   display: flex;
   justify-content: space-between;
@@ -1794,21 +1820,25 @@ body {
 }
 
 /* --- Analysis panels --- */
+/* minmax(0, 1fr), not 1fr: a plain 1fr column is never narrower than its
+   widest panel, and on a phone that pushed all four panels past the edge. */
 .analysis-row {
   display: grid;
   gap: var(--sp-3);
+  grid-template-columns: minmax(0, 1fr);
 }
 @media (min-width: 900px) {
   .analysis-row {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 @media (min-width: 1300px) {
   .analysis-row {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 .panel {
+  min-width: 0;
   border: 1px solid var(--color-line);
   border-radius: var(--radius-lg);
   background: var(--color-panel);

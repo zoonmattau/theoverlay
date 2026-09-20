@@ -30,7 +30,7 @@ export function MapHover({ race, runner, children, className = "" }: { race: Pub
     <span ref={ref} className={`map-hover ${className}`} onMouseEnter={show} onMouseLeave={() => setOpen(false)}>
       {children}
       {open && (
-        <span className={`map-pop ${flip ? "is-left" : ""} ${up ? "is-up" : ""}`} role="tooltip">
+        <span className={`map-pop ${flip ? "is-left" : ""} ${up ? "is-up" : ""}`} role="tooltip" onClick={() => setOpen(false)}>
           <span className="map-pop-title">{runner.tabNumber}. {runner.horseName} settles {MAP_LABEL[runner.ratings.map].toLowerCase()}</span>
           <span className="map-pop-field">
             {columns.map(({ col, group }) => (
