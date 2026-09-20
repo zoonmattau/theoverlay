@@ -12,11 +12,11 @@ import { dayLabel, finish, raceHref, raceLabel, reviewHref, signed } from "../..
 
 export const metadata: Metadata = { title: "Review story", robots: { index: false } };
 
-export default function Page({ params }: PageProps<"/admin/review/[date]/story">) {
+export default function Page({ params, searchParams }: PageProps<"/admin/review/[date]/story">) {
   return (
     <div className="page">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Story params={params} />
+        <Story params={params} searchParams={searchParams} />
       </Suspense>
     </div>
   );
@@ -29,12 +29,10 @@ interface StoryRace {
 }
 
 /**
- * The races worth talking about, in the order a review would take them:
- * the talking points first, then the features by grade, then every race
- * with a bet, then every race with a lay. A race appears once, with every
- * reason it earned.
+ * Every reason a race is worth raising: its talking points, its grade, our
+ * bets and lays in it and how they went, a top-five closer.
  */
-function storyRaces(review: Review): StoryRace[] {
+function reasons(review: Review): Map<string, StoryRace> {
   const out = new Map<string, StoryRace>();
   const add = (r: ReviewedRace, why: string) => {
     const s = out.get(r.race.raceId) ?? { r, why: [] };
@@ -46,17 +44,37 @@ function storyRaces(review: Review): StoryRace[] {
   for (const b of review.bets) add(b.reviewed, `${b.tag === "prime_overlay" ? "Prime" : b.tag === "long_overlay" ? "Long" : "Bet"} ${b.runner.horseName} ${finish(b) || "to run"}${b.units !== undefined ? `, ${signed(b.units, 2)}u` : ""}`);
   for (const l of review.lays) add(l.reviewed, `Lay ${l.runner.horseName} ${finish(l) || "to run"}${l.units !== undefined ? `, ${signed(l.units, 2)}u` : ""}`);
   for (const c of review.closers.slice(0, 5)) add(c.race, `fastest last 600: ${c.runner.horseName}`);
-  return [...out.values()];
+  return out;
 }
 
-async function Story({ params }: { params: PageProps<"/admin/review/[date]/story">["params"] }) {
+/**
+ * The races to tell, in order. `?races=` names them by id, comma-separated,
+ * in the order the script takes them; without it, the talking points'
+ * races then the features, which is the short version of any Saturday.
+ */
+function storyRaces(review: Review, picked?: string): StoryRace[] {
+  const all = reasons(review);
+  if (picked) {
+    return picked
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean)
+      .map((id) => all.get(id) ?? (review.races.find((r) => r.race.raceId === id) ? { r: review.races.find((r) => r.race.raceId === id)!, why: ["picked"] } : undefined))
+      .filter((s): s is StoryRace => Boolean(s));
+  }
+  const short = new Set([...review.talking.map((t) => t.runner.race.race.raceId), ...review.features.map((f) => f.race.race.raceId)]);
+  return [...all.values()].filter((s) => short.has(s.r.race.raceId));
+}
+
+async function Story({ params, searchParams }: { params: PageProps<"/admin/review/[date]/story">["params"]; searchParams: PageProps<"/admin/review/[date]/story">["searchParams"] }) {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
+  const { races: picked } = await searchParams;
   const review = await buildReview(date);
   if (!review) notFound();
-  const races = storyRaces(review);
+  const races = storyRaces(review, typeof picked === "string" ? picked : undefined);
   const bets = review.bets.filter((b) => b.units !== undefined);
   const lays = review.lays.filter((l) => l.units !== undefined);
   const sum = (rows: { units?: number }[]) => rows.reduce((a, r) => a + (r.units ?? 0), 0);
@@ -70,7 +88,7 @@ async function Story({ params }: { params: PageProps<"/admin/review/[date]/story
         <h1 className="font-display text-3xl font-extrabold tracking-tight">The story of {dayLabel(date)}</h1>
         <p className="mt-1 text-sm text-ink-soft">
           {review.bets.length} bets, {bets.filter((b) => b.units! > 0).length} of {bets.length} won, {signed(sum(bets), 2)}u. {review.lays.length} lays, {lays.filter((l) => l.units! > 0).length} of {lays.length} held, {signed(sum(lays), 2)}u.
-          {" "}{races.length} races to talk about: the talking points, then the features, then every bet and lay. Each race folds up once you are done with it.
+          {" "}{races.length} races to talk about{picked ? ", in the script's order" : ": the talking points' races, then the features"}. Each race folds up once you are done with it. Name your own with ?races=id,id,id in the order you want them.
         </p>
       </section>
 
