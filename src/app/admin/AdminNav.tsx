@@ -30,6 +30,8 @@ export function AdminNav() {
   const path = usePathname();
   const active = (href: string) =>
     href === "/admin" ? path === "/admin" : href === "/tips" ? false : path.startsWith(href) || (href === "/admin/members" && /^\/admin\/[0-9a-f-]{36}$/.test(path));
+  // The review is read on camera, so it has the width to itself.
+  if (path.startsWith("/admin/review")) return <nav className="admin-nav" hidden aria-hidden="true" />;
   return (
     <nav className="admin-nav" aria-label="Admin">
       {GROUPS.map((g) => (

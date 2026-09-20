@@ -3540,6 +3540,11 @@ body {
   margin: 0 auto;
   padding: 0 var(--sp-4);
 }
+/* Pages that hide the menu take the whole width. */
+.admin-shell:has(> .admin-nav[hidden]) {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+}
 /* Admin tables have many columns; headers stay on one line and the table scrolls sideways if it must. */
 .admin-main .data-table th {
   white-space: nowrap;
