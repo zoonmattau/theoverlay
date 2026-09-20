@@ -17,14 +17,14 @@ function Stat({ label, value, sub, className = "" }: { label: string; value: str
 }
 
 /** The line under a race's name: class, trip, par, going and the race's clocks. */
-export function RaceLine({ r }: { r: ReviewedRace }) {
+export function RaceLine({ r, benchmarks = true }: { r: ReviewedRace; benchmarks?: boolean }) {
   // The feed gives every runner the race's clocks, so one runner's is the race's.
   const clocked = r.runners.find((x) => x.run?.time);
   const raceTime = clocked?.run?.time;
   const winner600 = clocked?.run?.last600;
   return (
     <>
-      {r.race.className ?? ""} {r.race.distance}m, par {r.race.classPoints}{r.race.goingText ? `, ${r.race.goingText}` : ""}.{raceTime ? ` Run in ${clock(raceTime)}${winner600 ? `, the winner's last 600 in ${winner600.toFixed(2)}` : ""}.` : ""} {r.full} of {r.runners.length} runners with a full benchmark.
+      {r.race.className ?? ""} {r.race.distance}m, par {r.race.classPoints}{r.race.goingText ? `, ${r.race.goingText}` : ""}.{raceTime ? ` Run in ${clock(raceTime)}${winner600 ? `, the winner's last 600 in ${winner600.toFixed(2)}` : ""}.` : ""}{benchmarks ? ` ${r.full} of ${r.runners.length} runners with a full benchmark.` : ""}
     </>
   );
 }

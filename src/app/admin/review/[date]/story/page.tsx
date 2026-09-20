@@ -10,7 +10,7 @@ import { buildReview, type Review, type ReviewedRace } from "@/lib/model/review"
 import { readStory } from "@/lib/model/store";
 import { RaceBody, RaceLine } from "../../RaceBody";
 import { StoryOrder } from "../../StoryOrder";
-import { dayLabel, finish, raceHref, raceLabel, reviewHref, signed } from "../../shared";
+import { dayLabel, finish, raceLabel, signed } from "../../shared";
 
 export const metadata: Metadata = { title: "Review story", robots: { index: false } };
 
@@ -120,7 +120,7 @@ async function Story({ params, searchParams }: { params: PageProps<"/admin/revie
           >
             <div className="section-body">
               <p className="mb-4 text-sm text-ink-soft">
-                <RaceLine r={r} /> <Link href={reviewHref(r, date)} className="underline">The race page</Link>. <Link href={raceHref(r, date)} className="underline">The public page</Link>.
+                <RaceLine r={r} benchmarks={false} />
               </p>
               <RaceBody review={review} r={r} />
             </div>
