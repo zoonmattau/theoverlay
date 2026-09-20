@@ -7,7 +7,9 @@ import { Section } from "@/components/Section";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { buildReview, type Review, type ReviewedRace } from "@/lib/model/review";
+import { readStory } from "@/lib/model/store";
 import { RaceBody, RaceLine } from "../../RaceBody";
+import { StoryOrder } from "../../StoryOrder";
 import { dayLabel, finish, raceHref, raceLabel, reviewHref, signed } from "../../shared";
 
 export const metadata: Metadata = { title: "Review story", robots: { index: false } };
@@ -71,25 +73,30 @@ async function Story({ params, searchParams }: { params: PageProps<"/admin/revie
   if (!isAdmin(viewer)) notFound();
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
-  const { races: picked } = await searchParams;
-  const review = await buildReview(date);
+  const { races: fromUrl } = await searchParams;
+  const [review, saved] = await Promise.all([buildReview(date), readStory(date)]);
   if (!review) notFound();
-  const races = storyRaces(review, typeof picked === "string" ? picked : undefined);
+  // The address wins, then the saved order, then the default.
+  const picked = typeof fromUrl === "string" && fromUrl ? fromUrl : saved.length ? saved.join(",") : undefined;
+  const races = storyRaces(review, picked);
   const bets = review.bets.filter((b) => b.units !== undefined);
   const lays = review.lays.filter((l) => l.units !== undefined);
   const sum = (rows: { units?: number }[]) => rows.reduce((a, r) => a + (r.units ?? 0), 0);
 
   return (
     <>
-      <section className="py-6">
-        <p className="text-xs uppercase tracking-[0.1em] text-ink-soft font-bold">
-          <Link href="/admin/review" className="underline">Weekly review</Link> · <Link href={`/admin/review/${date}`} className="underline">{dayLabel(date)}</Link>
-        </p>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">The story of {dayLabel(date)}</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          {review.bets.length} bets, {bets.filter((b) => b.units! > 0).length} of {bets.length} won, {signed(sum(bets), 2)}u. {review.lays.length} lays, {lays.filter((l) => l.units! > 0).length} of {lays.length} held, {signed(sum(lays), 2)}u.
-          {" "}{races.length} races to talk about{picked ? ", in the script's order" : ": the talking points' races, then the features"}. Each race folds up once you are done with it. Name your own with ?races=id,id,id in the order you want them.
-        </p>
+      <section className="py-6 flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <p className="text-xs uppercase tracking-[0.1em] text-ink-soft font-bold">
+            <Link href="/admin/review" className="underline">Weekly review</Link> · <Link href={`/admin/review/${date}`} className="underline">{dayLabel(date)}</Link>
+          </p>
+          <h1 className="font-display text-3xl font-extrabold tracking-tight">The story of {dayLabel(date)}</h1>
+          <p className="mt-1 text-sm text-ink-soft">
+            {review.bets.length} bets, {bets.filter((b) => b.units! > 0).length} of {bets.length} won, {signed(sum(bets), 2)}u. {review.lays.length} lays, {lays.filter((l) => l.units! > 0).length} of {lays.length} held, {signed(sum(lays), 2)}u.
+            {" "}{races.length} races to talk about{picked ? ", in the order set for the day" : ": the talking points' races, then the features"}. Each race folds up once you are done with it.
+          </p>
+        </div>
+        <StoryOrder date={date} races={races.map((s) => s.r.race.raceId)} saved={saved.length > 0} />
       </section>
 
       <nav className="card mb-4 text-sm">

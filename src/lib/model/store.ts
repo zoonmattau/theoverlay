@@ -143,6 +143,18 @@ export async function writeMutes(date: string, keys: Set<string>): Promise<void>
   if (error) throw new Error(`[mutes] write ${date}: ${error.message}`);
 }
 
+/** The races a day's review story tells, in order, as an admin set them. */
+export async function readStory(date: string): Promise<string[]> {
+  const { data, error } = await supabaseAdmin().from("fk_cache").select("data").eq("key", `story:${date}`).maybeSingle();
+  if (error) throw new Error(`[story] read ${date}: ${error.message}`);
+  return ((data?.data as { races?: string[] } | undefined)?.races ?? []);
+}
+
+export async function writeStory(date: string, races: string[]): Promise<void> {
+  const { error } = await supabaseAdmin().from("fk_cache").upsert({ key: `story:${date}`, kind: "story", data: { races }, at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) throw new Error(`[story] write ${date}: ${error.message}`);
+}
+
 /** Takes one call off for a date, or puts it back; the next build honours it. */
 export async function setMute(date: string, raceId: string, tab: number, off: boolean): Promise<void> {
   const keys = await readMutes(date);
