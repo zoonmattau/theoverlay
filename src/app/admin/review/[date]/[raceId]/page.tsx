@@ -94,10 +94,10 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
         <Stat label="Strength" value={r.strength !== undefined ? `${signed(r.strength)}L` : ""} sub={r.suspect ? "first three vs class: benchmark suspect, left out of the stats" : "first three vs class"} className={r.suspect ? "text-red-700" : ""} />
         <Stat label="Tempo" value={tempoOf(r)} sub={r.leaderEarly !== undefined ? `we mapped it, then the leader ${signed(r.leaderEarly)}L early` : "we mapped it, nothing timed yet"} className={tempoClass(r)} />
         <Stat label="Map" value={r.mapFit !== undefined ? `${r.mapFit.toFixed(1)} off` : ""} sub={r.leaderLed === undefined ? "places off our map on average" : `places off our map on average, ${ourLeader?.runner.horseName ?? "our leader"} ${r.leaderLed ? "led as mapped" : `settled ${ourLeader?.run?.posSettling ?? "?"}`}`} className={r.leaderLed === false ? "text-red-700" : ""} />
-        <Stat label="Winner ran to" value={r.winnerRanTo?.toFixed(1) ?? ""} sub={winner ? `${winner.runner.horseName}${winner.runner.rank ? `, our #${winner.runner.rank}` : ", not in our four"}` : undefined} />
+        <Stat label="Winner ran to" value={r.winnerRanTo?.toFixed(1) ?? ""} sub={winner ? `${winner.runner.horseName}${winner.runner.rank ? `, our #${winner.runner.rank}` : ", not in our four"}${winner.gap !== undefined ? `, ${signed(winner.gap)} on expected` : ""}` : undefined} />
         <Stat label="Vs expected" value={signed(r.bias)} sub="mean gap: how the race ran against what we expected" className={gapClass(r.bias)} />
         <Stat label="Our four" value={r.ourFour !== undefined ? `${r.ourFour} of 4` : ""} sub="of the first four home were in our top four" className={r.ourFour !== undefined ? (r.ourFour >= 3 ? "text-emerald-700" : r.ourFour <= 1 ? "text-red-700" : "") : ""} />
-        <Stat label="Top rated" value={topRated ? finish(topRated) : ""} sub={topRated ? `${topRated.runner.horseName}, expected ${topRated.expected.toFixed(1)}` : undefined} />
+        <Stat label="Top rated" value={topRated ? finish(topRated) : ""} sub={topRated ? `${topRated.runner.horseName}, expected ${topRated.expected.toFixed(1)}${topRated.ranTo !== undefined ? `, ran to ${topRated.ranTo.toFixed(1)}` : ""}` : undefined} className={gapClass(topRated?.gap)} />
         <Stat label="Our calls" value={settled.length ? signed(units, 2) : ""} sub={calls.length ? `${calls.length} ${calls.length === 1 ? "call" : "calls"}, level stakes` : "none"} className={unitsClass(settled.length ? units : undefined)} />
       </div>
 
@@ -106,7 +106,7 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
           {talking.map((t, i) => (
             <p key={i}>
               <span className="badge mr-2">{t.kind}</span>
-              {t.text}
+              <strong>{t.runner.runner.horseName}</strong>: {finish(t.runner).toLowerCase()}{t.runner.sp ? ` at ${price(t.runner.sp)}` : ""}, ran to {t.runner.ranTo?.toFixed(1)} against {t.runner.expected.toFixed(1)} expected. {t.text}
             </p>
           ))}
         </div>

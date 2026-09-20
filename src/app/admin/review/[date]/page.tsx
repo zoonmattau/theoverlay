@@ -179,7 +179,7 @@ function Features({ review }: { review: Review }) {
       <div className="section-body overflow-x-auto">
         <table className="data-table w-full text-sm">
           <thead>
-            <tr><th>Grade</th><th>Race</th><th>Winner</th><th className="text-right">Our #</th><th className="text-right">Ran to</th><th>Our top rated</th><th>Placings, expected</th><th>Our calls</th><th className="text-right">Units</th><th className="text-right">Strength</th><th className="text-right">Data</th></tr>
+            <tr><th>Grade</th><th>Race</th><th>Winner</th><th className="text-right">Our #</th><th className="text-right">Ran to</th><th className="text-right" title="The winner's ran to against its expected mark">+/-</th><th>Our top rated, and its +/-</th><th>Placings, expected</th><th>Our calls</th><th className="text-right">Units</th><th className="text-right">Strength</th><th className="text-right" title="Mean gap over the benchmarked runners: how the race ran against what we expected">Vs expected</th><th className="text-right">Data</th></tr>
           </thead>
           <tbody>
             {review.features.map((f) => (
@@ -192,11 +192,13 @@ function Features({ review }: { review: Review }) {
                 <td className="font-semibold whitespace-nowrap">{f.winner ? f.winner.runner.horseName : "—"}{f.winner?.sp ? <span className="text-ink-soft font-normal"> {price(f.winner.sp)}</span> : ""}</td>
                 <td className="text-right nums">{f.winner?.runner.rank ?? <span className="text-ink-soft">out</span>}</td>
                 <td className="text-right nums">{f.winner?.ranTo?.toFixed(1) ?? ""}</td>
-                <td className="whitespace-nowrap">{f.topRated ? <>{f.topRated.runner.horseName} <span className="nums text-ink-soft">{f.topRated.expected.toFixed(1)}</span>, {finish(f.topRated) || "to run"}</> : ""}</td>
+                <td className={`text-right nums ${gapClass(f.winner?.gap)}`}>{signed(f.winner?.gap)}</td>
+                <td className="whitespace-nowrap">{f.topRated ? <>{f.topRated.runner.horseName} <span className="nums text-ink-soft">{f.topRated.expected.toFixed(1)}</span>, {finish(f.topRated) || "to run"}{f.topRated.gap !== undefined ? <span className={`nums ${gapClass(f.topRated.gap)}`}> {signed(f.topRated.gap)}</span> : ""}</> : ""}</td>
                 <td className="text-xs">{f.placings.map((p) => <div key={p.finish} className="whitespace-nowrap">{p.finish}. {p.runner.horseName} <span className="nums text-ink-soft">{p.expected.toFixed(1)}</span></div>)}</td>
                 <td className="text-xs">{f.calls.length ? f.calls.map((x) => <div key={x.runner.tabNumber} className="whitespace-nowrap">{x.runner.signal === "lay" ? "Lay" : "Bet"} {x.runner.horseName}, {finish(x)}</div>) : <span className="text-ink-soft">none</span>}</td>
                 <td className={`text-right nums ${unitsClass(f.units)}`}>{f.units !== undefined ? signed(f.units, 2) : ""}</td>
                 <td className="text-right nums whitespace-nowrap">{f.race.strength !== undefined ? `${signed(f.race.strength)}L` : ""}</td>
+                <td className={`text-right nums ${gapClass(f.race.bias)}`}>{signed(f.race.bias)}</td>
                 <td className="text-right nums">{f.race.full}/{f.race.runners.length}</td>
               </ClickRow>
             ))}
@@ -218,20 +220,39 @@ function Talking({ review }: { review: Review }) {
   if (review.talking.length === 0) return null;
   return (
     <Section className="mb-4" id="review-talking" letter="T" title="Talking points" aside="Over the runs with a full benchmark, leaving out races whose benchmark cannot be trusted">
-      <ul className="section-body space-y-3 text-sm leading-relaxed">
-        {review.talking.map((t, i) => (
-          <li key={i} className="grid grid-cols-[9.5rem_1fr] gap-3 items-start">
-            <span className={`badge ${KIND_CLASS[t.kind] || "badge-muted"} justify-self-start whitespace-nowrap`}>{t.kind}</span>
-            <span>
-              <strong>{t.runner.runner.horseName}</strong>,{" "}
-              <Link href={reviewHref(t.runner.race, review.date)} className="underline whitespace-nowrap">
-                {raceLabel(t.runner.race)}
-              </Link>
-              . {t.text}
-            </span>
-          </li>
-        ))}
-      </ul>
+      <div className="section-body overflow-x-auto">
+        <table className="data-table w-full text-sm whitespace-nowrap">
+          <thead>
+            <tr>
+              <th></th><th>Horse</th><th>Race</th><th>Result</th><th className="text-right">SP</th>
+              <th className="text-right" title="Lengths against the class benchmark over the whole race">Vs class</th>
+              <th className="text-right">Ran to</th><th className="text-right" title={EXPECTED_TIP}>Expected</th><th className="text-right" title={GAP_TIP}>Gap</th>
+              <th className="text-right" title="The gap with the race's own level taken out: how the horse ran against its place in our order">Vs field</th>
+              <th>Why</th>
+            </tr>
+          </thead>
+          <tbody>
+            {review.talking.map((t, i) => {
+              const r = t.runner;
+              return (
+                <ClickRow key={i} href={reviewHref(r.race, review.date)}>
+                  <td><span className={`badge ${KIND_CLASS[t.kind] || "badge-muted"}`}>{t.kind}</span></td>
+                  <td className="font-semibold">{r.runner.horseName}{r.runner.rank ? <span className="text-ink-soft font-normal text-xs"> #{r.runner.rank}</span> : ""}</td>
+                  <td><Link href={reviewHref(r.race, review.date)} className="underline">{raceLabel(r.race)}</Link></td>
+                  <td className="nums">{finish(r)}</td>
+                  <td className="text-right nums">{price(r.sp)}</td>
+                  <td className="text-right nums">{r.run?.vsClass !== undefined ? `${signed(r.run.vsClass)}L` : ""}</td>
+                  <td className="text-right nums">{r.ranTo?.toFixed(1) ?? ""}</td>
+                  <td className="text-right nums">{r.expected.toFixed(1)}</td>
+                  <td className={`text-right nums ${gapClass(r.gap)}`}>{signed(r.gap)}</td>
+                  <td className={`text-right nums ${gapClass(r.relGap)}`}>{signed(r.relGap)}</td>
+                  <td className="text-xs text-ink-soft whitespace-normal min-w-64">{t.text}</td>
+                </ClickRow>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
     </Section>
   );
 }

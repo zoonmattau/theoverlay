@@ -332,6 +332,7 @@ export interface MeetingStats {
 /** One sentence for the weekly write-up, with the runner behind it. */
 export interface TalkingPoint {
   kind: "run of the day" | "under the radar" | "disappointing" | "improver";
+  /** Why it is here, in a few words; the numbers sit in the row beside it. */
   text: string;
   runner: ReviewedRunner & { race: ReviewedRace };
 }
@@ -403,50 +404,31 @@ function pearson(pairs: [number, number][]): number | undefined {
   return sxx && syy ? sxy / Math.sqrt(sxx * syy) : undefined;
 }
 
-const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
-const lengths = (n: number) => `${Math.abs(n).toFixed(1)} ${Math.abs(n) === 1 ? "length" : "lengths"}`;
-const money = (n?: number) => (n ? `$${n.toFixed(2)}` : "");
-
 /**
  * The write-up. Run of the day is the highest run against class. Under the
  * radar is a run in the top ten that finished out of the placings or went
  * around at $10 or more, so the form guide will not show it. Disappointing
  * is a horse we or the market fancied (our top four, or $5 or under) that
- * ran three or more points below what we expected. Improver is the biggest
- * gap above it. Each text starts after the horse and the race, which the
- * page sets in front of it.
+ * ran three or more points below its place in our order. Improver is the
+ * biggest gap above it. The text says why the horse is here; the page
+ * lays the result and the numbers out beside it.
  */
 function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): TalkingPoint[] {
   const out: TalkingPoint[] = [];
-  const result = (r: ReviewedRunner) => {
-    const at = r.sp ? ` at ${money(r.sp)}` : "";
-    if (r.finish === 1) return `Won${at}.`;
-    if (r.finish) return `Ran ${ordinal(r.finish)}${at}${r.margin !== undefined ? `, beaten ${lengths(r.margin)}` : ""}.`;
-    return `Ran${at}.`;
-  };
-  const worth = (r: ReviewedRunner) => `Worth ${r.ranTo?.toFixed(1)} against the ${r.expected.toFixed(1)} we expected${r.gap !== undefined ? `, ${signedPoints(r.gap)} points` : ""}.`;
   // A race whose first three all ran five lengths above class is a benchmark
   // that has not settled, not five good horses: it stays out of the superlatives.
   const sane = withRace.filter((r) => !r.race.suspect && r.ranTo !== undefined);
   const byVsClass = [...sane].sort((a, b) => b.run!.vsClass! - a.run!.vsClass!);
   const top = byVsClass[0];
   if (top && top.run!.vsClass! > 0) {
-    out.push({
-      kind: "run of the day",
-      runner: top,
-      text: `${result(top)} ${lengths(top.run!.vsClass!)} better than the class benchmark, the best run of the day. ${worth(top)}`,
-    });
+    out.push({ kind: "run of the day", runner: top, text: "The best run of the day against class." });
   }
   const seenRace = new Set<string>();
   for (const r of byVsClass) {
     if (r === top || seenRace.has(r.race.race.raceId)) continue;
     if ((r.finish && r.finish > 3) || (r.sp && r.sp >= 10)) {
       seenRace.add(r.race.race.raceId);
-      out.push({
-        kind: "under the radar",
-        runner: r,
-        text: `${result(r)} The form guide will not show it, but the run was ${lengths(r.run!.vsClass!)} above class. ${worth(r)}`,
-      });
+      out.push({ kind: "under the radar", runner: r, text: r.finish && r.finish > 3 ? "Out of the placings, so the form guide hides the run." : "Went around at double figures, so the form guide hides the run." });
       if (out.filter((t) => t.kind === "under the radar").length >= 3) break;
     }
   }
@@ -456,23 +438,14 @@ function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): T
   const level = (r: ReviewedRunner & { race: ReviewedRace }) => (r.race.bias !== undefined && Math.abs(r.race.bias) >= 3 ? ` The race was run ${Math.abs(r.race.bias).toFixed(1)} points ${r.race.bias > 0 ? "above" : "below"} par.` : "");
   const fancied = sane.filter((r) => r.relGap !== undefined && r.runner.ratings.runs >= 2 && (r.runner.rank || (r.sp && r.sp <= 5)));
   for (const r of [...fancied].filter((r) => r.relGap! <= -3).sort((a, b) => a.relGap! - b.relGap!).slice(0, 3)) {
-    out.push({
-      kind: "disappointing",
-      runner: r,
-      text: `${result(r)} ${r.runner.rank ? `Our #${r.runner.rank}` : "Fancied by the market"}, and ran ${Math.abs(r.relGap!).toFixed(1)} points below its place in our order.${level(r)}`,
-    });
+    out.push({ kind: "disappointing", runner: r, text: `${r.runner.rank ? `Our #${r.runner.rank}` : "Fancied by the market"}, and ran well below its place in our order.${level(r)}` });
   }
   const improver = [...sane].filter((r) => r.relGap !== undefined && r.runner.ratings.runs >= 2 && !out.some((t) => t.runner === r)).sort((a, b) => b.relGap! - a.relGap!)[0];
   if (improver && improver.relGap! >= 3) {
-    out.push({
-      kind: "improver",
-      runner: improver,
-      text: `${result(improver)} The biggest step up on our numbers: ${improver.relGap!.toFixed(1)} points above its place in our order.${level(improver)}`,
-    });
+    out.push({ kind: "improver", runner: improver, text: `The biggest step up on our numbers.${level(improver)}` });
   }
   return out;
 }
-const signedPoints = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(1)}`;
 
 const GRADE = /^group\s*([123])$/i;
 
