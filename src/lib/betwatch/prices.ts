@@ -59,6 +59,9 @@ export const PRICE_NEAR_MS = Number(process.env.OVERLAY_PRICE_NEAR_MIN ?? 5) * 6
 export const PRICE_NEAR_EVERY_MS = Number(process.env.OVERLAY_PRICE_NEAR_EVERY_SEC ?? 60) * 1000;
 /** How long after the jump a result is waited for. */
 const RESULT_WINDOW_MS = 4 * 60 * 60_000;
+/** For this long after the jump the result is asked for every minute; after that every five, until the window closes. */
+export const RESULT_NEAR_MS = Number(process.env.OVERLAY_RESULT_NEAR_MIN ?? 20) * 60_000;
+export const RESULT_NEAR_EVERY_MS = Number(process.env.OVERLAY_RESULT_NEAR_EVERY_SEC ?? 60) * 1000;
 /** Races fetched at once; each takes a few seconds. */
 const IN_FLIGHT = 6;
 
@@ -121,15 +124,19 @@ export function racesToPrice(meetings: PublishedMeeting[], now = Date.now(), far
   return out;
 }
 
-/** The races on a card that have jumped and have no result yet. */
-export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number] }[] {
-  const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number] }[] = [];
+/**
+ * The races on a card that have jumped and have no result yet, each with
+ * how often its result is asked for: every minute while the result is
+ * expected, every five once it is overdue.
+ */
+export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] {
+  const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] = [];
   for (const meeting of meetings) {
     for (const race of meeting.races) {
       if (race.result?.length || !race.jumpTime) continue;
       const since = now - Date.parse(race.jumpTime);
       if (since < 60_000 || since > RESULT_WINDOW_MS) continue;
-      out.push({ meeting, race });
+      out.push({ meeting, race, every: since <= RESULT_NEAR_MS ? RESULT_NEAR_EVERY_MS : PRICE_EVERY_MS });
     }
   }
   return out;
@@ -145,7 +152,7 @@ export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): {
 export async function pollPrices(date: string, meetings: PublishedMeeting[], opts: { far?: boolean } = {}): Promise<number> {
   if (!betwatchConfigured()) return 0;
   const now = Date.now();
-  const due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now).map((r) => ({ ...r, every: PRICE_EVERY_MS }))];
+  const due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now)];
   if (due.length === 0) return 0;
   const book = await readPriceBook(date);
   // A result already in the book is only waiting for the card to be rebuilt.
