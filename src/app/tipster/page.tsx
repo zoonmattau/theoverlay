@@ -92,6 +92,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
         <div className="mt-3 flex gap-2">
           <Link href="/tipster" className={`btn btn-sm ${wantTomorrow ? "btn-secondary" : "btn-primary"}`}>Today, {longDate(today)}</Link>
           <Link href="/tipster?day=tomorrow" className={`btn btn-sm ${wantTomorrow ? "btn-primary" : "btn-secondary"}`}>Tomorrow, {longDate(tomorrow)}</Link>
+          <Link href="/admin/review" className="btn btn-sm btn-secondary ml-auto" title="Every run timed against its class, with the sectionals">Weekly review</Link>
         </div>
         {wantTomorrow && meetings.length === 0 && (
           <p className="mt-2 text-sm text-ink-soft">Tomorrow&apos;s card is built at 9pm. Until then there is nothing to post on.</p>

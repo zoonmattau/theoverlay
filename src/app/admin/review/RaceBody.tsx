@@ -35,7 +35,7 @@ export function RaceLine({ r, benchmarks = true }: { r: ReviewedRace; benchmarks
  * and the story page both build on it; `sections` open or closed sets how
  * the three tables start.
  */
-export function RaceBody({ review, r, sections = true }: { review: Review; r: ReviewedRace; sections?: boolean }) {
+export function RaceBody({ review, r, sections = true, admin = true }: { review: Review; r: ReviewedRace; sections?: boolean; /** Only an admin buys runs. */ admin?: boolean }) {
   const raceId = r.race.raceId;
   const missing = r.runners.filter((x) => x.run === undefined).length;
   const partial = r.runners.filter((x) => x.run !== undefined && x.run?.stage !== "FULL_SECTIONAL_DATA").length;
@@ -53,8 +53,8 @@ export function RaceBody({ review, r, sections = true }: { review: Review; r: Re
     <>
       {resulted && (missing > 0 || partial > 0) && (
         <div className="mb-4 text-sm text-ink-soft flex flex-wrap items-center gap-3">
-          <span>{missing > 0 ? `${missing} of ${r.runners.length} runs not bought yet.` : `${partial} of ${r.runners.length} runs without a full benchmark: the time and last 600 are in, the sections are not.`}</span>
-          <RaceFetchButton date={review.date} raceId={raceId} missing={missing} partial={partial} />
+          <span>{missing > 0 ? `${missing} of ${r.runners.length} runs not ${admin ? "bought" : "in"} yet.` : `${partial} of ${r.runners.length} runs without a full benchmark: the time and last 600 are in, the sections are not.`}</span>
+          {admin && <RaceFetchButton date={review.date} raceId={raceId} missing={missing} partial={partial} />}
         </div>
       )}
       <div className="grid gap-3 grid-cols-3 md:grid-cols-5 lg:grid-cols-9 mb-4">

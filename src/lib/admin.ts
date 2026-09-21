@@ -5,6 +5,18 @@ import type { Viewer } from "./auth";
 
 export const isAdmin = (viewer: Viewer): boolean => viewer.admin;
 
+/**
+ * Who reads the weekly review: admins, and every active tipster. The runs
+ * are already bought, and a tipster with the sectionals tips better. Only
+ * an admin buys runs, writes the story or publishes.
+ */
+export async function canReview(viewer: Viewer): Promise<boolean> {
+  if (viewer.admin) return true;
+  if (!viewer.id) return false;
+  const { count } = await supabaseAdmin().from("affiliates").select("id", { count: "exact", head: true }).eq("user_id", viewer.id).eq("active", true);
+  return (count ?? 0) > 0;
+}
+
 export interface Member {
   id: string;
   email: string | null;

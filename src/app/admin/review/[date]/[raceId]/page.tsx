@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { isAdmin } from "@/lib/admin";
+import { canReview, isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { buildReview } from "@/lib/model/review";
 import { RaceBody, RaceLine } from "../../RaceBody";
@@ -25,7 +25,7 @@ export default function Page({ params }: PageProps<"/admin/review/[date]/[raceId
 /** One race as a whole: how it was run, how our marks and calls went, and every runner against its run. */
 async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceId]">["params"] }) {
   const viewer = await getViewer();
-  if (!isAdmin(viewer)) notFound();
+  if (!(await canReview(viewer))) notFound();
   const { date, raceId } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
   const review = await buildReview(date);
@@ -62,7 +62,7 @@ async function Race({ params }: { params: PageProps<"/admin/review/[date]/[raceI
           <RaceLine r={r} /> <Link href={raceHref(r, date)} className="underline">The public page</Link>.
         </p>
       </section>
-      <RaceBody review={review} r={r} />
+      <RaceBody review={review} r={r} admin={isAdmin(viewer)} />
     </>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { isAdmin } from "@/lib/admin";
+import { canReview, isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { listStoredDates } from "@/lib/model/store";
 import { callsStatus, reviewedDates } from "@/lib/model/review";
@@ -29,7 +29,8 @@ const dayOf = (date: string) => DAY[new Date(`${date}T12:00:00+10:00`).getDay()]
 
 async function Index() {
   const viewer = await getViewer();
-  if (!isAdmin(viewer)) notFound();
+  if (!(await canReview(viewer))) notFound();
+  const admin = isAdmin(viewer);
   const [dates, reviewed, publishedRows] = await Promise.all([listStoredDates(120), reviewedDates(), publishedDates()]);
   const published = new Set(publishedRows);
   const today = racingToday();
@@ -44,14 +45,18 @@ async function Index() {
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Weekly review</h1>
-          <p className="mt-1 text-sm text-ink-soft">Every bet and lay against its run, all week; each Saturday, every NSW and VIC runner too. Open a day to fetch the runs.</p>
+          <p className="mt-1 text-sm text-ink-soft">
+            {admin
+              ? "Every bet and lay against its run, all week; each Saturday, every NSW and VIC runner too. Open a day to fetch the runs."
+              : "Every run timed against its class, with the sectionals: our bets and lays all week, and every NSW and VIC runner on a Saturday. NSW, VIC and WA are in by Monday, QLD and SA later in the week."}
+          </p>
         </div>
-        <AllCallsButton dates={toBuy.filter((c) => c.calls > c.fetched).map((c) => c.date)} toBuy={owed} />
+        {admin && <AllCallsButton dates={toBuy.filter((c) => c.calls > c.fetched).map((c) => c.date)} toBuy={owed} />}
       </section>
       <div className="card overflow-x-auto">
         <table className="data-table w-full">
           <thead>
-            <tr><th>Day</th><th>Date</th><th className="text-right">Calls with runs</th><th className="text-right">Runs fetched</th><th>Review</th><th>Public</th></tr>
+            <tr><th>Day</th><th>Date</th>{admin && <th className="text-right">Calls with runs</th>}<th className="text-right">Runs in</th>{admin && <th>Review</th>}<th>Public</th></tr>
           </thead>
           <tbody>
             {dates.map((d) => {
@@ -60,14 +65,14 @@ async function Index() {
                 <tr key={d} className={dayOf(d) === "Saturday" ? "font-semibold" : ""}>
                   <td>{dayOf(d)}</td>
                   <td><Link href={`/admin/review/${d}`} className="font-semibold underline">{label(d)}</Link></td>
-                  <td className={`text-right nums ${c && c.calls > c.fetched && d < today ? "text-red-700" : ""}`}>{c ? `${c.fetched}/${c.calls}` : ""}</td>
+                  {admin && <td className={`text-right nums ${c && c.calls > c.fetched && d < today ? "text-red-700" : ""}`}>{c ? `${c.fetched}/${c.calls}` : ""}</td>}
                   <td className="text-right nums">{reviewed.get(d) ?? 0}</td>
-                  <td className="text-ink-soft font-normal">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>
-                  <td className="font-normal">{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
+                  {admin && <td className="text-ink-soft font-normal">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>}
+                  <td className="font-normal">{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : admin && reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
                 </tr>
               );
             })}
-            {dates.length === 0 && <tr><td colSpan={6} className="text-ink-soft">No cards on file yet.</td></tr>}
+            {dates.length === 0 && <tr><td colSpan={admin ? 6 : 4} className="text-ink-soft">No cards on file yet.</td></tr>}
           </tbody>
         </table>
       </div>

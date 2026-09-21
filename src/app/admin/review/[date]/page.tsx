@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { Section } from "@/components/Section";
-import { isAdmin } from "@/lib/admin";
+import { canReview, isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { buildReview, type LedgerRow, type Review, type ReviewedRace, type ReviewedRunner } from "@/lib/model/review";
 import { readPublishedReview } from "@/lib/reviews";
@@ -41,7 +41,8 @@ const JUMPS: [string, string][] = [
 
 async function Day({ params }: { params: PageProps<"/admin/review/[date]">["params"] }) {
   const viewer = await getViewer();
-  if (!isAdmin(viewer)) notFound();
+  if (!(await canReview(viewer))) notFound();
+  const admin = isAdmin(viewer);
   const { date } = await params;
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) notFound();
   const [review, published] = await Promise.all([buildReview(date), readPublishedReview(date)]);
@@ -65,25 +66,28 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
           <p className="text-xs uppercase tracking-[0.1em] text-ink-soft font-bold"><Link href="/admin/review" className="underline">Weekly review</Link></p>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">{label(date)}</h1>
           {/* The tally only matters while there is something left to buy. */}
-          {c.missing > 0 && (
+          {admin && c.missing > 0 && (
             <p className="mt-1 text-sm text-ink-soft">
               {c.wanted} runners wanted: every NSW and VIC runner plus the ten best bets and ten best lays. {c.fetched} fetched, {c.missing} to go, {c.credits} credits spent.
             </p>
           )}
         </div>
-        <div className="flex flex-wrap items-center gap-3">
-          {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} callsMissing={c.callsMissing} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
-        </div>
+        {admin && (
+          <div className="flex flex-wrap items-center gap-3">
+            {resulted ? <FetchButton date={date} missing={c.missing} partial={c.partial} callsMissing={c.callsMissing} /> : <span className="text-sm text-ink-soft">Nothing has run yet.</span>}
+          </div>
+        )}
       </section>
 
       {c.fetched === 0 ? (
         <div className="card text-sm text-ink-soft">
-          Fetch the runs once the meetings are done. The calls alone are enough for the bets and lays ledgers; the full fetch adds every NSW and VIC runner for the talking points and meeting stats. NSW, VIC and WA metro benchmarks are complete by Monday; QLD and SA take most of the week, so refetch those later.
+          {admin ? "Fetch the runs once the meetings are done." : "The runs for this day are not in yet. NSW, VIC and WA are in by Monday, QLD and SA later in the week."}{" "}
+          {admin && <>Fetch the runs once the meetings are done.</>} The calls alone are enough for the bets and lays ledgers; the full fetch adds every NSW and VIC runner for the talking points and meeting stats. NSW, VIC and WA metro benchmarks are complete by Monday; QLD and SA take most of the week, so refetch those later.
         </div>
       ) : (
         <>
           <nav className="sticky top-0 z-30 -mx-4 px-4 py-2 mb-4 bg-bg border-b border-line flex flex-wrap gap-x-4 gap-y-1 text-sm" aria-label="Sections">
-            {JUMPS.filter(([id]) => id === "review-runs" || counts[id]).map(([id, name]) => (
+            {JUMPS.filter(([id]) => id === "review-runs" || counts[id]).filter(([id]) => admin || id !== "review-publish").map(([id, name]) => (
               <a key={id} href={`#${id}`} className="font-semibold hover:underline whitespace-nowrap">
                 {name}
                 {counts[id] !== undefined && <span className="nums text-ink-soft font-normal ml-1">{counts[id]}</span>}
@@ -103,13 +107,13 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
             </div>
           </Section>
           <Races review={review} />
-          <Section className="mb-4" id="review-publish" letter="P" title="Telling it" aside="The story for the camera, and the public review" defaultOpen={false}>
+          {admin && <Section className="mb-4" id="review-publish" letter="P" title="Telling it" aside="The story for the camera, and the public review" defaultOpen={false}>
             <div className="section-body flex flex-wrap items-center gap-3">
               <Link href={`/admin/review/${date}/story`} className="btn btn-secondary btn-sm">The story, race by race</Link>
               <Link href={`/admin/review/${date}/preview`} className="btn btn-secondary btn-sm">Preview the public review</Link>
               <PublishButton date={date} published={published?.publishedAt} />
             </div>
-          </Section>
+          </Section>}
         </>
       )}
     </>
