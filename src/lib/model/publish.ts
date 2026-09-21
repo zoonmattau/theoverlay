@@ -108,6 +108,16 @@ const WARY_DOUBT = Number(process.env.OVERLAY_WARY_DOUBT ?? 0.7);
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /**
+ * A first starter at this price or under earns a place in our four, where
+ * its market chance puts it against the others' rated chance. We have no
+ * number on it, so it is never a bet, but over the cache
+ * debutants at $5 or under won 23 of 56 (41%, placed 70%) while the fourth
+ * pick they displace won 9% of those races; from $5 to $8 they won 3 of 47,
+ * no better than the fourth pick. Quaint, Narromine R1, 21 Sep 2026: the
+ * $2.60 favourite on trials alone, printed top of the ratings and left out.
+ */
+const DEBUT_TO = Number(process.env.OVERLAY_DEBUT_TO ?? 5);
+/**
  * What the best prices over a field may add to before the market counts as
  * whole. A best-of-bookmakers book runs 105% to 115% in nearly every race
  * (394 of the 462 clean races in the cache); under 100% means a runner is
@@ -145,6 +155,11 @@ export const inCallLock = (jumpTime?: string, now = Date.now()) => Boolean(jumpT
  * of the field" stays true whatever its place in the top four. Runners with
  * no form have no rating and sit after the rest.
  */
+/** The why line on a first starter in our four: no number of ours, in on the market's say-so. */
+export function explainDebut(marketPrice?: number): string {
+  return `First starter, so nothing to rate: the market has it at $${marketPrice ?? "?"}, and debutants that short win two in five, but it is never a bet.`;
+}
+
 export function ratingRank(runners: PublishedRunner[], runner: PublishedRunner): number {
   const order = runners
     .filter((x) => !x.scratched)
@@ -248,10 +263,11 @@ export function publishRace(
 
   // Our top four: the bets first, best edge leading, then whoever we rate
   // highest on our own numbers. A first starter has no number, so it sits
-  // after the exposed form on its market chance alone. The market never
-  // orders our four.
+  // after the exposed form on its market chance alone, unless the market
+  // has it short enough to earn a place. The market never orders our four
+  // beyond that.
   const formed = (k: string) => (ratedByTab.get(k)?.ratings.runs ?? 0) > 0;
-  const ranked = [...priced.runners]
+  const ordered = [...priced.runners]
     .sort((a, b) => {
       const ab = signalByTab.get(a.key) === "back";
       const bb = signalByTab.get(b.key) === "back";
@@ -263,8 +279,24 @@ export function publishRace(
       if (af) return ratedByTab.get(b.key)!.ratings.today - ratedByTab.get(a.key)!.ratings.today;
       return b.probability - a.probability;
     })
-    .slice(0, 4)
     .map((r) => r.key);
+  const ranked = ordered.slice(0, 4);
+  const debut = ordered.find((k) => {
+    const p = priceByTab.get(k);
+    return !formed(k) && p?.marketPrice !== undefined && p.marketPrice <= DEBUT_TO;
+  });
+  if (debut && !ranked.includes(debut)) {
+    // It goes in where its chance puts it among the picks that are not
+    // bets, ahead of the first one it out-prices; the last of them makes
+    // way. A four of bets stays.
+    const chance = (k: string) => priceByTab.get(k)?.probability ?? 0;
+    const spot = ranked.findIndex((k) => signalByTab.get(k) !== "back" && chance(k) < chance(debut));
+    const last = ranked.map((k) => signalByTab.get(k) === "back").lastIndexOf(false);
+    if (spot >= 0) {
+      ranked.splice(last, 1);
+      ranked.splice(spot, 0, debut);
+    }
+  }
 
   const fallback = {
     class: points, early: points, mid: points, late: points, pressure: points,
@@ -322,7 +354,7 @@ export function publishRace(
   // One lay a race at most: the one the market has most wrong.
   const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.layEdge ?? a.edge ?? 0) - (b.layEdge ?? b.edge ?? 0));
   for (const extra of lays.slice(1)) extra.signal = undefined;
-  for (const x of runners) if (x.rank) x.why = explain(x.ratings, ratingRank(runners, x), { going, tempo: pace.tempo }, x.signal);
+  for (const x of runners) if (x.rank) x.why = x.ratings.runs === 0 ? explainDebut(x.marketPrice) : explain(x.ratings, ratingRank(runners, x), { going, tempo: pace.tempo }, x.signal);
 
   const top = ranked
     .map((k) => runners.find((x) => String(x.tabNumber) === k)!)
