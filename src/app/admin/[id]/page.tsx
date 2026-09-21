@@ -64,6 +64,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           {m.is_admin && <span className="badge badge-prime">Admin</span>}
           {tipster && <span className="badge badge-prime">Tipster</span>}
           {m.paused_at ? <span className="badge badge-warn">Paused</span> : live ? <span className="badge badge-prime">{m.subscription_status ?? "active"}</span> : <span className="badge badge-muted">no access</span>}
+          {live && m.cancel_at && <span className="badge badge-warn">cancels {stamp(m.cancel_at)}{m.cancel_reason ? `, ${m.cancel_reason.replace(/_/g, " ")}` : ""}</span>}
         </div>
       </div>
 
@@ -133,6 +134,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <Row k="Status" v={m.subscription_status ?? "—"} />
           <Row k="Since" v={stamp(m.subscribed_since)} />
           <Row k="Access until" v={stamp(m.access_until)} />
+          <Row k="Cancels" v={m.cancel_at ? `${stamp(m.cancel_at)}${m.cancel_reason ? ` (${m.cancel_reason.replace(/_/g, " ")})` : ""}` : "no"} />
           <Row k="Paused" v={m.paused_at ? stamp(m.paused_at) : "no"} />
           <Row k="Gift until" v={giftLive ? stamp(m.bonus_until) : "—"} />
           <Row k="Stripe customer" v={m.stripe_customer_id ? <a className="text-blue" href={`https://dashboard.stripe.com/customers/${m.stripe_customer_id}`} target="_blank" rel="noreferrer">{m.stripe_customer_id}</a> : "—"} />

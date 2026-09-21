@@ -11,6 +11,9 @@ export interface Member {
   plan: string | null;
   access_until: string | null;
   subscription_status: string | null;
+  /** When a cancellation is booked to take effect, if one is; the member keeps access until then. */
+  cancel_at: string | null;
+  cancel_reason: string | null;
   subscribed_since: string | null;
   stripe_customer_id: string | null;
   stripe_subscription_id: string | null;
@@ -87,7 +90,7 @@ export interface Event {
 }
 
 const MEMBER_COLS =
-  "id, email, plan, access_until, subscription_status, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, landing, referrer, utm, affiliate_id, discord_id, discord_name, discord_linked_at, created_at";
+  "id, email, plan, access_until, subscription_status, cancel_at, cancel_reason, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, landing, referrer, utm, affiliate_id, discord_id, discord_name, discord_linked_at, created_at";
 
 export async function listMembers(search?: string): Promise<Member[]> {
   let q = supabaseAdmin().from("profiles").select(MEMBER_COLS).order("created_at", { ascending: false }).limit(500);

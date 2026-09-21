@@ -73,7 +73,7 @@ async function Members() {
       affiliate: (m.affiliate_id && codeOf.get(m.affiliate_id)) || "",
       source: (m.source ?? "signup").replace(/^affiliate:.*/, "affiliate"),
       status: m.paused_at ? "paused" : live ? "live" : "none",
-      statusLabel: m.paused_at ? "Paused" : live ? (m.subscription_status ?? "active") : (m.subscription_status ?? "none"),
+      statusLabel: m.paused_at ? "Paused" : live ? (m.cancel_at ? `${m.subscription_status ?? "active"}, cancels ${new Date(m.cancel_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}` : (m.subscription_status ?? "active")) : (m.subscription_status ?? "none"),
       accessUntil: ms(m.access_until),
       since: ms(m.subscribed_since) || ms(m.created_at),
       spent: m.total_spent_cents ?? 0,

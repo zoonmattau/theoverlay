@@ -74,10 +74,17 @@ export async function POST(request: NextRequest) {
         stripeCustomerId: customerId,
         stripeSubscriptionId: sub.status === "canceled" ? null : sub.id,
       });
+      // A cancellation booked for the end of the period sits in cancel_at
+      // (a trial's, always) or behind cancel_at_period_end; either is a
+      // member on the way out, and the admin should say so.
+      const cancelAt = cancelDate(sub, until);
+      const cancelReason = cancelAt ? sub.cancellation_details?.feedback ?? sub.cancellation_details?.reason ?? null : null;
       await supabaseAdmin()
         .from("profiles")
         .update({
           subscription_status: sub.status,
+          cancel_at: cancelAt?.toISOString() ?? null,
+          cancel_reason: cancelReason,
           ...(event.type === "customer.subscription.created" ? { subscribed_since: new Date(sub.created * 1000).toISOString() } : {}),
         })
         .eq("id", userId);
@@ -88,7 +95,7 @@ export async function POST(request: NextRequest) {
         kind: "subscription",
         plan: planId,
         amount_cents: null,
-        meta: { status: sub.status, event: event.type, cancelAtPeriodEnd: sub.cancel_at_period_end, until: until.toISOString() },
+        meta: { status: sub.status, event: event.type, cancelAtPeriodEnd: sub.cancel_at_period_end, cancelAt: cancelAt?.toISOString() ?? null, cancelReason, until: until.toISOString() },
       });
 
       // One email per state change, never one per Stripe retry.
@@ -100,8 +107,8 @@ export async function POST(request: NextRequest) {
           await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when) : EMAILS.planActive(planName, when));
           // An invited friend starting a plan earns both sides their fortnight.
           await rewardReferral(userId);
-        } else if (event.type === "customer.subscription.updated" && sub.cancel_at_period_end && !previousCancel(event)) {
-          await sendEmail(to, EMAILS.planCancelled(planName, when));
+        } else if (event.type === "customer.subscription.updated" && cancelAt && !previousCancel(event)) {
+          await sendEmail(to, EMAILS.planCancelled(planName, longDate(cancelAt.toISOString().slice(0, 10))));
         }
       }
       break;
@@ -132,8 +139,18 @@ export async function POST(request: NextRequest) {
   return NextResponse.json({ received: true });
 }
 
-/** Whether cancel_at_period_end was already set before this update. */
+/** When the subscription is booked to end, if it is: cancel_at, or the period's end when cancel_at_period_end is set. */
+function cancelDate(sub: Stripe.Subscription, until: Date): Date | undefined {
+  if (sub.status === "canceled") return undefined;
+  if (sub.cancel_at) return new Date(sub.cancel_at * 1000);
+  return sub.cancel_at_period_end ? until : undefined;
+}
+
+/** Whether a cancellation was already booked before this update, in either field. */
 function previousCancel(event: Stripe.Event): boolean {
-  const prev = (event.data as { previous_attributes?: { cancel_at_period_end?: boolean } }).previous_attributes;
-  return prev?.cancel_at_period_end === undefined ? true : prev.cancel_at_period_end;
+  const prev = (event.data as { previous_attributes?: { cancel_at_period_end?: boolean; cancel_at?: number | null } }).previous_attributes;
+  if (!prev) return true;
+  if (prev.cancel_at !== undefined) return prev.cancel_at !== null;
+  if (prev.cancel_at_period_end !== undefined) return prev.cancel_at_period_end;
+  return true;
 }
