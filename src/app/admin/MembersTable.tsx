@@ -13,7 +13,8 @@ export interface MemberRow {
   email: string;
   /** Everything searchable, lower case: name, email, phone, suburb, code. */
   haystack: string;
-  account: "active" | "invited" | "unconfirmed";
+  /** Cancelled: the account is live but a cancellation is booked; access runs to its date and no more. */
+  account: "active" | "cancelled" | "invited" | "unconfirmed";
   admin: boolean;
   tipster: boolean;
   plan: string;
@@ -79,7 +80,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "live" | "paused" | "none">("all");
   const [plan, setPlan] = useState("all");
-  const [account, setAccount] = useState<"all" | "active" | "invited" | "unconfirmed">("all");
+  const [account, setAccount] = useState<"all" | "active" | "cancelled" | "invited" | "unconfirmed">("all");
   const [emails, setEmails] = useState<"all" | "on" | "off">("all");
   const [discord, setDiscord] = useState<"all" | MemberRow["discordState"]>("all");
   const [view, setView] = useState<"table" | "groups">("table");
@@ -128,7 +129,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
             <option value="all">Any plan</option>{plans.map((p) => <option key={p} value={p}>{p}</option>)}<option value="tipster">Tipster</option>
           </select>
           <select id="members-account" value={account} onChange={(e) => setAccount(e.target.value as typeof account)} className={sel}>
-            <option value="all">Any account</option><option value="active">Active</option><option value="invited">Invited</option><option value="unconfirmed">Unconfirmed</option>
+            <option value="all">Any account</option><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="invited">Invited</option><option value="unconfirmed">Unconfirmed</option>
           </select>
           <select id="members-emails" value={emails} onChange={(e) => setEmails(e.target.value as typeof emails)} className={sel}>
             <option value="all">Emails on or off</option><option value="on">Emails on</option><option value="off">Emails off</option>
@@ -197,7 +198,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                   {m.name !== m.email && <span className="block text-xs text-ink-soft">{m.email}</span>}
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
                 </td>
-                <td>{m.account === "active" ? <span className="badge badge-muted">Active</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
+                <td>{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="badge badge-lay">Cancelled</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
                 <td>{m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}</td>
                 <td>{m.affiliate ? <span className="badge badge-muted nums">{m.affiliate}</span> : <span className="text-xs text-ink-soft">{m.source}</span>}</td>
                 <td>{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? <span className="badge badge-prime">{m.statusLabel}</span> : <span className="badge badge-muted">{m.statusLabel}</span>}</td>

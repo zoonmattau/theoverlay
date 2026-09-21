@@ -66,7 +66,7 @@ async function Members() {
       name: m.full_name || m.email || m.id,
       email: m.email ?? "",
       haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code, m.affiliate_id ? codeOf.get(m.affiliate_id) : null, m.source].filter(Boolean).join(" ").toLowerCase(),
-      account: state,
+      account: state === "active" && m.cancel_at ? "cancelled" : state,
       admin: Boolean(m.is_admin),
       tipster: tipsterIds.has(m.id),
       plan: m.plan ? (planById(m.plan)?.name ?? m.plan) : "",
