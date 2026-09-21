@@ -2073,15 +2073,13 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
-/* A phone cannot hover, so the bubble never opened; it still hung 260px off
-   the side of whatever it was attached to and dragged half the page sideways
-   with it. Off at this width: a tap opens the same words in .tip-tap, which
-   is fixed to the screen and so cannot move the page. */
-@media (hover: none), (max-width: 640px) {
-  .tip::after,
-  .tip::before {
-    display: none;
-  }
+/* The bubble is off everywhere: it hung off its element, so a section that
+   hides its overflow cut it away (a speed map chip on the rail, 21 Sep 2026)
+   and on a phone it dragged the page sideways. Hover and tap both open the
+   same words in .tip-tap (TipTap.tsx), fixed to the screen. */
+.tip::after,
+.tip::before {
+  display: none;
 }
 /* The jump time in the market's bar, so the clock is where the prices are. */
 .market-jump {

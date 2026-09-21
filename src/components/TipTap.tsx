@@ -3,10 +3,12 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 /**
- * A phone cannot hover, so the explanations behind every number were out of
- * reach: tapping one now opens it in a panel anchored to what was tapped.
- * The panel is fixed, so unlike the hover bubble it cannot drag the page
- * sideways. A tap on a link or a button is left alone.
+ * Every explanation behind a number opens in this one panel: on a phone a
+ * tap opens it, on a desktop a hover does. The panel is fixed to the screen,
+ * so it cannot drag the page sideways and no section can clip it; the old
+ * CSS bubble hung off its element and a speed map chip on the rail, in the
+ * bottom lane of a section that hides its overflow, lost its bubble below
+ * the edge (21 Sep 2026). A tap on a link or a button is left alone.
  */
 export function TipTap() {
   const [tip, setTip] = useState<{ text: string; x: number; y: number; below: boolean } | null>(null);
@@ -47,11 +49,30 @@ export function TipTap() {
         below,
       });
     };
+    // The same panel on hover where there is a pointer: it follows the same geometry as a tap.
+    const onOver = (e: MouseEvent) => {
+      if (touch()) return;
+      const el = (e.target as Element | null)?.closest?.("[data-tip]") as HTMLElement | null;
+      if (!el || !el.dataset.tip) return;
+      const rect = el.getBoundingClientRect();
+      const below = rect.top < window.innerHeight / 2;
+      setTip({ text: el.dataset.tip, x: rect.left + rect.width / 2, y: below ? rect.bottom + 8 : window.innerHeight - rect.top + 8, below });
+    };
+    const onOut = (e: MouseEvent) => {
+      if (touch()) return;
+      const from = (e.target as Element | null)?.closest?.("[data-tip]");
+      const to = (e.relatedTarget as Element | null)?.closest?.("[data-tip]");
+      if (from && from !== to) setTip(null);
+    };
     const onScroll = () => setTip(null);
     document.addEventListener("click", onClick, true);
+    document.addEventListener("mouseover", onOver, true);
+    document.addEventListener("mouseout", onOut, true);
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
       document.removeEventListener("click", onClick, true);
+      document.removeEventListener("mouseover", onOver, true);
+      document.removeEventListener("mouseout", onOut, true);
       window.removeEventListener("scroll", onScroll);
     };
   }, []);
