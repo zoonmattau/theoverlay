@@ -27,7 +27,6 @@ export interface MemberRow {
   since: number;
   spent: number;
   passes: number;
-  gift: number;
   emails: boolean;
   lastSeen: number;
   /** Which group they fall in, one each: paying, trial, gift, paused, lapsed, none (confirmed, never a plan), pending (invited or unconfirmed), tipster, admin. */
@@ -53,7 +52,7 @@ const CATEGORIES: { id: Category; label: string; hint: string }[] = [
   { id: "admin", label: "Admins", hint: "" },
 ];
 
-type Key = "name" | "account" | "plan" | "affiliate" | "status" | "accessUntil" | "since" | "spent" | "passes" | "gift" | "emails" | "lastSeen" | "discordState";
+type Key = "name" | "account" | "plan" | "affiliate" | "status" | "accessUntil" | "since" | "spent" | "passes" | "emails" | "lastSeen" | "discordState";
 
 const COLS: { key: Key; label: string; right?: boolean }[] = [
   { key: "name", label: "Member" },
@@ -65,7 +64,6 @@ const COLS: { key: Key; label: string; right?: boolean }[] = [
   { key: "since", label: "Since" },
   { key: "spent", label: "Spent", right: true },
   { key: "passes", label: "Passes", right: true },
-  { key: "gift", label: "Gift until" },
   { key: "emails", label: "Emails" },
   { key: "discordState", label: "Discord" },
   { key: "lastSeen", label: "Last seen" },
@@ -162,7 +160,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                           {m.name !== m.email && <span className="block text-xs text-ink-soft truncate">{m.email}</span>}
                         </span>
                         <span className="text-xs text-ink-secondary">{m.plan || (m.affiliate ? `via ${m.affiliate}` : m.source)}</span>
-                        <span className="text-xs text-ink-soft nums">{c.id === "paying" || c.id === "trial" || c.id === "paused" ? `until ${day(m.accessUntil)}` : c.id === "gift" ? `gift until ${day(m.gift)}` : `since ${day(m.since)}`}</span>
+                        <span className="text-xs text-ink-soft nums">{c.id === "paying" || c.id === "trial" || c.id === "paused" || c.id === "gift" ? `until ${day(m.accessUntil)}` : `since ${day(m.since)}`}</span>
                         <span className="text-xs text-ink-soft nums">seen {when(m.lastSeen)}</span>
                         <span>{m.discordState === "member" ? <span className="badge badge-prime">Discord</span> : m.discordState === "joined" ? <span className="badge badge-warn">No role</span> : m.discordState === "linked" ? <span className="badge badge-muted">Not joined</span> : null}</span>
                       </li>
@@ -207,7 +205,6 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                 <td className="nums">{day(m.since)}</td>
                 <td className="text-right nums">{money(m.spent)}</td>
                 <td className="text-right nums">{m.passes}</td>
-                <td className="nums">{day(m.gift)}</td>
                 <td>{m.emails ? <span className="badge badge-prime">On</span> : <span className="badge badge-muted">Off</span>}</td>
                 <td>
                   {m.discordState === "none" ? (

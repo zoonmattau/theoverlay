@@ -74,11 +74,11 @@ async function Members() {
       source: (m.source ?? "signup").replace(/^affiliate:.*/, "affiliate"),
       status: m.paused_at ? "paused" : live ? "live" : "none",
       statusLabel: m.paused_at ? "Paused" : live ? (m.subscription_status ?? "active") : (m.subscription_status ?? "none"),
-      accessUntil: ms(m.access_until),
+      // The day their access ends, whichever of the plan and the gift days runs longer.
+      accessUntil: Math.max(ms(m.access_until), m.bonus_until && new Date(m.bonus_until).getTime() > now ? ms(m.bonus_until) : 0),
       since: ms(m.subscribed_since) || ms(m.created_at),
       spent: m.total_spent_cents ?? 0,
       passes: m.pass_credits,
-      gift: m.bonus_until && new Date(m.bonus_until).getTime() > now ? ms(m.bonus_until) : 0,
       emails: Boolean(m.marketing_opt_in),
       lastSeen: ms(m.last_seen_at) || ms(m.last_sign_in_at),
       discord: (m.discord_id && (presence.get(m.discord_id)?.name || m.discord_name)) || "",
