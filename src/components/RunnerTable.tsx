@@ -28,7 +28,7 @@ export interface CallAdmin {
 export interface Tipping {
   date: string;
   /** Posted calls on this race by tab. */
-  posted: Record<number, { id: number; side: Signal; price: number }>;
+  posted: Record<number, { id: number; side: Signal; price: number; /** "2u", empty for one unit. */ stake: string }>;
   /** Past the jump or resulted: no more posting. */
   closed: boolean;
   postTip: (form: FormData) => Promise<void>;
@@ -158,7 +158,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
                       <td data-col="tip" className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {tipping.posted[r.tabNumber] ? (
                           <span className="inline-flex items-center gap-1">
-                            <span className={`badge ${tipping.posted[r.tabNumber].side === "lay" ? "badge-lay" : "badge-back"}`}>{tipping.posted[r.tabNumber].side === "lay" ? "Lay" : "Bet"} {price(tipping.posted[r.tabNumber].price)}</span>
+                            <span className={`badge ${tipping.posted[r.tabNumber].side === "lay" ? "badge-lay" : "badge-back"}`}>{tipping.posted[r.tabNumber].side === "lay" ? "Lay" : "Bet"} {tipping.posted[r.tabNumber].stake ? `${tipping.posted[r.tabNumber].stake} ` : ""}{price(tipping.posted[r.tabNumber].price)}</span>
                             {!tipping.closed && (
                               <form action={tipping.removeTip.bind(null, tipping.posted[r.tabNumber].id, path)}>
                                 <button type="submit" className="text-xs text-ink-soft hover:text-red" title="Take this call back">✕</button>
@@ -197,7 +197,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
       </div>
 
       <div className="border-t border-line bg-panel-alt px-4 py-2 text-xs text-ink-soft space-y-1">
-        {tipping && !tipping.closed && <p>Tip posts a call of your own on that runner: it goes to your followers, your page and Discord, and settles at the price you post.</p>}
+        {tipping && !tipping.closed && <p>Tip posts a call of your own on that runner: it goes to your followers, your page and Discord, and settles at the price and units you post.</p>}
         {scratched.length > 0 && (
           <p className="text-muted">
             Scratched: {scratched.map((s) => `${s.tabNumber} ${s.horseName}`).join(", ")}
@@ -213,7 +213,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
   );
 }
 
-/** The post form under a runner: side, your price, the price you took and where, and why. Your price starts at the market's best. */
+/** The post form under a runner: side, units, your price, the price you took and where, and why. Your price starts at the market's best. */
 function TipForm({ tipping, race, tab, name, market, onDone }: { tipping: Tipping; race: PublishedRace; tab: number; name: string; market?: number; onDone: () => void }) {
   return (
     <form
@@ -221,15 +221,16 @@ function TipForm({ tipping, race, tab, name, market, onDone }: { tipping: Tippin
         await tipping.postTip(fd);
         onDone();
       }}
-      className="grid gap-3 sm:grid-cols-[auto_auto_auto_auto_1fr_auto] items-end text-sm p-3"
+      className="grid gap-3 sm:grid-cols-[auto_auto_auto_auto_auto_1fr_auto] items-end text-sm p-3"
     >
       <input type="hidden" name="date" value={tipping.date} />
       <input type="hidden" name="raceId" value={race.raceId} />
       <input type="hidden" name="tab" value={tab} />
-      <div className="sm:col-span-6 font-display font-extrabold">Your call on {tab}. {name}</div>
+      <div className="sm:col-span-7 font-display font-extrabold">Your call on {tab}. {name}</div>
       <label className="field"><span>Call</span>
         <select name="side" className="field-input" defaultValue="back"><option value="back">Bet</option><option value="lay">Lay</option></select>
       </label>
+      <label className="field"><span>Units</span><input name="stake" type="number" step="0.25" min="0.25" max="10" defaultValue="1" className="field-input w-20" /></label>
       <label className="field"><span>Your rated price</span><input name="price" type="number" step="0.01" min="1.01" required defaultValue={market ? market.toFixed(2) : undefined} className="field-input w-28" /></label>
       <label className="field"><span>Price you took</span><input name="bookiePrice" type="number" step="0.01" min="1.01" placeholder={market ? market.toFixed(2) : "4.20"} className="field-input w-28" /></label>
       <label className="field"><span>Bookie</span><input name="bookie" maxLength={40} className="field-input w-36" placeholder="Sportsbet" /></label>

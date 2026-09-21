@@ -18,7 +18,7 @@ import { TrackMenu, type MiniMeeting } from "@/components/TrackMenu";
 import { TipsterTips } from "@/components/TipsterTips";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { creatorTips, followedCalls, tipsterForUser } from "@/lib/creators";
+import { creatorTips, followedCalls, stakeLabel, struckAt, tipsterForUser } from "@/lib/creators";
 import { postTip, removeTip } from "@/app/tipster/actions";
 import type { Tipping } from "@/components/RunnerTable";
 import { planById, planFor } from "@/lib/billing/plans";
@@ -107,7 +107,7 @@ async function Race({ params }: { params: Props["params"] }) {
   const tipping: Tipping | undefined = mine
     ? {
         date,
-        posted: Object.fromEntries(myTips.map((t) => [t.tab_number, { id: t.id, side: t.side, price: Number(t.bookie_price && Number(t.bookie_price) > 1 ? t.bookie_price : t.price) }])),
+        posted: Object.fromEntries(myTips.map((t) => [t.tab_number, { id: t.id, side: t.side, price: struckAt(t), stake: stakeLabel(t) }])),
         closed: Boolean(race.result?.length) || (!viewer.admin && Boolean(race.jumpTime && new Date(race.jumpTime).getTime() < now())),
         postTip,
         removeTip,
@@ -289,7 +289,7 @@ async function Race({ params }: { params: Props["params"] }) {
       ) : open ? (
         <Section id="selections" letter="O" title="Our selections" aside="Live price against our rated price, top four">
           <div className="section-body">
-            <SelectionCards race={race} tipsters={inRace.map((f) => ({ name: f.tipster.name, calls: f.tips.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) }))} />
+            <SelectionCards race={race} tipsters={inRace.map((f) => ({ name: f.tipster.name, calls: f.tips.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), stake: stakeLabel(t), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) }))} />
           </div>
         </Section>
       ) : (

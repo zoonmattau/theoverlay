@@ -6,7 +6,7 @@ import { after } from "next/server";
 import { clean } from "@/components/SocialLinks";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { tipsterForUser } from "@/lib/creators";
+import { parseStake, tipsterForUser } from "@/lib/creators";
 import { postTipsterCall } from "@/lib/discord";
 import { notifyFollowers } from "@/lib/email/tipster";
 import { getCard } from "@/lib/model/source";
@@ -30,6 +30,7 @@ export async function postTip(form: FormData): Promise<void> {
   const bookie = String(form.get("bookie") ?? "").trim().slice(0, 40) || null;
   const bookiePrice = Number(form.get("bookiePrice"));
   const bookie_price = bookiePrice > 1 ? Math.round(bookiePrice * 100) / 100 : null;
+  const stake = parseStake(form.get("stake"));
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !raceId || !tab || !(price > 1)) return;
 
   // The runner has to be on the card, and the race not yet run.
@@ -45,7 +46,7 @@ export async function postTip(form: FormData): Promise<void> {
   await supabaseAdmin().from("creator_tips").upsert(
     {
       affiliate_id: tipster.id, date, meeting_id: meeting.meetingId, race_id: raceId, race_number: race.raceNumber, track: meeting.track,
-      tab_number: tab, horse_name: runner.horseName, side, price, comment, bookie, bookie_price,
+      tab_number: tab, horse_name: runner.horseName, side, price, stake, comment, bookie, bookie_price,
       // The best price we could see at the time, so a price a long way above it can be flagged.
       market_at_post: runner.marketPrice ?? null,
     },
@@ -57,7 +58,7 @@ export async function postTip(form: FormData): Promise<void> {
   after(() =>
     postTipsterCall(
       { name: tipster.name, code: tipster.code },
-      { track: meeting.track, race_number: race.raceNumber, tab_number: tab, horse_name: runner.horseName, side, price, bookie_price, comment, bookie },
+      { track: meeting.track, race_number: race.raceNumber, tab_number: tab, horse_name: runner.horseName, side, price, stake, bookie_price, comment, bookie },
       { date, meetingId: meeting.meetingId, raceId, jumpTime: race.jumpTime, update: Boolean(existing) },
     ),
   );

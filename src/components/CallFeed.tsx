@@ -4,7 +4,7 @@ import { Jumps } from "./Countdown";
 import { ReactionBar } from "./ReactionBar";
 import { Outcome } from "./SelectionCard";
 import { getViewer } from "@/lib/auth";
-import { priceFlagged, struckAt, type CreatorTip, type FeedTip } from "@/lib/creators";
+import { priceFlagged, stakeLabel, struckAt, type CreatorTip, type FeedTip } from "@/lib/creators";
 import { jumpTime, price } from "@/lib/format";
 import { getCard } from "@/lib/model/source";
 import { reactionsFor } from "@/lib/reactions";
@@ -41,7 +41,7 @@ export async function CallFeed({ tips, date, empty, withDate }: { tips: (Creator
         const u = t.settled_at ? Number(t.units) : undefined;
         return (
           <li key={t.id} className="call-row">
-            <span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}</span>
+            <span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}{stakeLabel(t) ? ` ${stakeLabel(t)}` : ""}</span>
             <div className="min-w-0">
               <div className="flex flex-wrap items-baseline gap-x-2">
                 <Link href={`/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`} className="font-display font-extrabold hover:underline truncate">

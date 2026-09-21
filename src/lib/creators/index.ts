@@ -40,6 +40,8 @@ export interface CreatorTip {
   bookie_price: number | null;
   /** Best market price we saw when it was posted. */
   market_at_post: number | null;
+  /** Units on the call, one unless the tipster said otherwise. */
+  stake: number;
   created_at: string;
   finish_position: number | null;
   sp: number | null;
@@ -120,6 +122,19 @@ export async function tipsterCallCounts(date: string): Promise<Map<string, numbe
 /** The price a call is struck at, and settles at: the bookmaker price the tipster took where they gave one, else the price they quoted. */
 export const struckAt = (t: { price: number; bookie_price?: number | null }) => (t.bookie_price && Number(t.bookie_price) > 1 ? Number(t.bookie_price) : Number(t.price));
 
+/** Units a tipster can put on a call: a quarter to ten, a whole unit unless they say. */
+export const STAKE_MIN = 0.25;
+export const STAKE_MAX = 10;
+export const parseStake = (v: unknown): number => {
+  const n = Math.round(Number(v) * 100) / 100;
+  return Number.isFinite(n) && n > 0 ? Math.min(STAKE_MAX, Math.max(STAKE_MIN, n)) : 1;
+};
+/** "2u" beside a call; nothing for the usual one unit. */
+export const stakeLabel = (t: { stake?: number | null }): string => {
+  const n = Number(t.stake ?? 1);
+  return n === 1 ? "" : `${n % 1 ? n.toFixed(2).replace(/0$/, "") : n}u`;
+};
+
 /** More than a fifth above the best price we could see when posted. */
 export const OVER_MARKET = 0.2;
 export const priceFlagged = (t: { price: number; market_at_post: number | null }) => Boolean(t.market_at_post && Number(t.price) > Number(t.market_at_post) * (1 + OVER_MARKET));
@@ -154,7 +169,7 @@ export interface SideRecord {
   n: number;
   hit: number;
   units: number;
-  /** Units per unit staked, one a call. */
+  /** Units per unit staked. */
   roi: number;
 }
 
@@ -198,11 +213,12 @@ export interface TipsterProfile {
   best?: { horse: string; price: number; date: string; track: string };
 }
 
-const tallySide = (xs: { side: Signal; units: number | null; finish_position: number | null }[]): SideRecord => {
+const tallySide = (xs: { side: Signal; units: number | null; finish_position: number | null; stake?: number | null }[]): SideRecord => {
   const n = xs.length;
   const hit = xs.filter((r) => (r.side === "back" ? r.finish_position === 1 : r.finish_position !== 1)).length;
   const units = Math.round(xs.reduce((a, r) => a + Number(r.units), 0) * 100) / 100;
-  return { n, hit, units, roi: n ? units / n : 0 };
+  const staked = xs.reduce((a, r) => a + Number(r.stake ?? 1), 0);
+  return { n, hit, units, roi: staked ? units / staked : 0 };
 };
 
 /** Profiles for a set of tipsters in two queries, for the directory. */
@@ -211,12 +227,12 @@ export async function tipsterProfiles(tipsters: Tipster[]): Promise<TipsterProfi
   const ids = tipsters.map((t) => t.id);
   const db = supabaseAdmin();
   const [{ data: tips }, { data: follows }] = await Promise.all([
-    db.from("creator_tips").select("affiliate_id, date, track, horse_name, side, price, bookie_price, comment, units, finish_position, settled_at").in("affiliate_id", ids).order("date", { ascending: false }).order("created_at", { ascending: false }),
+    db.from("creator_tips").select("affiliate_id, date, track, horse_name, side, price, bookie_price, stake, comment, units, finish_position, settled_at").in("affiliate_id", ids).order("date", { ascending: false }).order("created_at", { ascending: false }),
     db.from("follows").select("tipster_id").in("tipster_id", ids),
   ]);
   const followers = new Map<string, number>();
   for (const f of (follows ?? []) as { tipster_id: string }[]) followers.set(f.tipster_id, (followers.get(f.tipster_id) ?? 0) + 1);
-  const rows = (tips ?? []) as (Pick<CreatorTip, "affiliate_id" | "date" | "track" | "horse_name" | "side" | "price" | "bookie_price" | "comment" | "units" | "finish_position" | "settled_at">)[];
+  const rows = (tips ?? []) as (Pick<CreatorTip, "affiliate_id" | "date" | "track" | "horse_name" | "side" | "price" | "bookie_price" | "stake" | "comment" | "units" | "finish_position" | "settled_at">)[];
   const from = (days: number) => new Date(Date.now() - days * 86400_000).toISOString().slice(0, 10);
   const month = from(30);
   return tipsters.map((tipster) => {
@@ -301,10 +317,10 @@ export async function tipsterHistory(affiliateId: string, before: string, limit 
 /** Settles every tipster's calls for a date from the card's results. Called after each card build. */
 export async function settleCreatorTips(date: string, card: StoredCard): Promise<void> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("creator_tips").select("id, race_id, tab_number, side, price, bookie_price").eq("date", date).is("settled_at", null);
+  const { data, error } = await db.from("creator_tips").select("id, race_id, tab_number, side, price, bookie_price, stake").eq("date", date).is("settled_at", null);
   if (error || !data?.length) return;
   const races = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
-  for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number; bookie_price: number | null }[]) {
+  for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number; bookie_price: number | null; stake: number }[]) {
     const r = races.get(t.race_id);
     if (!r?.result?.length) continue;
     const x = r.runners.find((y) => y.tabNumber === t.tab_number);
@@ -312,7 +328,7 @@ export async function settleCreatorTips(date: string, card: StoredCard): Promise
     const finish = x.finishPosition ?? 0;
     await db
       .from("creator_tips")
-      .update({ finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === t.tab_number)?.sp ?? null, units: settle(t.side, struckAt(t), finish), settled_at: new Date().toISOString() })
+      .update({ finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === t.tab_number)?.sp ?? null, units: settle(t.side, struckAt(t), finish, Number(t.stake ?? 1)), settled_at: new Date().toISOString() })
       .eq("id", t.id);
   }
 }

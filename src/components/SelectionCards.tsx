@@ -13,6 +13,8 @@ export interface TipsterCall {
   tabNumber: number;
   side: "back" | "lay";
   price: number;
+  /** "2u", empty for one unit. */
+  stake?: string;
   bookie?: string | null;
   bookiePrice?: number | null;
   comment?: string | null;
@@ -23,7 +25,7 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
   const theirs = new Map<number, { name: string; call: TipsterCall }[]>();
   for (const t of tipsters) for (const c of t.calls) theirs.set(c.tabNumber, [...(theirs.get(c.tabNumber) ?? []), { name: t.name, call: c }]);
   const tip = (name: string, c: TipsterCall) =>
-    `${name}: ${c.side === "back" ? "Bet" : "Lay"} at ${price(c.price)}${c.bookiePrice ? `, ${price(c.bookiePrice)}${c.bookie ? ` at ${c.bookie}` : ""}` : c.bookie ? ` at ${c.bookie}` : ""}.${c.comment ? ` ${c.comment}` : ""}`;
+    `${name}: ${c.side === "back" ? "Bet" : "Lay"}${c.stake ? ` ${c.stake}` : ""} at ${price(c.price)}${c.bookiePrice ? `, ${price(c.bookiePrice)}${c.bookie ? ` at ${c.bookie}` : ""}` : c.bookie ? ` at ${c.bookie}` : ""}.${c.comment ? ` ${c.comment}` : ""}`;
   const picks = race.runners
     .filter((r): r is PublishedRunner & { rank: number } => r.rank !== null)
     .sort((a, b) => a.rank - b.rank);

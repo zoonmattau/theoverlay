@@ -2,7 +2,7 @@ import "server-only";
 
 import { logEvent } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { followerIds, priceFlagged, struckAt, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
+import { followerIds, priceFlagged, stakeLabel, struckAt, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { longDate, price } from "@/lib/format";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
@@ -19,7 +19,7 @@ export function tipsterTable(tips: CreatorTip[]): string {
   const body = tips
     .map((t) => {
       const colour = t.side === "back" ? "#1f6fd6" : "#d93636";
-      const badge = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${colour};color:#fff;font:700 11px ${FONT};text-transform:uppercase">${t.side === "back" ? "bet" : "lay"}</span>`;
+      const badge = `<span style="display:inline-block;padding:2px 7px;border-radius:4px;background:${colour};color:#fff;font:700 11px ${FONT};text-transform:uppercase">${t.side === "back" ? "bet" : "lay"}${stakeLabel(t) ? ` ${stakeLabel(t)}` : ""}</span>`;
       const url = `${SITE}/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`;
       const where = t.bookie || t.bookie_price ? `<span style="color:#6b716a"> ${t.bookie_price ? price(Number(t.bookie_price)) : ""}${t.bookie ? ` at ${esc(t.bookie)}` : ""}</span>` : "";
       const flag = priceFlagged(t) ? ` <span style="color:#c47d0a;font-size:12px">(over the market price we saw)</span>` : "";

@@ -8,7 +8,7 @@ import { CopyLink } from "@/components/CopyLink";
 import { TipsterMatrix, type MatrixMeeting } from "@/components/TipsterMatrix";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
-import { creatorTips, priceFlagged, tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
+import { creatorTips, priceFlagged, stakeLabel, tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price } from "@/lib/format";
 import { getCard, getTodayCard, racingToday } from "@/lib/model/source";
 
@@ -86,7 +86,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
           {tipster.name} <span className="badge badge-muted ml-1 nums">{tipster.code}</span>
         </h1>
         <p className="mt-2 text-ink-secondary">
-          Post your calls for {longDate(date)}. Your followers see them next to the model&apos;s, and every call settles at the price you post.
+          Post your calls for {longDate(date)}. Your followers see them next to the model&apos;s, and every call settles at the price and units you post.
         </p>
         {!tipster.listed && <p className="mt-2 text-sm text-ink-soft">Your page is not public yet: your calls settle and build your record, and members see them once an admin lists you.</p>}
         <div className="mt-3 flex gap-2">
@@ -140,13 +140,14 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
           <div className="section-bar"><span className="section-letter">T</span><h2>Today&apos;s calls</h2><span className="aside">{longDate(date)}</span></div>
           <div className="section-body">
             <table className="w-full text-sm">
-              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left py-1">Race</th><th className="text-left">Runner</th><th className="text-left">Call</th><th className="text-right">Price</th><th className="text-left pl-3">Why</th><th className="text-right">Result</th><th></th></tr></thead>
+              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left py-1">Race</th><th className="text-left">Runner</th><th className="text-left">Call</th><th className="text-right">Units</th><th className="text-right">Price</th><th className="text-left pl-3">Why</th><th className="text-right">Result</th><th></th></tr></thead>
               <tbody>
                 {mine.map((t) => (
                   <tr key={t.id} className="border-t border-line">
                     <td className="py-2 nums">{t.track} R{t.race_number}</td>
                     <td className="font-semibold">{t.tab_number}. {t.horse_name}</td>
                     <td><span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}</span></td>
+                    <td className="text-right nums">{stakeLabel(t) || "1u"}</td>
                     <td className="text-right nums">
                       {price(Number(t.price))}{t.bookie || t.bookie_price ? <span className="block text-xs text-ink-soft">{t.bookie_price ? price(Number(t.bookie_price)) : ""}{t.bookie ? ` at ${t.bookie}` : ""}</span> : null}
                       {priceFlagged(t) && <span className="block badge badge-warn mt-1" title={`Best price we saw when you posted was ${price(Number(t.market_at_post))}`}>over market</span>}
