@@ -3683,49 +3683,99 @@ body {
   line-height: 1.25;
 }
 
-/* --- Tipster marketplace: the cards, their stat rows, the rank and the run of results --- */
-.tipster-card {
-  display: flex;
-  flex-direction: column;
+/* --- Tipster marketplace: the leaderboard rows, and the stat band on a tipster's page --- */
+.tipster-table th,
+.tipster-table td {
+  padding: 5px var(--sp-2);
+  vertical-align: middle;
+  white-space: nowrap;
 }
-.tipster-rank {
-  flex: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+.tipster-table td[data-col="name"] {
+  white-space: normal;
+}
+.tipster-more {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--color-panel-alt);
+  color: var(--color-ink);
+  font-weight: 800;
+}
+.tipster-row:hover .tipster-more {
   background: var(--color-ink);
   color: var(--color-lime);
-  font-family: var(--font-display);
-  font-weight: 800;
-  font-size: 0.8rem;
-  margin-top: 2px;
+}
+/* Who's hot, who's not: two columns, a tipster a line. */
+.hot-not {
+  display: grid;
+  gap: var(--sp-3);
+}
+@media (min-width: 640px) {
+  .hot-not {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.hot-not-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 6px 0;
+  border-top: 1px solid var(--color-line-soft);
+}
+.tipster-row.is-followed td:first-child {
+  box-shadow: inset 3px 0 0 var(--color-lime);
 }
 .tipster-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--sp-2);
 }
-/* A tipster who has never posted: one line, no numbers to show. */
-.tipster-card.is-quiet {
-  padding: 10px var(--sp-3);
-  background: var(--color-panel-alt);
-}
-.tipster-card.is-quiet .tipster-rank {
-  width: 24px;
-  height: 24px;
-  font-size: 0.72rem;
-  background: var(--color-line-strong);
-  color: var(--color-panel);
-}
 
-/* Phones: the four numbers read across in one band rather than as a block of
-   four boxes, which was most of the card's height. */
-@media (max-width: 639px) {
-  .tipster-card {
-    padding: var(--sp-3);
+/* Phones: a tipster is a block, not a row ten columns wide. The rank and
+   name head it with the follow button on the right, the window's units and
+   the return under them, then the form dots and what is on today. All time,
+   strike rate and the average bet are for a wide screen. */
+@media (max-width: 640px) {
+  .tipster-table,
+  .tipster-table > tbody {
+    display: block;
+    width: 100%;
+    min-width: 0;
+  }
+  .tipster-table > thead {
+    display: none;
+  }
+  tr.tipster-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-areas:
+      "rank name   window more"
+      "rank form   roi    today";
+    align-items: center;
+    gap: 3px 8px;
+    padding: 6px var(--sp-3);
+    border-bottom: 1px solid var(--color-line-soft);
+  }
+  tr.tipster-row > td {
+    padding: 0;
+    border-bottom: 0;
+  }
+  tr.tipster-row > td[data-col="rank"] { grid-area: rank; }
+  tr.tipster-row > td[data-col="name"] { grid-area: name; min-width: 0; }
+  tr.tipster-row > td[data-col="window"] { grid-area: window; }
+  tr.tipster-row > td[data-col="more"] { grid-area: more; }
+  tr.tipster-row > td[data-col="follow"] { display: none; }
+  tr.tipster-row > td[data-col="form"] { grid-area: form; }
+  tr.tipster-row > td[data-col="roi"] { grid-area: roi; font-size: 0.8rem; }
+  tr.tipster-row > td[data-col="today"] { grid-area: today; font-size: 0.75rem; justify-self: end; }
+  tr.tipster-row > td[data-col="all"],
+  tr.tipster-row > td[data-col="calls"],
+  tr.tipster-row > td[data-col="strike"],
+  tr.tipster-row > td[data-col="avg"] {
+    display: none;
   }
   .tipster-stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -3746,7 +3796,7 @@ body {
     display: none;
   }
 }
-@media (min-width: 640px) {
+@media (min-width: 641px) {
   .tipster-stats {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
@@ -3777,46 +3827,22 @@ body {
   align-items: center;
 }
 .form-dot {
-  width: 9px;
-  height: 9px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
   background: var(--color-line-strong);
+  cursor: help;
+  transition: transform 100ms var(--ease);
+}
+/* A dot grows under the pointer, so it is clear which call the panel is for. */
+.form-dot:hover {
+  transform: scale(1.5);
 }
 .form-dot.is-won {
   background: var(--color-accent);
 }
 .form-dot.is-lost {
   background: var(--color-red);
-}
-
-/* The dropdown on a tipster's card: today's calls and the last few before. */
-.tipster-calls {
-  border-top: 1px solid var(--color-line-soft);
-  padding-top: var(--sp-2);
-}
-.tipster-calls > summary {
-  cursor: pointer;
-  list-style: none;
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--color-blue);
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.tipster-calls > summary::-webkit-details-marker {
-  display: none;
-}
-.tipster-calls > summary::before {
-  content: "▸";
-  font-size: 0.7rem;
-  transition: transform 120ms var(--ease);
-}
-.tipster-calls[open] > summary::before {
-  transform: rotate(90deg);
-}
-.tipster-calls .stat-label {
-  margin-bottom: 2px;
 }
 
 /* --- A tipster's call as a row: the side, the call and its reason, the price and result on the right --- */
@@ -3849,6 +3875,30 @@ body {
     justify-content: flex-start;
     gap: var(--sp-3);
     text-align: left;
+  }
+}
+
+/* A call as one line: the side, the horse, the race, the price, the result. The reason is a hover. */
+.call-line {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  gap: 0 var(--sp-3);
+  align-items: center;
+  padding: 5px 0;
+}
+.call-feed-compact > li + li {
+  border-top: 1px solid var(--color-line-soft);
+}
+@media (max-width: 640px) {
+  .call-line {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 2px var(--sp-2);
+  }
+  .call-line > :nth-child(3) {
+    grid-column: 2;
+  }
+  .call-line > :nth-child(5) {
+    grid-column: 3;
   }
 }
 

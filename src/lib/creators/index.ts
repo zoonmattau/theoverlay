@@ -181,7 +181,7 @@ export const TIPSTER_PERIODS = [
   { id: "all", label: "All time" },
 ] as const;
 export type TipsterPeriod = (typeof TIPSTER_PERIODS)[number]["id"];
-export const tipsterPeriod = (v: unknown): TipsterPeriod => (TIPSTER_PERIODS.some((p) => p.id === v) ? (v as TipsterPeriod) : "30");
+export const tipsterPeriod = (v: unknown): TipsterPeriod => (TIPSTER_PERIODS.some((p) => p.id === v) ? (v as TipsterPeriod) : "all");
 
 /**
  * A tipster as the marketplace sizes them up: the record all time and over

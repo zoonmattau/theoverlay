@@ -7,7 +7,7 @@ import { getViewer } from "@/lib/auth";
 import { priceFlagged, stakeLabel, struckAt, type CreatorTip, type FeedTip } from "@/lib/creators";
 import { jumpTime, price } from "@/lib/format";
 import { getCard } from "@/lib/model/source";
-import { reactionsFor } from "@/lib/reactions";
+import { reactionsFor, type TipReactions } from "@/lib/reactions";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
 const shortDate = (d: string) => new Date(`${d}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
@@ -15,9 +15,11 @@ const shortDate = (d: string) => new Date(`${d}T12:00:00+10:00`).toLocaleDateStr
 /**
  * Calls as a list, from one tipster or many: who called it when it is a
  * feed, the call, the race and its countdown, the price, the reason, and the
- * result once it is in. Reactions for a signed-in member.
+ * result once it is in. Reactions for a signed-in member. Compact, a call is
+ * one line with the reason on hover and no reactions, for the tips page
+ * where the model's calls are the point.
  */
-export async function CallFeed({ tips, date, empty, withDate }: { tips: (CreatorTip & { tipster?: FeedTip["tipster"] })[]; date: string; empty: string; withDate?: boolean }) {
+export async function CallFeed({ tips, date, empty, withDate, compact }: { tips: (CreatorTip & { tipster?: FeedTip["tipster"] })[]; date: string; empty: string; withDate?: boolean; compact?: boolean }) {
   const jumps = new Map<string, string>();
   if (tips.some((t) => !t.settled_at && t.date === date)) {
     try {
@@ -28,17 +30,42 @@ export async function CallFeed({ tips, date, empty, withDate }: { tips: (Creator
     }
   }
   const viewer = await getViewer();
-  const reactions = await reactionsFor(tips.map((t) => t.id), viewer.id);
+  const reactions = compact ? new Map<number, TipReactions>() : await reactionsFor(tips.map((t) => t.id), viewer.id);
   if (tips.length === 0) return <p className="text-sm text-ink-soft">{empty}</p>;
   // Today's calls run next to go first: the live ones in jump order, then the ones that have run.
   const now = Date.now();
   const live = (t: CreatorTip) => !t.settled_at && new Date(jumps.get(t.race_id) || 0).getTime() > now;
   const ordered = withDate ? tips : [...tips].sort((a, b) => Number(live(b)) - Number(live(a)) || (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
   return (
-    <ul className="divide-y divide-line">
+    <ul className={`divide-y divide-line ${compact ? "call-feed-compact" : ""}`}>
       {ordered.map((t) => {
         const jump = !t.settled_at ? jumps.get(t.race_id) : undefined;
         const u = t.settled_at ? Number(t.units) : undefined;
+        if (compact) {
+          return (
+            <li key={t.id} className="call-line" data-tip={t.comment ?? undefined}>
+              <span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}{stakeLabel(t) ? ` ${stakeLabel(t)}` : ""}</span>
+              <Link href={`/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`} className="font-display font-extrabold hover:underline truncate">
+                {t.tab_number}. {t.horse_name}
+              </Link>
+              <span className="text-xs text-ink-soft truncate">
+                {t.track} R{t.race_number}{withDate ? `, ${shortDate(t.date)}` : ""}
+                {jump ? <> · <Jumps iso={jump} clock={jumpTime(jump)} /></> : null}
+              </span>
+              <span className="nums text-sm whitespace-nowrap">
+                {price(struckAt(t))}{t.bookie ? <span className="text-ink-soft"> {t.bookie}</span> : null}
+              </span>
+              {u !== undefined ? (
+                <span className="flex items-center gap-2 justify-end">
+                  <span className={`nums text-sm font-semibold ${u > 0 ? "text-accent" : u < 0 ? "text-red" : ""}`}>{units(u)}</span>
+                  <Outcome position={t.finish_position ?? 0} />
+                </span>
+              ) : (
+                <span className="text-xs text-ink-soft nums whitespace-nowrap">rates {price(Number(t.price))}</span>
+              )}
+            </li>
+          );
+        }
         return (
           <li key={t.id} className="call-row">
             <span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}{stakeLabel(t) ? ` ${stakeLabel(t)}` : ""}</span>

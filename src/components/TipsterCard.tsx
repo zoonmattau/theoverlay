@@ -1,9 +1,4 @@
-import Link from "next/link";
-
-import { CallFeed } from "./CallFeed";
-import { FollowButton } from "./FollowButton";
-import { SocialLinks } from "./SocialLinks";
-import { TIPSTER_PERIODS, type CreatorTip, type TipsterPeriod, type TipsterProfile } from "@/lib/creators";
+import type { TipsterProfile } from "@/lib/creators";
 import { price } from "@/lib/format";
 
 export const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}u`;
@@ -27,127 +22,18 @@ export function whyFollow(p: TipsterProfile): string {
 /** "3 calls a week", or "a call most weeks" below one. */
 export const perWeek = (n: number) => (n < 1 ? "a call most weeks" : `${Math.round(n)} ${Math.round(n) === 1 ? "call" : "calls"} a week`);
 
-/** The last ten settled calls as dots, newest on the right: lime landed, red lost. */
+/**
+ * The last ten settled calls as dots, newest on the right: lime landed, red
+ * lost. Hover a dot (tap on a phone) for the call: the horse, the side, the
+ * day and what it returned.
+ */
 export function FormDots({ recent }: { recent: TipsterProfile["recent"] }) {
   if (recent.length === 0) return <span className="text-xs text-ink-soft">No settled calls yet</span>;
   return (
-    <span className="form-dots" title="The last ten settled calls, newest on the right">
+    <span className="form-dots" data-tip={`The last ${recent.length} settled ${recent.length === 1 ? "call" : "calls"}, newest on the right. Hover a dot for the call.`}>
       {[...recent].reverse().map((r, i) => (
-        <span key={i} className={`form-dot ${r.won ? "is-won" : "is-lost"}`} title={`${r.horse}, ${shortDate(r.date)}: ${units(r.units)}`} />
+        <span key={i} className={`form-dot ${r.won ? "is-won" : "is-lost"}`} data-tip={`${r.side === "lay" ? "Lay" : "Bet"} ${r.horse}, ${shortDate(r.date)}: ${r.won ? "landed" : "lost"}, ${units(r.units)}`} />
       ))}
     </span>
-  );
-}
-
-/**
- * A tipster in the directory: who they are, the record, the run, why you
- * would follow, and a dropdown with today's calls (how many still to run)
- * and their last few before that.
- */
-export function TipsterCard({ p, rank, following, you, today, live, recent, date, period = "30" }: { p: TipsterProfile; rank: number; following: boolean; you: boolean; today: CreatorTip[]; live: number; recent: CreatorTip[]; date: string; period?: TipsterPeriod }) {
-  const t = p.tipster;
-  const w = p.windows[period];
-  const wLabel = TIPSTER_PERIODS.find((x) => x.id === period)?.label ?? "30 days";
-  const summary = today.length
-    ? `${today.length} ${today.length === 1 ? "call" : "calls"} today${live ? `, ${live} still to run` : ", all run"}`
-    : recent.length
-      ? `Nothing today, last ${recent.length} ${recent.length === 1 ? "call" : "calls"}`
-      : "No calls yet";
-  const tone = (n: number, has: boolean) => (!has ? "" : n > 0 ? "is-up" : n < 0 ? "is-down" : "");
-
-  // A tipster who has never posted is one line, not a card of empty boxes.
-  // Four of them under the two who post was most of the page saying nothing.
-  if (p.posted === 0 && p.all.n === 0 && today.length === 0 && recent.length === 0) {
-    return (
-      <div className={`card tipster-card is-quiet ${following ? "border-lime" : ""}`}>
-        <div className="flex items-center gap-3">
-          <span className="tipster-rank nums">{rank}</span>
-          <div className="min-w-0 flex-1">
-            <div className="flex flex-wrap items-center gap-x-2">
-              <Link href={`/t/${t.code}`} className="font-display text-lg font-extrabold tracking-tight hover:underline">{t.name}</Link>
-              <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} />
-              {you && <span className="badge badge-prime">You</span>}
-            </div>
-            <p className="text-xs text-ink-soft">
-              No calls yet
-              {p.followers > 0 ? ` \u00b7 ${p.followers} ${p.followers === 1 ? "follower" : "followers"}` : ""}
-            </p>
-          </div>
-          <FollowButton code={t.code} following={following} small />
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`card tipster-card ${following ? "border-lime" : ""}`}>
-      <div className="flex items-start gap-3">
-        <span className="tipster-rank nums">{rank}</span>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <Link href={`/t/${t.code}`} className="font-display text-xl font-extrabold tracking-tight hover:underline">{t.name}</Link>
-            <SocialLinks instagram={t.instagram} twitter={t.twitter} tiktok={t.tiktok} />
-            {you && <span className="badge badge-prime">You</span>}
-            {live > 0 && <span className="badge badge-ok">{live} live</span>}
-          </div>
-          {t.blurb && <p className="text-sm text-ink-secondary mt-0.5">{t.blurb}</p>}
-        </div>
-        <FollowButton code={t.code} following={following} small />
-      </div>
-
-      <p className="text-sm mt-3">{whyFollow(p)}</p>
-
-      <div className="tipster-stats mt-3">
-        {period === "all" ? (
-          <Stat label="All time" value={p.all.n ? units(p.all.units) : "—"} sub={p.all.n ? `${p.all.hit} of ${p.all.n}` : "nothing settled"} tone={tone(p.all.units, p.all.n > 0)} />
-        ) : (
-          <Stat label={wLabel} value={w.n ? units(w.units) : "—"} sub={w.n ? `${w.hit} of ${w.n}` : "nothing settled"} tone={tone(w.units, w.n > 0)} />
-        )}
-        {period === "all" ? (
-          <Stat label="Strike rate" value={p.all.n ? `${Math.round((p.all.hit / p.all.n) * 100)}%` : "—"} sub={p.all.n ? "landed" : "nothing settled"} />
-        ) : (
-          <Stat label="All time" value={p.all.n ? units(p.all.units) : "—"} sub={p.all.n ? `${p.all.hit} of ${p.all.n}` : "nothing settled"} tone={tone(p.all.units, p.all.n > 0)} />
-        )}
-        <Stat label="Return" value={w.n ? pct(w.roi) : "—"} sub={period === "all" ? "on turnover" : `on turnover, ${wLabel}`} tone={tone(w.roi, w.n > 0)} />
-        <Stat label="Avg bet" value={p.avgPrice ? price(p.avgPrice) : "—"} sub={p.bets.n ? `${p.bets.n} bets, ${p.lays.n} lays` : "no bets yet"} />
-      </div>
-
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-soft">
-        <FormDots recent={p.recent} />
-        <span>{p.followers} {p.followers === 1 ? "follower" : "followers"}</span>
-        {p.perWeek > 0 && <span className="hide-sm">{perWeek(p.perWeek)}</span>}
-        {p.since && <span className="hide-sm">since {shortDate(p.since)}</span>}
-        {p.best && <span className="hide-sm">best {p.best.horse} at {price(p.best.price)}</span>}
-        <Link href={`/t/${t.code}`} className="ml-auto text-blue">Every call →</Link>
-      </div>
-
-      {(today.length > 0 || recent.length > 0) && (
-        <details className="tipster-calls mt-3">
-          <summary>{summary}</summary>
-          {today.length > 0 && (
-            <div className="mt-2">
-              <div className="stat-label">Today</div>
-              <CallFeed tips={today} date={date} empty="" />
-            </div>
-          )}
-          {recent.length > 0 && (
-            <div className="mt-2">
-              <div className="stat-label">Before today</div>
-              <CallFeed tips={recent} date={date} empty="" withDate />
-            </div>
-          )}
-        </details>
-      )}
-    </div>
-  );
-}
-
-function Stat({ label, value, sub, tone = "" }: { label: string; value: string; sub?: string; tone?: string }) {
-  return (
-    <div className={`stat tipster-stat ${tone}`}>
-      <div className="stat-label">{label}</div>
-      <div className="font-display text-lg font-extrabold tracking-tight nums">{value}</div>
-      {sub && <div className="text-[11px] text-ink-soft nums">{sub}</div>}
-    </div>
   );
 }

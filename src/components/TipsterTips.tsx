@@ -8,6 +8,8 @@ const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).t
 /**
  * A tipster's calls for the day, shown to their followers above the model's.
  * Labelled as the tipster's, never mixed with ours, and settled the same way.
+ * Compact, on the tips page, a call is one line so the model's are not
+ * pushed down the page.
  */
 export async function TipsterTips({ tipster, tips, record, date, compact }: { tipster: Tipster; tips: CreatorTip[]; record?: TipsterRecord; date: string; compact?: boolean }) {
   if (tips.length === 0 && compact) return null;
@@ -28,7 +30,7 @@ export async function TipsterTips({ tipster, tips, record, date, compact }: { ti
     >
       <div className="section-body">
         {tipster.blurb && !compact && <p className="text-xs text-ink-soft mb-3">{tipster.blurb}</p>}
-        <CallFeed tips={tips} date={date} empty="No calls posted yet today." />
+        <CallFeed tips={tips} date={date} empty="No calls posted yet today." compact={compact} />
       </div>
     </Section>
   );

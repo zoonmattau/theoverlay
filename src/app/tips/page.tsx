@@ -181,8 +181,8 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
 
       {/* A followed tipster with nothing posted today takes no room. */}
       {followed.map((f, i) => f.tips.length > 0 && (
-        <section key={f.tipster.id} className="mb-6">
-          <TipsterTips tipster={f.tipster} tips={f.tips} record={records[i]} date={date} />
+        <section key={f.tipster.id} className="mb-4">
+          <TipsterTips tipster={f.tipster} tips={f.tips} record={records[i]} date={date} compact />
         </section>
       ))}
 

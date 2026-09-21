@@ -8,7 +8,7 @@ import { canReview, isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { buildReview, type LedgerRow, type Review, type ReviewedRace, type ReviewedRunner } from "@/lib/model/review";
 import { readPublishedReview } from "@/lib/reviews";
-import { ClickRow } from "../ClickRow";
+import { ClickRow } from "@/components/ClickRow";
 import { FetchButton } from "../FetchButton";
 import { PublishButton } from "../PublishButton";
 import { clock, dayLabel as label, EXPECTED_TIP, finish, GAP_TIP, gapClass, L600_TIP, price, raceLabel, reviewHref, settledClass, settledOf, signed, stageOf, tempoClass, tempoOf, TIME_TIP, unitsClass } from "../shared";
