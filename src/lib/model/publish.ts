@@ -64,9 +64,12 @@ const BET_MAX_PRICE = Number(process.env.OVERLAY_BET_MAX_PRICE ?? 26);
 /**
  * Agreement is confidence: our top pick this many points clear of the next
  * rated runner, with the market short on it too at STANDOUT_MAX_PRICE or
- * under, is a bet even when the meld's price sits on the market's and the
- * edge is under the line. It's A Yes, Warrnambool R4 21 Sep 2026: 8 points
- * clear, form $2.10, market $2.15, and the user asked why it was not a bet.
+ * under, has its rated price shortened by STANDOUT_BOOST, and the usual
+ * line then decides the bet, so the call stands while the market is longer
+ * than our price and drops once the market goes under it, as the user asked
+ * on 21 Sep 2026: "our rated price should still hold firm at $2 or whatever
+ * we put it as". It's A Yes, Warrnambool R4 that day: 8 points clear, form
+ * $2.10, market $2.15, and the user asked why it was not a bet.
  * Swept over the 462 clean races (scripts/out/_thresholds.ts, _signals.ts):
  * the calls this adds under the line won 15 of 24 at 6 points and $4
  * (+5.0u), 9 of 10 at 8 points, 25 of 36 at 4 points and $2.50; at 4 points
@@ -227,7 +230,6 @@ export function publishRace(
       const trust = g?.trust ?? 1;
       if ((g?.runs ?? 0) === 0 || trust < TRUST_FLOOR) return [p.key, undefined];
       let signal = held && (locked || guessing) ? held : jumped || guessing ? undefined : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
-      if (signal === undefined && !jumped && !guessing && !locked && p.key === standoutKey && p.marketPrice !== undefined && p.marketPrice <= STANDOUT_MAX_PRICE) signal = "back";
       if (signal === "back" && !held && p.key === topKey && p.marketPrice !== undefined && p.marketPrice >= WARY_FROM && (p.edge ?? 0) < WARY_EDGE) signal = undefined;
       // A thin rating can back a horse but not lay one: the mirage costs one unit as a bet and the price as a lay.
       if (signal === "lay" && trust < LAY_TRUST_FLOOR) return [p.key, undefined];
