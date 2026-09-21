@@ -103,8 +103,8 @@ const SHORT_TO = 0.5;
  * usual ceiling turns it off.
  */
 const LONG_WEIGHT = Number(process.env.OVERLAY_LONG_WEIGHT ?? 0.95);
-const LONG_FROM = 0.15;
-const LONG_TO = 0.05;
+const LONG_FROM = Number(process.env.OVERLAY_LONG_FROM ?? 0.15);
+const LONG_TO = Number(process.env.OVERLAY_LONG_TO ?? 0.05);
 /**
  * A lay is struck on the exchange, not at a bookmaker's best quote, and the
  * exchange price sits above it: over 76 settled lays the Betfair SP ran 12%

@@ -523,9 +523,9 @@ body {
    tap on the sheet closes it. */
 @media (hover: none), (max-width: 640px) {
   .market-pop,
-  .map-pop,
-  .map-pop.is-left,
-  .map-pop.is-up,
+  .map-hover .map-pop,
+  .map-hover .map-pop.is-left,
+  .map-hover .map-pop.is-up,
   .market-hover.market-right .market-pop {
     position: fixed;
     z-index: 200;

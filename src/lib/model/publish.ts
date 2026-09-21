@@ -60,7 +60,33 @@ const PRIME_MIN_PROB = 0.15;
  * runs negative at SP there (scripts/sweep-roughies.ts).
  */
 const BET_MIN_PROB = 0.08;
-const BET_MAX_PRICE = 26;
+const BET_MAX_PRICE = Number(process.env.OVERLAY_BET_MAX_PRICE ?? 26);
+/**
+ * Agreement is confidence: our top pick this many points clear of the next
+ * rated runner, with the market short on it too at STANDOUT_MAX_PRICE or
+ * under, is a bet even when the meld's price sits on the market's and the
+ * edge is under the line. It's A Yes, Warrnambool R4 21 Sep 2026: 8 points
+ * clear, form $2.10, market $2.15, and the user asked why it was not a bet.
+ * Swept over the 462 clean races (scripts/out/_thresholds.ts, _signals.ts):
+ * the calls this adds under the line won 15 of 24 at 6 points and $4
+ * (+5.0u), 9 of 10 at 8 points, 25 of 36 at 4 points and $2.50; at 4 points
+ * and $4 it adds 60 for nothing, and every ceiling above $4 only adds bets
+ * in the $4 to $6 band, which lose under every setting. The same standouts
+ * the market does not agree with, $4 and longer, won 1 of 14. 0 turns it off.
+ */
+const STANDOUT_POINTS = Number(process.env.OVERLAY_STANDOUT ?? 6);
+const STANDOUT_MAX_PRICE = Number(process.env.OVERLAY_STANDOUT_PRICE ?? 4);
+/**
+ * The other side of the same coin: when the market does not agree with our
+ * top pick, we are wary of it. Our top-rated runner at WARY_FROM or longer
+ * needs WARY_EDGE of edge, not the usual line, before it is a bet. Over the
+ * clean cache the top pick at $10 or more won 1 race in 70 where the market
+ * itself expected 4 or 5, and the meld's bets on it there were 0 from 19.
+ * A runner we do not have on top is judged on the usual line at any price.
+ * $8 is too low: the top pick at $8 to $10 won 4 of 18 bets for +15.5u.
+ */
+const WARY_FROM = Number(process.env.OVERLAY_WARY_FROM ?? 10);
+const WARY_EDGE = Number(process.env.OVERLAY_WARY_EDGE ?? 0.05);
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /**
@@ -171,6 +197,10 @@ export function publishRace(
   const book = race.entries.filter((e) => !e.scratched && e.odds?.bestNow && e.odds.bestNow > 1).reduce((a, e) => a + 1 / e.odds!.bestNow, 0);
   const marketWhole = priced.marketComplete && book >= BOOK_MIN && book <= BOOK_MAX;
   const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole;
+  // The standout: our top pick and how far it sits clear of the next runner we rated.
+  const ratedOrder = [...ratedByTab.entries()].filter(([, r]) => r.ratings.runs > 0).sort((a, b) => b[1].ratings.today - a[1].ratings.today);
+  const standoutKey = STANDOUT_POINTS > 0 && ratedOrder.length >= 2 && ratedOrder[0][1].ratings.today - ratedOrder[1][1].ratings.today >= STANDOUT_POINTS ? ratedOrder[0][0] : undefined;
+  const topKey = ratedOrder[0]?.[0];
   const signalByTab = new Map(
     priced.runners.map((p) => {
       const held = kept.get(`${race.raceId}:${p.key}`);
@@ -179,7 +209,9 @@ export function publishRace(
       const g = ratedByTab.get(p.key)?.ratings;
       const trust = g?.trust ?? 1;
       if ((g?.runs ?? 0) === 0 || trust < TRUST_FLOOR) return [p.key, undefined];
-      const signal = held && (locked || guessing) ? held : jumped || guessing ? undefined : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
+      let signal = held && (locked || guessing) ? held : jumped || guessing ? undefined : signalFor(p.edge, p.marketPrice, p.probability, false, held, p.layEdge, p.layPrice);
+      if (signal === undefined && !jumped && !guessing && !locked && p.key === standoutKey && p.marketPrice !== undefined && p.marketPrice <= STANDOUT_MAX_PRICE) signal = "back";
+      if (signal === "back" && !held && p.key === topKey && p.marketPrice !== undefined && p.marketPrice >= WARY_FROM && (p.edge ?? 0) < WARY_EDGE) signal = undefined;
       // A thin rating can back a horse but not lay one: the mirage costs one unit as a bet and the price as a lay.
       if (signal === "lay" && trust < LAY_TRUST_FLOOR) return [p.key, undefined];
       // Nor is a horse on a winning run laid: even rated for the run, the lays
