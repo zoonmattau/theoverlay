@@ -94,13 +94,16 @@ const WARY_EDGE = Number(process.env.OVERLAY_WARY_EDGE ?? 0.05);
  * Both rules live in the rated price as well as the call, so a standout is
  * not shown as a bet at the market's own price and a doubted top pick is
  * not shown shorter than the market we will not bet against. In log-odds
- * on the runner alone, the field left as it was: +0.4 is the odds times
- * 1.5, so a $2.15 standout in a 118% book rates about $2.00; -0.7 is the
- * odds halved, a $12 top pick rating about $20. The clean cache measured
- * the standouts at +0.6 (won 59% where the market said 44%) and the
- * doubted at -1.6 (won 1 in 70 where it said 4 or 5); both are shaded.
+ * on the runner alone, the field left as it was: +0.2 is the odds times
+ * 1.22, so a $2.15 standout in a 118% book rates $1.95, five points of
+ * edge; -0.7 is the odds halved, a $12 top pick rating about $20. The
+ * clean cache measured the standouts at +0.6 against the fair market (won
+ * 59% where it said 44%), but a favourite's fair price sits almost on its
+ * raw quote, so the whole boost turns into edge: at +0.4 The Beast, $3.50
+ * on 21 Sep 2026, showed ten points, and the user said the edge should not
+ * be that big. The doubted measured -1.6; both are shaded.
  */
-const STANDOUT_BOOST = Number(process.env.OVERLAY_STANDOUT_BOOST ?? 0.4);
+const STANDOUT_BOOST = Number(process.env.OVERLAY_STANDOUT_BOOST ?? 0.2);
 const WARY_DOUBT = Number(process.env.OVERLAY_WARY_DOUBT ?? 0.7);
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
