@@ -135,6 +135,13 @@ export interface RateInput {
   /** Best available market price at publish time. */
   marketPrice?: number;
   scratched?: boolean;
+  /**
+   * Log-odds added to this runner's chance once the field has been priced,
+   * leaving the rest of the field where it was: the market's agreement with
+   * a clear top pick (publish.ts STANDOUT_BOOST) or its doubt of one it has
+   * long (WARY_DOUBT). Positive shortens the rated price.
+   */
+  nudge?: number;
 }
 
 export interface RateOutput {
@@ -214,7 +221,8 @@ export function rateRace(
   const modelTotal = modelProbs.reduce((a, b) => a + b, 0);
 
   const runners: RateOutput[] = live.map((r, i) => {
-    const probability = normalised[i];
+    // The nudge moves this runner alone, so the others' prices, and any lay on them, stand.
+    const probability = r.nudge ? sigmoid(logit(normalised[i]) + r.nudge) : normalised[i];
     const ratedPrice = roundPrice(1 / probability);
     // Edge is our win chance minus the market's: a $4 rating against a $5
     // market is 25% less 20%, an edge of five points.

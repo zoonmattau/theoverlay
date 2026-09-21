@@ -87,6 +87,18 @@ const STANDOUT_MAX_PRICE = Number(process.env.OVERLAY_STANDOUT_PRICE ?? 4);
  */
 const WARY_FROM = Number(process.env.OVERLAY_WARY_FROM ?? 10);
 const WARY_EDGE = Number(process.env.OVERLAY_WARY_EDGE ?? 0.05);
+/**
+ * Both rules live in the rated price as well as the call, so a standout is
+ * not shown as a bet at the market's own price and a doubted top pick is
+ * not shown shorter than the market we will not bet against. In log-odds
+ * on the runner alone, the field left as it was: +0.4 is the odds times
+ * 1.5, so a $2.15 standout in a 118% book rates about $2.00; -0.7 is the
+ * odds halved, a $12 top pick rating about $20. The clean cache measured
+ * the standouts at +0.6 (won 59% where the market said 44%) and the
+ * doubted at -1.6 (won 1 in 70 where it said 4 or 5); both are shaded.
+ */
+const STANDOUT_BOOST = Number(process.env.OVERLAY_STANDOUT_BOOST ?? 0.4);
+const WARY_DOUBT = Number(process.env.OVERLAY_WARY_DOUBT ?? 0.7);
 /** Below this the model is guessing, and we say nothing. */
 const MIN_CONFIDENCE = 0.35;
 /**
@@ -157,12 +169,21 @@ export function publishRace(
     }
   }
   const ratedByTab = new Map(rated.map((r) => [r.key, r]));
+  // Our top pick, and whether it stands clear of the next runner we rated: the standout and the wary rules key off it.
+  const ratedOrder = [...ratedByTab.entries()].filter(([, r]) => r.ratings.runs > 0 && (r.ratings.trust ?? 1) >= TRUST_FLOOR).sort((a, b) => b[1].ratings.today - a[1].ratings.today);
+  const topKey = ratedOrder[0]?.[0];
+  const standoutKey = STANDOUT_POINTS > 0 && ratedOrder.length >= 2 && ratedOrder[0][1].ratings.today - ratedOrder[1][1].ratings.today >= STANDOUT_POINTS ? ratedOrder[0][0] : undefined;
+  const quoteOf = (key: string) => race.entries.find((e) => String(e.number) === key && !e.scratched)?.odds?.bestNow;
+  const topQuote = topKey ? quoteOf(topKey) : undefined;
+  const standout = standoutKey !== undefined && topQuote !== undefined && topQuote <= STANDOUT_MAX_PRICE;
+  const doubted = topKey !== undefined && topQuote !== undefined && topQuote >= WARY_FROM;
 
   const priced = rateRace(
     race.entries.map((e) => {
       const r = ratedByTab.get(String(e.number))?.ratings;
       return {
         key: String(e.number),
+        nudge: String(e.number) === topKey ? (standout ? STANDOUT_BOOST : doubted ? -WARY_DOUBT : undefined) : undefined,
         // No runs means no opinion: the market, which has seen the trials, is our number.
         rating: r && r.runs > 0 ? r.today : undefined,
         trust: r?.trust,
@@ -197,10 +218,6 @@ export function publishRace(
   const book = race.entries.filter((e) => !e.scratched && e.odds?.bestNow && e.odds.bestNow > 1).reduce((a, e) => a + 1 / e.odds!.bestNow, 0);
   const marketWhole = priced.marketComplete && book >= BOOK_MIN && book <= BOOK_MAX;
   const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole;
-  // The standout: our top pick and how far it sits clear of the next runner we rated.
-  const ratedOrder = [...ratedByTab.entries()].filter(([, r]) => r.ratings.runs > 0).sort((a, b) => b[1].ratings.today - a[1].ratings.today);
-  const standoutKey = STANDOUT_POINTS > 0 && ratedOrder.length >= 2 && ratedOrder[0][1].ratings.today - ratedOrder[1][1].ratings.today >= STANDOUT_POINTS ? ratedOrder[0][0] : undefined;
-  const topKey = ratedOrder[0]?.[0];
   const signalByTab = new Map(
     priced.runners.map((p) => {
       const held = kept.get(`${race.raceId}:${p.key}`);
