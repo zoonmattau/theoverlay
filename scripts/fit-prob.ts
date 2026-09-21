@@ -33,7 +33,7 @@ const races = readdirSync(".formking-cache")
 
 const ALL_FEATURES = [
   "lnFair", "dev", "clsDev", "late", "early", "sections", "shape", "jockey", "trainer", "streak", "fk", "fkRaw",
-  "tempo", "going", "distance", "track", "weight", "fresh", "barrier", "trust", "lnRuns", "noForm", "devLow", "goingWin", "gate",
+  "tempo", "going", "distance", "track", "weight", "fresh", "barrier", "trust", "lnRuns", "noForm", "devLow", "devHigh", "devFair", "goingWin", "gate",
 ] as const;
 type Feature = (typeof ALL_FEATURES)[number];
 /** The features to fit, from OVERLAY_PROB_FEATURES ("lnFair,dev,jockey"); all of them by default. */
@@ -90,6 +90,8 @@ for (const r of races) {
       trust: has ? g.trust : 0, lnRuns: Math.log1p(g.runs), noForm: has ? 0 : 1,
       // The rating's distance from the field on a rating that cannot be trusted.
       devLow: has ? dev * (1 - g.trust) : 0,
+      devHigh: has ? dev * g.trust : 0,
+      devFair: has ? dev * Math.log(Math.max(1e-4, fair[i])) : 0,
       goingWin: goingSurplus(e.form?.goingForm, band),
       gate: barrierEffect(r.trackName, r.distance, liveEntries.filter((o) => o.barrier < e.barrier).length + 1, liveEntries.length),
     };

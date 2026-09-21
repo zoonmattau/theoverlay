@@ -26,9 +26,16 @@ import priceFit from "./price-fit.json";
  * 1.8096 against the market's 1.8098 and the meld's 1.8167, with 59 bets to
  * the meld's 95. Refit as the clean cache grows:
  *   OVERLAY_PROB_FEATURES=lnFair,dev OVERLAY_PROB_OUT=src/lib/model/price-fit.json npx tsx --tsconfig tsconfig.json scripts/fit-prob.ts
- * 0 prices with the hand-set meld below instead.
+ * 1 prices with it; off since 21 Sep 2026. The fit is honest about how
+ * little the form adds, and that is the trouble: with 0.13 log-odds per
+ * eight rating points the rated price never sits two points off the quote
+ * except on a short favourite. Run over the weekend's 148 cached races on
+ * their pre-jump prices it made two bets and one lay, and on the Monday
+ * card, a 122% morning book, nothing at all; the meld made a call in one
+ * race in three. The user wants the calls, so the meld prices until the
+ * calling rules are rebuilt around a price that agrees with the market.
  */
-const PRICE_FIT = Number(process.env.OVERLAY_PRICE_FIT ?? 1) === 1;
+const PRICE_FIT = Number(process.env.OVERLAY_PRICE_FIT ?? 0) === 1;
 const FIT = priceFit as { features: string[]; sd: number[]; beta: number[] };
 /** A fitted weight per unit of the feature, 0 for one the fit does not have. */
 const fitWeight = (name: string) => {
