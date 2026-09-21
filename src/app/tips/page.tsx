@@ -11,11 +11,11 @@ import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
 import { Section } from "@/components/Section";
 import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
-import { TipsterTips } from "@/components/TipsterTips";
+import { TipsterCallTable } from "@/components/TipsterCallTable";
 import { ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { followedCalls, tipsterRecord } from "@/lib/creators";
+import { followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { readMutes } from "@/lib/model/store";
@@ -84,7 +84,10 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const ledger = await ledgerFor(date);
   // A follower sees their tipsters' calls above ours, whether or not they have paid.
   const followed = await followedCalls(viewer, date);
-  const records = await Promise.all(followed.map((f) => tipsterRecord(f.tipster.id)));
+  const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime] as const)));
+  const theirs = followed.flatMap((f) => f.tips.map((t) => ({ ...t, tipster: f.tipster })));
+  const theirsSettled = theirs.filter((t) => t.settled_at);
+  const theirsUnits = theirsSettled.reduce((a, t) => a + Number(t.units), 0);
 
   const calls: Call[] = meetings
     .flatMap((m) =>
@@ -179,12 +182,19 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
         </div>
       )}
 
-      {/* A followed tipster with nothing posted today takes no room. */}
-      {followed.map((f, i) => f.tips.length > 0 && (
-        <section key={f.tipster.id} className="mb-4">
-          <TipsterTips tipster={f.tipster} tips={f.tips} record={records[i]} date={date} compact />
-        </section>
-      ))}
+      {/* Every followed tipster's calls for the day in one table; nothing posted, nothing shown. */}
+      {theirs.length > 0 && (
+        <div className="mb-4">
+          <Section
+            id="tipsters-today"
+            letter="T"
+            title={followed.length === 1 ? `${followed[0].tipster.name}'s tips` : "Your tipsters"}
+            aside={`${theirs.length} ${theirs.length === 1 ? "call" : "calls"}${theirsSettled.length ? `, ${units(theirsUnits)}u so far` : ""}`}
+          >
+            <TipsterCallTable tips={theirs} jumps={jumps} />
+          </Section>
+        </div>
+      )}
 
       {open ? (
         <div className="space-y-4">

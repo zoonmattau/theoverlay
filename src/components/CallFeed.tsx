@@ -43,14 +43,18 @@ export async function CallFeed({ tips, date, empty, withDate, compact }: { tips:
         const u = t.settled_at ? Number(t.units) : undefined;
         if (compact) {
           return (
-            <li key={t.id} className="call-line" data-tip={t.comment ?? undefined}>
+            <li key={t.id} className="call-line">
+              <span className="call-race truncate">
+                <span className="font-semibold">{t.track} R{t.race_number}</span>{withDate ? <span className="text-ink-soft">, {shortDate(t.date)}</span> : ""}
+                {jump ? <span className="text-ink-soft"> · <Jumps iso={jump} clock={jumpTime(jump)} /></span> : null}
+              </span>
               <span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}{stakeLabel(t) ? ` ${stakeLabel(t)}` : ""}</span>
-              <Link href={`/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`} className="font-display font-extrabold hover:underline truncate">
-                {t.tab_number}. {t.horse_name}
-              </Link>
-              <span className="text-xs text-ink-soft truncate">
-                {t.track} R{t.race_number}{withDate ? `, ${shortDate(t.date)}` : ""}
-                {jump ? <> · <Jumps iso={jump} clock={jumpTime(jump)} /></> : null}
+              {/* The reason opens off the name on hover; on a phone the name is a link, so a chip takes the tap there. */}
+              <span className="flex items-center gap-1.5 min-w-0">
+                <Link href={`/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`} className="font-display font-extrabold hover:underline truncate" data-tip={t.comment ?? undefined}>
+                  {t.tab_number}. {t.horse_name}
+                </Link>
+                {t.comment && <span className="call-why sm:hidden" data-tip={t.comment}>why</span>}
               </span>
               <span className="nums text-sm whitespace-nowrap">
                 {price(struckAt(t))}{t.bookie ? <span className="text-ink-soft"> {t.bookie}</span> : null}

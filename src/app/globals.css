@@ -3164,6 +3164,7 @@ body {
   /* A running total down a list of calls is a wide-screen column, and a dash
      where the units will go says nothing that "to run" has not already said. */
   tr.tip-row > td[data-col="sum"],
+  tr.tip-row > td[data-col="who"],
   tr.tip-row > td[data-pending="1"] {
     display: none;
   }
@@ -3881,21 +3882,39 @@ body {
 /* A call as one line: the side, the horse, the race, the price, the result. The reason is a hover. */
 .call-line {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto auto auto;
+  grid-template-columns: minmax(7rem, auto) auto minmax(0, 1fr) auto auto;
   gap: 0 var(--sp-3);
   align-items: center;
   padding: 5px 0;
 }
+.call-race {
+  font-size: 0.85rem;
+  white-space: nowrap;
+}
+.call-why {
+  flex: none;
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-soft);
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  padding: 0 6px;
+  line-height: 1.5;
+  cursor: help;
+}
 .call-feed-compact > li + li {
   border-top: 1px solid var(--color-line-soft);
 }
+/* Phones: the race heads the line, the call under it. */
 @media (max-width: 640px) {
   .call-line {
     grid-template-columns: auto minmax(0, 1fr) auto;
     gap: 2px var(--sp-2);
   }
-  .call-line > :nth-child(3) {
-    grid-column: 2;
+  .call-line > .call-race {
+    grid-column: 1 / -1;
   }
   .call-line > :nth-child(5) {
     grid-column: 3;
