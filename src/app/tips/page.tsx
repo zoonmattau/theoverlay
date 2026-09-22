@@ -15,7 +15,7 @@ import { TipsterCallTable } from "@/components/TipsterCallTable";
 import { ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { allTipsters, callsOn, followedCalls } from "@/lib/creators";
+import { followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { readMutes } from "@/lib/model/store";
@@ -83,14 +83,11 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
   const ledger = await ledgerFor(date);
   // A follower sees their tipsters' calls above ours, whether or not they have paid.
-  const [followed, listed] = await Promise.all([followedCalls(viewer, date), allTipsters()]);
+  const followed = await followedCalls(viewer, date);
   const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime] as const)));
   const theirs = followed.flatMap((f) => f.tips.map((t) => ({ ...t, tipster: f.tipster })));
   const theirsSettled = theirs.filter((t) => t.settled_at);
   const theirsUnits = theirsSettled.reduce((a, t) => a + Number(t.units), 0);
-  // Every other listed tipster's calls for the day, so the page holds every tip there is today.
-  const followedIds = new Set(followed.map((f) => f.tipster.id));
-  const others = await callsOn(date, listed.filter((t) => !followedIds.has(t.id)));
 
   const calls: Call[] = meetings
     .flatMap((m) =>
@@ -195,22 +192,6 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
             aside={`${theirs.length} ${theirs.length === 1 ? "call" : "calls"}${theirsSettled.length ? `, ${units(theirsUnits)}u so far` : ""}`}
           >
             <TipsterCallTable tips={theirs} jumps={jumps} />
-          </Section>
-        </div>
-      )}
-
-      {/* The rest of the tipsters' calls today, with a way to follow the ones worth having on the race pages. */}
-      {others.length > 0 && (
-        <div className="mb-4">
-          <Section
-            id="tipsters-all"
-            letter="T"
-            title={theirs.length > 0 ? "Other tipsters today" : "Tipsters today"}
-            aside={`${others.length} ${others.length === 1 ? "call" : "calls"} from ${new Set(others.map((t) => t.affiliate_id)).size} ${new Set(others.map((t) => t.affiliate_id)).size === 1 ? "tipster" : "tipsters"}`}
-            defaultOpen={theirs.length === 0}
-          >
-            <TipsterCallTable tips={others} jumps={jumps} />
-            <p className="px-4 py-2 text-xs text-ink-soft border-t border-line">Their own calls at their own prices, settled the same way. <Link href="/tipsters" className="underline">Read the records and follow</Link> the ones you rate to have their calls on your race pages.</p>
           </Section>
         </div>
       )}
