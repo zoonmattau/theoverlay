@@ -39,8 +39,10 @@ export interface RacePrices {
 export interface PriceBook {
   /** BetWatch's id for each of our races, found once. */
   ids: Record<string, string>;
-  /** Our races BetWatch does not list, so they are not looked for again. */
+  /** Our races BetWatch did not list when last looked for. */
   missing: string[];
+  /** When the missing were last looked for; they are tried again after MISSING_RETRY_MS. */
+  missingAt?: string;
   races: Record<string, RacePrices>;
   polledAt?: string;
 }
@@ -64,6 +66,13 @@ export const RESULT_NEAR_MS = Number(process.env.OVERLAY_RESULT_NEAR_MIN ?? 20) 
 export const RESULT_NEAR_EVERY_MS = Number(process.env.OVERLAY_RESULT_NEAR_EVERY_SEC ?? 60) * 1000;
 /** Races fetched at once; each takes a few seconds. */
 const IN_FLIGHT = 6;
+/**
+ * How long a race BetWatch did not list stays unlooked-for. A meeting can
+ * be on the list before its fields are, and the name check then fails:
+ * Emerald's seven races missed the morning lookup on 22 Sep 2026 and were
+ * never tried again, so its results came from the feed's slow poll.
+ */
+const MISSING_RETRY_MS = 20 * 60_000;
 
 const empty = (): PriceBook => ({ ids: {}, missing: [], races: {} });
 
@@ -163,16 +172,21 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
   book.polledAt = new Date(now).toISOString();
   await writePriceBook(date, book);
 
-  // Races not yet matched to BetWatch's list, looked up in one call.
-  const unmatched = due.filter(({ race }) => !book.ids[race.raceId] && !book.missing.includes(race.raceId));
+  // Races not yet matched to BetWatch's list, looked up in one call; the
+  // missing are looked for again once the retry wait has passed.
+  const retry = !book.missingAt || now - Date.parse(book.missingAt) >= MISSING_RETRY_MS;
+  const unmatched = due.filter(({ race }) => !book.ids[race.raceId] && (retry || !book.missing.includes(race.raceId)));
   if (unmatched.length > 0) {
     try {
       const list = await betwatchRaces(dayAfter(date, -1), dayAfter(date, 1));
+      const still = new Set(book.missing.filter((id) => !unmatched.some((u) => u.race.raceId === id)));
       for (const { meeting, race } of unmatched) {
         const hit = matchRace(meeting, race, list);
         if (hit) book.ids[race.raceId] = hit.id;
-        else book.missing.push(race.raceId);
+        else still.add(race.raceId);
       }
+      book.missing = [...still];
+      book.missingAt = new Date(now).toISOString();
     } catch (err) {
       console.error("[betwatch] races", err instanceof Error ? err.message : err);
     }
