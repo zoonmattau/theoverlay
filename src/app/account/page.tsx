@@ -191,12 +191,13 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
           )}
 
           {tab === "invite" && (
-            <Panel title="Invite a friend" blurb={`Send your link. When a friend starts a plan you both get ${BONUS_DAYS} days of the full board.`}>
+            <Panel title="Invite a friend" blurb={`Give a mate three weeks free and get ${BONUS_DAYS} days of the full board yourself, for every friend who starts a plan.`}>
               <div className="grid grid-cols-2 gap-3 max-w-md">
-                <Tile n={invited} label={invited === 1 ? "friend joined" : "friends joined"} tone={invited ? "prime" : undefined} />
-                <Tile n={`${BONUS_DAYS}d`} label="each, per friend" />
+                <Tile n={invited} label={invited === 1 ? "friend started" : "friends started"} tone={invited ? "prime" : undefined} />
+                <Tile n={`${invited * BONUS_DAYS}d`} label="earned so far" />
               </div>
               <div className="mt-4">{code && <CopyLink link={`${site}/join/${code}`} />}</div>
+              <p className="mt-3 text-sm"><Link href="/invite" className="underline">Send it by WhatsApp, text or email, and see what each of you gets.</Link></p>
             </Panel>
           )}
 
