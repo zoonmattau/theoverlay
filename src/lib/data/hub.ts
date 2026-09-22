@@ -2,7 +2,7 @@ import "server-only";
 import { cacheLife } from "next/cache";
 
 import { supabaseAdmin } from "@/lib/billing/access";
-import { DISTANCE_BANDS, PERIODS, type HubFilter } from "./filters";
+import { DISTANCE_BANDS, PERIODS, STATES, type HubFilter } from "./filters";
 import { personKey } from "./people";
 import { readSnapshot, writeSnapshot } from "./snapshot";
 export type { HubFilter } from "./filters";
@@ -437,7 +437,9 @@ export async function hubDistances(): Promise<Distance[]> {
     if (r.best < d.record) { d.record = r.best; d.recordTrack = r.track; }
     by.set(r.distance, d);
   }
-  return [...by.values()].map(({ sum, medians, ...d }) => ({ ...d, typical: medians.length ? median(medians) : sum / d.runs })).sort((a, b) => a.distance - b.distance);
+  return [...by.values()]
+    .map(({ sum, medians, ...d }) => ({ ...d, typical: medians.length ? median(medians) : sum / d.runs }))
+    .sort((a, b) => a.distance - b.distance);
 }
 
 export interface Going {
@@ -532,3 +534,18 @@ export async function hubDistanceShapes(distance: number): Promise<(TrackShape &
   const n = (v: unknown) => (v === null || v === undefined ? null : Number(v));
   return ((data ?? []) as Record<string, unknown>[]).map((r) => ({ track: String(r.track), distance: Number(r.distance), earlyPct: n(r.early_pct), midPct: n(r.mid_pct), finishPct: n(r.finish_pct), frontRunnerWinPct: n(r.front_runner_win_pct), leaderPlacedPct: n(r.leader_placed_pct), races: n(r.races), sample: Number(r.sample) }));
 }
+
+/**
+ * The tracks worth a row on the index: Australian, twenty runs or more. An
+ * imported horse's form brings Sha Tin and forty British courses with a
+ * handful of runs each, and every one still has its page from a link.
+ */
+export const listedTrack = (t: { runs: number; state: string | null }) => t.runs >= MIN_RUNS && (t.state === null || STATES.includes(t.state));
+
+/**
+ * The distances worth a row on the index. The feed keeps a race's exact
+ * trip, so 539 distances, most run a few times at one track: a trip run at
+ * two tracks and a hundred times over is listed, the rest reached from a
+ * track's page.
+ */
+export const listedDistance = (d: { runs: number; tracks: number }) => d.runs >= 100 && d.tracks >= 2;
