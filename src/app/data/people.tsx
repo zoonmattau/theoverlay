@@ -3,10 +3,13 @@ import Link from "next/link";
 import { personKey } from "@/lib/data/people";
 import { HubFilters } from "./HubFilters";
 import { HubLocked, hubViewer } from "./shared";
-import { PeopleTable, PersonRunsTable, BreakdownTable, UpcomingTable } from "@/components/HubTables";
+import { PeopleTable, PersonRunsTable, BreakdownTable, UpcomingTable, type LinkedBreakdown } from "@/components/HubTables";
 import { DISTANCE_BANDS, GOINGS, filterActive, filterFrom, filterQuery, filterWords } from "@/lib/data/filters";
 import { hubPeople, hubPerson, hubTracksList } from "@/lib/data/hub";
 import { upcomingFor } from "@/lib/data/upcoming";
+
+/** Each row with its link, made here: a function cannot be handed to the client table. */
+const linked = (rows: LinkedBreakdown[], link: (label: string) => string): LinkedBreakdown[] => rows.map((r) => ({ ...r, href: link(r.label) }));
 
 type Kind = "jockey" | "trainer";
 const noun = (k: Kind) => (k === "jockey" ? "jockeys" : "trainers");
@@ -79,20 +82,20 @@ export async function PersonPage({ kind, params }: { kind: Kind; params: Promise
       <div className="grid gap-6 md:grid-cols-2">
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">By track</h3>
-          <BreakdownTable rows={profile.byTrack} label="Track" noun="tracks" link={(l) => `/data/${noun(kind)}${filterQuery({ tracks: [l] }, { find: profile.name })}`} hint="Click a track for the ranking there, with this one found." />
+          <BreakdownTable rows={linked(profile.byTrack, (l) => `/data/${noun(kind)}${filterQuery({ tracks: [l] }, { find: profile.name })}`)} label="Track" noun="tracks" hint="Click a track for the ranking there, with this one found." />
         </div>
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">With</h3>
-          <BreakdownTable rows={profile.with} label={other === "jockey" ? "Jockey" : "Trainer"} noun={`${other}s`} link={(l) => `/data/${other}s/${encodeURIComponent(keyOf(l))}`} hint="Click a name for their profile." />
+          <BreakdownTable rows={linked(profile.with, (l) => `/data/${other}s/${encodeURIComponent(keyOf(l))}`)} label={other === "jockey" ? "Jockey" : "Trainer"} noun={`${other}s`} hint="Click a name for their profile." />
           <p className="mt-1 text-xs text-ink-soft"><Link href={`/data/combos?find=${encodeURIComponent(kind === "jockey" ? `${profile.name} / ` : ` / ${profile.name}`)}`} className="underline">Every pairing in Combos</Link>.</p>
         </div>
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">By distance</h3>
-          <BreakdownTable rows={profile.byDistance} label="Trip" noun="bands" link={(l) => `/data/${noun(kind)}${filterQuery({ band: bandKey(l) }, { find: profile.name })}`} hint="Click a trip for the ranking over it." />
+          <BreakdownTable rows={linked(profile.byDistance, (l) => `/data/${noun(kind)}${filterQuery({ band: bandKey(l) }, { find: profile.name })}`)} label="Trip" noun="bands" hint="Click a trip for the ranking over it." />
         </div>
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">By going</h3>
-          <BreakdownTable rows={profile.byGoing} label="Going" noun="goings" link={(l) => `/data/${noun(kind)}${filterQuery({ goings: goingNums(l) }, { find: profile.name })}`} hint="Click a going for the ranking on it." />
+          <BreakdownTable rows={linked(profile.byGoing, (l) => `/data/${noun(kind)}${filterQuery({ goings: goingNums(l) }, { find: profile.name })}`)} label="Going" noun="goings" hint="Click a going for the ranking on it." />
         </div>
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">By price</h3>
@@ -104,7 +107,7 @@ export async function PersonPage({ kind, params }: { kind: Kind; params: Promise
         </div>
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">Horses</h3>
-          <BreakdownTable rows={profile.horses} label="Horse" noun="horses" link={(l) => `/data/horses?q=${encodeURIComponent(l)}`} hint="Click a horse to look it up." />
+          <BreakdownTable rows={linked(profile.horses, (l) => `/data/horses?q=${encodeURIComponent(l)}`)} label="Horse" noun="horses" hint="Click a horse to look it up." />
         </div>
       </div>
 

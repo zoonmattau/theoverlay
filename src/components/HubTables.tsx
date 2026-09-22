@@ -136,9 +136,12 @@ export function CombosTable({ rows, find }: { rows: Combo[]; find?: string }) {
 }
 
 /** A person's record cut one way: by track, trip, going, year, partner or horse. */
-export function BreakdownTable({ rows, label, noun, link, keepOrder, hint }: { rows: Breakdown[]; label: string; noun: string; link?: (label: string) => string; /** Rows come in an order worth keeping, like price bands. */ keepOrder?: boolean; hint?: string }) {
-  const cols: Column<Breakdown>[] = [
-    { key: "label", label, tip: "", value: (r) => r.label, strong: true, asc: true, render: (r) => (link ? <Link href={link(r.label)} className="underline decoration-dotted underline-offset-2">{r.label}</Link> : r.label) },
+/** A row's link is set by the server page: a function cannot cross into a client table. */
+export type LinkedBreakdown = Breakdown & { href?: string };
+
+export function BreakdownTable({ rows, label, noun, keepOrder, hint }: { rows: LinkedBreakdown[]; label: string; noun: string; /** Rows come in an order worth keeping, like price bands. */ keepOrder?: boolean; hint?: string }) {
+  const cols: Column<LinkedBreakdown>[] = [
+    { key: "label", label, tip: "", value: (r) => r.label, strong: true, asc: true, render: (r) => (r.href ? <Link href={r.href} className="underline decoration-dotted underline-offset-2">{r.label}</Link> : r.label) },
     { key: "rides", label: "Runs", tip: "", right: true, value: (r) => r.rides },
     { key: "wins", label: "Wins", tip: "", right: true, value: (r) => r.wins },
     { key: "winPct", label: "Win %", tip: "", right: true, value: (r) => r.winPct },
