@@ -102,13 +102,13 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   const db = supabaseAdmin();
   const rows = rowsFor(date, card);
   if (rows.length === 0) return;
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, settled_at, market_price, stake, tag").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, settled_at, market_price, stake, tag, finish_position").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
   }
   // The stake was fixed when the call was published; a price that has since crossed $21 does not move it.
-  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price), stake: Number(e.stake ?? 1), tag: e.tag as string | null }]));
+  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price), stake: Number(e.stake ?? 1), tag: e.tag as string | null, finish: e.finish_position as number | null }]));
   const fresh = rows.filter((r) => !seen.has(`${r.race_id}:${r.tab_number}`));
   if (fresh.length) {
     const { error: e } = await db.from("tips").insert(fresh);
@@ -124,6 +124,14 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     // the Betfair SP, moves up to that SP when it is the better price: the rule is
     // the better of the two, whichever arrived first. Looming One, 18 Sep 2026.
     if (was.settled) {
+      // A call settled on the exchange's interim result whose placing the
+      // official result then moved (a protest upheld) settles again on it.
+      if (typeof r.finish_position === "number" && was.finish !== null && r.finish_position !== was.finish) {
+        const price = r.side === "back" ? Math.max(was.price, r.market_price) : was.price;
+        const { error: e } = await db.from("tips").update({ market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position, was.stake) }).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
+        if (e) console.error("[tips] resettle finish", e.message);
+        continue;
+      }
       if (r.side === "back" && r.settled_at && r.finish_position !== undefined && r.market_price > was.price) {
         const { error: e } = await db.from("tips").update({ market_price: r.market_price, units: settle(r.side, r.market_price, r.finish_position ?? 0, was.stake) }).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
         if (e) console.error("[tips] resettle", e.message);

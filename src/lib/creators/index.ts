@@ -317,18 +317,21 @@ export async function tipsterHistory(affiliateId: string, before: string, limit 
 /** Settles every tipster's calls for a date from the card's results. Called after each card build. */
 export async function settleCreatorTips(date: string, card: StoredCard): Promise<void> {
   const db = supabaseAdmin();
-  const { data, error } = await db.from("creator_tips").select("id, race_id, tab_number, side, price, bookie_price, stake").eq("date", date).is("settled_at", null);
+  // Open calls settle; a settled call whose placing the official result has
+  // since moved (an interim result, then a protest upheld) settles again.
+  const { data, error } = await db.from("creator_tips").select("id, race_id, tab_number, side, price, bookie_price, stake, settled_at, finish_position").eq("date", date);
   if (error || !data?.length) return;
   const races = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
-  for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number; bookie_price: number | null; stake: number }[]) {
+  for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number; bookie_price: number | null; stake: number; settled_at: string | null; finish_position: number | null }[]) {
     const r = races.get(t.race_id);
     if (!r?.result?.length) continue;
     const x = r.runners.find((y) => y.tabNumber === t.tab_number);
     if (!x || x.scratched) continue;
     const finish = x.finishPosition ?? 0;
+    if (t.settled_at && t.finish_position === finish) continue;
     await db
       .from("creator_tips")
-      .update({ finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === t.tab_number)?.sp ?? null, units: settle(t.side, struckAt(t), finish, Number(t.stake ?? 1)), settled_at: new Date().toISOString() })
+      .update({ finish_position: finish, sp: r.placings?.find((p) => p.tabNumber === t.tab_number)?.sp ?? null, units: settle(t.side, struckAt(t), finish, Number(t.stake ?? 1)), settled_at: t.settled_at ?? new Date().toISOString() })
       .eq("id", t.id);
   }
 }

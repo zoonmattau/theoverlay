@@ -216,7 +216,11 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
             };
           }
           const entry: RacePrices = { betwatchId: book.ids[race.raceId], at: new Date().toISOString(), status: m.status, runners };
-          if (/resulted/i.test(m.status) && m.results) {
+          // The interim result, with the placings and BSP, comes about five
+          // minutes after the jump; "Resulted" waits on correct weight, nine
+          // to sixteen (22 Sep 2026). The interim settles, and a placing the
+          // official result moves settles again, see recordTips.
+          if (/resulted|interim/i.test(m.status) && m.results) {
             const bsp: Record<string, number> = {};
             for (const r of m.runners) if (r.bsp) bsp[String(r.number)] = r.bsp;
             entry.result = { placings: m.results, bsp, at: entry.at };
