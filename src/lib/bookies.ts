@@ -68,3 +68,15 @@ export function bestBookie(codes?: string[]): Bookie | undefined {
   const url = links()[code] ?? known?.home ?? `https://www.google.com/search?q=${encodeURIComponent(name)}`;
   return { code, name, url };
 }
+
+/**
+ * Who holds a price, short: the first three in our order (Sportsbet, TAB,
+ * Ladbrokes, Neds, and so on down the list), then "+5 more" for the rest.
+ */
+export function holdersLine(codes?: string[]): string {
+  const usable = (codes ?? []).filter((c) => !SKIP.has(c)).sort((a, b) => (RANK.get(a) ?? 999) - (RANK.get(b) ?? 999));
+  if (usable.length === 0) return "";
+  const shown = usable.slice(0, 3);
+  const rest = usable.length - shown.length;
+  return shown.map(bookieName).join(", ") + (rest > 0 ? ` +${rest} more` : "");
+}

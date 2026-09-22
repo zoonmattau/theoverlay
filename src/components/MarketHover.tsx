@@ -2,7 +2,7 @@
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { bestBookie, bookieName } from "@/lib/bookies";
+import { holdersLine } from "@/lib/bookies";
 import { price } from "@/lib/format";
 
 export interface MarketDetail {
@@ -55,8 +55,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
     return () => window.removeEventListener("scroll", close);
   }, [open]);
   if (!r.marketPrice) return <>{children}</>;
-  const best = bestBookie(r.bookies);
-  const holders = (r.bookies ?? []).map(bookieName).filter(Boolean);
+  const holders = holdersLine(r.bookies);
   const move = r.marketMove;
   const moveText = move === undefined ? "" : Math.abs(move) < 0.5 ? "holding" : move > 0 ? `firmed ${move.toFixed(1)} pts` : `drifted ${Math.abs(move).toFixed(1)} pts`;
   return (
@@ -91,9 +90,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
             <span className="market-v nums">{price(r.marketPrice)}</span>
           </span>
 
-          {holders.length > 0 && (
-            <span className="market-holders">{best ? [best.name, ...holders.filter((h) => h !== best.name)].join(", ") : holders.join(", ")}</span>
-          )}
+          {holders && <span className="market-holders">{holders}</span>}
           {r.layPrice ? (
             <span className="market-row">
               <span className="market-k">Lay at</span>
