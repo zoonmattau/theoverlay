@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { bestBookie, bookieName } from "@/lib/bookies";
 import { price } from "@/lib/format";
@@ -28,18 +28,31 @@ export interface MarketDetail {
  */
 export function MarketHover({ r, children, className = "" }: { r: MarketDetail; children: React.ReactNode; className?: string }) {
   const [open, setOpen] = useState(false);
-  // Opens upward when the panel would run off the bottom of the screen: the
-  // last rows of the tips page lost the foot of it (22 Sep 2026).
-  const [up, setUp] = useState(false);
+  // On a desktop the panel is fixed to the screen and placed off the price,
+  // so a section that hides its overflow cannot cut it (the last row of the
+  // tips page lost it below the section's edge, 22 Sep 2026), and it opens
+  // above a price in the lower half of the screen. A phone's sheet is CSS.
+  const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | undefined>();
+  const host = useRef<HTMLSpanElement>(null);
   const pop = useRef<HTMLSpanElement>(null);
+  const right = className.includes("market-right");
   useLayoutEffect(() => {
     const el = pop.current;
-    if (!open || !el) {
-      setUp(false);
+    const at = host.current?.getBoundingClientRect();
+    if (!open || !el || !at || window.matchMedia("(hover: none)").matches || window.innerWidth <= 640) {
+      setPos(undefined);
       return;
     }
-    const rect = el.getBoundingClientRect();
-    setUp(rect.bottom > window.innerHeight - 8 && rect.top - rect.height > 8);
+    // Above the price in the lower half of the screen, below it in the upper, as every tooltip opens.
+    const h = el.getBoundingClientRect().height;
+    const top = at.top > window.innerHeight / 2 ? Math.max(8, at.top - 6 - h) : at.bottom + 6;
+    setPos(right ? { right: window.innerWidth - at.right, top } : { left: at.left, top });
+  }, [open, right]);
+  useEffect(() => {
+    if (!open) return;
+    const close = () => setOpen(false);
+    window.addEventListener("scroll", close, { passive: true });
+    return () => window.removeEventListener("scroll", close);
   }, [open]);
   if (!r.marketPrice) return <>{children}</>;
   const best = bestBookie(r.bookies);
@@ -48,6 +61,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
   const moveText = move === undefined ? "" : Math.abs(move) < 0.5 ? "holding" : move > 0 ? `firmed ${move.toFixed(1)} pts` : `drifted ${Math.abs(move).toFixed(1)} pts`;
   return (
     <span
+      ref={host}
       className={`market-hover ${className}`}
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
@@ -62,7 +76,8 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
       {open && (
         <span
           ref={pop}
-          className={`market-pop ${up ? "is-up" : ""}`}
+          className="market-pop"
+          style={pos ? { position: "fixed", left: pos.left, right: pos.right, top: pos.top } : undefined}
           role="tooltip"
           onClick={(e) => {
             // On a phone the panel is a sheet, and a tap on it is how it closes.
