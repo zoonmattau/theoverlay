@@ -3224,8 +3224,11 @@ body {
     border-color: var(--color-red);
     color: #fff;
   }
+  /* The label above and the bookie under the price read on the coloured block. */
   tr.tip-row > td[data-col="live"]:has(.price-chip.is-back)::before,
-  tr.tip-row > td[data-col="live"]:has(.price-chip.is-lay)::before {
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-lay)::before,
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-back) .text-ink-soft,
+  tr.tip-row > td[data-col="live"]:has(.price-chip.is-lay) .text-ink-soft {
     color: rgba(255, 255, 255, 0.8);
   }
   /* Our rated price carries the chance beside it on a wide screen; here the
@@ -3756,29 +3759,37 @@ body {
   .tipster-table > thead {
     display: none;
   }
+  /* Three lines to a tipster, the same shape on every row: the name with
+     the units on the right, the form with the return under the units, and
+     what is on today. The arrow spans the side. Rows were each their own
+     grid, so a row with calls today pushed its units left of the rest and a
+     long name wrapped (22 Sep 2026). */
   tr.tipster-row {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    grid-template-columns: auto minmax(0, 1fr) auto 24px;
     grid-template-areas:
       "rank name   window more"
-      "rank form   roi    today";
+      "rank form   roi    more"
+      "rank today  today  more";
     align-items: center;
-    gap: 3px 8px;
-    padding: 6px var(--sp-3);
+    gap: 2px 8px;
+    padding: 8px var(--sp-3);
     border-bottom: 1px solid var(--color-line-soft);
   }
   tr.tipster-row > td {
     padding: 0;
     border-bottom: 0;
   }
-  tr.tipster-row > td[data-col="rank"] { grid-area: rank; }
-  tr.tipster-row > td[data-col="name"] { grid-area: name; min-width: 0; }
-  tr.tipster-row > td[data-col="window"] { grid-area: window; }
-  tr.tipster-row > td[data-col="more"] { grid-area: more; }
+  tr.tipster-row > td[data-col="rank"] { grid-area: rank; align-self: start; padding-top: 2px; }
+  tr.tipster-row > td[data-col="name"] { grid-area: name; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  tr.tipster-row > td[data-col="name"] .tipster-followers { display: block; margin-left: 0; line-height: 1.2; }
+  tr.tipster-row > td[data-col="window"] { grid-area: window; align-self: start; }
+  tr.tipster-row > td[data-col="more"] { grid-area: more; justify-self: end; }
   tr.tipster-row > td[data-col="follow"] { display: none; }
   tr.tipster-row > td[data-col="form"] { grid-area: form; }
   tr.tipster-row > td[data-col="roi"] { grid-area: roi; font-size: 0.8rem; }
-  tr.tipster-row > td[data-col="today"] { grid-area: today; font-size: 0.75rem; justify-self: end; }
+  tr.tipster-row > td[data-col="today"] { grid-area: today; font-size: 0.75rem; justify-self: start; }
+  tr.tipster-row > td[data-col="today"]:has(> .text-ink-soft:only-child) { display: none; }
   tr.tipster-row > td[data-col="all"],
   tr.tipster-row > td[data-col="calls"],
   tr.tipster-row > td[data-col="strike"],

@@ -43,7 +43,7 @@ export function TipsterRow({ p, rank, following, you, today, live, period }: { p
       <td data-col="name">
         <Link href={`/t/${t.code}`} className="font-display font-extrabold hover:underline">{t.name}</Link>
         {you && <span className="badge badge-prime ml-2">You</span>}
-        {p.followers > 0 && <span className="text-[11px] text-ink-soft ml-2 whitespace-nowrap">{p.followers} {p.followers === 1 ? "follower" : "followers"}</span>}
+        {p.followers > 0 && <span className="tipster-followers text-[11px] text-ink-soft ml-2 whitespace-nowrap">{p.followers} {p.followers === 1 ? "follower" : "followers"}</span>}
       </td>
       <td data-col="window" className={`text-right nums font-bold ${tone(w.units, w.n > 0)}`}>{w.n ? units(w.units) : "—"}</td>
       {period !== "all" && <td data-col="all" className={`text-right nums ${tone(p.all.units, p.all.n > 0)}`}>{p.all.n ? units(p.all.units) : "—"}</td>}
