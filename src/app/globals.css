@@ -518,11 +518,17 @@ body {
   left: auto;
   right: 0;
 }
+/* No room below: the panel sits above the price instead. */
+.market-pop.is-up {
+  top: auto;
+  bottom: calc(100% + 6px);
+}
 /* A phone has no room either side of what was tapped: the market and the
    small speed map open as a sheet at the foot of the screen instead, and a
    tap on the sheet closes it. */
 @media (hover: none), (max-width: 640px) {
   .market-pop,
+  .market-pop.is-up,
   .map-hover .map-pop,
   .map-hover .map-pop.is-left,
   .map-hover .map-pop.is-up,

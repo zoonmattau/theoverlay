@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 
 import { bestBookie, bookieName } from "@/lib/bookies";
 import { price } from "@/lib/format";
@@ -28,6 +28,19 @@ export interface MarketDetail {
  */
 export function MarketHover({ r, children, className = "" }: { r: MarketDetail; children: React.ReactNode; className?: string }) {
   const [open, setOpen] = useState(false);
+  // Opens upward when the panel would run off the bottom of the screen: the
+  // last rows of the tips page lost the foot of it (22 Sep 2026).
+  const [up, setUp] = useState(false);
+  const pop = useRef<HTMLSpanElement>(null);
+  useLayoutEffect(() => {
+    const el = pop.current;
+    if (!open || !el) {
+      setUp(false);
+      return;
+    }
+    const rect = el.getBoundingClientRect();
+    setUp(rect.bottom > window.innerHeight - 8 && rect.top - rect.height > 8);
+  }, [open]);
   if (!r.marketPrice) return <>{children}</>;
   const best = bestBookie(r.bookies);
   const holders = (r.bookies ?? []).map(bookieName).filter(Boolean);
@@ -48,7 +61,8 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
       {children}
       {open && (
         <span
-          className="market-pop"
+          ref={pop}
+          className={`market-pop ${up ? "is-up" : ""}`}
           role="tooltip"
           onClick={(e) => {
             // On a phone the panel is a sheet, and a tap on it is how it closes.
