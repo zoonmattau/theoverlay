@@ -3704,6 +3704,32 @@ body {
 .tipster-table td[data-col="name"] {
   white-space: normal;
 }
+/* Between a phone and a wide screen the ten columns ran past the section's
+   edge and the follow button and the arrow were cut off (22 Sep 2026): the
+   average bet and the strike rate go first, then the follow button, which
+   is on every tipster's page anyway, and the name keeps to one line. */
+@media (min-width: 641px) and (max-width: 1100px) {
+  .tipster-table th[data-col="avg"],
+  .tipster-table td[data-col="avg"],
+  .tipster-table th[data-col="strike"],
+  .tipster-table td[data-col="strike"] {
+    display: none;
+  }
+  .tipster-table td[data-col="name"] {
+    white-space: nowrap;
+  }
+}
+@media (min-width: 641px) and (max-width: 900px) {
+  .tipster-table th[data-col="follow"],
+  .tipster-table td[data-col="follow"],
+  .tipster-table th[data-col="all"],
+  .tipster-table td[data-col="all"] {
+    display: none;
+  }
+  .tipster-table td[data-col="name"] .tipster-followers {
+    display: none;
+  }
+}
 .tipster-more {
   display: inline-flex;
   align-items: center;
