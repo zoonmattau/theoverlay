@@ -280,16 +280,23 @@ export interface PersonProfile {
 const marketChance = (r: PersonRun & { bsp?: number | null }, c: Calibration) => (r.bsp && r.bsp > 1 ? c.bsp / r.bsp : r.sp && r.sp > 1 ? c.sp / r.sp : null);
 
 type PricedRun = PersonRun & { bsp?: number | null };
-function breakdown(runs: PricedRun[], c: Calibration, label: (r: PricedRun) => string | null, min = 3): Breakdown[] {
+/**
+ * Runs cut by a label. With `key`, rows group by it and take the fullest
+ * label seen: a partner is "James McDonald" on the feed's runs and
+ * "J.B.McDonald" on HorseEdge's, one rider in two rows until 22 Sep 2026.
+ */
+function breakdown(runs: PricedRun[], c: Calibration, label: (r: PricedRun) => string | null, min = 3, key?: (r: PricedRun) => string | null): Breakdown[] {
   const by = new Map<string, Breakdown & { priced: number; winsPriced: number }>();
   for (const r of runs) {
     const l = label(r);
     if (!l) continue;
-    const b = by.get(l) ?? { label: l, rides: 0, wins: 0, places: 0, expected: 0, winPct: 0, power: 0, priced: 0, winsPriced: 0 };
+    const k = key ? key(r) ?? l : l;
+    const b = by.get(k) ?? { label: l, rides: 0, wins: 0, places: 0, expected: 0, winPct: 0, power: 0, priced: 0, winsPriced: 0 };
+    if (l.length > b.label.length) b.label = l;
     b.rides++; if (r.finish === 1) b.wins++; if (r.finish <= 3) b.places++;
     const p = marketChance(r, c);
     if (p !== null) { b.priced++; b.expected += p; if (r.finish === 1) b.winsPriced++; }
-    by.set(l, b);
+    by.set(k, b);
   }
   return [...by.values()]
     .filter((b) => b.rides >= min)
@@ -323,7 +330,7 @@ export async function hubPerson(kind: "jockey" | "trainer", key: string): Promis
     byGoing: breakdown(rows, c, (r) => (r.going ? r.going.replace(/\s*\d+$/, "") : null)),
     byPrice: breakdown(rows, c, (r) => priceBand(r.bsp ?? r.sp)).sort((a, b) => PRICE_BANDS.indexOf(a.label) - PRICE_BANDS.indexOf(b.label)),
     byYear: breakdown(rows, c, (r) => r.date.slice(0, 4)).sort((a, b) => b.label.localeCompare(a.label)),
-    with: breakdown(rows, c, (r) => (r.other ? displayName(r.other) : null)).slice(0, 12),
+    with: breakdown(rows, c, (r) => (r.other ? displayName(r.other) : null), 3, (r) => personKey(r.other)).slice(0, 12),
     horses: breakdown(rows, c, (r) => r.horse, 2).slice(0, 12),
   };
 }
