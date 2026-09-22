@@ -1588,6 +1588,13 @@ body {
     "prices prices prices";
   pointer-events: none;
 }
+/* The live price and a tipster's mark still answer the pointer inside the
+   inert head: the market behind the price, who holds the best of it, and
+   the tipster's call open on hover as they do in the runner table. */
+.pick-head .market-hover,
+.pick-head .tipster-mark {
+  pointer-events: auto;
+}
 .pick-head > .pick-rank { grid-area: rank; }
 .pick-head > .pick-name { grid-area: name; }
 .pick-head > .pick-marks { grid-area: marks; }

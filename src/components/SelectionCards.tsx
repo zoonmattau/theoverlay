@@ -1,7 +1,9 @@
 import { PickCard } from "./PickCard";
+import { BookieLink } from "./BookieLink";
 import { MarketHover } from "./MarketHover";
 import { Factors } from "./Factors";
 import { SignalBadge, MAP_LABEL } from "./Ratings";
+import { bestBookie } from "@/lib/bookies";
 import { percent, price } from "@/lib/format";
 import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
 
@@ -53,7 +55,8 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
             </span>
             <span className="pick-prices">
               <span className={`pick-price ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
-                <span className="label">Live</span>
+                {/* The bookie holding the best price is the label; the market behind it opens on the price. */}
+                <span className="label">{r.signal === "lay" ? "Live" : (bestBookie(r.bookies)?.name ?? "Live")}</span>
                 <MarketHover r={r}><span className="value nums">{price(r.marketPrice)}</span></MarketHover>
               </span>
               <span className="pick-price">
@@ -71,6 +74,7 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
               {r.jockey ? ` · ${r.jockey}` : ""}
             </div>
             <p className="pick-why">{r.why ?? ""}</p>
+            {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block text-xs font-bold" /> : null}
             <div className="flex items-center gap-3 pt-2 border-t border-line-soft">
               <div className="today-tile py-2 px-3 min-w-[84px]">
                 <div className="today-label">Today</div>
