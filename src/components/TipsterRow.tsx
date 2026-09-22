@@ -52,6 +52,17 @@ export function TipsterRow({ p, rank, following, you, today, live, period }: { p
       <td data-col="strike" className="text-right nums">{w.n ? `${Math.round((w.hit / w.n) * 100)}%` : "—"}</td>
       <td data-col="avg" className="text-right nums" title={`${p.bets.n} ${p.bets.n === 1 ? "bet" : "bets"}, ${p.lays.n} ${p.lays.n === 1 ? "lay" : "lays"}`}>{p.avgPrice ? price(p.avgPrice) : "—"}</td>
       <td data-col="form"><FormDots recent={p.recent} /></td>
+      {/* The phone's second line, one run of small text: the form, the return, the followers and what is on today. */}
+      <td data-col="meta" className="text-xs text-ink-soft">
+        {p.recent.length > 0 && <span className="mr-2 align-middle"><FormDots recent={p.recent} /></span>}
+        {[
+          w.n ? <span key="roi" className={`nums ${tone(w.roi, true)}`}>{pct(w.roi)}</span> : <span key="roi">No record yet</span>,
+          p.followers > 0 ? <span key="f">{p.followers} {p.followers === 1 ? "follower" : "followers"}</span> : null,
+          today ? <span key="t" className="text-ink">{today} {today === 1 ? "call" : "calls"}{live ? <span className="text-accent font-semibold">, {live} live</span> : " today"}</span> : null,
+        ]
+          .filter(Boolean)
+          .map((x, i) => <span key={i}>{i > 0 && <span className="mx-1.5">·</span>}{x}</span>)}
+      </td>
       <td data-col="today" className="text-sm whitespace-nowrap">
         {today ? <>{today} {today === 1 ? "call" : "calls"}{live ? <span className="badge badge-ok ml-1">{live} live</span> : ""}</> : <span className="text-ink-soft">—</span>}
       </td>
