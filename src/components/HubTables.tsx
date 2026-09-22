@@ -120,7 +120,7 @@ export function GoingsTable({ rows, find }: { rows: Going[]; find?: string }) {
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 
 /** Jockey and trainer pairs. */
-export function CombosTable({ rows, find }: { rows: Combo[]; find?: string }) {
+export function CombosTable({ rows, find, note }: { rows: Combo[]; find?: string; note?: string }) {
   const cols: Column<Combo>[] = [
     { key: "jockey", label: "Jockey", tip: "", value: (r) => r.jockey, strong: true, asc: true, render: (r) => <Link href={`/data/jockeys/${encodeURIComponent(r.jockeyKey)}`} className="underline decoration-dotted underline-offset-2">{r.jockey}</Link> },
     { key: "trainer", label: "Trainer", tip: "", value: (r) => r.trainer, strong: true, asc: true, render: (r) => <Link href={`/data/trainers/${encodeURIComponent(r.trainerKey)}`} className="underline decoration-dotted underline-offset-2">{r.trainer}</Link> },
@@ -132,7 +132,7 @@ export function CombosTable({ rows, find }: { rows: Combo[]; find?: string }) {
     { key: "edge", label: "+/−", tip: "Winners on priced runs over or under the market's expectation.", right: true, value: (r) => Math.round((r.winsPriced - r.expected) * 10) / 10, render: (r) => <span className={tone(r.winsPriced - r.expected)}>{signed(Math.round((r.winsPriced - r.expected) * 10) / 10)}</span> },
     { key: "lastRide", label: "Last", tip: "", value: (r) => r.lastRide, render: (r) => day(r.lastRide) },
   ];
-  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.jockey} / ${r.trainer}`} find={find} searchKeys={["jockey", "trainer"]} defaultSort="power" noun="pairs" minRows={{ key: "rides", min: 20, label: "Show pairs under 20 runs" }} />;
+  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.jockey} / ${r.trainer}`} find={find} searchKeys={["jockey", "trainer"]} defaultSort="power" noun="pairs" note={note} minRows={{ key: "rides", min: 20, label: "Show pairs under 20 runs" }} />;
 }
 
 /** A person's record cut one way: by track, trip, going, year, partner or horse. */

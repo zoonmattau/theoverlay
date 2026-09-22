@@ -54,14 +54,28 @@ export interface Person {
 const SHRINK_RIDES = 50;
 
 /** Every row of a function's result, a thousand at a time, which is the server's cap on one request. */
+/**
+ * Every page of a set-returning function. Each page runs the whole
+ * aggregate again on the server, so the pages go three at a time: the
+ * combos, seventeen pages at a second and a half each, took 25 seconds
+ * one after another, and six at a time tripped the statement timeout
+ * (22 Sep 2026). A page that fails throws, so a caller never keeps a
+ * short list as the whole.
+ */
 async function rpcAll(fn: string, args: Record<string, unknown> = {}, max = 50_000): Promise<Record<string, unknown>[]> {
   const out: Record<string, unknown>[] = [];
-  for (let from = 0; from < max; from += 1000) {
-    const { data, error } = await supabaseAdmin().rpc(fn, args).range(from, from + 999);
-    if (error) { console.error(`[hub] ${fn}`, error.message); break; }
-    if (!data?.length) break;
-    out.push(...(data as Record<string, unknown>[]));
-    if (data.length < 1000) break;
+  const AT_ONCE = 3;
+  for (let from = 0; from < max; from += 1000 * AT_ONCE) {
+    const pages = await Promise.all(
+      Array.from({ length: AT_ONCE }, (_, i) => supabaseAdmin().rpc(fn, args).range(from + i * 1000, from + i * 1000 + 999)),
+    );
+    let short = false;
+    for (const { data, error } of pages) {
+      if (error) throw new Error(`[hub] ${fn}: ${error.message}`);
+      out.push(...((data ?? []) as Record<string, unknown>[]));
+      if (!data || data.length < 1000) { short = true; break; }
+    }
+    if (short) break;
   }
   return out;
 }
@@ -154,8 +168,11 @@ async function peopleLive(kind: "jockey" | "trainer", filter: HubFilter): Promis
 /** Written by the card cron: the all-time rankings and the standard times, the answers a race page needs. */
 export async function writeHubSnapshots(): Promise<void> {
   await writeSnapshot("calibration", await calibrationLive());
-  const [jockeys, trainers, tracks] = await Promise.all([peopleLive("jockey", {}), peopleLive("trainer", {}), trackDistancesRaw()]);
-  await Promise.all([writeSnapshot("people:jockey", jockeys), writeSnapshot("people:trainer", trainers), writeSnapshot("track-distances", tracks)]);
+  // One at a time: together they time out on the instance.
+  await writeSnapshot("people:jockey", await peopleLive("jockey", {}));
+  await writeSnapshot("people:trainer", await peopleLive("trainer", {}));
+  await writeSnapshot("combos", await combosLive({}));
+  await writeSnapshot("track-distances", await trackDistancesRaw());
 }
 
 export interface Combo {
@@ -178,6 +195,14 @@ export interface Combo {
 export async function hubCombos(filter: HubFilter = {}): Promise<Combo[]> {
   "use cache";
   cacheLife("hours");
+  if (!Object.values(filter).some((v) => (Array.isArray(v) ? v.length : v))) {
+    const snap = await readSnapshot<Combo[]>("combos");
+    if (snap) return snap;
+  }
+  return combosLive(filter);
+}
+
+async function combosLive(filter: HubFilter): Promise<Combo[]> {
   const [rows, c] = await Promise.all([rpcAll("hub_combos", rpcFilter(filter)), calibration()]);
   return rows
     .map((r) => {
