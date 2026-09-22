@@ -74,18 +74,47 @@ export interface ActivityReport {
   referrers: { host: string; views: number }[];
 }
 
-const who = (v: ViewRow) => v.user_id ?? (v.meta?.vid ? `v:${v.meta.vid}` : "?");
+/**
+ * Who a view belongs to: the member, else the visitor cookie. With `owners`,
+ * a cookie later seen signed in is that member's, so a person who read the
+ * site and then logged in is one person, not a visitor and a member.
+ */
+const who = (v: ViewRow, owners?: Map<string, string>) => v.user_id ?? (v.meta?.vid ? (owners?.get(v.meta.vid) ?? `v:${v.meta.vid}`) : "?");
+
+/** The visitor cookies that have been seen signed in, and whose. */
+function cookieOwners(views: ViewRow[]): Map<string, string> {
+  const m = new Map<string, string>();
+  for (const v of views) if (v.user_id && v.meta?.vid && !m.has(v.meta.vid)) m.set(v.meta.vid, v.user_id);
+  return m;
+}
+
+/**
+ * Every page view since a moment, newest first. The server hands back a
+ * thousand rows a request whatever the limit asks, so a week of 2,400 views
+ * read as its newest thousand until 22 Sep 2026: the report is paged.
+ */
+async function pageViewsSince(since: string): Promise<ViewRow[]> {
+  const db = supabaseAdmin();
+  const out: ViewRow[] = [];
+  for (let from = 0; from < 100_000; from += 1000) {
+    const { data, error } = await db.from("events").select("id, user_id, created_at, meta").eq("kind", "page_view").gte("created_at", since).order("created_at", { ascending: false }).range(from, from + 999);
+    if (error) { console.error("[activity]", error.message); break; }
+    out.push(...((data ?? []) as ViewRow[]));
+    if (!data || data.length < 1000) break;
+  }
+  return out;
+}
 
 export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}): Promise<ActivityReport> {
   const db = supabaseAdmin();
   const since = new Date(Date.now() - days * 86400_000).toISOString();
-  const [{ data: rows }, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
-    db.from("events").select("id, user_id, created_at, meta").eq("kind", "page_view").gte("created_at", since).order("created_at", { ascending: false }).limit(20000),
+  const [views, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
+    pageViewsSince(since),
     db.from("profiles").select("id, email"),
     db.from("follows").select("user_id, tipster_id, created_at"),
     db.from("affiliates").select("id, name, code"),
   ]);
-  const views = (rows ?? []) as ViewRow[];
+  const owners = cookieOwners(views);
   const email = new Map(((profiles ?? []) as { id: string; email: string | null }[]).map((p) => [p.id, p.email]));
   const tipsterName = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.id, t.name]));
   const tipsterCode = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.id, t.code]));
@@ -98,7 +127,7 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
       if (!k) continue;
       const e = m.get(k) ?? { views: 0, people: new Set<string>() };
       e.views++;
-      e.people.add(who(v));
+      e.people.add(who(v, owners));
       m.set(k, e);
     }
     return [...m.entries()].map(([k, e]) => ({ key: k, views: e.views, people: e.people.size })).sort((a, b) => b.views - a.views);
@@ -119,10 +148,10 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
 
   // The people list: everyone who viewed the cut asked for (an area, a day), else everyone, forty most active shown.
   const inCut = (v: ViewRow) => (!cut.area || v.meta?.area === cut.area) && (!cut.day || new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) === cut.day);
-  const cutIds = new Set(views.filter(inCut).map(who));
+  const cutIds = new Set(views.filter(inCut).map((v) => who(v, owners)));
   const perPerson = new Map<string, { views: number; last: string; first: string; from: string | null; areas: Map<string, number>; races: Set<string> }>();
   for (const v of views) {
-    const id = who(v);
+    const id = who(v, owners);
     if (!cutIds.has(id)) continue;
     const e = perPerson.get(id) ?? { views: 0, last: v.created_at, first: v.created_at, from: null, areas: new Map(), races: new Set() };
     e.views++;
@@ -195,8 +224,7 @@ function pageLabel(path: string): string {
 export async function liveNow(minutes = 5): Promise<{ pages: LivePage[]; people: number }> {
   const since = new Date(Date.now() - minutes * 60_000).toISOString();
   const db = supabaseAdmin();
-  const { data: rows } = await db.from("events").select("id, user_id, created_at, meta").eq("kind", "page_view").gte("created_at", since).order("created_at", { ascending: false }).limit(2000);
-  const views = (rows ?? []) as ViewRow[];
+  const views = await pageViewsSince(since);
   const ids = [...new Set(views.map((v) => v.user_id).filter((u): u is string => Boolean(u)))];
   const { data: profiles } = ids.length ? await db.from("profiles").select("id, email").in("id", ids) : { data: [] };
   const email = new Map(((profiles ?? []) as { id: string; email: string | null }[]).map((p) => [p.id, p.email]));
