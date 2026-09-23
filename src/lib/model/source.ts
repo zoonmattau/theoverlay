@@ -139,6 +139,10 @@ function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace
   // A result settled by hand stands until the feed brings the official one.
   const official = Boolean(live.result?.length);
   const finish = new Map(live.runners.map((x) => [x.tabNumber, x.finishPosition]));
+  // A scratching that arrives after the jump reaches the frozen race too, and takes back any
+  // place the interim result gave it: Peyton, Warwick Farm R2, 23 Sep 2026, froze as a
+  // runner that came 5th and settled as a lay held.
+  const scratched = new Set(live.runners.filter((x) => x.scratched).map((x) => x.tabNumber));
   return {
     ...previous,
     going: live.going,
@@ -146,7 +150,11 @@ function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace
     result: official ? live.result : previous.result,
     placings: official ? live.placings : previous.placings,
     handSettled: official ? undefined : previous.handSettled,
-    runners: previous.runners.map((x) => ({ ...x, finishPosition: official ? (finish.get(x.tabNumber) ?? x.finishPosition) : x.finishPosition })),
+    runners: previous.runners.map((x) =>
+      scratched.has(x.tabNumber)
+        ? { ...x, scratched: true, finishPosition: undefined }
+        : { ...x, finishPosition: official ? (finish.get(x.tabNumber) ?? x.finishPosition) : x.finishPosition },
+    ),
   };
 }
 
