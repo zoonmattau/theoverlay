@@ -38,8 +38,10 @@ export function LockedSelectionCard({ s }: { s: Selection }) {
 }
 
 /** Won, placed or unplaced once the race is run. */
-export function Outcome({ position }: { position?: number }) {
+/** A finishing position as a badge; null is a settled call with no run, a void. */
+export function Outcome({ position }: { position?: number | null }) {
   if (position === undefined) return null;
+  if (position === null) return <span className="badge badge-muted">Void</span>;
   if (position === 1) return <span className="badge badge-prime">Won</span>;
   if (position >= 2 && position <= 3) return <span className="badge badge-warn">{position === 2 ? "2nd" : "3rd"}</span>;
   return <span className="badge badge-muted">{position ? `${position}th` : "Unplaced"}</span>;

@@ -6,7 +6,7 @@ import type { Viewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
 import type { Signal } from "@/lib/model/types";
-import { settle } from "@/lib/tips";
+import { settle, voidSettlement } from "@/lib/tips";
 
 /**
  * Tipsters: affiliates with a linked account who post their own calls. Their
@@ -154,7 +154,7 @@ export interface TipsterRecord {
 
 /** A tipster's settled record, all time and the last 30 days. */
 export async function tipsterRecord(affiliateId: string): Promise<TipsterRecord> {
-  const { data } = await supabaseAdmin().from("creator_tips").select("date, side, units, finish_position").eq("affiliate_id", affiliateId).not("settled_at", "is", null);
+  const { data } = await supabaseAdmin().from("creator_tips").select("date, side, units, finish_position").eq("affiliate_id", affiliateId).not("settled_at", "is", null).not("finish_position", "is", null);
   const rows = (data ?? []) as { date: string; side: Signal; units: number; finish_position: number }[];
   const from = new Date(Date.now() - 30 * 86400_000).toISOString().slice(0, 10);
   const tally = (xs: typeof rows) => ({
@@ -237,7 +237,8 @@ export async function tipsterProfiles(tipsters: Tipster[]): Promise<TipsterProfi
   const month = from(30);
   return tipsters.map((tipster) => {
     const mine = rows.filter((r) => r.affiliate_id === tipster.id);
-    const settled = mine.filter((r) => r.settled_at);
+    // A void (scratched after the call) has no finishing position and counts for nothing.
+    const settled = mine.filter((r) => r.settled_at && r.finish_position !== null);
     const bets = settled.filter((r) => r.side === "back");
     const wins = bets.filter((r) => r.finish_position === 1);
     const best = wins.sort((a, b) => struckAt(b) - struckAt(a))[0];
@@ -324,9 +325,13 @@ export async function settleCreatorTips(date: string, card: StoredCard): Promise
   const races = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
   for (const t of data as { id: number; race_id: string; tab_number: number; side: Signal; price: number; bookie_price: number | null; stake: number; settled_at: string | null; finish_position: number | null }[]) {
     const r = races.get(t.race_id);
-    if (!r?.result?.length) continue;
-    const x = r.runners.find((y) => y.tabNumber === t.tab_number);
-    if (!x || x.scratched) continue;
+    const x = r?.runners.find((y) => y.tabNumber === t.tab_number);
+    // Scratched after the call: a void, settled once and left out of every count.
+    if (x?.scratched) {
+      if (!t.settled_at) await db.from("creator_tips").update(voidSettlement()).eq("id", t.id);
+      continue;
+    }
+    if (!r?.result?.length || !x) continue;
     const finish = x.finishPosition ?? 0;
     if (t.settled_at && t.finish_position === finish) continue;
     await db

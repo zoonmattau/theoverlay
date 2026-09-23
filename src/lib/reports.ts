@@ -140,7 +140,7 @@ export async function modelHealth(n: number): Promise<{ days: HealthDay[]; total
   const db = supabaseAdmin();
   const [{ data: cards }, { data: tips }] = await Promise.all([
     db.from("cards").select("date, card").gte("date", window[0]).order("date"),
-    db.from("tips").select("date, side, units, settled_at").eq("source", "model").gte("date", window[0]).not("settled_at", "is", null),
+    db.from("tips").select("date, side, units, settled_at").eq("source", "model").gte("date", window[0]).not("settled_at", "is", null).not("finish_position", "is", null),
   ]);
   const blank = (date: string): HealthDay => ({ date, races: 0, favWon: 0, favSaid: 0, topWon: 0, topSaid: 0, favLow: 0, bets: 0, betUnits: 0, lays: 0, layUnits: 0 });
   const byDay = new Map<string, HealthDay>();

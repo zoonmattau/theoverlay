@@ -50,7 +50,7 @@ export async function todayFacts(): Promise<TodayFacts> {
   const rows = (tips ?? []) as { side: "back" | "lay"; units: number | null; finish_position: number | null; settled_at: string | null }[];
   const side = (s: "back" | "lay") => {
     const mine = rows.filter((r) => r.side === s);
-    const settled = mine.filter((r) => r.settled_at);
+    const settled = mine.filter((r) => r.settled_at && r.finish_position !== null);
     return {
       calls: mine.length,
       settled: settled.length,

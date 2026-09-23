@@ -73,8 +73,8 @@ export function TipsterCallTable({ tips, jumps }: { tips: (CreatorTip & { tipste
                 <td data-col="result">
                   {t.settled_at ? (
                     <span className="flex items-center gap-2">
-                      <Outcome position={t.finish_position ?? 0} />
-                      {t.side === "lay" && (
+                      <Outcome position={t.finish_position} />
+                      {t.side === "lay" && t.finish_position !== null && (
                         <span className={`text-xs font-bold ${t.finish_position === 1 ? "text-red" : "text-accent"}`}>{t.finish_position === 1 ? "lay lost" : "lay held"}</span>
                       )}
                     </span>

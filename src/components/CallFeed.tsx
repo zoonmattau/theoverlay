@@ -62,7 +62,7 @@ export async function CallFeed({ tips, date, empty, withDate, compact }: { tips:
               {u !== undefined ? (
                 <span className="flex items-center gap-2 justify-end">
                   <span className={`nums text-sm font-semibold ${u > 0 ? "text-accent" : u < 0 ? "text-red" : ""}`}>{units(u)}</span>
-                  <Outcome position={t.finish_position ?? 0} />
+                  <Outcome position={t.finish_position} />
                 </span>
               ) : (
                 <span className="text-xs text-ink-soft nums whitespace-nowrap">rates {price(Number(t.price))}</span>
@@ -95,7 +95,7 @@ export async function CallFeed({ tips, date, empty, withDate, compact }: { tips:
               {u !== undefined ? (
                 <span className="flex items-center gap-2 justify-end">
                   <span className={`nums text-sm font-semibold ${u > 0 ? "text-accent" : u < 0 ? "text-red" : ""}`}>{units(u)}</span>
-                  <Outcome position={t.finish_position ?? 0} />
+                  <Outcome position={t.finish_position} />
                 </span>
               ) : (
                 <span className="text-xs text-ink-soft nums">rates {price(Number(t.price))}</span>

@@ -15,6 +15,12 @@ export type { Period, RecordStats, SideStats, TipSource } from "./stats";
  * Nothing is ever removed, so the record on the home page is the record.
  */
 
+/**
+ * A void: settled, no units, and no finishing position, which is how every
+ * count tells it from a run. A runner scratched after the call settles this way.
+ */
+export const voidSettlement = () => ({ finish_position: null, sp: null, units: 0, settled_at: new Date().toISOString() });
+
 export interface TipRow {
   date: string;
   meeting_id: string;
@@ -165,7 +171,14 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     if (was.settled_at || covered.has(`${was.race_id}:${was.tab_number}`)) continue;
     const r = racesById.get(was.race_id);
     const x = r?.runners.find((y) => y.tabNumber === was.tab_number);
-    if (!r?.result?.length || !x || x.scratched) continue;
+    // A runner scratched after the call is a void, as a bookie settles it: no units, no
+    // finishing position, and left out of every count. Until 23 Sep 2026 it sat open for good.
+    if (x?.scratched) {
+      const { error: e } = await db.from("tips").update(voidSettlement()).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
+      if (e) console.error("[tips] void", e.message);
+      continue;
+    }
+    if (!r?.result?.length || !x) continue;
     const side = was.side as Signal;
     const finish = x.finishPosition ?? 0;
     const placing = r.placings?.find((p) => p.tabNumber === was.tab_number);
@@ -214,7 +227,8 @@ export async function recordStats(today: string): Promise<RecordStats[]> {
   const { data, error } = await supabaseAdmin()
     .from("tips")
     .select("date, side, units, finish_position, source, stake")
-    .not("settled_at", "is", null);
+    .not("settled_at", "is", null)
+    .not("finish_position", "is", null);
   if (error) console.error("[tips]", error.message);
   const rows = (data ?? []) as { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null }[];
   const day = new Date(`${today}T12:00:00Z`).getTime();
