@@ -168,17 +168,19 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   const covered = new Set(rows.map((r) => `${r.race_id}:${r.tab_number}`));
   const racesById = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
   for (const was of existing ?? []) {
-    if (was.settled_at || covered.has(`${was.race_id}:${was.tab_number}`)) continue;
+    if (covered.has(`${was.race_id}:${was.tab_number}`)) continue;
     const r = racesById.get(was.race_id);
     const x = r?.runners.find((y) => y.tabNumber === was.tab_number);
     // A runner scratched after the call is a void, as a bookie settles it: no units, no
     // finishing position, and left out of every count. Until 23 Sep 2026 it sat open for good.
+    // A call already settled as a run the scratching then reaches is voided too.
     if (x?.scratched) {
+      if (was.settled_at && was.finish_position === null) continue;
       const { error: e } = await db.from("tips").update(voidSettlement()).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
       if (e) console.error("[tips] void", e.message);
       continue;
     }
-    if (!r?.result?.length || !x) continue;
+    if (was.settled_at || !r?.result?.length || !x) continue;
     const side = was.side as Signal;
     const finish = x.finishPosition ?? 0;
     const placing = r.placings?.find((p) => p.tabNumber === was.tab_number);

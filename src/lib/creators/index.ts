@@ -328,7 +328,7 @@ export async function settleCreatorTips(date: string, card: StoredCard): Promise
     const x = r?.runners.find((y) => y.tabNumber === t.tab_number);
     // Scratched after the call: a void, settled once and left out of every count.
     if (x?.scratched) {
-      if (!t.settled_at) await db.from("creator_tips").update(voidSettlement()).eq("id", t.id);
+      if (!t.settled_at || t.finish_position !== null) await db.from("creator_tips").update(voidSettlement()).eq("id", t.id);
       continue;
     }
     if (!r?.result?.length || !x) continue;

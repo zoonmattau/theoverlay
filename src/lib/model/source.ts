@@ -342,13 +342,17 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
   const official = race.entries.some((e) => e.horseResult);
   const position = new Map<number, number>();
   if (live.result && !official) live.result.placings.forEach((tabs, i) => tabs.forEach((t) => position.set(t, i + 1)));
+  // A scratching BetWatch knows counts whoever's prices are newer, and before
+  // the result: Peyton (Warwick Farm R2, 23 Sep 2026) was scratched on BetWatch
+  // only, Form King's odds were the fresher, and it "ran unplaced" as a lay held.
+  const scratched = (e: RaceEntry): RaceEntry => (!e.scratched && live.runners[String(e.number)]?.scratched ? { ...e, scratched: true } : e);
   const settled = (e: RaceEntry): RaceEntry => {
     if (position.size === 0 || e.scratched) return e;
     const pos = position.get(e.number) ?? position.size + 1;
     return { ...e, horseResult: { finishPosition: pos, startingPrice: 0, betfairStartingPrice: live.result!.bsp[String(e.number)] ?? 0 } };
   };
   const status = position.size > 0 ? "Resulted" : race.status;
-  const entries = race.entries.map(settled).map((e): RaceEntry => {
+  const entries = race.entries.map(scratched).map(settled).map((e): RaceEntry => {
     const p = live.runners[String(e.number)];
     if (!p) return e;
     if (e.odds?.timestamp && Number(e.odds.timestamp) > at) return e;
