@@ -541,6 +541,7 @@ export function racingToday(): string {
 }
 
 const sydneyNow = () => new Date(new Date().toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
-const sydneyHour = () => sydneyNow().getHours() + sydneyNow().getMinutes() / 60;
+/** The hour of the racing day, Sydney time, as a fraction (12.5 is half past noon). */
+export const sydneyHour = () => sydneyNow().getHours() + sydneyNow().getMinutes() / 60;
 
 const pad = (n: number) => String(n).padStart(2, "0");

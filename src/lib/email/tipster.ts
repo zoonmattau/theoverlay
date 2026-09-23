@@ -4,6 +4,7 @@ import { logEvent } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { followerIds, priceFlagged, stakeLabel, struckAt, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { longDate, price } from "@/lib/format";
+import { sydneyHour } from "@/lib/model/source";
 import { sendEmail } from "./send";
 import type { EmailSpec } from "./template";
 import { unsubscribeUrl } from "./unsubscribe";
@@ -48,12 +49,21 @@ function newTipsEmail(tipster: Tipster, tips: CreatorTip[], userId: string): Ema
   };
 }
 
+/** Nothing goes out before this hour, Sydney time. */
+export const TIP_EMAIL_HOUR = Number(process.env.OVERLAY_TIP_EMAIL_HOUR ?? 12);
+
 /**
- * Emails a tipster's followers about calls not yet sent. Runs a little after
- * a post so a burst of calls goes out as one email. Whoever claims the rows
- * sends; a second run finds nothing to do.
+ * Emails a tipster's followers about calls not yet sent. Whoever claims the
+ * rows sends; a second run finds nothing to do.
+ *
+ * The day has two halves. Before TIP_EMAIL_HOUR nothing is sent and nothing
+ * is claimed, so calls posted through the morning pile up; the midday cron
+ * (/api/cron/tip-emails) then sends them to each follower as one email. After
+ * that hour a post emails on its own, which is one email a call, because by
+ * then there is only ever one unsent row to claim.
  */
-export async function notifyFollowers(tipsterId: string): Promise<number> {
+export async function notifyFollowers(tipsterId: string, opts: { force?: boolean } = {}): Promise<number> {
+  if (!opts.force && sydneyHour() < TIP_EMAIL_HOUR) return 0;
   const db = supabaseAdmin();
   const tipster = await tipsterById(tipsterId);
   if (!tipster) return 0;
@@ -84,6 +94,14 @@ export async function notifyFollowers(tipsterId: string): Promise<number> {
       if (await sendEmail(f.email, newTipsEmail(tipster, batch, f.id), { "List-Unsubscribe": `<${unsubscribeUrl(f.id)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" })) sent++;
       await new Promise((r) => setTimeout(r, 600));
     }
+  }
+  // The rows are claimed before the send, so a provider failure would burn the
+  // notification and no retry would ever find them again. If there was someone
+  // to email and not one got through, put them back. 23 Sep 2026, when an
+  // unverified sending domain quietly ate a day of tipster email.
+  if (!sent && (followers ?? []).length) {
+    const { error } = await db.from("creator_tips").update({ emailed_at: null }).in("id", tips.map((t) => t.id));
+    console.error(`[tipster-email] ${tipster.code}: ${tips.length} tips to ${followers!.length} followers all failed, claim released${error ? ` (release failed: ${error.message})` : ""}`);
   }
   if (sent) await logEvent({ user_id: null, kind: "tipster_email", plan: null, amount_cents: null, meta: { tipster: tipster.code, sent, tips: tips.length } });
   return sent;

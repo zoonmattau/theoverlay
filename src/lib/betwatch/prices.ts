@@ -66,6 +66,7 @@ export const RESULT_NEAR_MS = Number(process.env.OVERLAY_RESULT_NEAR_MIN ?? 20) 
 export const RESULT_NEAR_EVERY_MS = Number(process.env.OVERLAY_RESULT_NEAR_EVERY_SEC ?? 60) * 1000;
 /** Races fetched at once; each takes a few seconds. */
 const IN_FLIGHT = 6;
+const STALE_QUOTE_MS = 60 * 60_000;
 /**
  * How long a race BetWatch did not list stays unlooked-for. A meeting can
  * be on the list before its fields are, and the name check then fails:
@@ -201,11 +202,16 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
           const m = await betwatchMarkets(book.ids[race.raceId]);
           const runners: Record<string, LivePrice> = {};
           for (const r of m.runners) {
-            const prices = Object.values(r.bookies).map((b) => b.price);
+            // A book that stopped quoting keeps its last price (Sportsbet's $13 from the night before on a
+            // $4.80 horse), so a quote an hour behind the runner's freshest one is left out.
+            const quotedAt = (b: { at?: string }) => (b.at ? Date.parse(b.at) : NaN);
+            const newest = Math.max(0, ...Object.values(r.bookies).map((b) => quotedAt(b) || 0));
+            const live = Object.entries(r.bookies).filter(([, b]) => !quotedAt(b) || newest - quotedAt(b) <= STALE_QUOTE_MS);
+            const prices = live.map(([, b]) => b.price);
             const best = prices.length ? Math.max(...prices) : undefined;
             runners[String(r.number)] = {
               best,
-              bookies: best ? Object.entries(r.bookies).filter(([, b]) => b.price === best).map(([code]) => code) : undefined,
+              bookies: best ? live.filter(([, b]) => b.price === best).map(([code]) => code) : undefined,
               avg: prices.length ? Math.round((prices.reduce((a, b) => a + b, 0) / prices.length) * 100) / 100 : undefined,
               back: r.exchange?.back,
               backSize: r.exchange?.backSize,
