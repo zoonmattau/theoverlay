@@ -1002,38 +1002,199 @@ export function explain(
   rank: number,
   race: { going: GoingBand; tempo: Tempo },
   signal: Signal | undefined,
+  seed = "",
+  last?: LastShape,
 ): string {
-  const lead =
-    rank === 1 ? `Rates top of the field at ${r.today}` : `Rates ${ordinal(rank)} at ${r.today}`;
+  // Each clause picks from its bank by the horse's name, so a card reads varied
+  // but a rebuild never changes a runner's line.
+  const say = (bank: string[], slot: string) => bank[hash(`${seed}|${slot}`) % bank.length];
 
-  const edges: [number, string][] = [
-    [r.late - r.class, "with the best closing sectionals"],
-    [r.early - r.class, "with the early speed to control it"],
-    [r.going[race.going] - r.class, `and goes better on ${race.going} ground`],
-    [race.tempo === "fast" ? r.pressure - r.class : -99, "and holds on under a hot tempo"],
-    [race.tempo === "slow" ? r.tempo.slow - r.class : -99, "and finishes off a slow tempo"],
+  const place = ordinal(rank);
+  const lead = say(
+    rank === 1
+      ? [
+          `Rates top of the field at ${r.today}`, `Our top rated at ${r.today}`, `Best in the race on our numbers at ${r.today}`, `Heads our ratings at ${r.today}`,
+          `The one to beat on our numbers at ${r.today}`, `Tops the field at ${r.today}`, `Our number one at ${r.today}`, `Sets the standard here at ${r.today}`,
+        ]
+      : [
+          `Rates ${place} at ${r.today}`, `${cap(place)} on our numbers at ${r.today}`, `Sits ${place} in our ratings at ${r.today}`, `Comes out ${place} at ${r.today}`,
+          `${cap(place)} best in the field at ${r.today}`, `Ranks ${place} for us at ${r.today}`, `Our ${place} pick at ${r.today}`, `${cap(place)} in the ratings at ${r.today}`,
+        ],
+    "lead",
+  );
+
+  const edges: [number, string[]][] = [
+    [r.late - r.class, [
+      "with the best closing sectionals", "with the sharpest last 600 in its form", "with a finish that stands out", "with the closing speed to win it",
+      "with a big kick at the end", "with late speed the others lack", "with the strongest finish in its form", "with a sprint home that sets it apart",
+    ]],
+    [r.early - r.class, [
+      "with the early speed to control it", "with the gate speed to take up a spot", "with the jump to dictate", "with speed to burn early",
+      "with the early zip to pick its spot", "with the best early speed in its form", "with enough early pace to get its own way", "with the speed to be first to settle",
+    ]],
+    [r.going[race.going] - r.class, [
+      `and goes better on ${race.going} ground`, `and lifts on ${race.going} ground`, `and ${race.going} ground brings out its best`, `and its ${race.going} form is its best`,
+      `and gets the ${race.going} track it wants`, `and races at its best on a ${race.going} surface`, `and the ${race.going} going suits`, `and its record on ${race.going} ground is better`,
+    ]],
+    [race.tempo === "fast" ? r.pressure - r.class : -99, [
+      "and holds on under a hot tempo", "and has stood up to pressure before", "and keeps going when they run hard", "and its best form is in fast-run races",
+      "and does not mind a hard-run race", "and lasts out a strong pace", "and thrives when there is speed on", "and handles a genuine tempo",
+    ]],
+    [race.tempo === "slow" ? r.tempo.slow - r.class : -99, [
+      "and finishes off a slow tempo", "and can sprint off a crawl", "and its best is in slowly run races", "and quickens when they dawdle",
+      "and has a turn of foot off a soft pace", "and is at its best when they go steady", "and sprints well in a sit-and-kick race", "and likes a race run on the slow side",
+    ]],
   ];
-  const [gap, phrase] = edges.sort((a, b) => b[0] - a[0])[0];
-  const strength = gap >= 1.5 ? ` ${phrase}` : "";
+  const [gap, phrases] = edges.sort((a, b) => b[0] - a[0])[0];
+  const strength = gap >= 1.5 ? ` ${say(phrases, "edge")}` : "";
 
-  const map =
-    r.map === "leader"
-      ? ", maps to lead"
-      : r.map === "on pace"
-        ? ", gets an on-pace run"
-        : r.map === "back"
-          ? ", needs luck from the back"
-          : "";
+  // Where it maps, read against the tempo: a hot race tests the leaders and
+  // suits the closers, a crawl hands it to the front and leaves the back needing luck.
+  const closer = r.late - r.class >= 1.5;
+  const maps: Record<MapPosition, Record<Tempo, string[]>> = {
+    leader: {
+      fast: [
+        "maps to lead but will be tested", "has to lead and hold them off", "goes forward into a hot tempo", "leads with pressure on it",
+        "leads but will not get it easy", "has to find the front with others keen", "will be doing it tough in front", "leads into a race with plenty of speed",
+      ],
+      slow: [
+        "maps to lead a soft pace", "should lead on its own terms", "can steal it from the front", "gets to dictate a crawl",
+        "should get an easy time in front", "can control it from the lead", "looks the lone leader in a slow race", "gets a soft lead to work with",
+      ],
+      even: [
+        "maps to lead", "should find the front", "looks the likely leader", "can roll forward and dictate",
+        "should be in front early", "looks to set the pace", "maps to lead at a fair tempo", "should be the one they chase",
+      ],
+    },
+    "on pace": {
+      fast: [
+        "sits close to a hot pace", "has to handle the pressure just off the lead", "gets a handy run in a hard-run race", "is right in the firing line",
+        "sits up near a strong speed", "has to cope with the pace from a handy spot", "is close to the speed in a hot race", "settles handy with plenty of pressure on",
+      ],
+      slow: [
+        "sits handy off a slow pace", "is well placed if they crawl", "gets the right spot in a slow race", "is close enough when they dawdle",
+        "gets the ideal run if they go steady", "sits right where you want it off a slow pace", "is handy in a race that suits the handy ones", "gets the perfect spot for a sprint home",
+      ],
+      even: [
+        "gets an on-pace run", "sits handy", "settles just off the lead", "gets a good spot near the speed",
+        "should get the run of the race", "sits second or third", "gets a nice run behind the leader", "is handy without doing the work",
+      ],
+    },
+    midfield: {
+      fast: [
+        "sits midfield with the pace ahead of it", "gets a midfield run while the leaders go hard", "is placed to pounce if the leaders tire", "gets cover in the middle of a hot race",
+        "sits off a hot pace in midfield", "is well out of the speed battle", "gets the run of the race from midfield", "is placed to run on at the tired ones",
+      ],
+      slow: [
+        "needs to be closer than midfield off a slow tempo", "gets back midfield in a slow race", "has to go early from midfield", "is further back than it wants in a crawl",
+        "needs the jockey to push forward in a slow race", "sits midfield in a race that suits the leaders", "has to make its move early off a slow pace", "is a touch far back for a slow race",
+      ],
+      even: [
+        "settles midfield", "gets a run in the pack", "has cover in midfield", "sits in the middle of the field",
+        "gets a midfield run with cover", "should get a sit in the pack", "settles in the middle with options", "gets a nice run in midfield",
+      ],
+    },
+    back: {
+      fast: [
+        "gets the pace to run at from the back", "has the hot tempo to set it up from the back", "comes from the back with speed on up front", "gets the race run to suit from the back",
+        "should get a strong pace to chase", "gets the tempo it needs from the rear", "has the leaders to run down late", "gets a race set up for the closers",
+      ],
+      slow: [
+        "needs luck from the back off a slow tempo", "is left plenty to do from the back in a slow race", "gets back and needs them to run", "has a lot to do if they crawl",
+        "gets back in a race that will not suit", "needs the pace to lift from the rear", "is up against it from the back in a slow race", "needs a big finish from the rear off a soft pace",
+      ],
+      even: closer
+        ? [
+            "runs on from the back", "finishes off from the back", "comes late from the rear", "hits the line hard from the back",
+            "gets back and runs home", "swoops late from the rear", "finishes strongly from the back", "comes with a late run from the back",
+          ]
+        : [
+            "settles back in the field", "gets back and needs a gap", "has ground to make up from the back", "needs luck from the back",
+            "settles near the tail", "has work to do from the rear", "needs clear running from the back", "gets back and needs things to go right",
+          ],
+    },
+  };
+  // Last start's shape comes in only when it tells us something: the race
+  // turns for or against the horse, or (some of the time) the same help or
+  // hindrance comes round again.
+  const was = last ? lastStartClause(last, r.map, race.tempo, say) : undefined;
+  const map = `, ${was ?? say(maps[r.map][race.tempo], "map")}`;
 
   const tail =
     signal === "back"
-      ? ", and the market is longer than our price."
+      ? `, ${say([
+          "and the market is longer than our price", "and the price is bigger than it should be", "and it is paying more than it should", "and the market has it too long",
+          "and the market is underrating it", "and there is value in the price", "and the odds are better than its chance", "and we have it shorter than the market",
+        ], "tail")}.`
       : signal === "lay"
-        ? ", but the market has it too short."
+        ? `, ${say([
+            "but the market has it too short", "but it is shorter than it should be", "but the price is too skinny", "but the market has overdone it",
+            "but the market is overrating it", "but there is no value at the price", "but its chance is not as good as the odds say", "but we have it longer than the market",
+          ], "tail")}.`
         : ".";
 
   return `${lead}${strength}${map}${tail}`;
 }
+
+/** Where a horse settled at its last start and how that race was run. */
+export interface LastShape {
+  map: MapPosition;
+  tempo: Tempo;
+}
+
+/** The shape of the horse's last start, when the form has both halves of it. */
+export function lastShapeOf(e: RaceEntry): LastShape | undefined {
+  const p = (e.pastEvents ?? [])
+    .filter((x) => x.race !== false && !x.trial && !x.spell && !x.scratched && !isJumps(x))
+    .sort((a, b) => b.date - a.date)[0];
+  const tempo = p?.benchmark ? splitOf(p.benchmark).tempo : undefined;
+  if (!p?.posSettling || !p.numRunners || p.numRunners < 2 || !tempo) return undefined;
+  return { map: mapOf(p.posSettling, p.numRunners), tempo };
+}
+
+/** How a spot suits a tempo: a hot race helps the ones behind, a crawl the ones in front. */
+function shapeSuit(map: MapPosition, tempo: Tempo): number {
+  if (tempo === "even") return 0;
+  const front = map === "leader" || map === "on pace";
+  return (tempo === "fast") === front ? -1 : 1;
+}
+
+/** Last start's shape against today's and what the change means, or nothing when it is not worth saying. */
+function lastStartClause(last: LastShape, map: MapPosition, tempo: Tempo, say: (bank: string[], slot: string) => string): string | undefined {
+  const spot = { leader: "led", "on pace": "sat handy", midfield: "settled midfield", back: "got back" }[last.map];
+  const pace = { fast: "in a hot race", slow: "in a slow race", even: "at an even tempo" }[last.tempo];
+  const before = shapeSuit(last.map, last.tempo);
+  const now = shapeSuit(map, tempo);
+  // Always when the race flips from against it to for it (or back), a third
+  // of the time for a smaller change, a fifth for the same help again.
+  const odds = Math.abs(now - before) === 2 ? 1 : now !== before ? 1 / 3 : now !== 0 ? 1 / 5 : 0;
+  const roll = Number(say(Array.from({ length: 60 }, (_, i) => String(i)), "mention")) / 60;
+  if (roll >= odds) return undefined;
+  const then =
+    now > before
+      ? ["but gets a better setup today", "but today's race should suit far better", "and the shape turns its way today", "but gets the race it needs today", "but the map is kinder this time", "and gets it run its way this time"]
+      : now < before
+        ? ["but will not get that help today", "and the shape is against it this time", "but today's race will not suit as well", "and has it tougher today", "and gets no such help today", "but the map turns on it today"]
+        : now > 0
+          ? ["and gets the same setup today", "and the race should be run its way again", "and gets that help again today", "and the shape suits again"]
+          : ["and has it against it again today", "and faces the same problem today", "and the shape is no kinder today", "and has the same setup to overcome"];
+  return `${spot} ${pace} last start ${say(then, "then")}`;
+}
+
+/** One line from a bank, picked by the seed so a rebuild keeps it. */
+export const pickLine = (bank: string[], seed: string) => bank[hash(seed) % bank.length];
+
+/** A stable small hash of a string, for picking phrasing. */
+function hash(s: string): number {
+  let h = 2166136261;
+  for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619);
+  // Mix the high bits down, since a small modulus only reads the low ones.
+  h = Math.imul(h ^ (h >>> 16), 0x85ebca6b);
+  h = Math.imul(h ^ (h >>> 13), 0xc2b2ae35);
+  return (h ^ (h >>> 16)) >>> 0;
+}
+
+const cap = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 /** One sentence on what decides the race. */
 export function verdict(
@@ -1044,13 +1205,42 @@ export function verdict(
   const [a, b] = top;
   const closer = [...top].sort((x, y) => y.ratings.late - x.ratings.late)[0];
   const rival = closer.horseName === a.horseName ? b : closer;
+  const pick = (bank: string[]) => bank[hash(`${a.horseName}|${b.horseName}`) % bank.length];
+  const [A, B, R] = [a.horseName, b.horseName, rival.horseName];
   if (tempo === "fast") {
-    return `Whether ${a.horseName} settles close enough to hold off ${rival.horseName} once the fast pace bites.`;
+    return pick([
+      `Whether ${A} settles close enough to hold off ${R} once the fast pace bites.`,
+      `A hot tempo, so can ${A} last long enough to beat ${R} home?`,
+      `The pace is on, and ${R} is the one coming if ${A} gets caught up in it.`,
+      `How much the speed takes out of ${A}, with ${R} waiting to pounce.`,
+      `A strong pace should test ${A}, and ${R} is best placed to take advantage.`,
+      `If the speed holds up, ${R} gets its chance to run down ${A}.`,
+      `${A} is the best horse, but a hot tempo gives ${R} a real shot.`,
+      `A genuine pace, so it is ${A}'s class against ${R}'s finish.`,
+    ]);
   }
   if (tempo === "slow") {
-    return `Whether ${rival.horseName} gets into it early enough to run down ${a.horseName} off a slow tempo.`;
+    return pick([
+      `Whether ${R} gets into it early enough to run down ${A} off a slow tempo.`,
+      `A slow pace hurts ${R}, which has to be ridden closer to beat ${A}.`,
+      `If they crawl, ${R} has too much to do to catch ${A}.`,
+      `${R} needs a truer pace than it is likely to get to reel in ${A}.`,
+      `A sit-and-kick race, and ${A} is the one we trust to kick best.`,
+      `A slow tempo, so ${R} needs a smart ride to beat ${A}.`,
+      `Little pace on, so it favours ${A} over the late run of ${R}.`,
+      `${R} is the danger to ${A}, but not if they go steady.`,
+    ]);
   }
-  return `${a.horseName} against ${b.horseName} at level terms, with nothing in the map to tip it.`;
+  return pick([
+    `${A} against ${B} at level terms, with nothing in the map to tip it.`,
+    `${A} and ${B} look the pair, and the map does not split them.`,
+    `A fair pace, so it comes down to ${A} or ${B} on ability.`,
+    `No map edge either way, so ${A} gets the nod over ${B} on the numbers.`,
+    `An even tempo, so the better horse should win, and we think that is ${A}.`,
+    `${A} is our pick, with ${B} the one to beat it at a fair pace.`,
+    `Nothing in the pace to help anyone, so ${A} over ${B} on ratings.`,
+    `A straight contest between ${A} and ${B}, and the numbers lean to ${A}.`,
+  ]);
 }
 
 function zscores(values: (number | undefined)[]): number[] {

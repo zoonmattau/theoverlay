@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { decodeEntities } from "@/lib/format";
-import { classPoints, explain, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
+import { classPoints, explain, lastShapeOf, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, pickLine, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
 
@@ -156,8 +156,17 @@ export const inCallLock = (jumpTime?: string, now = Date.now()) => Boolean(jumpT
  * no form have no rating and sit after the rest.
  */
 /** The why line on a first starter in our four: no number of ours, in on the market's say-so. */
-export function explainDebut(marketPrice?: number): string {
-  return `First starter, so nothing to rate: the market has it at $${marketPrice ?? "?"}, and debutants that short win two in five, but it is never a bet.`;
+export function explainDebut(marketPrice?: number, seed = ""): string {
+  const $ = `$${marketPrice ?? "?"}`;
+  return pickLine(
+    [
+      `First starter, so nothing to rate: the market has it at ${$}, and debutants that short win two in five, but it is never a bet.`,
+      `No form to rate, but the market has this debutant at ${$}, and first starters that short win two in five. Never a bet.`,
+      `A first starter the market likes at ${$}. Debutants that short win two in five, so it makes our four, but we never bet one.`,
+      `Unraced, so it is the market's read at ${$}, not ours. Debutants that short win two in five, but it is never a bet.`,
+    ],
+    seed,
+  );
 }
 
 export function ratingRank(runners: PublishedRunner[], runner: PublishedRunner): number {
@@ -354,7 +363,7 @@ export function publishRace(
   // One lay a race at most: the one the market has most wrong.
   const lays = runners.filter((x) => x.signal === "lay").sort((a, b) => (a.layEdge ?? a.edge ?? 0) - (b.layEdge ?? b.edge ?? 0));
   for (const extra of lays.slice(1)) extra.signal = undefined;
-  for (const x of runners) if (x.rank) x.why = x.ratings.runs === 0 ? explainDebut(x.marketPrice) : explain(x.ratings, ratingRank(runners, x), { going, tempo: pace.tempo }, x.signal);
+  for (const x of runners) if (x.rank) x.why = x.ratings.runs === 0 ? explainDebut(x.marketPrice, `${race.raceId}:${x.horseName}`) : explain(x.ratings, ratingRank(runners, x), { going, tempo: pace.tempo }, x.signal, `${race.raceId}:${x.horseName}`, lastShapeOf(race.entries.find((e) => e.number === x.tabNumber)!));
 
   const top = ranked
     .map((k) => runners.find((x) => String(x.tabNumber) === k)!)

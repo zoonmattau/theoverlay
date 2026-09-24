@@ -304,7 +304,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
           fourth.why = undefined;
         }
         x.rank = 4;
-        x.why = explain(x.ratings, ratingRank(r.runners, x), { going: r.going, tempo: r.pace.tempo }, x.signal);
+        x.why = explain(x.ratings, ratingRank(r.runners, x), { going: r.going, tempo: r.pace.tempo }, x.signal, `${r.raceId}:${x.horseName}`);
       }
     }
   }
