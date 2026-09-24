@@ -308,7 +308,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
       }
     }
   }
-  const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings, pinnedFreeRaceId, previousFreeRaceId), live: usingLiveData() };
+  const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings, pinnedFreeRaceId, previousFreeRaceId, released(date)), live: usingLiveData() };
   const seconds = Math.round((Date.now() - started) / 1000);
   if (storeConfigured()) {
     // A reprice leaves the form alone, so the runs are written on a real

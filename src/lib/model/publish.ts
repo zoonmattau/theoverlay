@@ -744,23 +744,39 @@ export function selectBestBets(meetings: PublishedMeeting[]): Selection[] {
 const key = (c: { race: PublishedRace; runner: PublishedRunner }) =>
   `${c.race.raceId}:${c.runner.tabNumber}`;
 
+/** The free race jumps from this hour, Sydney time, when the day allows. */
+const FREE_FROM_HOUR = 14;
+
 /**
  * One race a day is open to everyone, so a first-time visitor sees a real
  * tip before paying: the race an admin pinned, else the one already chosen
- * for the day, else one of the day's bets drawn at random (seeded by the
- * date, so every rebuild agrees), else the earliest race still to jump.
+ * once calls are out (locked), else a draw seeded by the date so every
+ * rebuild agrees. The draw prefers a race with a bet or a lay from
+ * FREE_FROM_HOUR, then any race with a call, then an afternoon race, then
+ * the last race still to jump. Before release there are often no calls yet,
+ * so the pick is drawn again on every build until then.
  */
-export function pickFreeRace(meetings: PublishedMeeting[], pinned?: string, previous?: string): string | undefined {
+export function pickFreeRace(meetings: PublishedMeeting[], pinned?: string, previous?: string, locked = true): string | undefined {
   const races = meetings
     .flatMap((m) => m.races)
     .filter((r) => r.jumpTime)
     .sort((a, b) => a.jumpTime!.localeCompare(b.jumpTime!));
   const has = (id?: string) => Boolean(id) && races.some((r) => r.raceId === id);
   if (has(pinned)) return pinned;
-  if (has(previous)) return previous;
-  const withBet = races.filter((r) => !r.result && r.runners.some((x) => x.signal === "back" && !x.scratched));
-  if (withBet.length > 0) return withBet[seed(meetings[0]?.date ?? "") % withBet.length].raceId;
-  return (races.find((r) => !r.result) ?? races[0])?.raceId;
+  if (locked && has(previous)) return previous;
+  const open = races.filter((r) => !r.result);
+  const withCall = open.filter((r) => r.runners.some((x) => (x.signal === "back" || x.signal === "lay") && !x.scratched));
+  const late = (r: PublishedRace) => sydneyHourOf(r.jumpTime!) >= FREE_FROM_HOUR;
+  const draw = [withCall.filter(late), withCall, open.filter(late)].find((pool) => pool.length > 0);
+  if (draw) return draw[seed(meetings[0]?.date ?? "") % draw.length].raceId;
+  return (open.at(-1) ?? races.at(-1))?.raceId;
+}
+
+/** Hour of the day, Sydney time, for an ISO timestamp. */
+function sydneyHourOf(iso: string): number {
+  const parts = new Intl.DateTimeFormat("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "numeric", hourCycle: "h23" }).formatToParts(new Date(iso));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value ?? 0);
+  return get("hour") + get("minute") / 60;
 }
 
 /** A small stable hash, so a draw for a date comes out the same every time. */
