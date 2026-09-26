@@ -247,7 +247,7 @@ export function publishRace(
   const jumpMs = jumpTime ? new Date(jumpTime).getTime() : undefined;
   const abandoned =
     process.env.OVERLAY_REPLAY !== "1" &&
-    (/abandon/i.test(race.status ?? "") || (closed && jumpMs !== undefined && Date.now() < jumpMs - ABANDON_BEFORE_MS));
+    (/abandon/i.test(race.status ?? "") || /abandon/i.test(meeting.status ?? "") || (closed && jumpMs !== undefined && Date.now() < jumpMs - ABANDON_BEFORE_MS));
   // Below the confidence floor the model is guessing and no call is made,
   // on the runner as well as in the day's selections, so the race page and
   // the home page count agree with the email. Nor is a call made against a
