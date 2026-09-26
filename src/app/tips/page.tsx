@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { BookieLink } from "@/components/BookieLink";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
 import { MarketHover } from "@/components/MarketHover";
+import { NextToGo } from "@/components/NextToGo";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { Locked } from "@/components/Locked";
 import { SignalBadge } from "@/components/Ratings";
@@ -144,6 +145,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   return (
     <>
       {list && <JsonLd data={list} />}
+      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }))} />
       <section className="py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Today&apos;s tips</h1>
         <p className="mt-2 text-ink-secondary">
