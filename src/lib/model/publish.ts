@@ -424,6 +424,7 @@ export function publishRace(
     result,
     placings,
     ...(abandoned ? { abandoned: true } : closed ? { closed: true } : {}),
+    feedStatus: race.status,
     confidence: priced.confidence,
     verdict: verdict(top, pace.tempo),
   };
@@ -693,7 +694,8 @@ export function publishMeeting(
     date: new Date(meeting.date ?? Date.now()).toLocaleDateString("en-CA", {
       timeZone: "Australia/Sydney",
     }),
-    track: meeting.trackName ?? first?.trackName ?? meeting.id,
+    // "Murray Bridge GH" is Gifford Hill, the only Murray Bridge track: the suffix tells members nothing.
+    track: (meeting.trackName ?? first?.trackName ?? meeting.id).replace(/\s+GH$/, ""),
     state: meeting.state ?? "",
     code: "T",
     trackCondition: first ? goingLabel(first.going, first.goingNumber) : undefined,

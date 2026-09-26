@@ -266,6 +266,8 @@ export interface PublishedRace {
   abandoned?: boolean;
   /** BetWatch has the market closed and there is no result: abandoned, or just jumped. */
   closed?: boolean;
+  /** The race's status as the feeds gave it on this build, for tracing what the card saw. */
+  feedStatus?: string;
   /** Model confidence in this race, 0-1. Low = we are guessing. */
   confidence: number;
   /** One sentence on what decides the race. */
