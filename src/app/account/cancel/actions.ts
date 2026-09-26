@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getViewer } from "@/lib/auth";
-import { declineOffer, offerFor, takeOffer } from "@/lib/billing/retention";
+import { declineOffer, offerFor, switchPlan, takeOffer } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
 
 /** Half price on the first month, then back to the account page. */
@@ -14,6 +14,14 @@ export async function keepAtHalfPrice(): Promise<void> {
   if ("reason" in offer) redirect("/account");
   await takeOffer(viewer.id, offer);
   redirect("/account?offer=taken");
+}
+
+/** A cheaper plan instead of cancelling, then back to the account page. */
+export async function moveToPlan(form: FormData): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer.id || !stripeConfigured()) redirect("/account");
+  const ok = await switchPlan(viewer.id, String(form.get("plan") ?? ""));
+  redirect(ok ? `/account?switched=${form.get("plan")}` : "/account");
 }
 
 /** No thanks: straight into Stripe's cancellation for the subscription. */

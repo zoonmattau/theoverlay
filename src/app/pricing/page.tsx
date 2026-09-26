@@ -7,7 +7,7 @@ import { CheckoutButton } from "@/components/CheckoutButton";
 import { FaqList, JsonLd, SITE_URL, faqSchema } from "@/components/JsonLd";
 import { PLANS_FAQ } from "@/lib/faq";
 import { getViewer } from "@/lib/auth";
-import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS, weeklyLabel } from "@/lib/billing/plans";
+import { PASS_BUNDLES, PASS_PRICE, PLANS, TERMS, TRIAL_DAYS, termById, termMonthly, termPrice, weeklyLabel } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -55,7 +55,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
         <Plans searchParams={searchParams} />
       </Suspense>
 
-      <section className="mt-10 grid gap-3 sm:grid-cols-2 text-sm">
+      <section className="mt-10 grid grid-cols-1 gap-3 sm:grid-cols-2 text-sm">
         <div className="card">
           <h2 className="font-display font-extrabold">What you unlock</h2>
           <p className="mt-1 text-ink-secondary">Our top four in every race with the reasons, the bet and lay calls, rankings across eight categories, and the pressure grid.</p>
@@ -69,7 +69,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
       <FaqList items={PLANS_FAQ} />
 
       <p className="mt-8 text-xs text-ink-soft text-center">
-        Prices in AUD excluding GST, which is added at checkout. Subscriptions renew monthly until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
+        Prices in AUD excluding GST, which is added at checkout. Subscriptions renew at the end of each month, three months or year until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
         <Link href="/terms" className="underline">Terms</Link>.
       </p>
     </div>
@@ -79,8 +79,10 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
 async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["searchParams"] }) {
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   const signedIn = Boolean(viewer.id);
-  // A choice made before signing up: passes_N or a plan id.
-  const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+)$/.test(sp.buy) ? sp.buy : undefined;
+  // A choice made before signing up: passes_N, a plan id, or a plan id and term (everyday_year).
+  const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year))?)$/.test(sp.buy) ? sp.buy : undefined;
+  // Yearly shows first: the lowest weekly figure is the one to lead with.
+  const term = termById(typeof sp.term === "string" ? sp.term : "year");
 
   return (
     <>
@@ -89,7 +91,15 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
         <h2 className="font-display text-lg font-extrabold">Subscriptions</h2>
         <span className="badge badge-prime">{TRIAL_DAYS}-day free trial</span>
       </div>
-      <div className="grid gap-4 md:grid-cols-3 items-stretch">
+      <div className="tabs tabs-fit mb-4" role="tablist">
+        {TERMS.map((t) => (
+          <Link key={t.id} href={t.id === "year" ? "/pricing" : `/pricing?term=${t.id}`} scroll={false} replace role="tab" aria-selected={t.id === term.id} className="tab">
+            {t.name}
+            {t.off > 0 && <span className="badge badge-prime">{Math.round(t.off * 100)}% off</span>}
+          </Link>
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3 items-stretch">
         {PLANS.map((p) => (
           <article key={p.id} className={`pick-card ${p.highlight ? "is-top" : ""}`}>
             {p.highlight && <span className="badge badge-prime self-start">Most popular</span>}
@@ -99,10 +109,13 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
             </div>
             <div>
               <div className="flex items-baseline gap-1">
-                <span className="font-display text-4xl font-extrabold tracking-tight nums">{weeklyLabel(p.price)}</span>
+                <span className="font-display text-4xl font-extrabold tracking-tight nums">{weeklyLabel(termMonthly(p, term))}</span>
                 <span className="text-sm text-ink-soft">a week</span>
               </div>
-              <div className="text-sm text-ink-secondary nums">Billed ${p.price} a month, cancel any time.</div>
+              <div className="text-sm text-ink-secondary nums">
+                Billed ${termPrice(p, term)} {term.every}
+                {term.off > 0 ? `, save $${p.price * term.months - termPrice(p, term)}.` : ", cancel any time."}
+              </div>
             </div>
             <ul className="space-y-1.5 text-sm text-ink-secondary flex-1">
               {p.features.map((f) => (
@@ -117,6 +130,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
             ) : (
               <CheckoutButton
                 plan={p.id}
+                term={term.id}
                 signedIn={signedIn}
                 label={viewer.pro ? "Switch to this plan" : `Try free for ${TRIAL_DAYS} days`}
                 className={`btn w-full ${p.highlight ? "btn-primary" : "btn-secondary"}`}
@@ -130,7 +144,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
         <h2 className="font-display text-lg font-extrabold">Day passes</h2>
         <span className="text-sm text-ink-soft">${PASS_PRICE} a day, cheaper in a bundle, use them whenever you like</span>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {PASS_BUNDLES.map((b) => {
           const each = b.price / b.qty;
           const saving = Math.round((1 - each / PASS_PRICE) * 100);

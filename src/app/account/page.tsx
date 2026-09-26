@@ -86,6 +86,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     <>
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
       {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
+      {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}. Glad you stayed.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
       {sp.discord === "failed" && <Notice>Discord did not link. Try again.</Notice>}

@@ -18,6 +18,8 @@ export interface Plan {
   days: number[];
   /** Stripe Price id from the environment. */
   priceId?: string;
+  /** Stripe Price ids for paying three months or a year up front. */
+  termPriceIds: Partial<Record<Exclude<TermId, "month">, string>>;
   highlight?: boolean;
 }
 
@@ -32,6 +34,7 @@ export const PLANS: Plan[] = [
     features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls", "7-day free trial"],
     days: [6],
     priceId: process.env.STRIPE_PRICE_SATURDAY,
+    termPriceIds: { quarter: process.env.STRIPE_PRICE_SATURDAY_QUARTER, year: process.env.STRIPE_PRICE_SATURDAY_YEAR },
   },
   {
     id: "midweek",
@@ -41,6 +44,7 @@ export const PLANS: Plan[] = [
     features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls", "7-day free trial"],
     days: [3, 6],
     priceId: process.env.STRIPE_PRICE_MIDWEEK,
+    termPriceIds: { quarter: process.env.STRIPE_PRICE_MIDWEEK_QUARTER, year: process.env.STRIPE_PRICE_MIDWEEK_YEAR },
     highlight: true,
   },
   {
@@ -51,10 +55,45 @@ export const PLANS: Plan[] = [
     features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls", "7-day free trial"],
     days: [],
     priceId: process.env.STRIPE_PRICE_EVERYDAY,
+    termPriceIds: { quarter: process.env.STRIPE_PRICE_EVERYDAY_QUARTER, year: process.env.STRIPE_PRICE_EVERYDAY_YEAR },
   },
 ];
 
 export const planById = (id: string | undefined) => PLANS.find((p) => p.id === id);
+
+/**
+ * How often a plan is billed. Paying up front is cheaper: 10% off three
+ * months, 20% off a year. Same plan, same days, same trial; the term only
+ * changes the Stripe Price, and it rides on the subscription's metadata.
+ */
+export type TermId = "month" | "quarter" | "year";
+
+export interface Term {
+  id: TermId;
+  name: string;
+  months: number;
+  /** Fraction off the monthly price. */
+  off: number;
+  /** "a month", "every 3 months", "a year". */
+  every: string;
+}
+
+export const TERMS: Term[] = [
+  { id: "month", name: "Monthly", months: 1, off: 0, every: "a month" },
+  { id: "quarter", name: "3 months", months: 3, off: 0.1, every: "every 3 months" },
+  { id: "year", name: "Yearly", months: 12, off: 0.2, every: "a year" },
+];
+
+export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS[0];
+
+/** What a plan costs per bill on a term, whole AUD excluding GST, matching the Stripe Price. */
+export const termPrice = (plan: Plan, term: Term) => Math.round(plan.price * term.months * (1 - term.off));
+
+/** The Stripe Price for a plan on a term. */
+export const termPriceId = (plan: Plan, term: Term) => (term.id === "month" ? plan.priceId : plan.termPriceIds[term.id]);
+
+/** What a plan works out to a month on a term, for the weekly figure. */
+export const termMonthly = (plan: Plan, term: Term) => termPrice(plan, term) / term.months;
 
 /** The monthly price said by the week, the way a punter counts: $49 a month is $11.30 a week. */
 export const weekly = (monthly: number) => Math.round(((monthly * 12) / 52) * 10) / 10;

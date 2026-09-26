@@ -2,13 +2,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { logEvent } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { passBundle, planById, TRIAL_DAYS } from "@/lib/billing/plans";
+import { passBundle, planById, termById, termPrice, termPriceId, TRIAL_DAYS } from "@/lib/billing/plans";
 import { integrationId, siteUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { supabaseAdmin } from "@/lib/billing/access";
 
 /**
- * POST { plan } or { passes } from a signed-in user: sends them to Stripe
- * Checkout, a subscription for a plan or a one-off payment for a pass bundle.
+ * POST { plan, term? } or { passes } from a signed-in user: sends them to Stripe
+ * Checkout, a subscription for a plan (monthly unless a term says three months
+ * or a year) or a one-off payment for a pass bundle.
  */
 export async function POST(request: NextRequest) {
   if (!stripeConfigured()) {
@@ -18,13 +19,15 @@ export async function POST(request: NextRequest) {
   if (!viewer.id) {
     return NextResponse.json({ error: "Log in first." }, { status: 401 });
   }
-  const body = (await request.json().catch(() => ({}))) as { plan?: string; passes?: number };
+  const body = (await request.json().catch(() => ({}))) as { plan?: string; term?: string; passes?: number };
   const plan = body.plan ? planById(body.plan) : undefined;
+  const term = termById(body.term);
+  const priceId = plan ? termPriceId(plan, term) : undefined;
   const bundle = body.passes ? passBundle(Number(body.passes)) : undefined;
-  if ((!plan || !plan.priceId) && (!bundle || !bundle.priceId)) {
+  if ((!plan || !priceId) && (!bundle || !bundle.priceId)) {
     return NextResponse.json({ error: "Unknown plan." }, { status: 400 });
   }
-  const chosen = plan ? plan.id : `passes_${bundle!.qty}`;
+  const chosen = plan ? (term.id === "month" ? plan.id : `${plan.id}_${term.id}`) : `passes_${bundle!.qty}`;
   // An admin poking at checkout is not a lead; keep the funnel to members and visitors.
   const log = (e: Parameters<typeof logEvent>[0]) => (viewer.admin ? Promise.resolve() : logEvent(e));
   await log({ user_id: viewer.id, kind: "plan_click", plan: chosen, amount_cents: null, meta: null });
@@ -57,7 +60,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   }
 
-  // Every plan is a monthly subscription with a free trial, one trial per
+  // Every plan is a subscription with a free trial, whatever the term, one trial per
   // customer, so a second subscription starts paid. A customer made just now
   // cannot have one, which saves a round trip on the common path.
   const trialled = newCustomer
@@ -74,18 +77,18 @@ export async function POST(request: NextRequest) {
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     customer,
-    line_items: [{ price: plan!.priceId!, quantity: 1 }],
-    success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${plan!.price}&trial=${trialled ? 0 : 1}`,
+    line_items: [{ price: priceId!, quantity: 1 }],
+    success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${termPrice(plan!, term)}&trial=${trialled ? 0 : 1}`,
     cancel_url: `${siteUrl()}/pricing`,
     allow_promotion_codes: true,
-    metadata: { userId: viewer.id, plan: plan!.id },
+    metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
     subscription_data: {
-      metadata: { userId: viewer.id, plan: plan!.id },
+      metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
       ...(trialled ? {} : { trial_end: trialEnd }),
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),
   });
-  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled } });
+  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled, term: term.id } });
 
   return NextResponse.json({ url: session.url });
 }

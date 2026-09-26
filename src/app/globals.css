@@ -1382,6 +1382,16 @@ body {
   color: var(--color-ink);
   border-bottom-color: var(--color-ink);
 }
+/* Tabs that must all fit a phone: they share the width, a badge drops under its label. */
+@media (max-width: 639px) {
+  .tabs-fit .tab {
+    flex: 1;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    padding: 8px 4px;
+  }
+}
 /* Tabs on a dark section bar: paper text, lime underline on the open one. */
 .section-bar .tab {
   padding: 4px var(--sp-2);

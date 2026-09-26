@@ -12,7 +12,9 @@ import { track } from "@/components/MetaPixel";
 export function AutoCheckout({ buy }: { buy: string }) {
   const [error, setError] = useState<string | null>(null);
   const passes = buy.match(/^passes_(\d+)$/)?.[1];
-  const label = passes ? (passes === "1" ? "your day pass" : `${passes} day passes`) : `the ${buy} plan`;
+  // A plan comes as everyday, or everyday_year when they chose a longer term.
+  const [plan, term = "month"] = buy.split("_");
+  const label = passes ? (passes === "1" ? "your day pass" : `${passes} day passes`) : `the ${plan} plan`;
   useEffect(() => {
     let cancelled = false;
     (async () => {
@@ -20,7 +22,7 @@ export function AutoCheckout({ buy }: { buy: string }) {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify(passes ? { passes: Number(passes) } : { plan: buy }),
+        body: JSON.stringify(passes ? { passes: Number(passes) } : { plan, term }),
       });
       const data = (await res.json().catch(() => ({}))) as { url?: string; error?: string };
       if (cancelled) return;
@@ -30,7 +32,7 @@ export function AutoCheckout({ buy }: { buy: string }) {
     return () => {
       cancelled = true;
     };
-  }, [buy, passes]);
+  }, [buy, passes, plan, term]);
   return (
     <div className="card border-lime bg-lime-soft mb-6 text-sm">
       {error ? <p className="font-semibold text-red">{error}</p> : <p className="font-semibold">Account made. Opening checkout for {label}…</p>}
