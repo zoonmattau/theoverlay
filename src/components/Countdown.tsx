@@ -17,6 +17,7 @@ export function MatrixCell({
   iso,
   clock,
   result,
+  abandoned,
   units,
   backs,
   lays,
@@ -31,6 +32,8 @@ export function MatrixCell({
   iso?: string;
   clock: string;
   result?: number[];
+  /** Called off: greyed like a run race, with no countdown. */
+  abandoned?: boolean;
   /** What the race returned us, once it has run. Undefined where we had nothing on. */
   units?: number;
   backs: number;
@@ -67,6 +70,15 @@ export function MatrixCell({
   }, [iso, clock, result]);
 
   const prime = tip === "prime";
+
+  if (abandoned) {
+    return (
+      <Link href={href} className="matrix-btn race-resulted">
+        <span className="matrix-race">R{raceNumber}</span>
+        <span className="matrix-time">Abandoned</span>
+      </Link>
+    );
+  }
 
   // Resulted: the race number and the first four home, with a border in the
   // colour of what we had on.

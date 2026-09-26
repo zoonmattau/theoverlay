@@ -32,7 +32,7 @@ export function NextToGo({
   const cutoff = clock() - 10 * 60_000;
   const races = meetings
     .flatMap((m) => m.races.map((r) => ({ m, r })))
-    .filter((x) => x.r.jumpTime && !x.r.result && new Date(x.r.jumpTime).getTime() > cutoff)
+    .filter((x) => x.r.jumpTime && !x.r.result && !x.r.abandoned && new Date(x.r.jumpTime).getTime() > cutoff)
     .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!));
 
   if (races.length === 0) return null;

@@ -80,6 +80,7 @@ export function RaceMatrix({
                       iso={race.jumpTime}
                       clock={jumpTime(race.jumpTime)}
                       result={race.result}
+                      abandoned={race.abandoned}
                       units={raceUnits(race.runners)}
                       backs={backs}
                       lays={lays}

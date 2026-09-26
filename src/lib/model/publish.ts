@@ -239,6 +239,15 @@ export function publishRace(
   // member has had it since the morning, so it is tracked whatever the
   // market does with three minutes to go. A new call can still be made.
   const locked = jumped || (process.env.OVERLAY_REPLAY !== "1" && inCallLock(jumpTime));
+  // A race called off. The feed may say so; BetWatch only closes the market, so a market
+  // closed well before the jump is one too. Gunnedah, 26 Sep 2026: all six races closed on
+  // BetWatch, the last two hours before theirs. A closed market after the jump is only a
+  // result on its way, unless the meeting was called off (abandonWithMeeting).
+  const closed = process.env.OVERLAY_REPLAY !== "1" && /closed/i.test(race.status ?? "") && !race.entries.some((e) => e.horseResult);
+  const jumpMs = jumpTime ? new Date(jumpTime).getTime() : undefined;
+  const abandoned =
+    process.env.OVERLAY_REPLAY !== "1" &&
+    (/abandon/i.test(race.status ?? "") || (closed && jumpMs !== undefined && Date.now() < jumpMs - ABANDON_BEFORE_MS));
   // Below the confidence floor the model is guessing and no call is made,
   // on the runner as well as in the day's selections, so the race page and
   // the home page count agree with the email. Nor is a call made against a
@@ -252,6 +261,7 @@ export function publishRace(
   const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole;
   const signalByTab = new Map(
     priced.runners.map((p) => {
+      if (abandoned) return [p.key, undefined];
       const held = kept.get(`${race.raceId}:${p.key}`);
       // Once a bet, a bet for the day: it is on the record whatever the price does after,
       // so it stays on the card and every page shows it (the user, 26 Sep 2026).
@@ -413,9 +423,27 @@ export function publishRace(
     pace,
     result,
     placings,
+    ...(abandoned ? { abandoned: true } : closed ? { closed: true } : {}),
     confidence: priced.confidence,
     verdict: verdict(top, pace.tempo),
   };
+}
+
+/** A market closed this long before the jump is a race called off. */
+const ABANDON_BEFORE_MS = 5 * 60_000;
+
+/**
+ * A meeting with one race called off is called off wherever else the market
+ * has closed with no result: the race that had just jumped when the meeting
+ * went is abandoned too, not left waiting for a result that never comes.
+ */
+export function abandonWithMeeting(races: PublishedRace[]): PublishedRace[] {
+  if (!races.some((r) => r.abandoned)) return races;
+  return races.map((r) =>
+    r.closed && !r.abandoned && !r.result?.length
+      ? { ...r, abandoned: true, closed: undefined, runners: r.runners.map((x) => ({ ...x, signal: undefined, prime: false })) }
+      : r,
+  );
 }
 
 /** A readable class from the restrictions code: "72B.3+.." becomes "BM72". */

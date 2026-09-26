@@ -158,8 +158,8 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     const price = Number(was.market_price);
     const voided = Boolean(was.settled_at) && was.finish_position === null;
     let target: Pick<Held, "market_price" | "finish_position" | "sp" | "units" | "settled_at">;
-    if (!x || x.scratched || (was.side === "lay" && !live)) {
-      // A scratching voids either side, as a bookie settles it; a lay off the card was never a lay.
+    if (race.abandoned || !x || x.scratched || (was.side === "lay" && !live)) {
+      // A race called off or a scratching voids either side, as a bookie settles it; a lay off the card was never a lay.
       target = { market_price: price, ...voidSettlement(), settled_at: voided ? was.settled_at : now };
     } else {
       // The recorded price: a bet's longest while it was a bet; a lay's shortest inside the

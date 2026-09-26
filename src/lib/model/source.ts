@@ -10,7 +10,7 @@ import {
   getRace,
 } from "@/lib/formking/client";
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
-import { hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
+import { abandonWithMeeting, hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
 import { claimRefresh, readMutes, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
@@ -135,6 +135,8 @@ function mergeLive(form: RaceSummary, live?: RaceSummary): RaceSummary {
  * can take. Only the result, the placings and the going land on it.
  */
 function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace {
+  // A race called off has no calls to keep; one that turns out to have run after all is published afresh.
+  if (live.abandoned || previous?.abandoned) return live;
   if (!previous || !(live.result?.length || hasJumped(undefined, live.jumpTime))) return live;
   // A result settled by hand stands until the feed brings the official one.
   const official = Boolean(live.result?.length);
@@ -287,11 +289,11 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   }
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
-    .map((m) => ({ ...m, races: m.races.map((r) => freezeRun(r, before.get(r.raceId))) }))
+    .map((m) => ({ ...m, races: abandonWithMeeting(m.races).map((r) => freezeRun(r, before.get(r.raceId))) }))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
   // A race that has jumped is frozen as last published, so a bet on the record
   // that had left the card before the jump goes back on it here.
-  for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (!x.scratched && !x.signal && kept.get(`${r.raceId}:${x.tabNumber}`) === "back") x.signal = "back";
+  for (const m of meetings) for (const r of m.races) if (!r.abandoned) for (const x of r.runners) if (!x.scratched && !x.signal && kept.get(`${r.raceId}:${x.tabNumber}`) === "back") x.signal = "back";
   // A call taken off by hand stays off, whatever the numbers say on this build.
   const muted = storeConfigured() ? await readMutes(date) : new Set<string>();
   for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (muted.has(`${r.raceId}:${x.tabNumber}`)) x.signal = undefined;
@@ -368,7 +370,8 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
     const pos = position.get(e.number) ?? position.size + 1;
     return { ...e, horseResult: { finishPosition: pos, startingPrice: 0, betfairStartingPrice: live.result!.bsp[String(e.number)] ?? 0 } };
   };
-  const status = position.size > 0 ? "Resulted" : race.status;
+  // A closed market with no result reaches the race too: a race called off shows only as that.
+  const status = position.size > 0 ? "Resulted" : !official && /closed/i.test(live.status ?? "") ? "Closed" : race.status;
   const entries = race.entries.map(scratched).map(settled).map((e): RaceEntry => {
     const p = live.runners[String(e.number)];
     if (!p) return e;

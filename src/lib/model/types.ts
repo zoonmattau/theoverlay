@@ -262,6 +262,10 @@ export interface PublishedRace {
   placings?: Placing[];
   /** The result was entered by an admin and can be edited until the official one lands. */
   handSettled?: boolean;
+  /** Called off: no calls, and any on the record are void. */
+  abandoned?: boolean;
+  /** BetWatch has the market closed and there is no result: abandoned, or just jumped. */
+  closed?: boolean;
   /** Model confidence in this race, 0-1. Low = we are guessing. */
   confidence: number;
   /** One sentence on what decides the race. */
