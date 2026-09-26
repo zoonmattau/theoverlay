@@ -10,6 +10,7 @@ import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { longDate } from "@/lib/format";
 import { rewardReferral } from "@/lib/referrals";
+import { graceUntil } from "@/lib/billing/grace";
 
 /**
  * Stripe is the source of truth for who has paid. Every event that changes
@@ -64,7 +65,9 @@ export async function POST(request: NextRequest) {
       const active = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
       const periodEnd = sub.items.data[0]?.current_period_end;
       const planId = sub.metadata?.plan ?? "subscription";
-      const until = active && periodEnd ? new Date(periodEnd * 1000) : new Date(0);
+      // A payment that failed leaves a week's grace, not the rest of the period Stripe opened.
+      const period = active && periodEnd ? new Date(periodEnd * 1000) : new Date(0);
+      const until = sub.status === "past_due" ? new Date(Math.min(period.getTime(), (await graceUntil(userId)).getTime())) : period;
       await grantAccess({
         userId,
         plan: planId,

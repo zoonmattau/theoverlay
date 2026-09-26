@@ -58,6 +58,18 @@ export const EMAILS = {
     cta: { label: "Update payment details", url: `${SITE}/account` },
   }),
 
+  /** Sent three times in the week after a failed payment; never says when access ends. */
+  paymentReminder: (plan: string, last: boolean): EmailSpec => ({
+    subject: last ? "A last reminder about your payment" : "A reminder about your payment",
+    preheader: "Update your card to keep the board open.",
+    heading: last ? "Your payment is still outstanding." : "We still need your payment.",
+    paragraphs: [
+      `We have not been able to take payment for your <strong>${plan}</strong> plan, and you may lose access soon.`,
+      "Updating your card from your account fixes it straight away.",
+    ],
+    cta: { label: "Update payment details", url: `${SITE}/account` },
+  }),
+
   friendJoined: (until: string): EmailSpec => ({
     subject: "Your friend started a plan, two weeks on us",
     preheader: "The full board is yours for a fortnight.",

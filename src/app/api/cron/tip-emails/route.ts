@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 
 import { supabaseAdmin } from "@/lib/billing/access";
+import { remindUnpaid } from "@/lib/billing/grace";
 import { notifyFollowers, TIP_EMAIL_HOUR } from "@/lib/email/tipster";
 import { sydneyHour } from "@/lib/model/source";
 
@@ -35,6 +36,8 @@ export async function GET(request: NextRequest) {
     .is("settled_at", null);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
+  // Members whose payment failed get their reminder here too, the one now due.
+  const reminded = await remindUnpaid();
   const tipsters = [...new Set((data ?? []).map((r) => r.affiliate_id as string))];
   const sent: Record<string, number> = {};
   for (const id of tipsters) sent[id] = await notifyFollowers(id, { force });
@@ -44,5 +47,6 @@ export async function GET(request: NextRequest) {
     tipsters: tipsters.length,
     emails: Object.values(sent).reduce((a, b) => a + b, 0),
     sent,
+    reminded,
   });
 }
