@@ -144,6 +144,32 @@ export async function writeMutes(date: string, keys: Set<string>): Promise<void>
 }
 
 /**
+ * Whether this deployment is the newest to have built a card. Vercel keeps
+ * older deployments serving tabs opened before a deploy, and their page views
+ * rebuild the card with the old code: on 26 Sep 2026 they reopened Gunnedah
+ * and re-settled the record every few minutes. Each build records its
+ * deployment's build time, and one from an older deployment stands down.
+ * Only on Vercel: a local build never claims, so it cannot lock production out.
+ */
+export async function newestDeploy(): Promise<boolean> {
+  const mine = Number(process.env.OVERLAY_BUILT_AT ?? 0);
+  if (process.env.VERCEL !== "1" || !mine) return true;
+  const db = supabaseAdmin();
+  const { data, error } = await db.from("fk_cache").select("data").eq("key", "deploy").maybeSingle();
+  if (error) {
+    console.error("[deploy] read", error.message);
+    return true;
+  }
+  const newest = Number((data?.data as { builtAt?: number } | undefined)?.builtAt ?? 0);
+  if (mine < newest) return false;
+  if (mine > newest) {
+    const { error: e } = await db.from("fk_cache").upsert({ key: "deploy", kind: "deploy", data: { builtAt: mine }, at: new Date().toISOString() }, { onConflict: "key" });
+    if (e) console.error("[deploy] write", e.message);
+  }
+  return true;
+}
+
+/**
  * Races called off on a date, raceIds in fk_cache under abandoned:<date>.
  * The feeds do not say so on every build, and builds overlap, so once one
  * build sees a race abandoned every later one reads it here.

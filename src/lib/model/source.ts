@@ -12,7 +12,7 @@ import {
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { abandonWithMeeting, hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
-import { claimRefresh, readAbandoned, readMutes, writeAbandoned, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { claimRefresh, newestDeploy, readAbandoned, readMutes, writeAbandoned, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
@@ -256,6 +256,14 @@ export async function getCard(date: string, preview = false): Promise<Card> {
 /** Builds the card from Form King (or fixtures) and, with a store, saves it. */
 export async function buildCard(date: string, opts: { revalidate?: boolean; reprice?: boolean } = {}): Promise<{ card: StoredCard; seconds: number }> {
   const started = Date.now();
+  // A build from an older deployment leaves the card and the record alone.
+  const stale = async () => {
+    if (!storeConfigured() || (await newestDeploy())) return undefined;
+    const stored = await readStoredCard(date);
+    return stored ? { card: stored.card, seconds: 0 } : undefined;
+  };
+  const early = await stale();
+  if (early) return early;
   // Calls already on the stored card carry over while they keep half their edge.
   const kept: KeptSignals = new Map();
   // The day's bets on the record before this build: held as bets, and never announced twice.
@@ -334,6 +342,9 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     // A reprice leaves the form alone, so the runs are written on a real
     // build only: rewriting every race's runs each time a price moved would
     // cost more than carrying them in the card ever did.
+    // A deploy may have landed while this build ran.
+    const late = await stale();
+    if (late) return late;
     await writeStoredCard(date, card, seconds, { runs: !opts.reprice });
     // New calls join the ledger at today's price; run races settle.
     await recordTips(date, card);
