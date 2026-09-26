@@ -38,6 +38,7 @@ import { DatahubStrip } from "@/components/DatahubStrip";
 import { racePeople, raceFacts } from "@/lib/data/race-facts";
 import { raceMix, raceTip, type GoingBand } from "@/lib/model/types";
 import { mixClass, mixStyle } from "@/components/mix";
+import { TrackMap, trackMapFor } from "@/components/TrackMap";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
 
@@ -215,6 +216,7 @@ async function Race({ params }: { params: Props["params"] }) {
             <span className="race-chip tip" data-tip="Total prize money">{money(race.prizeMoney)}</span>
             <span className="race-chip tip" data-tip="Runners after scratchings">{field} runners</span>
           </div>
+          {trackMapFor(meeting.track) && race.distance ? <TrackMap track={trackMapFor(meeting.track)!} distance={race.distance} className="race-map" /> : null}
         </div>
         <div className="race-strip border-t border-line-soft px-4 py-3">
           <nav className="race-tabs" aria-label="Races at this meeting">

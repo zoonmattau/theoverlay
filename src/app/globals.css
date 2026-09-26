@@ -4427,3 +4427,38 @@ body {
     width: 100%;
   }
 }
+
+/* --- Track map: the course as a line, this race's run highlighted --- */
+.track-map { margin: 0; }
+.track-map svg { display: block; width: 100%; height: auto; }
+.track-map .track-rail { fill: none; stroke: var(--color-line); stroke-width: 7; stroke-linejoin: round; }
+.track-map .track-run { fill: none; stroke: var(--color-blue); stroke-width: 16; stroke-linejoin: round; stroke-linecap: round; }
+.track-map .track-arrow { fill: none; stroke: #fff; stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+.track-map .track-start { fill: var(--color-lime); stroke: var(--color-ink); stroke-width: 6; }
+.track-map .track-post { fill: var(--color-ink); stroke: #fff; stroke-width: 6; }
+.track-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; align-items: center; font-size: 0.7rem; color: var(--color-ink-soft); margin-top: 4px; }
+.track-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 999px; margin-right: 5px; vertical-align: -1px; }
+.track-legend .dot.start { background: var(--color-lime); border: 1px solid var(--color-ink); }
+.track-legend .dot.post { background: var(--color-ink); }
+.track-legend .track-credit { margin-left: auto; font-size: 0.62rem; }
+/* The track map in the race header: a column on the right beside the title and the
+   conditions, the width of the header under them on a phone. */
+.race-head .race-map .track-legend { font-size: 0.62rem; }
+@media (min-width: 641px) {
+  .race-head:has(.race-map) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    grid-template-areas: "back map" "title map" "chips map";
+    /* The map is taller than the three lines beside it: they stay together at the top. */
+    grid-template-rows: auto auto 1fr;
+    align-items: start;
+    row-gap: var(--sp-2);
+  }
+  .race-head:has(.race-map) .race-back { grid-area: back; }
+  .race-head:has(.race-map) .race-title { grid-area: title; }
+  .race-head:has(.race-map) .race-chips { grid-area: chips; margin-left: 0; }
+  .race-head:has(.race-map) .race-map { grid-area: map; }
+}
+@media (max-width: 640px) {
+  .race-head .race-map { width: 100%; max-width: 420px; }
+}
