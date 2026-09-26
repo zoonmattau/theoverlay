@@ -289,7 +289,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   }
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
-    .map((m) => ({ ...m, races: abandonWithMeeting(m.races).map((r) => freezeRun(r, before.get(r.raceId))) }))
+    .map((m) => ({ ...m, races: abandonWithMeeting(m.races, before).map((r) => freezeRun(r, before.get(r.raceId))) }))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
   // A race that has jumped is frozen as last published, so a call on the record
   // that had left the card before the jump goes back on it here.
