@@ -89,13 +89,14 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             <div className="card">
               <h2 className="font-display font-extrabold mb-3">By day</h2>
               <table className="data-table w-full text-sm">
-                <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
+                <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People whose first visit that day came from an ad">From ads</th><th></th></tr></thead>
                 <tbody>
                   {r.byDay.map((d) => (
                     <tr key={d.day} className={cut.day === d.day ? "bg-lime-soft" : ""}>
                       <td>{dayLabel(d.day)}</td>
                       <td className="text-right nums">{d.views}</td>
                       <td className="text-right nums"><Link href={`/admin/activity?days=${days}&day=${d.day}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{d.people}</Link></td>
+                      <td className={`text-right nums ${d.ads ? "font-semibold" : "text-ink-soft"}`}>{d.ads || "—"}</td>
                       <td className="w-44"><Bar n={d.views} max={maxDay} /></td>
                     </tr>
                   ))}
@@ -154,11 +155,13 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                     </ul>
                   </details>
                 ))}
-              {r.referrers.length > 0 && (
+              {r.sources.length > 0 && (
                 <>
-                  <h2 className="font-display font-extrabold mt-6 mb-3">Where they came from</h2>
+                  <h2 className="font-display font-extrabold mt-6 mb-1">Where they came from</h2>
+                  <p className="text-xs text-ink-soft mb-3">People by their first visit in the window. Ads are counted from 26 Sep 2026, when the tracker began keeping the campaign.</p>
                   <table className="data-table w-full text-sm">
-                    <tbody>{r.referrers.map((x) => <tr key={x.host}><td>{x.host}</td><td className="text-right nums">{x.views}</td></tr>)}</tbody>
+                    <thead><tr><th>Source</th><th className="text-right">People</th></tr></thead>
+                    <tbody>{r.sources.map((x) => <tr key={x.source}><td className={x.source.endsWith(" ads") ? "font-semibold" : ""}>{x.source}</td><td className="text-right nums">{x.people}</td></tr>)}</tbody>
                   </table>
                 </>
               )}

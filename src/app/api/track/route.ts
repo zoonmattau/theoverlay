@@ -12,7 +12,7 @@ const KINDS = new Set(["plan_click", "bookie_click", "page_view"]);
  * into the areas the admin activity page reports on.
  */
 export async function POST(request: NextRequest) {
-  const body = (await request.json().catch(() => ({}))) as { kind?: string; plan?: string; bookie?: string; raceId?: string; path?: string; vid?: string; referrer?: string };
+  const body = (await request.json().catch(() => ({}))) as { kind?: string; plan?: string; bookie?: string; raceId?: string; path?: string; vid?: string; referrer?: string; utm?: Record<string, unknown>; clid?: string };
   if (!body.kind || !KINDS.has(body.kind)) return NextResponse.json({ ok: false }, { status: 400 });
   const viewer = await getViewer();
   if (viewer.admin) return NextResponse.json({ ok: true });
@@ -29,6 +29,13 @@ export async function POST(request: NextRequest) {
     Object.assign(meta, { path, ...areaOf(path) });
     if (body.vid) meta.vid = String(body.vid).slice(0, 24);
     if (body.referrer) meta.referrer = String(body.referrer).slice(0, 80);
+    // The campaign on the link, and whose ad was clicked, so paid visits can be told from the rest.
+    if (body.utm && typeof body.utm === "object") {
+      const utm: Record<string, string> = {};
+      for (const k of ["source", "medium", "campaign", "content"]) if (body.utm[k]) utm[k] = String(body.utm[k]).slice(0, 60);
+      if (Object.keys(utm).length) meta.utm = utm;
+    }
+    if (body.clid && ["fb", "google", "tiktok", "microsoft"].includes(body.clid)) meta.clid = body.clid;
   }
   await logEvent({ user_id: viewer.id ?? null, kind: body.kind, plan: String(body.plan ?? "").slice(0, 40) || null, amount_cents: null, meta: Object.keys(meta).length ? meta : null });
   return NextResponse.json({ ok: true });

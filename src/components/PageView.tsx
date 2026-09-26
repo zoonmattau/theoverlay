@@ -29,7 +29,18 @@ export function PageView() {
     const now = Date.now();
     if (last.current.path === path && now - last.current.at < 30_000) return;
     last.current = { path, at: now };
-    const body = JSON.stringify({ kind: "page_view", path, vid: visitorId(), referrer: document.referrer ? new URL(document.referrer).host : undefined });
+    // The campaign a link carried, and whose ad was clicked: the address loses both after the first page.
+    const q = new URLSearchParams(window.location.search);
+    const utm = Object.fromEntries(["source", "medium", "campaign", "content"].map((k) => [k, q.get(`utm_${k}`)]).filter(([, v]) => v));
+    const clid = q.has("fbclid") ? "fb" : q.has("gclid") || q.has("gbraid") || q.has("wbraid") ? "google" : q.has("ttclid") ? "tiktok" : q.has("msclkid") ? "microsoft" : undefined;
+    const body = JSON.stringify({
+      kind: "page_view",
+      path,
+      vid: visitorId(),
+      referrer: document.referrer ? new URL(document.referrer).host : undefined,
+      ...(Object.keys(utm).length ? { utm } : {}),
+      ...(clid ? { clid } : {}),
+    });
     try {
       if (!navigator.sendBeacon?.("/api/track", new Blob([body], { type: "application/json" }))) {
         fetch("/api/track", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});

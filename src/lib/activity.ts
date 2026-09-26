@@ -53,7 +53,7 @@ export interface ViewRow {
   id: number;
   user_id: string | null;
   created_at: string;
-  meta: { path?: string; area?: Area; raceId?: string; meetingId?: string; date?: string; code?: string; vid?: string; referrer?: string } | null;
+  meta: { path?: string; area?: Area; raceId?: string; meetingId?: string; date?: string; code?: string; vid?: string; referrer?: string; utm?: { source?: string; medium?: string; campaign?: string; content?: string }; clid?: string } | null;
 }
 
 export interface ActivityReport {
@@ -63,7 +63,8 @@ export interface ActivityReport {
   members: number;
   visitors: number;
   byArea: { area: Area; views: number; people: number }[];
-  byDay: { day: string; views: number; people: number }[];
+  /** Views and people each day, and how many of those people first came that day from an ad. */
+  byDay: { day: string; views: number; people: number; ads: number }[];
   topRaces: { key: string; date: string; meetingId: string; raceId: string; views: number; people: number }[];
   topTipsters: { code: string; views: number; people: number }[];
   /** The people behind the count: members by email, visitors by id and where they came from. Every one of them when a cut is asked for, else the forty most active. */
@@ -71,7 +72,22 @@ export interface ActivityReport {
   /** The cut the people list is for, if any. */
   cut?: { area?: Area; day?: string };
   follows: { follower: string; followerId: string; tipster: string; tipsterCode?: string; since: string }[];
-  referrers: { host: string; views: number }[];
+  /** Where people first came from in the window: an ad network, a tagged campaign or the referring site. */
+  sources: { source: string; people: number }[];
+}
+
+/** Where a view came from: an ad (a paid campaign tag, or Google's click id) first, then a tagged campaign, then the referring site. */
+export function sourceOf(meta: ViewRow["meta"]): string {
+  const u = meta?.utm;
+  const s = (u?.source ?? "").toLowerCase();
+  const paid = /paid|cpc|ppc|ads?$/.test((u?.medium ?? "").toLowerCase());
+  // Facebook puts fbclid on every link clicked there, a post's as much as an ad's, so only a paid tag says Meta ads.
+  if (paid && /meta|facebook|fb|instagram|ig/.test(s)) return "Meta ads";
+  if (meta?.clid === "google" || (paid && /google/.test(s))) return "Google ads";
+  if (meta?.clid === "tiktok") return "TikTok ads";
+  if (meta?.clid === "microsoft") return "Microsoft ads";
+  if (u?.source) return u.campaign ? `${u.source} (${u.campaign})` : u.source;
+  return meta?.referrer ?? "direct";
 }
 
 /**
@@ -134,8 +150,24 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
   };
 
   const byArea = tally((v) => v.meta?.area).map((x) => ({ area: x.key as Area, views: x.views, people: x.people }));
-  const byDay = tally((v) => new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }))
-    .map((x) => ({ day: x.key, views: x.views, people: x.people }))
+  const dayOf = (v: ViewRow) => new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  // Each person's first view in the window: where they came from, and the day they came.
+  const firstView = new Map<string, ViewRow>();
+  for (const v of views) {
+    const id = who(v, owners);
+    const f = firstView.get(id);
+    if (!f || v.created_at < f.created_at) firstView.set(id, v);
+  }
+  const adsByDay = new Map<string, number>();
+  const bySource = new Map<string, number>();
+  for (const v of firstView.values()) {
+    const src = sourceOf(v.meta);
+    bySource.set(src, (bySource.get(src) ?? 0) + 1);
+    if (src.endsWith(" ads")) adsByDay.set(dayOf(v), (adsByDay.get(dayOf(v)) ?? 0) + 1);
+  }
+  const sources = [...bySource.entries()].map(([source, people]) => ({ source, people })).sort((a, b) => b.people - a.people).slice(0, 12);
+  const byDay = tally(dayOf)
+    .map((x) => ({ day: x.key, views: x.views, people: x.people, ads: adsByDay.get(x.key) ?? 0 }))
     .sort((a, b) => a.day.localeCompare(b.day));
   const topRaces = tally((v) => (v.meta?.raceId ? `${v.meta.date}|${v.meta.meetingId}|${v.meta.raceId}` : undefined))
     .slice(0, 15)
@@ -144,7 +176,6 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
       return { key: x.key, date, meetingId, raceId, views: x.views, people: x.people };
     });
   const topTipsters = tally((v) => v.meta?.code).slice(0, 10).map((x) => ({ code: tipsterByCode.get(x.key) ?? x.key, views: x.views, people: x.people }));
-  const referrers = tally((v) => v.meta?.referrer).slice(0, 10).map((x) => ({ host: x.key, views: x.views }));
 
   // The people list: everyone who viewed the cut asked for (an area, a day), else everyone, forty most active shown.
   const inCut = (v: ViewRow) => (!cut.area || v.meta?.area === cut.area) && (!cut.day || new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) === cut.day);
@@ -156,8 +187,8 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     const e = perPerson.get(id) ?? { views: 0, last: v.created_at, first: v.created_at, from: null, areas: new Map(), races: new Set() };
     e.views++;
     if (v.created_at > e.last) e.last = v.created_at;
-    // Where they came from: the referrer on their earliest view in the window.
-    if (v.created_at <= e.first) { e.first = v.created_at; e.from = v.meta?.referrer ?? e.from; }
+    // Where they came from: their earliest view in the window, an ad or the referring site.
+    if (v.created_at <= e.first) { e.first = v.created_at; e.from = sourceOf(v.meta); }
     const a = v.meta?.area ?? "other";
     e.areas.set(a, (e.areas.get(a) ?? 0) + 1);
     if (v.meta?.raceId) e.races.add(v.meta.raceId);
@@ -190,7 +221,7 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     follows: ((follows ?? []) as { user_id: string; tipster_id: string; created_at: string }[])
       .map((f) => ({ follower: email.get(f.user_id) ?? f.user_id, followerId: f.user_id, tipster: tipsterName.get(f.tipster_id) ?? f.tipster_id, tipsterCode: tipsterCode.get(f.tipster_id), since: f.created_at }))
       .sort((a, b) => b.since.localeCompare(a.since)),
-    referrers,
+    sources,
   };
 }
 
