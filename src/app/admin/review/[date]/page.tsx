@@ -82,7 +82,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
       {c.fetched === 0 ? (
         <div className="card text-sm text-ink-soft">
           {admin ? "Fetch the runs once the meetings are done." : "The runs for this day are not in yet. NSW, VIC and WA are in by Monday, QLD and SA later in the week."}{" "}
-          {admin && <>Fetch the runs once the meetings are done.</>} The calls alone are enough for the bets and lays ledgers; the full fetch adds every NSW and VIC runner for the talking points and meeting stats. NSW, VIC and WA metro benchmarks are complete by Monday; QLD and SA take most of the week, so refetch those later.
+          The calls alone are enough for the bets and lays ledgers; the full fetch adds every NSW and VIC runner for the talking points and meeting stats. NSW, VIC and WA metro benchmarks are complete by Monday; QLD and SA take most of the week, so refetch those later.
         </div>
       ) : (
         <>
@@ -101,7 +101,7 @@ async function Day({ params }: { params: PageProps<"/admin/review/[date]">["para
           <Ledger title="Our lays" rows={review.lays} date={date} />
           <Ranking review={review} />
           <Section className="mb-4" id="review-runs" letter="W" title="Runs of the day" aside="Best against class, and the fastest last 600" defaultOpen={false}>
-            <div className="section-body grid gap-4 lg:grid-cols-2">
+            <div className="section-body grid grid-cols-1 gap-4 lg:grid-cols-2">
               <Runs title="Best runs against class" rows={review.best} date={date} />
               <Runs title="Fastest last 600 against class" rows={review.closers} date={date} late />
             </div>

@@ -54,7 +54,7 @@ async function Invite() {
         <ShareInvite link={link} message={message} />
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Step n={1} title="Send the link">
           Text it, drop it in the group chat, or share it from your phone.
         </Step>
@@ -66,7 +66,7 @@ async function Invite() {
         </Step>
       </div>
 
-      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="card">
           <h2 className="font-display font-extrabold">What they get</h2>
           <ul className="mt-2 text-sm text-ink-secondary space-y-1.5">

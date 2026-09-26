@@ -45,7 +45,7 @@ export default function Page() {
         <div className="panel-head">
           <h2>Get help now</h2>
         </div>
-        <ul className="grid gap-4 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           {SUPPORT.map((s) => (
             <li key={s.name} className="card">
               <h3 className="font-display text-lg font-bold">{s.name}</h3>

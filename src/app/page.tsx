@@ -97,7 +97,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
   const lays = calls.filter((x) => x.signal === "lay").length;
 
   return (
-    <section className="grid gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
+    <section className="grid grid-cols-1 gap-6 lg:grid-cols-[1.4fr_1fr] items-center py-6">
       <div>
         <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight text-balance leading-[1.02]">
           The market has an opinion.{" "}
@@ -225,7 +225,7 @@ function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMee
   const summary = calls.length === 0 ? "Our top four and a rated price for every runner." : `${count(bets, "bet")}, ${count(lays, "lay")}.`;
   const href = `/racing/${date}/${meeting.meetingId}/${race.raceId}`;
   return (
-    <section className="card border-lime bg-lime-soft mt-6 grid gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
+    <section className="card border-lime bg-lime-soft mt-6 grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto_1fr] sm:items-center">
       <div className="min-w-0">
         <span className="badge badge-prime">Free race of the day</span>
         <h2 className="mt-1.5 font-display text-xl font-extrabold tracking-tight leading-tight">
@@ -241,7 +241,7 @@ function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMee
 
 function WhyUs() {
   return (
-    <section className="mt-12 hidden sm:grid gap-3 md:grid-cols-3">
+    <section className="mt-12 hidden sm:grid grid-cols-1 gap-3 md:grid-cols-3">
       <div className="card">
         <div className="section-letter mb-2">1</div>
         <h3 className="font-display font-extrabold">Every runner rated</h3>

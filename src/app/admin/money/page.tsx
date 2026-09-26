@@ -76,7 +76,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           <h2>Funnel by plan</h2>
         </div>
         <div className="overflow-x-auto">
-          <table className="data-table text-sm">
+          <table className="data-table stack-sm text-sm">
             <thead>
               <tr>
                 <th>Plan</th>
@@ -106,14 +106,14 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
       <div className="card mb-6">
         <h2 className="font-display font-extrabold mb-3">When</h2>
-        <div className="grid gap-6 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {r.byDay.map((s) => <DayChart key={s.key} s={s} />)}
         </div>
         <details className="mt-4">
           <summary className="cursor-pointer text-xs font-semibold text-ink-soft">The numbers</summary>
           <div className="mt-2"><DayTable series={r.byDay} /></div>
         </details>
-        <div className="mt-6 grid gap-6 md:grid-cols-2">
+        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
           <Bars title="Plan clicks by hour, Sydney time" values={r.byHour} labels={r.byHour.map((_, h) => (h % 3 === 0 ? `${h % 12 || 12}${h < 12 ? "am" : "pm"}` : ""))} />
           <Bars title="Plan clicks by weekday" values={r.byWeekday} labels={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]} />
         </div>
@@ -135,7 +135,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </details>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3 mb-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-6">
         <div className="card">
           <h2 className="font-display font-extrabold">Trials</h2>
           <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
@@ -209,17 +209,17 @@ function Row({ p, total }: { p: PlanFunnel; total?: boolean }) {
   return (
     <tr className={cls}>
       <td>{p.name}{p.price ? <span className="text-ink-soft font-normal"> ${p.price}/mo</span> : null}</td>
-      <td className="text-right nums">{p.clicks}</td>
-      <td className="text-right nums">{p.checkouts}</td>
-      <td className="text-right nums text-ink-secondary">{rate(p.clickToCheckout)}</td>
-      <td className="text-right nums">{p.starts}</td>
-      <td className="text-right nums text-ink-secondary">{rate(p.checkoutToStart)}</td>
-      <td className="text-right nums">{p.paid}</td>
-      <td className="text-right nums text-ink-secondary">{rate(p.startToPaid)}</td>
-      <td className="text-right nums">{money(p.revenue_cents)}</td>
-      <td className="text-right nums">{p.id === "passes" ? "—" : p.active}</td>
-      <td className="text-right nums">{p.id === "passes" ? "—" : p.trialling}</td>
-      <td className="text-right nums">{p.id === "passes" ? "—" : p.cancelled}</td>
+      <td data-label="Clicks" className="text-right nums">{p.clicks}</td>
+      <td data-label="Checkouts" className="text-right nums">{p.checkouts}</td>
+      <td data-label="Click to checkout" className="text-right nums text-ink-secondary">{rate(p.clickToCheckout)}</td>
+      <td data-label="Trials" className="text-right nums">{p.starts}</td>
+      <td data-label="Checkout to trial" className="text-right nums text-ink-secondary">{rate(p.checkoutToStart)}</td>
+      <td data-label="Paid" className="text-right nums">{p.paid}</td>
+      <td data-label="Trial to paid" className="text-right nums text-ink-secondary">{rate(p.startToPaid)}</td>
+      <td data-label="Revenue" className="text-right nums">{money(p.revenue_cents)}</td>
+      <td data-label="Active now" className="text-right nums">{p.id === "passes" ? "—" : p.active}</td>
+      <td data-label="On trial" className="text-right nums">{p.id === "passes" ? "—" : p.trialling}</td>
+      <td data-label="Cancelled" className="text-right nums">{p.id === "passes" ? "—" : p.cancelled}</td>
     </tr>
   );
 }

@@ -66,7 +66,7 @@ async function Reports({ searchParams }: { searchParams: PageProps<"/admin/repor
 function Group({ title, series, cumulativeKeys = [], collapsible }: { title?: string; series: Series[]; cumulativeKeys?: string[]; collapsible?: boolean }) {
   const body = (
     <>
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         {series.map((s) => (
           <DayChart key={s.key} s={s} cumulative={cumulativeKeys.includes(s.key)} />
         ))}
@@ -113,13 +113,13 @@ async function Health({ n }: { n: number }) {
   const Row = ({ d, strong }: { d: HealthDay; strong?: boolean }) => (
     <tr className={strong ? "font-semibold" : ""}>
       <td className="whitespace-nowrap">{d.date === "total" ? `${days.length} days` : d.date.slice(5)}</td>
-      <td className="text-right nums">{d.races}</td>
-      <td className="text-right nums">{d.favWon} <span className="text-ink-soft">/ {d.favSaid.toFixed(1)}</span></td>
-      <td className="text-right nums">{pct(d.favLow, d.races)}</td>
-      <td className="text-right nums">{d.topWon} <span className="text-ink-soft">/ {d.topSaid.toFixed(1)}</span></td>
-      <td className="text-right nums">{pct(d.topWon, d.races)}</td>
-      <td className={`text-right nums ${d.betUnits > 0 ? "text-accent" : d.betUnits < 0 ? "text-red" : ""}`}>{d.bets} <span className="text-ink-soft">{u(d.betUnits)}u</span></td>
-      <td className={`text-right nums ${d.layUnits > 0 ? "text-accent" : d.layUnits < 0 ? "text-red" : ""}`}>{d.lays} <span className="text-ink-soft">{u(d.layUnits)}u</span></td>
+      <td data-label="Races" className="text-right nums">{d.races}</td>
+      <td data-label="Fav won / said" className="text-right nums">{d.favWon} <span className="text-ink-soft">/ {d.favSaid.toFixed(1)}</span></td>
+      <td data-label="Fav 4th+" className="text-right nums">{pct(d.favLow, d.races)}</td>
+      <td data-label="Top pick won / said" className="text-right nums">{d.topWon} <span className="text-ink-soft">/ {d.topSaid.toFixed(1)}</span></td>
+      <td data-label="Top pick %" className="text-right nums">{pct(d.topWon, d.races)}</td>
+      <td data-label="Bets" className={`text-right nums ${d.betUnits > 0 ? "text-accent" : d.betUnits < 0 ? "text-red" : ""}`}>{d.bets} <span className="text-ink-soft">{u(d.betUnits)}u</span></td>
+      <td data-label="Lays" className={`text-right nums ${d.layUnits > 0 ? "text-accent" : d.layUnits < 0 ? "text-red" : ""}`}>{d.lays} <span className="text-ink-soft">{u(d.layUnits)}u</span></td>
     </tr>
   );
   return (
@@ -127,7 +127,7 @@ async function Health({ n }: { n: number }) {
       <h2 className="font-display font-extrabold mb-1">The model against the results</h2>
       <p className="text-xs text-ink-soft mb-3">Won / form said: winners against the winners the form's own prices added up to, on the market favourite and on the form's top pick. A form that is right says as many as win. Fav 4th+ is how often the favourite sat outside the form's top three. Units settle at the price the call was struck at.</p>
       <div className="overflow-x-auto">
-        <table className="data-table text-sm">
+        <table className="data-table stack-sm text-sm">
           <thead><tr><th>Day</th><th className="text-right">Races</th><th className="text-right">Fav won / said</th><th className="text-right">Fav 4th+</th><th className="text-right">Top pick won / said</th><th className="text-right">Top pick %</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr></thead>
           <tbody>
             <Row d={total} strong />

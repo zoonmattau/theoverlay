@@ -69,7 +69,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
         <div className="card text-sm text-ink-soft">Nothing recorded yet. Views start counting from the next deploy; give it a day.</div>
       ) : (
         <>
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="card">
               <h2 className="font-display font-extrabold mb-3">Where they go</h2>
               <table className="data-table w-full text-sm">
@@ -104,7 +104,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             </div>
           </div>
 
-          <div className="grid gap-4 lg:grid-cols-2 mt-4">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
             <div className="card">
               <h2 className="font-display font-extrabold mb-3">Races they open</h2>
               <table className="data-table w-full text-sm">
@@ -172,17 +172,17 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             <p className="text-xs text-ink-soft mb-3">
               Members by email. A visitor is a browser we have seen but no account: the number is its cookie, the source is where its first view in the window came from. {r.cut ? <Link href={`/admin/activity?days=${days}`} className="underline">Back to everyone</Link> : "Click a people count above for that cut."}
             </p>
-            <table className="data-table w-full text-sm whitespace-nowrap">
+            <table className="data-table stack-sm w-full text-sm whitespace-nowrap">
               <thead><tr><th>Who</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
               <tbody>
                 {r.people.map((p) => (
                   <tr key={p.id}>
                     <td>{p.email ? <Link href={`/admin/${p.id}`} className="underline">{p.email}</Link> : <span className="text-ink-soft">visitor {p.id.slice(2, 8)}</span>}</td>
-                    <td className="text-xs text-ink-soft">{p.from ?? "direct"}</td>
-                    <td className="text-right nums">{p.views}</td>
-                    <td className="text-right nums">{p.races}</td>
-                    <td className="text-xs">{p.areas}</td>
-                    <td className="text-ink-soft text-xs">{when(p.last)}</td>
+                    <td data-label="From" className="text-xs text-ink-soft">{p.from ?? "direct"}</td>
+                    <td data-label="Views" className="text-right nums">{p.views}</td>
+                    <td data-label="Races opened" className="text-right nums">{p.races}</td>
+                    <td data-label="Mostly" className="text-xs">{p.areas}</td>
+                    <td data-label="Last seen" className="text-ink-soft text-xs">{when(p.last)}</td>
                   </tr>
                 ))}
               </tbody>

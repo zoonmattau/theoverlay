@@ -131,7 +131,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 </form>
               </div>
             </div>
-            <div className="mt-4 grid gap-4 md:grid-cols-[2fr_3fr]">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[2fr_3fr]">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold mb-1.5">Clicks</div>
                 <div className="grid grid-cols-4 gap-2 text-center text-sm">
@@ -207,7 +207,7 @@ async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/af
                 </table>
               ))}
               {show(sp, a.id) === "settings" && (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
               <div>
                 <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Link</div>
                 <CopyLink link={`${site}/go/${a.code}`} />

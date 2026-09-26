@@ -64,7 +64,7 @@ async function DistancePage({ params }: { params: PageProps<"/data/distances/[di
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">Jockeys over the trip</h3>
           <p className="mb-2 text-sm text-ink-secondary">Ranked on Power over {distance}m exactly. <Link href={`/data/jockeys${filterQuery({ distances: [distance] })}`} className="text-blue">Full list with filters</Link>.</p>

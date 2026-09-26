@@ -79,7 +79,7 @@ export async function PersonPage({ kind, params }: { kind: Kind; params: Promise
         )}
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">By track</h3>
           <BreakdownTable rows={linked(profile.byTrack, (l) => `/data/${noun(kind)}${filterQuery({ tracks: [l] }, { find: profile.name })}`)} label="Track" noun="tracks" hint="Click a track for the ranking there, with this one found." />

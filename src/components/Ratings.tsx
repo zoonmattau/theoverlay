@@ -72,7 +72,7 @@ export function RatingTiles({ r, par }: { r: RunnerRatings; par: number }) {
   const P = (v: number) => <Points value={v} par={par} strong />;
   const gap = r.today - par;
   return (
-    <div className="grid gap-2 md:grid-cols-[180px_1fr]">
+    <div className="grid grid-cols-1 gap-2 md:grid-cols-[180px_1fr]">
       <div className="today-tile">
         <div className="today-label">Today&apos;s rating</div>
         <div className="today-value nums">{r.today.toFixed(1)}</div>

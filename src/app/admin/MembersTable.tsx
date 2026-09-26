@@ -174,7 +174,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
         </div>
       ) : (
       <div className="overflow-x-auto">
-        <table className="data-table text-sm min-w-[1100px]">
+        <table className="data-table stack-sm text-sm min-w-[1100px]">
           <thead>
             <tr>
               {COLS.map((c) => (
@@ -198,16 +198,16 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                   {m.name !== m.email && <span className="block text-xs text-ink-soft">{m.email}</span>}
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
                 </td>
-                <td>{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="badge badge-lay">Cancelled</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
-                <td>{m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}</td>
-                <td>{m.affiliate ? <span className="badge badge-muted nums">{m.affiliate}</span> : <span className="text-xs text-ink-soft">{m.source}</span>}</td>
-                <td>{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? <span className="badge badge-prime">{m.statusLabel}</span> : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
-                <td className="nums">{day(m.accessUntil)}</td>
-                <td className="nums">{day(m.since)}</td>
-                <td className="text-right nums">{money(m.spent)}</td>
-                <td className="text-right nums">{m.passes}</td>
-                <td>{m.emails ? <span className="badge badge-prime">On</span> : <span className="badge badge-muted">Off</span>}</td>
-                <td>
+                <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="badge badge-lay">Cancelled</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
+                <td data-label="Plan">{m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}</td>
+                <td data-label="Came from">{m.affiliate ? <span className="badge badge-muted nums">{m.affiliate}</span> : <span className="text-xs text-ink-soft">{m.source}</span>}</td>
+                <td data-label="Status">{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? <span className="badge badge-prime">{m.statusLabel}</span> : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
+                <td data-label="Access until" className="nums">{day(m.accessUntil)}</td>
+                <td data-label="Since" className="nums">{day(m.since)}</td>
+                <td data-label="Spent" className="text-right nums">{money(m.spent)}</td>
+                <td data-label="Passes" className="text-right nums">{m.passes}</td>
+                <td data-label="Emails">{m.emails ? <span className="badge badge-prime">On</span> : <span className="badge badge-muted">Off</span>}</td>
+                <td data-label="Discord">
                   {m.discordState === "none" ? (
                     <span className="text-xs text-ink-soft">—</span>
                   ) : (
@@ -217,7 +217,7 @@ export function MembersTable({ rows, plans, remove, self }: { rows: MemberRow[];
                     </>
                   )}
                 </td>
-                <td className="nums">{when(m.lastSeen)}</td>
+                <td data-label="Last seen" className="nums">{when(m.lastSeen)}</td>
                 <td>
                   {m.id !== self && !m.admin && (
                     <form action={remove.bind(null, m.id)}>

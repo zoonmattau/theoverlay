@@ -33,7 +33,7 @@ export function Record() {
       aside={<span className="nums hidden md:inline">To {longDate(PRIOR_RECORD.to)}</span>}
     >
       <div className="section-body">
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
           <Tile label="Units" value={units(r.units)} sub="level stakes, one unit a tip and a tenth on a Way Overlay" accent={r.units >= 0} />
           <Tile label="Tips" value={r.tips.toLocaleString("en-AU")} sub="bets and lays, every call published" />
           <Tile label="Return" value={pct(r.roi)} sub="on turnover" accent={r.roi >= 0} />

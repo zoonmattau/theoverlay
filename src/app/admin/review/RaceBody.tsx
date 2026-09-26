@@ -10,7 +10,7 @@ function Stat({ label, value, sub, className = "" }: { label: string; value: str
   return (
     <div className="card py-3">
       <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft">{label}</div>
-      <div className={`nums text-2xl font-extrabold ${className}`}>{value || "â€”"}</div>
+      <div className={`nums text-2xl font-extrabold ${className}`}>{value || "—"}</div>
       {sub && <div className="text-xs text-ink-soft mt-0.5">{sub}</div>}
     </div>
   );

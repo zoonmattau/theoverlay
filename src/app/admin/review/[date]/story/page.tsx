@@ -99,7 +99,7 @@ async function Story({ params, searchParams }: { params: PageProps<"/admin/revie
       </section>
 
       <nav className="card mb-4 text-sm">
-        <ol className="grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 list-decimal list-inside">
+        <ol className="grid grid-cols-1 gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3 list-decimal list-inside">
           {races.map(({ r, why }) => (
             <li key={r.race.raceId}>
               <a href={`#story-${r.race.raceId}`} className="font-semibold underline">{raceLabel(r)}, {r.race.name}</a>

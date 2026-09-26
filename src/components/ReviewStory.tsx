@@ -26,7 +26,7 @@ export function ReviewStory({ review, full = true }: { review: PublishedReview; 
     <div className="space-y-4">
       <p className="text-sm text-ink-secondary">{review.intro}</p>
 
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
         {stories.map((s, i) => (
           <li key={i} className={`card ${s.kind === "run of the day" ? "border-lime bg-lime-soft md:col-span-2" : ""}`}>
             <span className={`badge ${KIND_CLASS[s.kind]}`}>{KIND_LABEL[s.kind]}</span>
@@ -67,7 +67,7 @@ function Features({ features, raceHref }: { features: FeatureLine[]; raceHref: (
               <span className="text-xs text-ink-soft">{f.track} R{f.raceNumber}, {f.distance}m, par {f.par}</span>
             </div>
             <p className="mt-2 text-sm leading-relaxed">{f.text}</p>
-            <div className="mt-3 grid gap-4 md:grid-cols-2">
+            <div className="mt-3 grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="overflow-x-auto">
                 <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mb-1">The first three</div>
                 <table className="data-table w-full text-sm">

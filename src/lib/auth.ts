@@ -76,7 +76,8 @@ export function hasAccess(viewer: Viewer, date: string): boolean {
  */
 export const getViewer = cache(async function getViewer(): Promise<Viewer> {
   // Local escape hatch: everything unlocked, no account needed.
-  if (process.env.OVERLAY_OPEN === "1") return { ...ANON, pro: true, plan: "open" };
+  // OVERLAY_ADMIN=1 alongside it opens the admin panel too.
+  if (process.env.OVERLAY_OPEN === "1") return { ...ANON, pro: true, plan: "open", admin: process.env.OVERLAY_ADMIN === "1" };
   if (!supabaseConfigured()) return ANON;
   const supabase = await supabaseServer();
   const {

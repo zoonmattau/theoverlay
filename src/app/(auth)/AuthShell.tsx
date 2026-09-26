@@ -20,7 +20,7 @@ export function AuthShell({
 }) {
   return (
     <div className="page">
-      <div className="section grid md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] mt-6 max-w-4xl mx-auto">
+      <div className="section grid grid-cols-1 md:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] mt-6 max-w-4xl mx-auto">
         <aside className="hidden md:flex flex-col justify-between p-8 bg-bar text-bar-ink">
           <Link href="/" className="inline-block">
             <Image src="/brand/lockup-dark.png" alt="The Overlay" width={1252} height={322} className="h-12 w-auto" priority />

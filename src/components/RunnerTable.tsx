@@ -221,7 +221,7 @@ function TipForm({ tipping, race, tab, name, market, onDone }: { tipping: Tippin
         await tipping.postTip(fd);
         onDone();
       }}
-      className="grid gap-3 sm:grid-cols-[auto_auto_auto_auto_auto_1fr_auto] items-end text-sm p-3"
+      className="grid grid-cols-1 gap-3 sm:grid-cols-[auto_auto_auto_auto_auto_1fr_auto] items-end text-sm p-3"
     >
       <input type="hidden" name="date" value={tipping.date} />
       <input type="hidden" name="raceId" value={race.raceId} />

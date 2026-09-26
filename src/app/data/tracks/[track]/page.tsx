@@ -94,7 +94,7 @@ async function TrackPage({ params }: { params: PageProps<"/data/tracks/[track]">
         </div>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div>
           <h3 className="font-display text-lg font-extrabold tracking-tight mb-1">Jockeys here</h3>
           <p className="mb-2 text-sm text-ink-secondary">Ranked on Power at this track. <Link href={`/data/jockeys${filterQuery({ tracks: [t.track] })}`} className="text-blue">Full list with filters</Link>, <Link href={`/data/combos${filterQuery({ tracks: [t.track] })}`} className="text-blue">pairs here</Link>.</p>

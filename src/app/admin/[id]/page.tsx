@@ -99,7 +99,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
         <Tile n={m.pass_credits} label="passes unused" />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 mb-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
         <div className="card space-y-2 text-sm">
           <h2 className="font-display font-extrabold">Account</h2>
           <Row k="State" v={state === "active" ? "Active" : state === "invited" ? "Invited, not accepted" : "Signed up, email not confirmed"} />
@@ -209,9 +209,9 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           {views.length === 0 && <li className="p-4 text-sm text-ink-soft">No page views recorded yet.</li>}
           {views.map((v) => (
             <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-1.5 text-sm">
-              <span className="nums text-ink-soft w-40">{stamp(v.created_at)}</span>
+              <span className="nums text-ink-soft whitespace-nowrap sm:w-44">{stamp(v.created_at)}</span>
               <span className="badge badge-muted">{AREA_LABEL[v.meta?.area ?? "other"]}</span>
-              <span className="text-xs text-ink-soft">{v.meta?.path}</span>
+              <span className="min-w-0 text-xs text-ink-soft [overflow-wrap:anywhere]">{v.meta?.path}</span>
             </li>
           ))}
         </ul>
@@ -226,11 +226,11 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           {events.length === 0 && <li className="p-4 text-sm text-ink-soft">Nothing yet.</li>}
           {events.map((e) => (
             <li key={e.id} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
-              <span className="nums text-ink-soft w-40">{stamp(e.created_at)}</span>
+              <span className="nums text-ink-soft whitespace-nowrap sm:w-44">{stamp(e.created_at)}</span>
               <span className="badge badge-muted">{e.kind}</span>
               {e.plan && <span>{planById(e.plan)?.name ?? e.plan}</span>}
               {e.amount_cents ? <span className="nums font-semibold">{money(e.amount_cents)}</span> : null}
-              {e.meta && <span className="text-xs text-ink-soft">{JSON.stringify(e.meta)}</span>}
+              {e.meta && <span className="min-w-0 text-xs text-ink-soft [overflow-wrap:anywhere]">{JSON.stringify(e.meta)}</span>}
             </li>
           ))}
         </ul>
@@ -242,8 +242,8 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
     <div className="flex justify-between gap-4 border-t border-line-soft pt-2 first:border-t-0 first:pt-0">
-      <span className="text-ink-soft">{k}</span>
-      <span className="nums text-right">{v}</span>
+      <span className="shrink-0 text-ink-soft">{k}</span>
+      <span className="min-w-0 nums text-right [overflow-wrap:anywhere]">{v}</span>
     </div>
   );
 }

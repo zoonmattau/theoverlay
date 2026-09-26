@@ -33,7 +33,7 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
     .sort((a, b) => a.rank - b.rank);
 
   return (
-    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
       {picks.map((r) => (
         /* Closed, a pick is its number, its name and the two prices. The why,
            the ratings and the factors are a tap away. */

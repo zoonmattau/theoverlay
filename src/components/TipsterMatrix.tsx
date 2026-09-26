@@ -113,7 +113,7 @@ export function TipsterMatrix({ meetings, date, action, late }: { meetings: Matr
               await action(fd);
               setPicked(undefined);
             }}
-            className="mt-3 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] items-end text-sm"
+            className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto_auto_auto_auto] items-end text-sm"
           >
             <input type="hidden" name="date" value={date} />
             <input type="hidden" name="raceId" value={race.r.raceId} />

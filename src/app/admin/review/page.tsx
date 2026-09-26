@@ -54,7 +54,7 @@ async function Index() {
         {admin && <AllCallsButton dates={toBuy.filter((c) => c.calls > c.fetched).map((c) => c.date)} toBuy={owed} />}
       </section>
       <div className="card overflow-x-auto">
-        <table className="data-table w-full">
+        <table className="data-table stack-sm w-full">
           <thead>
             <tr><th>Day</th><th>Date</th>{admin && <th className="text-right">Calls with runs</th>}<th className="text-right">Runs in</th>{admin && <th>Review</th>}<th>Public</th></tr>
           </thead>
@@ -63,12 +63,12 @@ async function Index() {
               const c = calls.get(d);
               return (
                 <tr key={d} className={dayOf(d) === "Saturday" ? "font-semibold" : ""}>
-                  <td>{dayOf(d)}</td>
-                  <td><Link href={`/admin/review/${d}`} className="font-semibold underline">{label(d)}</Link></td>
-                  {admin && <td className={`text-right nums ${c && c.calls > c.fetched && d < today ? "text-red-700" : ""}`}>{c ? `${c.fetched}/${c.calls}` : ""}</td>}
-                  <td className="text-right nums">{reviewed.get(d) ?? 0}</td>
-                  {admin && <td className="text-ink-soft font-normal">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>}
-                  <td className="font-normal">{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : admin && reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
+                  <td>{dayOf(d)}<span className="stack-only"> <Link href={`/admin/review/${d}`} className="underline">{label(d)}</Link></span></td>
+                  <td className="stack-hide"><Link href={`/admin/review/${d}`} className="font-semibold underline">{label(d)}</Link></td>
+                  {admin && <td data-label="Calls with runs" className={`text-right nums ${c && c.calls > c.fetched && d < today ? "text-red-700" : ""}`}>{c ? `${c.fetched}/${c.calls}` : ""}</td>}
+                  <td data-label="Runs in" className="text-right nums">{reviewed.get(d) ?? 0}</td>
+                  {admin && <td data-label="Review" className="text-ink-soft font-normal">{reviewed.has(d) ? "Fetched" : "Not yet"}</td>}
+                  <td data-label="Public" className="font-normal">{published.has(d) ? <Link href={`/review/${d}`} className="underline">Published</Link> : admin && reviewed.has(d) ? <Link href={`/admin/review/${d}/preview`} className="underline text-ink-soft">Preview</Link> : <span className="text-ink-soft">—</span>}</td>
                 </tr>
               );
             })}

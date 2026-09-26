@@ -82,7 +82,7 @@ export default function Page() {
               <Factors r={SAMPLE} compact />
             </div>
           </div>
-          <dl className="grid gap-x-6 gap-y-3 sm:grid-cols-2 text-sm">
+          <dl className="grid grid-cols-1 gap-x-6 gap-y-3 sm:grid-cols-2 text-sm">
             {RATINGS.map(([term, text]) => (
               <div key={term} className="flex gap-3">
                 <dt className="font-display font-extrabold shrink-0 w-36">{term}</dt>
@@ -103,7 +103,7 @@ export default function Page() {
           <span className="section-letter">2</span>
           <h2>A price for every horse</h2>
         </div>
-        <div className="section-body grid gap-4 md:grid-cols-[280px_1fr] items-start">
+        <div className="section-body grid grid-cols-1 gap-4 md:grid-cols-[280px_1fr] items-start">
           <div className="pick-card is-top">
             <div className="flex items-start justify-between gap-2">
               <div>
@@ -150,7 +150,7 @@ export default function Page() {
           <span className="section-letter">3</span>
           <h2>The calls</h2>
         </div>
-        <div className="section-body grid gap-3 sm:grid-cols-2">
+        <div className="section-body grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Call badge={<Badge tone="back">Bet</Badge>} title="Bet">
             The market is paying more than our price on a horse with a real chance, so the price is on our side.
           </Call>
@@ -173,7 +173,7 @@ export default function Page() {
           <h2>Reading the board</h2>
         </div>
         <div className="section-body">
-          <div className="grid gap-3 sm:grid-cols-4 mb-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 mb-4">
             <Cell cls="tip-back" race="R4" line="2h 11m" tag="1 bet" note="A race with a bet" />
             <Cell cls="tip-lay" race="R5" line="2h 41m" tag="1 lay" note="A race with a lay" />
             <Cell cls="tip-prime" race="R6" line="3h 11m" tag="Prime" note="A Prime Overlay" />
