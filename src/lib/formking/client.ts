@@ -44,7 +44,8 @@ export class FormKingError extends Error {
  */
 const CACHE_DIR = path.join(process.cwd(), ".formking-cache");
 const CACHE_TTL_MS: Record<string, number> = {
-  meetings: 10 * 60_000,
+  // The day's meeting list, a credit each time: hourly is soon enough to see a meeting finish.
+  meetings: 60 * 60_000,
   race: 30 * 60_000,
   speedmap: 30 * 60_000,
 };

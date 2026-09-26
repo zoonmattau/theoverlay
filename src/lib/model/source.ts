@@ -55,15 +55,16 @@ const STALE_MS = Number(process.env.OVERLAY_STALE_MIN ?? 20) * 60_000;
  * Credits. Race form (two credits, the benchmarks and full career) is bought
  * once per race per day and never again. What moves during the day, prices,
  * scratchings, going, results, comes from the meeting summary (five credits
- * for the whole meeting), polled every hour until its last result, then
- * never. It was every fifteen minutes near the races, which cost about 2,400
- * credits on a Saturday (26 Sep 2026); since 22 Sep BetWatch brings the
- * prices, scratchings and results every minute, so the summary is left the
- * going and the riders, and an hour is soon enough for those.
+ * for the whole meeting), polled every three hours until its last result,
+ * then never. It was every fifteen minutes near the races, which cost about
+ * 2,400 credits on a Saturday (26 Sep 2026) against a budget of 30,000 a
+ * month; since 22 Sep BetWatch brings the prices, scratchings and results
+ * every minute, so the summary is left the going and the riders.
+ * OVERLAY_NEAR_MIN and OVERLAY_FAR_MIN set it.
  */
 const RACE_FORM_TTL_MS = 30 * 60 * 60_000;
-const FAR_TTL_MS = 60 * 60_000;
-const NEAR_TTL_MS = Number(process.env.OVERLAY_NEAR_MIN ?? 60) * 60_000;
+const FAR_TTL_MS = Number(process.env.OVERLAY_FAR_MIN ?? 180) * 60_000;
+const NEAR_TTL_MS = Number(process.env.OVERLAY_NEAR_MIN ?? 180) * 60_000;
 const NEAR_WINDOW_MS = 60 * 60_000;
 const DONE_TTL_MS = 24 * 60 * 60_000;
 
