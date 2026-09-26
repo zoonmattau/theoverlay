@@ -72,9 +72,11 @@ export async function growthSeries(n: number): Promise<Series[]> {
 /** The model's calls by day: how many, and units at level stakes once settled. */
 export async function modelTipSeries(n: number): Promise<Series[]> {
   const window = days(n);
-  const { data } = await supabaseAdmin().from("tips").select("date, side, units, settled_at").eq("source", "model").gte("date", window[0]);
+  const { data } = await supabaseAdmin().from("tips").select("date, side, units, settled_at, finish_position").eq("source", "model").gte("date", window[0]);
   const count = new Map<string, number>(), bets = new Map<string, number>(), lays = new Map<string, number>(), units = new Map<string, number>();
-  for (const t of (data ?? []) as { date: string; side: "back" | "lay"; units: number | null; settled_at: string | null }[]) {
+  for (const t of (data ?? []) as { date: string; side: "back" | "lay"; units: number | null; settled_at: string | null; finish_position: number | null }[]) {
+    // A void (off the card, or scratched) was never a call on Today's tips.
+    if (t.settled_at && t.finish_position === null) continue;
     add(count, t.date, 1);
     add(t.side === "back" ? bets : lays, t.date, 1);
     if (t.settled_at) add(units, t.date, Number(t.units ?? 0));

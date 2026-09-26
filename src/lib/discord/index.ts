@@ -6,7 +6,7 @@ import { longDate } from "@/lib/format";
 import type { StoredCard } from "@/lib/model/store";
 import { callPrice, isRoughie, stakeOf } from "@/lib/model/types";
 import { callLimit, inCallLock } from "@/lib/model/publish";
-import { settledAt } from "@/lib/tips";
+import { ledgerFor, settledAt } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRunner } from "@/lib/model/types";
 
 /**
@@ -241,7 +241,12 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
  * price it is struck at. A call that went is not announced, a race that
  * has jumped is left alone, and a call that only changed price is not news.
  */
-export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard): Promise<void> {
+/**
+ * `known` is the day's bets already on the record when the build began: they
+ * were posted when they first appeared, so one that comes back on the card
+ * (a bet stays a bet for the day) is never posted again.
+ */
+export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard, known = new Set<string>()): Promise<void> {
   if (!discordConfigured() || before.size === 0) return;
   try {
     // Changes follow a post members have seen: the morning calls, or the early look the night before.
@@ -262,6 +267,7 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
       // A bet that grew into a Prime during the day goes to the Primes channel as the morning ones did.
       if (isPrime(c) && !prev?.prime && !posted.has(primeKey(c))) primes.push(c);
       if (prev && prev.signal === c.x.signal) continue;
+      if (known.has(`${c.r.raceId}:${c.x.tabNumber}`)) continue;
       fresh.push(c);
     }
     for (const c of fresh) await send(CHANNELS.calls, callPost(c, date));
@@ -320,21 +326,18 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
       await remember();
       return;
     }
-    // The day so far, over every call in a race that has run.
-    let units = 0;
-    for (const c of callsOn(card)) {
-      if (!c.r.result?.length || c.x.finishPosition === undefined || !callPrice(c.x)!) continue;
-      const w = c.x.finishPosition === 1;
-      const at = settledAt(c.x.signal!, callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
-      units += (c.x.signal === "back" ? (w ? at - 1 : -1) : w ? -(at - 1) : 1) * stakeOf(c.x);
-    }
+    // Prices and units as the record settled them, the same as Today's tips.
+    const ledger = await ledgerFor(date);
+    const units = [...ledger.values()].reduce((a, r) => a + (r.units ?? 0), 0);
     const lines = won.map((c) => {
       const prime = isPrime(c);
+      const row = ledger.get(`${c.r.raceId}:${c.x.tabNumber}`);
+      const at = row?.price ?? settledAt(c.x.signal!, callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
+      const got = row?.units ?? (c.x.signal === "back" ? (at - 1) * stakeOf(c.x) : stakeOf(c.x));
       if (c.x.signal === "back") {
-        const at = settledAt("back", callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
-        return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(at)}${prime ? ", a Prime" : isRoughie(c.x) ? ", a Way Overlay" : ""}. +${((at - 1) * stakeOf(c.x)).toFixed(2)}u`;
+        return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(at)}${prime ? ", a Prime" : isRoughie(c.x) ? ", a Way Overlay" : ""}. +${got.toFixed(2)}u`;
       }
-      return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(callPrice(c.x)!)}. +1.00u`;
+      return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(at)}. +${got.toFixed(2)}u`;
     });
     const messageId = await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
     await remember(messageId);
@@ -381,6 +384,12 @@ export async function postReview(review: { date: string; intro: string; storylin
   }
 }
 
+/** One line to the winners channel by hand, for a winner the automatic post missed. */
+export async function postWinnerLine(text: string): Promise<string | undefined> {
+  if (!discordConfigured()) return undefined;
+  return send(CHANNELS.winners, text);
+}
+
 export async function postResults(date: string, card: StoredCard): Promise<void> {
   if (!discordConfigured()) return;
   const races = card.meetings.flatMap((m) => m.races);
@@ -388,10 +397,15 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
   const calls = callsOn(card);
   if (calls.length === 0) return;
   try {
+    // Prices and units as the record settled them, the same as Today's tips.
+    const ledger = await ledgerFor(date);
+    const priceOf = (c: Call) => ledger.get(`${c.r.raceId}:${c.x.tabNumber}`)?.price ?? callPrice(c.x) ?? 0;
     await once(date, "results", () => {
       const settle = (c: Call) => {
+        const row = ledger.get(`${c.r.raceId}:${c.x.tabNumber}`);
+        if (row?.units !== undefined) return row.units;
         const won = c.x.finishPosition === 1;
-        const p = callPrice(c.x)! ?? 0;
+        const p = priceOf(c);
         return (c.x.signal === "back" ? (won ? p - 1 : -1) : won ? -(p - 1) : 1) * stakeOf(c.x);
       };
       const rows = calls.map((c) => ({ c, units: settle(c) }));
@@ -401,7 +415,7 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
       const sum = (xs: typeof rows) => xs.reduce((a, r) => a + r.units, 0);
       const fmt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
       const finish = (c: Call) => (c.x.finishPosition === 1 ? "won" : c.x.finishPosition === 0 ? "did not finish" : ran(c));
-      const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : isRoughie(c.x) ? "Way Overlay" : "Bet"} ${price(callPrice(c.x)!)}, ${finish(c)}, ${fmt(units)}`).join("\n");
+      const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : isRoughie(c.x) ? "Way Overlay" : "Bet"} ${price(priceOf(c))}, ${finish(c)}, ${fmt(units)}`).join("\n");
       return send(
         CHANNELS.results,
         `**${longDate(date)}: ${fmt(total)}** level stakes, one unit a call and a tenth on a Way Overlay.\nBets ${bets.filter((r) => r.units > 0).length} of ${bets.length} won, ${fmt(sum(bets))}. Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length} landed, ${fmt(sum(lays))}.\n\n${body}\n\nThe record: ${SITE}/#record`,

@@ -5,8 +5,8 @@ import type { PastEvent, SectionKey } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { clockPoints, TEMPO_LENGTHS } from "./ratings";
 import { readStoredCard, type StoredCard } from "./store";
-import { stakeOf, type PublishedMeeting, type PublishedRace, type PublishedRunner, type Tempo } from "./types";
-import { settle } from "@/lib/tips";
+import { callPrice, stakeOf, type PublishedMeeting, type PublishedRace, type PublishedRunner, type Tempo } from "./types";
+import { ledgerFor, settle } from "@/lib/tips";
 
 /**
  * The Saturday review. After the day, each runner's own run is bought from
@@ -285,6 +285,8 @@ export interface ReviewedRunner {
   finish?: number;
   margin?: number;
   sp?: number;
+  /** A call's units as the record settled it, at the price Today's tips shows. */
+  units?: number;
   /** Lengths vs class over the first section and the last 600. */
   early?: number;
   late?: number;
@@ -494,7 +496,7 @@ function featureRaces(races: ReviewedRace[]): FeatureRace[] {
       const topRated = [...race.runners].sort((a, b) => b.runner.ratings.today - a.runner.ratings.today)[0];
       const placings = race.runners.filter((r) => r.finish && r.finish <= 3).sort((a, b) => a.finish! - b.finish!);
       const calls = race.runners.filter((r) => r.runner.signal && r.runner.marketPrice);
-      const settled = calls.filter((r) => r.finish !== undefined);
+      const settled = calls.filter((r) => r.units !== undefined);
       return {
         race,
         grade: `G${m[1]}`,
@@ -502,7 +504,7 @@ function featureRaces(races: ReviewedRace[]): FeatureRace[] {
         topRated,
         placings,
         calls,
-        units: settled.length ? round1(settled.reduce((a, r) => a + settle(r.runner.signal!, r.runner.marketPrice!, r.finish!, stakeOf(r.runner)), 0)) : undefined,
+        units: settled.length ? round1(settled.reduce((a, r) => a + r.units!, 0)) : undefined,
       };
     });
 }
@@ -566,7 +568,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
   const stored = await readStoredCard(date);
   if (!stored) return undefined;
   const card = stored.card;
-  const runs = await readReview(date);
+  const [runs, ledger] = await Promise.all([readReview(date), ledgerFor(date)]);
   const byRunner = new Map<string, StoredRun>();
   for (const s of runs.values()) byRunner.set(`${s.raceId}:${s.tabNumber}`, s);
   const wanted = new Set(wantedRunners(card).map((w) => `${w.raceId}:${w.tabNumber}`));
@@ -593,9 +595,14 @@ export async function buildReview(date: string): Promise<Review | undefined> {
           const finish = run?.finish ?? runner.finishPosition;
           // The feed gives the winner its winning margin, so the winner is on the race's time.
           const beaten = finish === 1 ? 0 : margin;
+          // Settled as Today's tips settles it: the record's units, else at the record's price once the race has a result.
+          const row = ledger.get(key);
+          const at = row?.price ?? callPrice(runner) ?? runner.marketPrice;
+          const units = !runner.signal || !at ? undefined : (row?.units ?? (race.result?.length && finish !== undefined ? settle(runner.signal, at, finish, stakeOf(runner)) : undefined));
           return {
             runner,
             run: byRunner.has(key) ? run : undefined,
+            units,
             ranTo,
             expected,
             gap: ranTo !== undefined ? round1(ranTo - expected) : undefined,
@@ -669,7 +676,7 @@ export async function buildReview(date: string): Promise<Review | undefined> {
           reviewed,
           side: x.signal,
           tag: tagOf.get(`${race.raceId}:${x.tabNumber}`),
-          units: r.finish !== undefined ? settle(x.signal, x.marketPrice, r.finish, stakeOf(x)) : undefined,
+          units: r.units,
         };
         (x.signal === "back" ? bets : lays).push(row);
       }

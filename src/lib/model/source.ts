@@ -18,7 +18,7 @@ import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
 import { betwatchConfigured } from "@/lib/betwatch/client";
 import { pollPrices, racesToPrice, readPriceBook, type PriceBook } from "@/lib/betwatch/prices";
-import { recordTips } from "@/lib/tips";
+import { betsOnRecord, holdBetRatedUnder, recordTips, type RecordedBet } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRun } from "./types";
 
 /**
@@ -256,6 +256,8 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   const started = Date.now();
   // Calls already on the stored card carry over while they keep half their edge.
   const kept: KeptSignals = new Map();
+  // The day's bets on the record before this build: held as bets, and never announced twice.
+  const known = storeConfigured() ? await betsOnRecord(date) : new Map<string, RecordedBet>();
   const before = new Map<string, PublishedRace>();
   let pinnedFreeRaceId: string | undefined;
   let previousFreeRaceId: string | undefined;
@@ -269,6 +271,8 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
         for (const x of r.runners) if (x.signal) kept.set(`${r.raceId}:${x.tabNumber}`, x.signal);
       }
     }
+    // Every bet on the record stays a bet, including one an earlier build let go.
+    for (const k of known.keys()) kept.set(k, "back");
   }
   const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
   // Every runner joins the horse store, so the compare and fantasy pages know it. A price refresh skips it: nothing about the horses moved.
@@ -285,9 +289,14 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
     .map((m) => ({ ...m, races: m.races.map((r) => freezeRun(r, before.get(r.raceId))) }))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
+  // A race that has jumped is frozen as last published, so a bet on the record
+  // that had left the card before the jump goes back on it here.
+  for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (!x.scratched && !x.signal && kept.get(`${r.raceId}:${x.tabNumber}`) === "back") x.signal = "back";
   // A call taken off by hand stays off, whatever the numbers say on this build.
   const muted = storeConfigured() ? await readMutes(date) : new Set<string>();
   for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (muted.has(`${r.raceId}:${x.tabNumber}`)) x.signal = undefined;
+  // A bet's rated price stays under the price it is bet at.
+  holdBetRatedUnder({ meetings }, known);
   const selections = selectBestBets(meetings);
   // Prime Overlays are chosen across the card, so the runner learns it here.
   const primes = new Set(selections.filter((s) => s.tag === "prime_overlay").map((s) => `${s.raceId}:${s.tabNumber}`));
@@ -325,7 +334,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
       // Calls that came or went since the last card, then once every race has run the day's ledger, once.
       if (date === racingToday()) {
         // Never ahead of the site: before the release hour the calls are not public yet.
-        if (released(date)) await postCallChanges(date, before, card);
+        if (released(date)) await postCallChanges(date, before, card, new Set(known.keys()));
         await postWinners(date, before, card);
       }
       await postResults(date, card);

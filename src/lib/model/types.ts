@@ -171,8 +171,10 @@ export interface PublishedRunner {
   form?: string;
   scratched: boolean;
   ratings: RunnerRatings;
-  /** Our price: the form melded with the market. Ours, not Form King's. */
+  /** Our price: the form melded with the market. Ours, not Form King's. On a bet, held under the bet price (holdBetRatedUnder). */
   ratedPrice: number;
+  /** The model's own price on a bet whose shown rated price is held under its bet price. */
+  ratedUncapped?: number;
   /** Our price from the form alone, before the market had a say. */
   formPrice?: number;
   /** Our model's win probability, 0-1. */

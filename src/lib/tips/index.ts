@@ -2,17 +2,22 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
+import { inCallLock } from "@/lib/model/publish";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
 import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./stats";
 
 export type { Period, RecordStats, SideStats, TipSource } from "./stats";
 
 /**
- * The tips ledger. A call is written the first time it appears on a card and
- * settled once the race has a result, at the best price it was up at: a
- * member could have taken any price while the call was live, so each rebuild
- * lifts a bet's price to the market's high and drops a lay's to its low.
- * Nothing is ever removed, so the record on the home page is the record.
+ * The tips ledger, on the user's rules of 26 Sep 2026:
+ * - A bet, once it has been a bet, is on the record for good (unless the
+ *   horse is scratched). It settles at the best of the official SP, the
+ *   Betfair SP, and any fixed odds seen while it was a bet, the price at the
+ *   jump included.
+ * - A lay counts only if it is a lay inside the last half hour before the
+ *   jump, where calls are locked: one that leaves the card before then is
+ *   voided. It settles at the shortest lay price seen inside that half hour,
+ *   or the Betfair SP when that is shorter.
  */
 
 /**
@@ -45,11 +50,20 @@ export interface TipRow {
 }
 
 /**
- * What a call settles at. A bet at the better of the best bookmaker price
- * seen and the Betfair SP, since a member could have taken either; a lay at
- * the lay price it was quoted at.
+ * What a call settles at, from the price the ledger recorded for it. A bet at
+ * the longest of that, the price at the jump and the two starting prices; a
+ * lay at the shorter of that and the Betfair SP.
  */
-export const settledAt = (side: Signal, struck: number, bsp?: number | null) => (side === "back" && bsp && bsp > struck ? bsp : struck);
+export function settlePrice(side: Signal, recorded: number, placing?: { sp?: number | null; bsp?: number | null }, jump?: number): number {
+  const at = side === "back" ? Math.max(recorded, jump ?? 0, placing?.sp ?? 0, placing?.bsp ?? 0) : placing?.bsp && placing.bsp > 1 && placing.bsp < recorded ? placing.bsp : recorded;
+  return cents(at);
+}
+
+/** To the cent, as the ledger stores prices and units, so a rebuild finds nothing to change. */
+const cents = (n: number) => Math.round(n * 100) / 100;
+
+/** settlePrice with the Betfair SP alone, for callers that have nothing else. */
+export const settledAt = (side: Signal, struck: number, bsp?: number | null) => settlePrice(side, struck, { bsp });
 
 /** The price a member would rather have had: longer for a bet, shorter for a lay. */
 export const betterPrice = (side: Signal, a: number, b: number) => (side === "back" ? Math.max(a, b) : Math.min(a, b));
@@ -59,7 +73,7 @@ export function settle(side: Signal, price: number, finish: number, stake = 1): 
   return callUnits(side, price, finish, stake);
 }
 
-/** Rows for every call on a card, settled where the race has run. */
+/** A row for every call on a card, at its price now. */
 export function rowsFor(date: string, card: StoredCard, source: TipSource = "model"): TipRow[] {
   const tagOf = new Map(card.selections.map((s) => [`${s.raceId}:${s.tabNumber}`, s.tag]));
   const out: TipRow[] = [];
@@ -67,12 +81,8 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
     for (const r of m.races) {
       for (const x of r.runners) {
         if (!x.signal || x.scratched || !x.marketPrice) continue;
-        // A lay is struck, and settles, at the exchange price; a bet at the bookmakers' best.
-        const price = callPrice(x) ?? x.marketPrice;
-        const resulted = Boolean(r.result?.length);
-        const finish = resulted ? (x.finishPosition ?? 0) : undefined;
-        const placing = resulted ? r.placings?.find((p) => p.tabNumber === x.tabNumber) : undefined;
-        const at = finish !== undefined ? settledAt(x.signal, price, placing?.bsp) : price;
+        // A lay is struck at the exchange price; a bet at the bookmakers' best. recordTips settles it.
+        const at = callPrice(x) ?? x.marketPrice;
         const stake = stakeOf(x);
         out.push({
           date,
@@ -89,9 +99,6 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
           edge: callEdge(x) ?? null,
           source,
           stake,
-          ...(finish !== undefined
-            ? { finish_position: finish, sp: placing?.sp ?? null, units: settle(x.signal, at, finish, stake), settled_at: new Date().toISOString() }
-            : {}),
         });
       }
     }
@@ -99,97 +106,141 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
   return out;
 }
 
+interface Held {
+  race_id: string;
+  tab_number: number;
+  side: Signal;
+  market_price: number;
+  stake: number | null;
+  tag: string | null;
+  finish_position: number | null;
+  sp: number | null;
+  units: number | null;
+  settled_at: string | null;
+}
+
 /**
- * Called after every card build. New calls are inserted at today's price;
- * calls already on the ledger move to the better price when the market has
- * offered one, and pick up a result.
+ * Called after every card build: new calls join the ledger, and every call
+ * on it is brought to where the rules above put it. Each call's target is
+ * worked out from scratch and written only when it differs, so a rebuild,
+ * a late result or a hand settlement all land the same way.
  */
 export async function recordTips(date: string, card: StoredCard): Promise<void> {
+  if (!card.meetings.length) return;
   const db = supabaseAdmin();
   const rows = rowsFor(date, card);
-  if (rows.length === 0) return;
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, settled_at, market_price, stake, tag, finish_position").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
   }
-  // The stake was fixed when the call was published; a price that has since crossed $21 does not move it.
-  const seen = new Map((existing ?? []).map((e) => [`${e.race_id}:${e.tab_number}`, { settled: Boolean(e.settled_at), price: Number(e.market_price), stake: Number(e.stake ?? 1), tag: e.tag as string | null, finish: e.finish_position as number | null }]));
-  const fresh = rows.filter((r) => !seen.has(`${r.race_id}:${r.tab_number}`));
+  const key = (r: { race_id: string; tab_number: number }) => `${r.race_id}:${r.tab_number}`;
+  const held = new Map(((existing ?? []) as Held[]).map((e) => [key(e), e]));
+  const fresh = rows.filter((r) => !held.has(key(r)));
   if (fresh.length) {
     const { error: e } = await db.from("tips").insert(fresh);
     if (e) console.error("[tips] insert", e.message);
+    for (const r of fresh) held.set(key(r), { ...r, finish_position: null, sp: null, units: null, settled_at: null });
   }
-  // Open calls follow the best price seen, and settle at it once the race
-  // has run. Runners scratched after publish never get a result and stay
-  // open; they count for nothing.
-  for (const r of rows) {
-    const was = seen.get(`${r.race_id}:${r.tab_number}`);
-    if (!was) continue;
-    // A bet settled on the exchange's first result, before the official one brought
-    // the Betfair SP, moves up to that SP when it is the better price: the rule is
-    // the better of the two, whichever arrived first. Looming One, 18 Sep 2026.
-    if (was.settled) {
-      // A call settled on the exchange's interim result whose placing the
-      // official result then moved (a protest upheld) settles again on it.
-      if (typeof r.finish_position === "number" && was.finish !== null && r.finish_position !== was.finish) {
-        const price = r.side === "back" ? Math.max(was.price, r.market_price) : was.price;
-        const { error: e } = await db.from("tips").update({ market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position, was.stake) }).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
-        if (e) console.error("[tips] resettle finish", e.message);
-        continue;
+  const onCard = new Map(rows.map((r) => [key(r), r]));
+  const racesById = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
+  const now = new Date().toISOString();
+
+  for (const [k, was] of held) {
+    const race = racesById.get(was.race_id);
+    // A race missing from this build altogether (a meeting the feed dropped) is left as it was.
+    if (!race) continue;
+    const x = race.runners.find((y) => y.tabNumber === was.tab_number);
+    const row = onCard.get(k);
+    const live = row && row.side === was.side ? row : undefined;
+    const locked = inCallLock(race.jumpTime);
+    const stake = Number(was.stake ?? 1);
+    const price = Number(was.market_price);
+    const voided = Boolean(was.settled_at) && was.finish_position === null;
+    let target: Pick<Held, "market_price" | "finish_position" | "sp" | "units" | "settled_at">;
+    if (!x || x.scratched || (was.side === "lay" && !live)) {
+      // A scratching voids either side, as a bookie settles it; a lay off the card was never a lay.
+      target = { market_price: price, ...voidSettlement(), settled_at: voided ? was.settled_at : now };
+    } else {
+      // The recorded price: a bet's longest while it was a bet; a lay's shortest inside the
+      // half hour, and before then simply the price now.
+      const recorded = cents(!live ? price : was.side === "back" ? Math.max(price, live.market_price) : locked ? Math.min(price, live.market_price) : live.market_price);
+      if (race.result?.length) {
+        const placing = race.placings?.find((p) => p.tabNumber === was.tab_number);
+        const at = settlePrice(was.side, recorded, placing, x.marketPrice);
+        const finish = x.finishPosition ?? 0;
+        target = { market_price: at, finish_position: finish, sp: placing?.sp ?? null, units: cents(settle(was.side, at, finish, stake)), settled_at: was.settled_at && !voided ? was.settled_at : now };
+      } else {
+        target = { market_price: recorded, finish_position: null, sp: null, units: null, settled_at: null };
       }
-      if (r.side === "back" && r.settled_at && r.finish_position !== undefined && r.market_price > was.price) {
-        const { error: e } = await db.from("tips").update({ market_price: r.market_price, units: settle(r.side, r.market_price, r.finish_position ?? 0, was.stake) }).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
-        if (e) console.error("[tips] resettle", e.message);
-      }
-      continue;
     }
-    const price = betterPrice(r.side, was.price, r.market_price);
     // A bet that grew into a Prime during the day is a Prime on the record: members were told so.
-    const prime = r.tag === "prime_overlay" && was.tag !== "prime_overlay" ? { tag: r.tag } : {};
-    const change = r.settled_at
-      ? { ...prime, market_price: price, finish_position: r.finish_position, sp: r.sp, units: settle(r.side, price, r.finish_position ?? 0, was.stake), settled_at: r.settled_at }
-      : price !== was.price || prime.tag
-        ? { ...prime, market_price: price }
-        : undefined;
-    if (!change) continue;
-    const { error: e } = await db.from("tips").update(change).eq("race_id", r.race_id).eq("tab_number", r.tab_number).eq("source", "model");
+    const prime = live?.tag === "prime_overlay" && was.tag !== "prime_overlay" ? { tag: live.tag } : {};
+    const same =
+      price === target.market_price &&
+      was.finish_position === target.finish_position &&
+      (was.units === null ? null : Number(was.units)) === target.units &&
+      Boolean(was.settled_at) === Boolean(target.settled_at) &&
+      !prime.tag;
+    if (same) continue;
+    const { error: e } = await db.from("tips").update({ ...target, ...prime }).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
     if (e) console.error("[tips] update", e.message);
   }
-  // A call that left the card before the race ran, because the price moved
-  // and the edge went with it, is still a call a member saw, and nothing is
-  // ever removed from the record: it settles on the result at the best price
-  // it was up at, like any other. Until 20 Sep 2026 such a call never
-  // settled, since only runners still carrying a signal made a row above:
-  // 74 of the 424 calls since 11 Sep sat open that way, and because a price
-  // moves toward us when the money comes, they were the bets that won
-  // (Vanessi, Strenuous, Saffron Veil, Wiluna Lass, Lin Thizzy) and the lays
-  // that lost.
-  const covered = new Set(rows.map((r) => `${r.race_id}:${r.tab_number}`));
-  const racesById = new Map(card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
-  for (const was of existing ?? []) {
-    if (covered.has(`${was.race_id}:${was.tab_number}`)) continue;
-    const r = racesById.get(was.race_id);
-    const x = r?.runners.find((y) => y.tabNumber === was.tab_number);
-    // A runner scratched after the call is a void, as a bookie settles it: no units, no
-    // finishing position, and left out of every count. Until 23 Sep 2026 it sat open for good.
-    // A call already settled as a run the scratching then reaches is voided too.
-    if (x?.scratched) {
-      if (was.settled_at && was.finish_position === null) continue;
-      const { error: e } = await db.from("tips").update(voidSettlement()).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
-      if (e) console.error("[tips] void", e.message);
-      continue;
+}
+
+/** A bet on the record: its best price so far, and the rated price and edge it was called at. */
+export interface RecordedBet {
+  best: number;
+  rated: number;
+  edge: number | null;
+}
+
+/** The day's bets on the record, keyed raceId:tab, voids left out: a bet once is a bet for the day. */
+export async function betsOnRecord(date: string): Promise<Map<string, RecordedBet>> {
+  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, market_price, rated_price, edge, finish_position, settled_at").eq("date", date).eq("source", "model").eq("side", "back");
+  if (error) console.error("[tips]", error.message);
+  const rows = (data ?? []) as { race_id: string; tab_number: number; market_price: number; rated_price: number; edge: number | null; finish_position: number | null; settled_at: string | null }[];
+  return new Map(
+    rows
+      .filter((r) => !(r.settled_at && r.finish_position === null))
+      .map((r) => [`${r.race_id}:${r.tab_number}`, { best: Number(r.market_price), rated: Number(r.rated_price), edge: r.edge === null ? null : Number(r.edge) }]),
+  );
+}
+
+/**
+ * A bet's rated price never sits above the price it is bet or settled at: it
+ * keeps the ratio of rated price to price it was called at, so a bet called at
+ * $9 against $7.40 and settled at $16.50 shows about $13.60, and one that
+ * firms from $5 to $3 keeps its $4 (the user, 26 Sep 2026). Where the model's
+ * own price is under that anyway it stands. The model's price is kept in
+ * ratedUncapped and the cap is worked from it every build. The price at the
+ * call comes back from the rated price and edge the ledger stored then.
+ */
+export function holdBetRatedUnder(card: Pick<StoredCard, "meetings">, bets: Map<string, RecordedBet>): void {
+  for (const m of card.meetings) {
+    for (const r of m.races) {
+      for (const x of r.runners) {
+        if (x.signal !== "back" || x.scratched) continue;
+        const call = bets.get(`${r.raceId}:${x.tabNumber}`);
+        const model = x.ratedUncapped ?? x.ratedPrice;
+        // A bet new on this build is its own call: its numbers are the ones it was called at.
+        if (!call || !model || !call.rated || call.edge === null || 1 / call.rated - call.edge <= 0) continue;
+        const struck = 1 / (1 / call.rated - call.edge);
+        const live = Math.max(call.best, x.marketPrice ?? 0);
+        const placing = r.placings?.find((p) => p.tabNumber === x.tabNumber);
+        const price = r.result?.length ? settlePrice("back", live, placing, x.marketPrice) : live;
+        const rated = Math.min(model, cents(price * (call.rated / struck)));
+        const wasCapped = x.ratedUncapped !== undefined;
+        x.ratedUncapped = rated < model ? model : undefined;
+        x.ratedPrice = rated;
+        x.ratedProbability = 1 / rated;
+        // The edge is against the price shown beside it: the live price, or the settled one once the race has run.
+        const against = r.result?.length ? price : x.marketPrice;
+        if (against && rated < model) x.edge = Math.round((1 / rated - 1 / against) * 10000) / 10000;
+        // No longer held down: back to the model's own edge, against the market as it was.
+        else if (wasCapped && x.marketPrice) x.edge = Math.round((1 / model - 1 / x.marketPrice) * 10000) / 10000;
+      }
     }
-    if (was.settled_at || !r?.result?.length || !x) continue;
-    const side = was.side as Signal;
-    const finish = x.finishPosition ?? 0;
-    const placing = r.placings?.find((p) => p.tabNumber === was.tab_number);
-    const price = settledAt(side, Number(was.market_price), placing?.bsp);
-    const { error: e } = await db
-      .from("tips")
-      .update({ market_price: price, finish_position: finish, sp: placing?.sp ?? null, units: settle(side, price, finish, Number(was.stake ?? 1)), settled_at: new Date().toISOString() })
-      .eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
-    if (e) console.error("[tips] settle withdrawn", e.message);
   }
 }
 

@@ -18,6 +18,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
+import { MIN_EDGE } from "@/lib/model/publish";
 import { readMutes } from "@/lib/model/store";
 import { setCallOff } from "@/app/admin/actions";
 import { CallOffButton } from "@/components/CallOffButton";
@@ -303,6 +304,10 @@ function CallTable({
                   </td>
                   <td data-col="edge" className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>
                     {signedPercent(c.runner.edge)}
+                    {/* A bet whose edge has dropped under the line a bet needs: the price it was bet at, the best seen while a bet. */}
+                    {side === "back" && !c.resulted && (c.runner.edge ?? 0) < MIN_EDGE && c.price && c.price > (c.runner.marketPrice ?? 0) ? (
+                      <span className="bet-at block text-[10px] font-semibold text-ink-soft whitespace-nowrap">bet at {price(c.price)}</span>
+                    ) : null}
                   </td>
                   <td data-col="result">
                     {c.resulted ? (

@@ -45,6 +45,11 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
     .filter(({ r }) => !r.result?.length && r.jumpTime && new Date(r.jumpTime).getTime() > now())
     .sort((a, b) => a.r.jumpTime!.localeCompare(b.r.jumpTime!))[0];
   const lastMail = events.find((e) => e.kind === "tips_email");
+  // The tracker reads the record, which holds what Today's tips shows.
+  const record = (f: { calls: number; settled: number; units: number; open: string[] }, hit: number, noun: string, verb: string) => {
+    const parts = f.settled ? [noun, `${hit} of ${f.settled} ${verb}`, units(f.units), `${f.open.length} to run`] : [`${noun} called`];
+    return { n: f.calls, label: parts.join(", "), tone: f.settled ? f.units : undefined };
+  };
   return (
     <>
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
@@ -83,10 +88,10 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
         </form>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 mb-6">
         <Panel title="Racing" href="/tips" cta="Today's card">
-          <Fact n={calls.filter((x) => x.signal === "back").length} label={facts.bets.settled ? `bets, ${facts.bets.won} of ${facts.bets.settled} won, ${units(facts.bets.units)}, ${facts.bets.calls - facts.bets.settled} to run` : "bets on the card"} tone={facts.bets.settled ? facts.bets.units : undefined} />
-          <Fact n={calls.filter((x) => x.signal === "lay").length} label={facts.lays.settled ? `lays, ${facts.lays.held} of ${facts.lays.settled} held, ${units(facts.lays.units)}, ${facts.lays.calls - facts.lays.settled} to run` : "lays on the card"} tone={facts.lays.settled ? facts.lays.units : undefined} />
+          <Fact {...record(facts.bets, facts.bets.won, "bets", "won")} />
+          <Fact {...record(facts.lays, facts.lays.held, "lays", "held")} />
           {nextCall ? (
             <Link href={`/racing/${card.date}/${nextCall.m.meetingId}/${nextCall.r.raceId}`} className="block text-xs underline mt-1">
               Next call: {nextCall.m.track} R{nextCall.r.raceNumber} {jump(nextCall.r.jumpTime)}, {nextCall.x.horseName}

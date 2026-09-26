@@ -213,7 +213,9 @@ export function publishRace(
       const r = ratedByTab.get(String(e.number))?.ratings;
       return {
         key: String(e.number),
-        nudge: String(e.number) === topKey ? (standout ? STANDOUT_BOOST : doubted ? -WARY_DOUBT : undefined) : undefined,
+        // The doubt is a gate on a new bet: a top pick already a bet keeps its price when it drifts. Pinhole,
+        // Rosehill R4, 26 Sep 2026, a bet at $9 at 3:40am, went to $18.40 rated when it drifted past $10, and won.
+        nudge: String(e.number) === topKey ? (standout ? STANDOUT_BOOST : doubted && kept.get(`${race.raceId}:${e.number}`) !== "back" ? -WARY_DOUBT : undefined) : undefined,
         // No runs means no opinion: the market, which has seen the trials, is our number.
         rating: r && r.runs > 0 ? r.today : undefined,
         trust: r?.trust,
@@ -251,6 +253,9 @@ export function publishRace(
   const signalByTab = new Map(
     priced.runners.map((p) => {
       const held = kept.get(`${race.raceId}:${p.key}`);
+      // Once a bet, a bet for the day: it is on the record whatever the price does after,
+      // so it stays on the card and every page shows it (the user, 26 Sep 2026).
+      if (held === "back") return [p.key, "back" as Signal];
       // No runs means no opinion, and no opinion is never a call, held or new:
       // its price is the market's, moved only by the field normalising around it.
       const g = ratedByTab.get(p.key)?.ratings;
