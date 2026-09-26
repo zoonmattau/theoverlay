@@ -242,9 +242,10 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
  * has jumped is left alone, and a call that only changed price is not news.
  */
 /**
- * `known` is the day's bets already on the record when the build began: they
- * were posted when they first appeared, so one that comes back on the card
- * (a bet stays a bet for the day) is never posted again.
+ * `known` is the day's calls already on the record when the build began. A
+ * bet was posted when it first appeared, so one that comes back on the card
+ * (a call stays a call for the day) is never posted again; a lay put back on
+ * the card is written down as posted without a post.
  */
 export async function postCallChanges(date: string, before: Map<string, PublishedRace>, card: StoredCard, known = new Set<string>()): Promise<void> {
   if (!discordConfigured() || before.size === 0) return;
@@ -256,14 +257,18 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
     const now = Date.now();
     const fresh: Call[] = [];
     const lays: Call[] = [];
+    const quiet: Call[] = [];
     const primes: Call[] = [];
     for (const c of callsOn(card)) {
       if (c.r.result || (c.r.jumpTime && new Date(c.r.jumpTime).getTime() < now)) continue;
+      const prev = before.get(c.r.raceId)?.runners.find((x) => x.tabNumber === c.x.tabNumber);
       if (c.x.signal === "lay") {
-        if (inCallLock(c.r.jumpTime, now) && !posted.has(layKey(c))) lays.push(c);
+        if (!inCallLock(c.r.jumpTime, now) || posted.has(layKey(c))) continue;
+        // A lay on the record put back on the card, not one new today: written down, not posted.
+        if (known.has(`${c.r.raceId}:${c.x.tabNumber}`) && prev?.signal !== "lay") quiet.push(c);
+        else lays.push(c);
         continue;
       }
-      const prev = before.get(c.r.raceId)?.runners.find((x) => x.tabNumber === c.x.tabNumber);
       // A bet that grew into a Prime during the day goes to the Primes channel as the morning ones did.
       if (isPrime(c) && !prev?.prime && !posted.has(primeKey(c))) primes.push(c);
       if (prev && prev.signal === c.x.signal) continue;
@@ -273,6 +278,7 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
     for (const c of fresh) await send(CHANNELS.calls, callPost(c, date));
     for (const c of primes) await remember(date, primeKey(c), () => send(CHANNELS.primes, callPost(c, date)));
     for (const c of lays) await remember(date, layKey(c), () => send(CHANNELS.calls, callPost(c, date)));
+    for (const c of quiet) await remember(date, layKey(c), async () => undefined);
   } catch (err) {
     console.error("[discord] call changes", err);
   }

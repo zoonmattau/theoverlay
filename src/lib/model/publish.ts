@@ -263,9 +263,9 @@ export function publishRace(
     priced.runners.map((p) => {
       if (abandoned) return [p.key, undefined];
       const held = kept.get(`${race.raceId}:${p.key}`);
-      // Once a bet, a bet for the day: it is on the record whatever the price does after,
-      // so it stays on the card and every page shows it (the user, 26 Sep 2026).
-      if (held === "back") return [p.key, "back" as Signal];
+      // Once a call, a call for the day: a bet or a lay is on the record whatever the price
+      // does after, so it stays on the card and every page shows it (the user, 26 Sep 2026).
+      if (held === "back" || held === "lay") return [p.key, held];
       // No runs means no opinion, and no opinion is never a call, held or new:
       // its price is the market's, moved only by the field normalising around it.
       const g = ratedByTab.get(p.key)?.ratings;

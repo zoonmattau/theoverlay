@@ -2,22 +2,19 @@ import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
-import { inCallLock } from "@/lib/model/publish";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
 import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./stats";
 
 export type { Period, RecordStats, SideStats, TipSource } from "./stats";
 
 /**
- * The tips ledger, on the user's rules of 26 Sep 2026:
- * - A bet, once it has been a bet, is on the record for good (unless the
- *   horse is scratched). It settles at the best of the official SP, the
- *   Betfair SP, and any fixed odds seen while it was a bet, the price at the
- *   jump included.
- * - A lay counts only if it is a lay inside the last half hour before the
- *   jump, where calls are locked: one that leaves the card before then is
- *   voided. It settles at the shortest lay price seen inside that half hour,
- *   or the Betfair SP when that is shorter.
+ * The tips ledger, on the user's rules of 26 Sep 2026. A call, once made, is
+ * on the record for the day, void only if the horse is scratched or the race
+ * called off.
+ * - A bet settles at the best of the official SP, the Betfair SP, and any
+ *   fixed odds seen while it was a bet, the price at the jump included.
+ * - A lay settles at the shortest lay price seen while it was a lay, or the
+ *   Betfair SP when that is shorter.
  */
 
 /**
@@ -153,18 +150,16 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
     const x = race.runners.find((y) => y.tabNumber === was.tab_number);
     const row = onCard.get(k);
     const live = row && row.side === was.side ? row : undefined;
-    const locked = inCallLock(race.jumpTime);
     const stake = Number(was.stake ?? 1);
     const price = Number(was.market_price);
     const voided = Boolean(was.settled_at) && was.finish_position === null;
     let target: Pick<Held, "market_price" | "finish_position" | "sp" | "units" | "settled_at">;
-    if (race.abandoned || !x || x.scratched || (was.side === "lay" && !live)) {
-      // A race called off or a scratching voids either side, as a bookie settles it; a lay off the card was never a lay.
+    if (race.abandoned || !x || x.scratched) {
+      // A race called off or a scratching voids either side, as a bookie settles it.
       target = { market_price: price, ...voidSettlement(), settled_at: voided ? was.settled_at : now };
     } else {
-      // The recorded price: a bet's longest while it was a bet; a lay's shortest inside the
-      // half hour, and before then simply the price now.
-      const recorded = cents(!live ? price : was.side === "back" ? Math.max(price, live.market_price) : locked ? Math.min(price, live.market_price) : live.market_price);
+      // The recorded price: a bet's longest while it was a bet, a lay's shortest while it was a lay.
+      const recorded = cents(!live ? price : was.side === "back" ? Math.max(price, live.market_price) : Math.min(price, live.market_price));
       if (race.result?.length) {
         const placing = race.placings?.find((p) => p.tabNumber === was.tab_number);
         const at = settlePrice(was.side, recorded, placing, x.marketPrice);
@@ -188,22 +183,23 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   }
 }
 
-/** A bet on the record: its best price so far, and the rated price and edge it was called at. */
-export interface RecordedBet {
+/** A call on the record: its side, its best price so far, and the rated price and edge it was called at. */
+export interface RecordedCall {
+  side: Signal;
   best: number;
   rated: number;
   edge: number | null;
 }
 
-/** The day's bets on the record, keyed raceId:tab, voids left out: a bet once is a bet for the day. */
-export async function betsOnRecord(date: string): Promise<Map<string, RecordedBet>> {
-  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, market_price, rated_price, edge, finish_position, settled_at").eq("date", date).eq("source", "model").eq("side", "back");
+/** The day's calls on the record, keyed raceId:tab, voids left out: a call once is a call for the day. */
+export async function callsOnRecord(date: string): Promise<Map<string, RecordedCall>> {
+  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, side, market_price, rated_price, edge, finish_position, settled_at").eq("date", date).eq("source", "model");
   if (error) console.error("[tips]", error.message);
-  const rows = (data ?? []) as { race_id: string; tab_number: number; market_price: number; rated_price: number; edge: number | null; finish_position: number | null; settled_at: string | null }[];
+  const rows = (data ?? []) as { race_id: string; tab_number: number; side: Signal; market_price: number; rated_price: number; edge: number | null; finish_position: number | null; settled_at: string | null }[];
   return new Map(
     rows
       .filter((r) => !(r.settled_at && r.finish_position === null))
-      .map((r) => [`${r.race_id}:${r.tab_number}`, { best: Number(r.market_price), rated: Number(r.rated_price), edge: r.edge === null ? null : Number(r.edge) }]),
+      .map((r) => [`${r.race_id}:${r.tab_number}`, { side: r.side, best: Number(r.market_price), rated: Number(r.rated_price), edge: r.edge === null ? null : Number(r.edge) }]),
   );
 }
 
@@ -216,12 +212,13 @@ export async function betsOnRecord(date: string): Promise<Map<string, RecordedBe
  * ratedUncapped and the cap is worked from it every build. The price at the
  * call comes back from the rated price and edge the ledger stored then.
  */
-export function holdBetRatedUnder(card: Pick<StoredCard, "meetings">, bets: Map<string, RecordedBet>): void {
+export function holdBetRatedUnder(card: Pick<StoredCard, "meetings">, calls: Map<string, RecordedCall>): void {
   for (const m of card.meetings) {
     for (const r of m.races) {
       for (const x of r.runners) {
         if (x.signal !== "back" || x.scratched) continue;
-        const call = bets.get(`${r.raceId}:${x.tabNumber}`);
+        const found = calls.get(`${r.raceId}:${x.tabNumber}`);
+        const call = found?.side === "back" ? found : undefined;
         const model = x.ratedUncapped ?? x.ratedPrice;
         // A bet new on this build is its own call: its numbers are the ones it was called at.
         if (!call || !model || !call.rated || call.edge === null || 1 / call.rated - call.edge <= 0) continue;
