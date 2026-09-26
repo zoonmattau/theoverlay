@@ -257,8 +257,9 @@ export async function getCard(date: string, preview = false): Promise<Card> {
 export async function buildCard(date: string, opts: { revalidate?: boolean; reprice?: boolean } = {}): Promise<{ card: StoredCard; seconds: number }> {
   const started = Date.now();
   // A build from an older deployment leaves the card and the record alone.
+  // OVERLAY_READONLY=1 reads the stored card and writes nothing: a local server shooting screens for a post.
   const stale = async () => {
-    if (!storeConfigured() || (await newestDeploy())) return undefined;
+    if (!storeConfigured() || (process.env.OVERLAY_READONLY !== "1" && (await newestDeploy()))) return undefined;
     const stored = await readStoredCard(date);
     return stored ? { card: stored.card, seconds: 0 } : undefined;
   };
@@ -426,7 +427,7 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
  * board moving between its calls.
  */
 export function keepPrices(date: string, card: Card): void {
-  if (!storeConfigured() || !usingLiveData() || !betwatchConfigured()) return;
+  if (!storeConfigured() || !usingLiveData() || !betwatchConfigured() || process.env.OVERLAY_READONLY === "1") return;
   if (date !== racingToday() || racesToPrice(card.meetings).length === 0) return;
   after(() => refreshPrices(date, card));
 }
@@ -456,7 +457,7 @@ export async function refreshPrices(date: string, card?: { meetings: PublishedMe
  * fleet thanks to the lock in the store.
  */
 export function keepFresh(date: string, card: Card): void {
-  if (!storeConfigured() || !usingLiveData()) return;
+  if (!storeConfigured() || !usingLiveData() || process.env.OVERLAY_READONLY === "1") return;
   if (Date.now() - new Date(card.builtAt).getTime() < STALE_MS) return;
   after(async () => {
     if (!(await claimRefresh(date))) return;
