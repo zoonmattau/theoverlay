@@ -143,6 +143,22 @@ export async function writeMutes(date: string, keys: Set<string>): Promise<void>
   if (error) throw new Error(`[mutes] write ${date}: ${error.message}`);
 }
 
+/**
+ * Races called off on a date, raceIds in fk_cache under abandoned:<date>.
+ * The feeds do not say so on every build, and builds overlap, so once one
+ * build sees a race abandoned every later one reads it here.
+ */
+export async function readAbandoned(date: string): Promise<Set<string>> {
+  const { data, error } = await supabaseAdmin().from("fk_cache").select("data").eq("key", `abandoned:${date}`).maybeSingle();
+  if (error) throw new Error(`[abandoned] read ${date}: ${error.message}`);
+  return new Set(((data?.data as { raceIds?: string[] } | undefined)?.raceIds ?? []));
+}
+
+export async function writeAbandoned(date: string, raceIds: Set<string>): Promise<void> {
+  const { error } = await supabaseAdmin().from("fk_cache").upsert({ key: `abandoned:${date}`, kind: "abandoned", data: { raceIds: [...raceIds] }, at: new Date().toISOString() }, { onConflict: "key" });
+  if (error) console.error(`[abandoned] write ${date}: ${error.message}`);
+}
+
 /** The races a day's review story tells, in order, as an admin set them. */
 export async function readStory(date: string): Promise<string[]> {
   const { data, error } = await supabaseAdmin().from("fk_cache").select("data").eq("key", `story:${date}`).maybeSingle();

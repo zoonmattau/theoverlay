@@ -12,7 +12,7 @@ import {
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { abandonWithMeeting, hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
-import { claimRefresh, readMutes, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { claimRefresh, readAbandoned, readMutes, writeAbandoned, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
@@ -287,9 +287,12 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
       }
     }
   }
+  // Races called off, read after the slow load so a build that overlapped another still sees them.
+  const calledOff = storeConfigured() ? await readAbandoned(date) : new Set<string>();
+  for (const r of before.values()) if (r.abandoned) calledOff.add(r.raceId);
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
-    .map((m) => ({ ...m, races: abandonWithMeeting(m.races, before).map((r) => freezeRun(r, before.get(r.raceId))) }))
+    .map((m) => ({ ...m, races: abandonWithMeeting(m.races, calledOff).map((r) => freezeRun(r, before.get(r.raceId))) }))
     .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
   // A race that has jumped is frozen as last published, so a call on the record
   // that had left the card before the jump goes back on it here.
@@ -297,6 +300,9 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     const call = known.get(`${r.raceId}:${x.tabNumber}`);
     if (call && !x.scratched && !x.signal) x.signal = call.side;
   }
+  // Any race newly called off is written down for every build after this one.
+  const nowOff = meetings.flatMap((m) => m.races.filter((r) => r.abandoned && !calledOff.has(r.raceId)).map((r) => r.raceId));
+  if (storeConfigured() && nowOff.length) await writeAbandoned(date, new Set([...calledOff, ...nowOff]));
   // A call taken off by hand stays off, whatever the numbers say on this build.
   const muted = storeConfigured() ? await readMutes(date) : new Set<string>();
   for (const m of meetings) for (const r of m.races) for (const x of r.runners) if (muted.has(`${r.raceId}:${x.tabNumber}`)) x.signal = undefined;

@@ -438,10 +438,10 @@ const ABANDON_BEFORE_MS = 5 * 60_000;
  * has closed with no result: the race that had just jumped when the meeting
  * went is abandoned too, not left waiting for a result that never comes.
  */
-export function abandonWithMeeting(races: PublishedRace[], before?: Map<string, PublishedRace>): PublishedRace[] {
+export function abandonWithMeeting(races: PublishedRace[], calledOff = new Set<string>()): PublishedRace[] {
   // Once called off, called off for the day unless a result turns up: the feeds do not
   // say so on every build (Gunnedah, 26 Sep 2026, flipped back and forth a minute apart).
-  const kept = races.map((r) => (!r.abandoned && !r.result?.length && before?.get(r.raceId)?.abandoned ? abandonRace(r) : r));
+  const kept = races.map((r) => (!r.abandoned && !r.result?.length && calledOff.has(r.raceId) ? abandonRace(r) : r));
   if (!kept.some((r) => r.abandoned)) return kept;
   return kept.map((r) => (r.closed && !r.abandoned && !r.result?.length ? abandonRace(r) : r));
 }
