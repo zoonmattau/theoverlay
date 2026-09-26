@@ -106,6 +106,22 @@ export async function writeStoredCard(date: string, card: StoredCard, seconds: n
   if (error) console.error("[cards]", error.message);
 }
 
+/**
+ * Whether two cards say the same thing: every price, call and result, leaving
+ * out the runs (kept in race_runs, not on the stored card) and the time each
+ * price was last looked at, which moves on every poll whether or not it did.
+ */
+export function sameCard(a: StoredCard, b: StoredCard): boolean {
+  const skip = (key: string, value: unknown) => (key === "runs" || key === "marketAt" ? undefined : value);
+  return JSON.stringify(a, skip) === JSON.stringify(b, skip);
+}
+
+/** A rebuild that changed nothing: the build time moves on and the 1.3 MB card is not written again. */
+export async function touchStoredCard(date: string, seconds: number): Promise<void> {
+  const { error } = await supabaseAdmin().from("cards").update({ built_at: new Date().toISOString(), refreshing_at: null, seconds }).eq("date", date);
+  if (error) console.error("[cards] touch", error.message);
+}
+
 /** One race's runs, by tab number. Empty when the race has none stored. */
 export async function readRaceRuns(date: string, raceId: string): Promise<Record<string, unknown[]>> {
   const { data, error } = await supabaseAdmin().from("race_runs").select("runs").eq("date", date).eq("race_id", raceId).maybeSingle();

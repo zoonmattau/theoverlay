@@ -12,7 +12,7 @@ import {
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { abandonWithMeeting, hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
-import { claimRefresh, newestDeploy, readAbandoned, readMutes, writeAbandoned, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { claimRefresh, newestDeploy, sameCard, touchStoredCard, readAbandoned, readMutes, writeAbandoned, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
@@ -272,8 +272,10 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   const before = new Map<string, PublishedRace>();
   let pinnedFreeRaceId: string | undefined;
   let previousFreeRaceId: string | undefined;
+  let previousCard: StoredCard | undefined;
   if (storeConfigured()) {
     const previous = await readStoredCard(date);
+    previousCard = previous?.card;
     pinnedFreeRaceId = previous?.pinnedFreeRaceId;
     previousFreeRaceId = previous?.card.freeRaceId;
     for (const m of previous?.card.meetings ?? []) {
@@ -346,13 +348,18 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     // A deploy may have landed while this build ran.
     const late = await stale();
     if (late) return late;
-    await writeStoredCard(date, card, seconds, { runs: !opts.reprice });
+    // A price refresh that changed nothing (the same prices, calls and results) moves the build
+    // time on and leaves the card, and the pages' cache of it, alone: the card is 1.3 MB, and
+    // rewriting it every minute slowed the database on 26 Sep 2026.
+    const unchanged = Boolean(opts.reprice && previousCard && sameCard(card, previousCard));
+    if (unchanged) await touchStoredCard(date, seconds);
+    else await writeStoredCard(date, card, seconds, { runs: !opts.reprice });
     // New calls join the ledger at today's price; run races settle.
     await recordTips(date, card);
     await settleCreatorTips(date, card);
     // Not allowed from inside a cache scope, so the in-cache build skips it.
     if (opts.revalidate !== false) {
-      revalidateTag(`card-${date}`, "max");
+      if (!unchanged) revalidateTag(`card-${date}`, "max");
       if (!opts.reprice) revalidateTag(`runs-${date}`, "max");
       // Calls that came or went since the last card, then once every race has run the day's ledger, once.
       if (date === racingToday()) {
