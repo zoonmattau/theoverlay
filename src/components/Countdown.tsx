@@ -75,7 +75,10 @@ export function MatrixCell({
     return (
       <Link href={href} className="matrix-btn race-resulted">
         <span className="matrix-race">R{raceNumber}</span>
-        <span className="matrix-time">Abandoned</span>
+        <span className="matrix-time">
+          <span className="hidden sm:inline">Abandoned</span>
+          <span className="sm:hidden">Abd</span>
+        </span>
       </Link>
     );
   }
