@@ -7,6 +7,8 @@ import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { growthSeries, modelHealth, modelTipSeries, tipsterTipSeries, type HealthDay, type Series } from "@/lib/reports";
+import { recordStats, type RecordStats } from "@/lib/tips";
+import { racingToday } from "@/lib/model/source";
 
 export const metadata: Metadata = { title: "Reports", robots: { index: false } };
 
@@ -140,14 +142,51 @@ async function Health({ n }: { n: number }) {
 }
 
 async function ModelTips({ n }: { n: number }) {
-  const series = await modelTipSeries(n);
+  const [series, record] = await Promise.all([modelTipSeries(n), recordStats(racingToday())]);
   const units = series.find((s) => s.key === "units")!;
   return (
     <>
       <Health n={n} />
       <Group series={series} />
       <Group title="Units, running total" series={[units]} cumulativeKeys={["units"]} />
+      <Pot record={record} />
     </>
+  );
+}
+
+const pot = (units: number, staked: number) => (staked ? `${units > 0 ? "+" : units < 0 ? "−" : ""}${Math.abs((units / staked) * 100).toFixed(1)}%` : "—");
+const signed = (u: number) => `${u > 0 ? "+" : u < 0 ? "−" : ""}${Math.abs(u).toFixed(2)}u`;
+
+/** Profit on turnover: units won over units staked, bets, lays and the two together, by period. */
+function Pot({ record }: { record: RecordStats[] }) {
+  const rows = record.filter((r) => r.period !== "year");
+  const label: Record<string, string> = { week: "Last week", month: "Last month", all: "All time" };
+  const tone = (u: number) => (u > 0 ? "text-accent" : u < 0 ? "text-red" : "");
+  return (
+    <div className="card mb-4">
+      <h2 className="font-display font-extrabold mb-1">Profit on turnover</h2>
+      <p className="text-xs text-ink-soft mb-3">Units won over units staked. A bet stakes one unit, a tenth on a Way Overlay; a lay stakes the unit it wins.</p>
+      <table className="data-table stack-sm text-sm">
+        <thead><tr><th>Period</th><th className="text-right">Bets</th><th className="text-right">Bets POT</th><th className="text-right">Lays</th><th className="text-right">Lays POT</th><th className="text-right">Overall</th><th className="text-right">Overall POT</th></tr></thead>
+        <tbody>
+          {rows.map((r) => {
+            const u = r.bets.units + r.lays.units;
+            const st = r.bets.staked + r.lays.staked;
+            return (
+              <tr key={r.period}>
+                <td className="font-semibold">{label[r.period] ?? r.period}</td>
+                <td data-label="Bets" className={`text-right nums ${tone(r.bets.units)}`}>{r.bets.n} · {signed(r.bets.units)}</td>
+                <td data-label="Bets POT" className={`text-right nums font-semibold ${tone(r.bets.units)}`}>{pot(r.bets.units, r.bets.staked)}</td>
+                <td data-label="Lays" className={`text-right nums ${tone(r.lays.units)}`}>{r.lays.n} · {signed(r.lays.units)}</td>
+                <td data-label="Lays POT" className={`text-right nums font-semibold ${tone(r.lays.units)}`}>{pot(r.lays.units, r.lays.staked)}</td>
+                <td data-label="Overall" className={`text-right nums ${tone(u)}`}>{r.bets.n + r.lays.n} · {signed(u)}</td>
+                <td data-label="Overall POT" className={`text-right nums font-bold ${tone(u)}`}>{pot(u, st)}</td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

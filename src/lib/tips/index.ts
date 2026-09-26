@@ -253,34 +253,44 @@ export async function ledgerFor(date: string): Promise<Map<string, { price: numb
   );
 }
 
-const empty = (): SideStats => ({ n: 0, hit: 0, units: 0, roi: 0 });
+const empty = (): SideStats => ({ n: 0, hit: 0, units: 0, staked: 0, roi: 0 });
 
 function tally(rows: { side: Signal; units: number; finish_position: number; stake?: number | null }[]): { bets: SideStats; lays: SideStats } {
   const bets = empty(), lays = empty();
-  const staked = { bets: 0, lays: 0 };
   for (const r of rows) {
     const s = r.side === "back" ? bets : lays;
     s.n++;
     s.units += Number(r.units);
-    staked[r.side === "back" ? "bets" : "lays"] += Number(r.stake ?? 1);
+    s.staked += Number(r.stake ?? 1);
     if (r.side === "back" ? r.finish_position === 1 : r.finish_position !== 1) s.hit++;
   }
-  for (const [k, s] of [["bets", bets], ["lays", lays]] as const) {
+  for (const s of [bets, lays]) {
     s.units = Math.round(s.units * 100) / 100;
-    s.roi = staked[k] ? s.units / staked[k] : 0;
+    s.staked = Math.round(s.staked * 100) / 100;
+    s.roi = s.staked ? s.units / s.staked : 0;
   }
   return { bets, lays };
 }
 
 /** The settled record for each period, one query. */
 export async function recordStats(today: string): Promise<RecordStats[]> {
-  const { data, error } = await supabaseAdmin()
-    .from("tips")
-    .select("date, side, units, finish_position, source, stake")
-    .not("settled_at", "is", null)
-    .not("finish_position", "is", null);
-  if (error) console.error("[tips]", error.message);
-  const rows = (data ?? []) as { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null }[];
+  // Read a thousand at a time: the server hands back no more per request, and the record passes that.
+  const rows: { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null }[] = [];
+  for (let from = 0; from < 1_000_000; from += 1000) {
+    const { data, error } = await supabaseAdmin()
+      .from("tips")
+      .select("date, side, units, finish_position, source, stake")
+      .not("settled_at", "is", null)
+      .not("finish_position", "is", null)
+      .order("id")
+      .range(from, from + 999);
+    if (error) {
+      console.error("[tips]", error.message);
+      break;
+    }
+    rows.push(...((data ?? []) as typeof rows));
+    if (!data || data.length < 1000) break;
+  }
   const day = new Date(`${today}T12:00:00Z`).getTime();
   return PERIODS.map((p) => {
     const from = p.days ? new Date(day - p.days * 86400_000).toISOString().slice(0, 10) : undefined;

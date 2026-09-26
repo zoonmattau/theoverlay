@@ -16,7 +16,9 @@ export interface SideStats {
   /** Bets won, or lays held. */
   hit: number;
   units: number;
-  /** Units per unit staked, as a fraction. */
+  /** Units staked: one a call, a tenth on a Way Overlay; a lay's stake is the unit it wins. */
+  staked: number;
+  /** Units per unit staked, as a fraction: the profit on turnover. */
   roi: number;
 }
 
