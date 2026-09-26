@@ -1,0 +1,189 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"><style>
+:root { --ink:#14161a; --panel:#fff; --soft:#f3f5ef; --line:#dfe3d8; --lime:#c4f000; --blue:#1668ff;
+        --muted:#8a9080; --display:'Archivo',sans-serif; --mono:'IBM Plex Mono',monospace; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font-family:var(--display); color:var(--ink); }
+.stage { position:absolute; inset:0; overflow:hidden; }
+.scene { position:absolute; inset:0; display:none; }
+.scene.on { display:block; }
+/* The slow push in: every scene drifts for its whole beat, so nothing sits still. */
+.scene .zoom { position:absolute; inset:0; padding:150px 80px 240px; display:flex; flex-direction:column;
+               justify-content:center; background:var(--soft); transform-origin:50% 45%; }
+.scene.dark .zoom { background:var(--ink); color:#fff; }
+.scene.on .zoom { animation: push var(--dur) linear both; }
+.scene.on.out .zoom { animation: pull var(--dur) linear both; }
+@keyframes push { from { transform:scale(1.00); } to { transform:scale(1.06); } }
+@keyframes pull { from { transform:scale(1.06); } to { transform:scale(1.00); } }
+/* Everything lands: the label first, the headline under it, the numbers last. */
+.scene.on .in { animation: rise .55s cubic-bezier(.2,.8,.2,1) both; }
+.scene.on .in.d1 { animation-delay:.10s; }
+.scene.on .in.d2 { animation-delay:.22s; }
+.scene.on .in.d3 { animation-delay:.36s; }
+@keyframes rise { from { opacity:0; transform:translateY(46px); } to { opacity:1; transform:none; } }
+.scene.on .pop { animation: pop .6s cubic-bezier(.2,1.4,.3,1) both; animation-delay:.3s; }
+@keyframes pop { from { opacity:0; transform:scale(.72); } to { opacity:1; transform:scale(1); } }
+.scene.on .fill { animation: grow .9s cubic-bezier(.2,.8,.2,1) both; animation-delay:.35s; }
+.scene.on .t span { animation: grow 1s cubic-bezier(.2,.8,.2,1) both; animation-delay:.3s; }
+@keyframes grow { from { transform:scaleX(0); } to { transform:scaleX(1); } }
+.kicker { font-family:var(--mono); font-size:34px; font-weight:700; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); }
+.scene.dark .kicker { color:var(--lime); }
+h1 { font-size:120px; font-weight:800; line-height:.96; letter-spacing:-.03em; margin-top:26px; }
+h2 { font-size:84px; font-weight:800; line-height:1; letter-spacing:-.02em; }
+.mark { background:var(--lime); padding:0 18px; color:var(--ink); }
+.big { font-family:var(--mono); font-weight:700; font-size:310px; line-height:.9; letter-spacing:-.05em; }
+.big small { font-size:104px; margin-left:26px; letter-spacing:0; }
+.rows { margin-top:64px; display:flex; flex-direction:column; gap:26px; }
+.trk { background:var(--panel); border:3px solid var(--line); border-radius:28px; padding:34px 40px; }
+.trk .name { font-size:62px; font-weight:800; letter-spacing:-.02em; }
+.trk .st { font-family:var(--mono); font-size:30px; color:var(--muted); margin-left:16px; }
+.gs { display:flex; flex-wrap:wrap; gap:14px; margin-top:20px; }
+.g { font-family:var(--mono); font-size:30px; font-weight:700; padding:8px 18px; border-radius:999px; background:var(--soft); border:2px solid var(--line); }
+.g.g1 { background:var(--lime); border-color:var(--lime); }
+.spacer { display:none; }
+.runner { margin-top:44px; display:flex; align-items:center; gap:34px; }
+.cloth { width:150px; height:150px; border-radius:50%; background:var(--ink); color:#fff; font-family:var(--mono);
+         font-weight:700; font-size:86px; display:flex; align-items:center; justify-content:center; flex:none; }
+.scene.dark .cloth { background:var(--lime); color:var(--ink); }
+.meta { font-family:var(--mono); font-size:34px; color:var(--muted); margin-top:24px; line-height:1.5; }
+.scene.dark .meta { color:#b9c0ad; }
+.bar { margin-top:26px; }
+.bar .lbl { font-family:var(--mono); font-size:30px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; color:var(--muted); }
+.track { height:58px; border-radius:29px; background:#e7ebe0; margin-top:12px; overflow:hidden; }
+.fill { height:100%; border-radius:29px; background:var(--lime); transform-origin:left center; }
+.fill.dim { background:#c9cfbd; }
+.num { font-family:var(--mono); font-weight:700; font-size:66px; letter-spacing:-.02em; margin-top:8px; }
+.gap { font-family:var(--mono); font-weight:700; font-size:190px; color:var(--ink); letter-spacing:-.05em; line-height:.9; margin-top:56px; }
+.prices { display:flex; gap:28px; margin-top:54px; }
+.price { flex:1; min-width:0; border-radius:32px; padding:34px 20px; text-align:center; background:var(--panel); border:4px solid var(--line); }
+.price.live { background:var(--blue); border-color:var(--blue); color:#fff; }
+.scene.dark .price { background:#22252b; border-color:#3a3f48; color:#fff; }
+.scene.dark .price.live { background:var(--blue); border-color:var(--blue); }
+.price .k { font-family:var(--mono); font-size:30px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; opacity:.7; }
+.price .v { font-family:var(--mono); font-size:112px; font-weight:700; letter-spacing:-.04em; line-height:1.1; }
+.note { font-size:50px; font-weight:600; line-height:1.3; margin-top:42px; }
+.barlist { margin-top:56px; display:flex; flex-direction:column; gap:22px; }
+.row { display:flex; align-items:center; gap:22px; }
+.row .who { font-family:var(--mono); font-size:31px; width:340px; flex:none; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.row .t { flex:1; height:46px; border-radius:23px; background:#e7ebe0; overflow:hidden; }
+.row .t span { display:block; height:100%; background:#c9cfbd; border-radius:23px; transform-origin:left center; }
+.row.me .t span { background:var(--lime); }
+.row .v { font-family:var(--mono); font-weight:700; font-size:40px; width:118px; text-align:right; }
+.shot { margin-top:40px; border-radius:30px; overflow:hidden; border:3px solid var(--line);
+        box-shadow:0 30px 70px rgba(20,22,26,.16); background:var(--panel); }
+.shot img { display:block; width:100%; }
+.scene.dark .shot { border-color:#3a3f48; box-shadow:0 30px 70px rgba(0,0,0,.5); }
+.scene.on .shot { animation: liftin .7s cubic-bezier(.2,.8,.2,1) both; animation-delay:.18s; }
+@keyframes liftin { from { opacity:0; transform:translateY(64px) scale(.97); } to { opacity:1; transform:none; } }
+/* A number laid over the shot, so the claim and the proof are one picture. */
+.over { position:relative; }
+.over .tagnum { position:absolute; right:-10px; bottom:-40px; font-family:var(--mono); font-weight:700;
+                font-size:150px; letter-spacing:-.05em; color:var(--ink); background:var(--lime);
+                padding:6px 26px; border-radius:24px; box-shadow:0 18px 40px rgba(20,22,26,.2); }
+.foot { position:absolute; left:80px; right:80px; bottom:96px; display:flex; align-items:center; gap:22px; }
+.logo { font-size:50px; font-weight:800; letter-spacing:-.02em; }
+.logo em { font-style:normal; background:var(--lime); padding:0 12px; color:var(--ink); }
+.tag { font-family:var(--mono); font-size:30px; color:var(--muted); }
+.scene.dark .tag { color:#b9c0ad; }
+</style></head><body><div class="stage" id="stage"></div><script>
+const D = {"beats":[{"at":0,"until":5,"scene":"today"},{"at":5,"until":10,"scene":"pick"},{"at":10,"until":13,"scene":"late"},{"at":13,"until":18,"scene":"weight"},{"at":18,"until":25,"scene":"price"},{"at":25,"until":31,"scene":"last"},{"at":31,"until":34,"scene":"class"},{"at":34,"until":40,"scene":"close"}],"shots":["board","pick","map","rankings","market","sectionals","runs"],"features":[{"track":"Caulfield","state":"VIC","races":[{"n":4,"g":2},{"n":5,"g":3},{"n":6,"g":3},{"n":7,"g":1},{"n":8,"g":3},{"n":9,"g":1}]},{"track":"Randwick","state":"NSW","races":[{"n":5,"g":3},{"n":6,"g":2},{"n":7,"g":2},{"n":8,"g":2},{"n":9,"g":2}]}],"track":"Bowraville","state":"NSW","raceNumber":3,"distance":1000,"className":"Open","going":"Good 3","field":7,"tab":1,"horse":"Dis Is Heaven","barrier":5,"weight":64,"map":"midfield","today":"91.3","late":"93.5","lateAvg":"70.4","lateGap":"23.1","market":"$2.05","rated":"$1.85","takeAbove":"$1.90","nextBestToday":"78.9","bars":[{"tab":1,"horse":"Dis Is Heaven","today":91.3,"me":true},{"tab":2,"horse":"Where's The Fire","today":78.9,"me":false},{"tab":5,"horse":"Brazen Brando","today":73.6,"me":false},{"tab":3,"horse":"Blue Dane","today":71.4,"me":false},{"tab":6,"horse":"Clan D'oro","today":66.3,"me":false}],"last":{"track":"Inverell","distance":1200,"className":"Bm82","finish":1,"margin":0.29,"map":"midfield","points":"94.5"}};
+const foot = '<div class="foot in d3"><span class="logo">THE <em>OVERLAY</em></span><span class="tag">theoverlay.com.au</span></div>';
+const pct = (v, lo, hi) => Math.max(6, Math.min(100, ((v - lo) / (hi - lo)) * 100));
+/** The site itself, where we managed to shoot it; the drawn version otherwise. */
+const has = (n) => D.shots.indexOf(n) >= 0;
+const shot = (n, over) => '<div class="shot' + (over ? ' over' : '') + '"><img src="shot-' + n + '.png">' + (over || '') + '</div>';
+
+const SCENES = {
+  today: () =>
+    '<div class="kicker in">Saturday racing</div>' +
+    '<h1 class="in d1">Group One<br>at Caulfield.</h1>' +
+    (has('board') ? shot('board') :
+      '<div class="rows">' + D.features.map((m, i) =>
+        '<div class="trk in d' + (i + 1) + '"><div><span class="name">' + m.track + '</span><span class="st">' + m.state + '</span></div>' +
+        '<div class="gs">' + m.races.map((r) => '<span class="g g' + r.g + '">G' + r.g + ' R' + r.n + '</span>').join('') + '</div></div>').join('') +
+      '</div>') + foot,
+
+  pick: () =>
+    '<div class="kicker in">Best of the day</div>' +
+    '<h1 class="in d1">' + D.track + '<br>Race ' + D.raceNumber + '.</h1>' +
+    '<div class="runner"><span class="cloth pop">' + D.tab + '</span><div class="in d2"><h2>' + D.horse + '</h2>' +
+    '<div class="meta">' + D.distance + 'm ' + D.className + ' \u00b7 ' + D.going + ' \u00b7 ' + D.field + ' runners</div></div></div>' +
+    (has('pick') ? shot('pick') : '') + foot,
+
+  late: () =>
+    '<div class="kicker in">Closing sectionals</div>' +
+    '<h1 class="in d1">It closes<br>like nothing<br>else in it.</h1>' +
+    (has('sectionals')
+      ? shot('sectionals', '<span class="tagnum pop">+' + D.lateGap + '</span>')
+      : '<div class="bar in d2"><div class="lbl">' + D.horse + '</div><div class="track"><div class="fill" style="width:' +
+        pct(+D.late, +D.lateAvg - 14, +D.late + 3) + '%"></div></div><div class="num">' + D.late + '</div></div>' +
+        '<div class="bar in d3"><div class="lbl">The field</div><div class="track"><div class="fill dim" style="width:' +
+        pct(+D.lateAvg, +D.lateAvg - 14, +D.late + 3) + '%"></div></div><div class="num">' + D.lateAvg + '</div></div>' +
+        '<div class="gap pop">+' + D.lateGap + '</div>') +
+    '<div class="meta in d3" style="margin-top:66px">points clear of the field on its closing sectional</div>' + foot,
+
+  weight: () =>
+    '<div class="kicker in">The query</div>' +
+    '<h1 class="in d1">' + D.weight + 'kg, and it<br>settles ' + D.map + '.</h1>' +
+    (has('map') ? shot('map') : '<div class="big pop">' + D.weight + '<small>kg</small></div>') +
+    '<div class="note in d3">It gets back, and it has to come hard to win.</div>' + foot,
+
+  price: () =>
+    '<div class="kicker in">The price</div><h1 class="in d1">That is an<br><span class="mark">overlay.</span></h1>' +
+    (has('market') ? shot('market') :
+      '<div class="prices"><div class="price pop"><div class="k">Our rated</div><div class="v">' + D.rated + '</div></div>' +
+      '<div class="price live pop"><div class="k">Live</div><div class="v">' + D.market + '</div></div></div>') +
+    '<div class="note in d3">Anything over ' + D.takeAbove + ' we take. Right now it is ' + D.market + '.</div>' + foot,
+
+  last: () =>
+    '<div class="kicker in">Last start</div><h1 class="in d1">Won it<br>from the<br>midfield.</h1>' +
+    (has('runs') ? shot('runs')
+      : D.last ? '<div class="meta in d2" style="font-size:42px;margin-top:48px">' + D.last.track + ' \u00b7 ' + D.last.distance + 'm \u00b7 ' + D.last.className +
+        '<br>Settled ' + D.last.map + ' \u00b7 won by ' + D.last.margin.toFixed(2) + 'L</div>' : '') + foot,
+
+  class: () =>
+    '<div class="kicker in">The field it meets</div><h1 class="in d1">Nothing<br>near it.</h1>' +
+    (has('rankings') ? shot('rankings') :
+      '<div class="barlist">' + D.bars.map((b) =>
+        '<div class="row ' + (b.me ? 'me' : '') + '"><span class="who">' + b.tab + '. ' + b.horse + '</span>' +
+        '<span class="t"><span style="width:' + pct(b.today, D.bars[D.bars.length - 1].today - 8, D.bars[0].today + 2) + '%"></span></span>' +
+        '<span class="v">' + b.today.toFixed(1) + '</span></div>').join('') + '</div>') + foot,
+
+  close: () =>
+    '<div class="kicker in">' + D.track + ' R' + D.raceNumber + '</div>' +
+    '<div class="runner" style="margin-top:22px"><span class="cloth pop">' + D.tab + '</span><div class="in d1"><h2>' + D.horse + '</h2></div></div>' +
+    '<div class="prices"><div class="price pop"><div class="k">Our rated</div><div class="v">' + D.rated + '</div></div>' +
+    '<div class="price live pop"><div class="k">Live</div><div class="v">' + D.market + '</div></div></div>' +
+    '<div class="note in d3">Take anything over ' + D.takeAbove + '.</div>' +
+    '<h1 class="in d3" style="font-size:92px">Every runner<br><span class="mark">rated, every day.</span></h1>' + foot,
+};
+
+const stage = document.getElementById("stage");
+D.beats.forEach((b, i) => {
+  const s = document.createElement("div");
+  s.className = "scene" + (b.scene === "close" ? " dark" : "") + (i % 2 ? " out" : "");
+  s.style.setProperty("--dur", (b.until - b.at) + "s");
+  s.innerHTML = '<div class="zoom">' + SCENES[b.scene]() + '</div>';
+  stage.appendChild(s);
+});
+const scenes = [...stage.children];
+let current = -1;
+const show = (i) => {
+  if (i === current) return;
+  current = i;
+  scenes.forEach((s, n) => {
+    s.classList.remove("on");
+    if (n === i) { void s.offsetWidth; s.classList.add("on"); }
+  });
+};
+show(0);
+window.__at = (s) => { let i = 0; D.beats.forEach((b, n) => { if (s >= b.at) i = n; }); show(i); };
+window.__run = (ms) => new Promise((done) => {
+  const t0 = performance.now();
+  const tick = () => {
+    const s = (performance.now() - t0) / 1000;
+    window.__at(s);
+    if (s * 1000 < ms) requestAnimationFrame(tick); else done();
+  };
+  requestAnimationFrame(tick);
+});
+</script></body></html>

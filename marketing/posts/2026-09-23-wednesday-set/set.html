@@ -1,0 +1,86 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"><style>
+:root { --ink:#14161a; --panel:#fff; --soft:#f3f5ef; --line:#dfe3d8; --lime:#c4f000; --blue:#1668ff; --red:#e63023;
+        --muted:#8a9080; --display:'Archivo',sans-serif; --mono:'IBM Plex Mono',monospace; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#555; font-family:var(--display); color:var(--ink); }
+.slide { position:relative; background:var(--soft); display:flex; flex-direction:column; overflow:hidden; margin-bottom:24px; }
+.kicker { font-family:var(--mono); font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+h1 { font-weight:800; line-height:.96; letter-spacing:-.03em; }
+.mark { background:var(--lime); padding:0 16px; color:var(--ink); }
+.sub { font-family:var(--mono); color:var(--muted); }
+/* The cards take the space left between the title and the lockup and share
+   it evenly, so a short set does not leave a hole above the footer. */
+.calls { flex:1; display:flex; flex-direction:column; justify-content:space-between; }
+.call { background:var(--panel); border:3px solid var(--line); }
+.tagrow { display:flex; align-items:center; }
+.tag { font-family:var(--mono); font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+       border-radius:999px; color:#fff; background:var(--blue); }
+.tag.prime { background:var(--lime); color:var(--ink); }
+.rno { font-family:var(--mono); color:var(--muted); font-weight:700; }
+.stake { margin-left:auto; font-family:var(--mono); font-weight:700; color:var(--muted); }
+.horse { font-weight:800; letter-spacing:-.02em; line-height:1.05; }
+.why { line-height:1.35; color:#3d4147; }
+.prices { display:flex; align-items:baseline; font-family:var(--mono); }
+.prices b { font-weight:700; }
+.prices span { color:var(--muted); font-weight:600; }
+.foot { position:absolute; left:72px; right:72px; display:flex; align-items:center; gap:20px; }
+.logo { font-weight:800; letter-spacing:-.02em; }
+.logo em { font-style:normal; background:var(--lime); padding:0 12px; color:var(--ink); }
+.tag2 { font-family:var(--mono); color:var(--muted); }
+
+.set { width:1080px; height:1350px; padding:76px 72px 170px; }
+.set .kicker { font-size:29px; }
+.set h1 { font-size:72px; margin-top:16px; }
+.set .sub { font-size:27px; margin-top:14px; }
+.set .calls { margin-top:28px; gap:16px; }
+.set .call { padding:26px 28px; border-radius:26px; }
+.set .tagrow { gap:15px; }
+.set .tag { font-size:24px; padding:5px 15px; }
+.set .rno, .set .stake { font-size:26px; }
+.set .horse { font-size:40px; margin-top:10px; }
+.set .why { font-size:25px; margin-top:9px; }
+.set .prices { gap:22px; margin-top:14px; }
+.set .prices b { font-size:36px; }
+.set .prices span { font-size:25px; }
+.set .foot { bottom:66px; }
+.set .logo { font-size:46px; }
+.set .tag2 { font-size:27px; }
+
+.set-square { width:1080px; height:1080px; padding:64px 72px 142px; }
+.set-square .kicker { font-size:25px; }
+.set-square h1 { font-size:61px; margin-top:14px; }
+.set-square .sub { font-size:23px; margin-top:12px; }
+.set-square .calls { margin-top:24px; gap:14px; }
+.set-square .call { padding:22px 24px; border-radius:22px; }
+.set-square .tagrow { gap:13px; }
+.set-square .tag { font-size:20px; padding:4px 13px; }
+.set-square .rno, .set-square .stake { font-size:22px; }
+.set-square .horse { font-size:34px; margin-top:9px; }
+.set-square .why { font-size:21px; margin-top:8px; }
+.set-square .prices { gap:19px; margin-top:12px; }
+.set-square .prices b { font-size:31px; }
+.set-square .prices span { font-size:21px; }
+.set-square .foot { bottom:56px; }
+.set-square .logo { font-size:39px; }
+.set-square .tag2 { font-size:23px; }
+</style></head><body></body><script>
+const D = {"day":"Wednesday 23 September","title":"Wednesday","plays":[{"track":"Geelong","race":3,"jump":"2:35 pm","tab":3,"horse":"Fringilla","live":"$4.40","rated":"$3.80","prime":false,"line":"Rates top of the field at 85.9 with the early speed to control it from barrier two."},{"track":"Warwick Farm","race":7,"jump":"5:20 pm","tab":10,"horse":"Agatha","live":"$3.80","rated":"$3.30","prime":false,"line":"Rates top of the field at 91.6 with the best closing sectionals, and needs luck from the back."},{"track":"Geelong","race":8,"jump":"5:30 pm","tab":8,"horse":"It's A Yes","live":"$4.00","rated":"$3.70","prime":false,"line":"Rates top of the field at 93.1, clear of the next on our figures."}]};
+const F = [{"name":"set","height":1350,"scale":1,"padTop":76,"padBottom":170,"footBottom":66},{"name":"set-square","height":1080,"scale":0.85,"padTop":64,"padBottom":142,"footBottom":56}];
+const call = (c) =>
+  '<div class="call">' +
+    '<div class="tagrow"><span class="tag' + (c.prime ? ' prime' : '') + '">' + (c.prime ? 'Prime' : 'Bet') + '</span>' +
+      '<span class="rno">' + c.track + ' R' + c.race + (c.jump ? ' \u00b7 ' + c.jump : '') + '</span>' +
+      '<span class="stake">1u</span></div>' +
+    '<div class="horse">' + c.tab + '. ' + c.horse + '</div>' +
+    '<div class="why">' + c.line + '</div>' +
+    '<div class="prices"><b>' + c.live + '</b><span>we rate it ' + c.rated + '</span></div>' +
+  '</div>';
+
+document.body.innerHTML = F.map((f) =>
+  '<div class="slide ' + f.name + '"><div class="kicker">' + D.day + '</div>' +
+  '<h1>The ' + D.title + ' <span class="mark">Set.</span></h1>' +
+  '<div class="sub">Three plays, one unit each.</div>' +
+  '<div class="calls">' + D.plays.map(call).join('') + '</div>' +
+  '<div class="foot"><span class="logo">THE <em>OVERLAY</em></span><span class="tag2">theoverlay.com.au</span></div>' +
+  '</div>').join('');
+</script></html>

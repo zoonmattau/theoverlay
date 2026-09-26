@@ -1,0 +1,287 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"><style>
+:root { --ink:#14161a; --panel:#fff; --soft:#f3f5ef; --line:#dfe3d8; --lime:#c4f000; --blue:#1668ff; --red:#e63023;
+        --muted:#8a9080; --display:'Archivo',sans-serif; --mono:'IBM Plex Mono',monospace; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#555; font-family:var(--display); color:var(--ink); }
+.ad { position:relative; background:var(--soft); display:flex; flex-direction:column; justify-content:center;
+      overflow:hidden; margin:0 auto 24px; }
+.ad.dark { background:var(--ink); color:#fff; }
+.kicker { font-family:var(--mono); font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+.ad.dark .kicker { color:var(--lime); }
+/* The lime mark is an inline background whose box is about 1.15em tall. Any
+   line-height under that lets it bleed upward and cover the descenders of the
+   line above (the g in "beating", the p in "prices"). 1.12 clears them. */
+h1 { font-weight:800; line-height:1.12; letter-spacing:-.035em; }
+.mark { background:var(--lime); padding:0 16px; color:var(--ink); white-space:nowrap; }
+.lede { font-weight:600; line-height:1.35; max-width:880px; color:#3d4147; }
+.ad.dark .lede { color:#d7dccb; }
+/* The shot is never cropped. A wide table fills the column; a tall card is
+   limited by the window height and shrinks to fit inside it, centred. */
+/* The shot is never cropped. A wide table fills the column; a tall one is
+   limited by the window height and shrinks, whole, to fit inside it. Cropping
+   instead cut the bottom off every tall screenshot in the square and story. */
+/* The frame hugs the shot rather than stretching, so a scaled-down table is
+   not marooned in a full-width white box. */
+.shot { display:flex; width:fit-content; max-width:100%; margin-left:auto; margin-right:auto;
+        border:3px solid var(--line); background:var(--panel); }
+.ad.dark .shot { border-color:#3a3f48; }
+.shot img { display:block; max-width:100%; width:auto; height:auto; }
+/* Two prices side by side: the bookie's and ours. */
+.versus { display:grid; grid-template-columns:1fr 1fr; }
+.vt { background:var(--panel); border:3px solid var(--line); text-align:center; }
+.ad.dark .vt { background:#22252b; border-color:#3a3f48; }
+/* Both need to outrank ".ad.dark .vt", which is the more specific selector. */
+.vt.them, .ad.dark .vt.them { background:var(--blue); border-color:var(--blue); color:#fff; }
+.vt.us, .ad.dark .vt.us { background:var(--lime); border-color:var(--lime); color:var(--ink); }
+.vt .l { font-family:var(--mono); font-weight:700; letter-spacing:.14em; text-transform:uppercase; opacity:.85; }
+.vt .p { font-family:var(--mono); font-weight:700; line-height:1; letter-spacing:-.04em; }
+.vname { font-family:var(--mono); color:var(--muted); font-weight:600; }
+.ad.dark .vname { color:#b9c0ad; }
+/* The mechanic, on every ad. Someone who has never heard of us reads these
+   three and knows what the thing does and why it would be worth paying for. */
+.steps { display:grid; grid-template-columns:1fr 1fr 1fr; }
+.step { background:var(--panel); border:3px solid var(--line); display:flex; flex-direction:column; }
+.ad.dark .step { background:#22252b; border-color:#3a3f48; }
+.step b { font-family:var(--mono); font-weight:700; color:var(--muted); letter-spacing:.1em; }
+.ad.dark .step b { color:var(--lime); }
+.step span { font-weight:700; line-height:1.2; letter-spacing:-.01em; }
+.mech { font-family:var(--mono); font-weight:600; line-height:1.4; color:var(--muted);
+        border-left:4px solid var(--lime); }
+.ad.dark .mech { color:#b9c0ad; }
+.foot { position:absolute; left:76px; right:76px; display:flex; align-items:center; gap:22px; }
+.footlines { display:flex; flex-direction:column; gap:3px; }
+.footlines b { font-weight:700; letter-spacing:-.01em; }
+.logo { font-weight:800; letter-spacing:-.02em; white-space:nowrap; }
+.logo em { font-style:normal; background:var(--lime); padding:0 12px; color:var(--ink); }
+.tag2 { font-family:var(--mono); color:var(--muted); white-space:nowrap; }
+.ad.dark .tag2 { color:#b9c0ad; }
+
+.square { width:1080px; height:1080px; padding:64px 76px 64px; }
+.square .kicker { font-size:24px; }
+.square h1 { font-size:83px; margin-top:16px; }
+.square h1.small { font-size:64px; }
+.square .lede { font-size:29px; margin-top:21px; }
+.square .shot { margin-top:29px; border-radius:18px; }
+.square .shot img { max-height:430px; }
+.square .versus { margin-top:35px; gap:16px; }
+.square .vt { padding:27px 22px; border-radius:22px; }
+.square .vt .l { font-size:21px; }
+.square .vt .p { font-size:80px; margin-top:8px; }
+.square .vname { font-size:24px; margin-top:18px; }
+.square .mech { font-size:20px; margin-top:22px; padding-left:16px; }
+.square .steps { margin-top:24px; gap:10px; }
+.square .step { padding:14px 14px; border-radius:14px; }
+.square .step b { font-size:19px; }
+.square .step span { font-size:20px; margin-top:6px; }
+.square .foot { bottom:56px; }
+.square .logo { font-size:34px; }
+.square .footlines b { font-size:21px; }
+.square .tag2 { font-size:17px; }
+
+.portrait { width:1080px; height:1350px; padding:80px 76px 80px; }
+.portrait .kicker { font-size:29px; }
+.portrait h1 { font-size:99px; margin-top:19px; }
+.portrait h1.small { font-size:76px; }
+.portrait .lede { font-size:34px; margin-top:25px; }
+.portrait .shot { margin-top:34px; border-radius:21px; }
+.portrait .shot img { max-height:580px; }
+.portrait .versus { margin-top:42px; gap:19px; }
+.portrait .vt { padding:32px 27px; border-radius:27px; }
+.portrait .vt .l { font-size:25px; }
+.portrait .vt .p { font-size:95px; margin-top:10px; }
+.portrait .vname { font-size:29px; margin-top:21px; }
+.portrait .mech { font-size:24px; margin-top:27px; padding-left:19px; }
+.portrait .steps { margin-top:29px; gap:11px; }
+.portrait .step { padding:17px 17px; border-radius:17px; }
+.portrait .step b { font-size:23px; }
+.portrait .step span { font-size:24px; margin-top:8px; }
+.portrait .foot { bottom:68px; }
+.portrait .logo { font-size:40px; }
+.portrait .footlines b { font-size:25px; }
+.portrait .tag2 { font-size:20px; }
+
+.story { width:1080px; height:1920px; padding:340px 76px 340px; }
+.story .kicker { font-size:32px; }
+.story h1 { font-size:110px; margin-top:21px; }
+.story h1.small { font-size:85px; }
+.story .lede { font-size:38px; margin-top:28px; }
+.story .shot { margin-top:38px; border-radius:23px; }
+.story .shot img { max-height:520px; }
+.story .versus { margin-top:47px; gap:21px; }
+.story .vt { padding:36px 30px; border-radius:30px; }
+.story .vt .l { font-size:28px; }
+.story .vt .p { font-size:106px; margin-top:11px; }
+.story .vname { font-size:32px; margin-top:23px; }
+.story .mech { font-size:27px; margin-top:30px; padding-left:21px; }
+.story .steps { margin-top:32px; gap:13px; }
+.story .step { padding:19px 19px; border-radius:19px; }
+.story .step b { font-size:25px; }
+.story .step span { font-size:27px; margin-top:8px; }
+.story .foot { bottom:280px; }
+.story .logo { font-size:45px; }
+.story .footlines b { font-size:28px; }
+.story .tag2 { font-size:22px; }
+</style></head><body></body><script>
+const D = {"horse":"Shultzy","rated":"$5.30","market":"$7.00","bookie":"Sportsbet","races":37,"noBet":25};
+const F = [{"name":"square","height":1080,"scale":0.8,"padY":64,"footBottom":56,"shotH":430},{"name":"portrait","height":1350,"scale":0.95,"padY":80,"footBottom":68,"shotH":580},{"name":"story","height":1920,"scale":1.06,"padY":340,"footBottom":280,"shotH":520}];
+const C = ["call","map","board","price","record","beat","edge","priced","pass","opinion","springNow","springSaturday","springPriced","springCrowd","springReady","terminal","everyrace","tipsters","tipsterRecord","heart","mate","bookietips","name"];
+
+// Every ad ends the same way, so one on its own still says who we are, what we
+// do and how to start.
+const foot = '<div class="foot"><span class="logo">THE <em>OVERLAY</em></span>' +
+  '<span class="footlines"><b>Know what every runner is worth.</b>' +
+  '<span class="tag2">7 days free, then from $19 a month</span>' +
+  '<span class="tag2">theoverlay.com.au &nbsp;18+</span></span></div>';
+
+const shot = (name) => '<div class="shot"><img src="../shots/' + name + '.png"></div>';
+const mech = '<p class="mech">We rate every runner, put our own price on it, ' +
+  'and the ones the bookies have too long are the bets.</p>';
+const steps =
+  '<div class="steps">' +
+    '<div class="step"><b>01</b><span>We rate every runner in the race</span></div>' +
+    '<div class="step"><b>02</b><span>We put our own price on each one</span></div>' +
+    '<div class="step"><b>03</b><span>You bet the ones the bookies have too long</span></div>' +
+  '</div>';
+
+const body = {
+  // ---- core: what it does for you ----
+  call: () =>
+    '<div class="kicker">What you get</div>' +
+    '<h1 class="small">Know which bets<br>are <span class="mark">worth taking.</span></h1>' +
+    shot('selection-card') + mech,
+
+  map: () =>
+    '<div class="kicker">Tempo and pressure</div>' +
+    '<h1 class="small">See the race<br><span class="mark">before it runs.</span></h1>' +
+    shot('rankings-pressure') + mech,
+
+  board: () =>
+    '<div class="kicker">Every runner</div>' +
+    '<h1 class="small">The whole field,<br>rated and <span class="mark">priced.</span></h1>' +
+    shot('rankings') + steps,
+
+  price: () =>
+    '<div class="kicker">The market</div>' +
+    '<h1 class="small">Find the prices<br>the bookies <span class="mark">got wrong.</span></h1>' +
+    shot('market') + steps,
+
+  record: () =>
+    '<div class="kicker">The record</div>' +
+    '<h1 class="small">Every call,<br>settled <span class="mark">in public.</span></h1>' +
+    shot('bets') + mech,
+
+  // ---- bookies: the opponent, the edge, and where our price comes from ----
+  beat: () =>
+    '<div class="kicker">Who you are playing</div>' +
+    '<h1 class="small">You are not beating<br>the horse. You are<br>beating <span class="mark">the bookie.</span></h1>' +
+    '<p class="lede">They set the price. Winning is finding the ones they have set too long.</p>' +
+    steps,
+
+  edge: () =>
+    '<div class="kicker">The edge, worked out</div>' +
+    '<h1 class="small">We do the sums<br>on <span class="mark">every runner.</span></h1>' +
+    shot('market') + mech,
+
+  priced: () =>
+    '<div class="kicker">Where our price comes from</div>' +
+    '<h1 class="small">Ten ratings in.<br><span class="mark">One price out.</span></h1>' +
+    shot('matrix') + mech,
+
+  pass: () =>
+    '<div class="kicker">When to sit out</div>' +
+    '<h1 class="small">Most races, we tell<br>you <span class="mark">not to bet.</span></h1>' +
+    '<p class="lede">In ' + D.noBet + ' of today’s ' + D.races + ' races no price was worth taking. Your bookie would rather you had a go at all of them.</p>' +
+    shot('home-board') + mech,
+
+  opinion: () =>
+    '<div class="kicker">Whose price is it</div>' +
+    '<h1 class="small">A bookie price is<br><span class="mark">a bookie opinion.</span></h1>' +
+    shot('selections') + mech,
+
+  // ---- spring ----
+  springNow: () =>
+    '<div class="kicker">Spring carnival</div>' +
+    '<h1 class="small">Spring starts<br><span class="mark">here.</span></h1>' +
+    shot('matrix') + steps,
+
+  springSaturday: () =>
+    '<div class="kicker">Spring carnival</div>' +
+    '<h1 class="small">Every spring<br>Saturday, <span class="mark">rated.</span></h1>' +
+    shot('selection-card') + mech,
+
+  springPriced: () =>
+    '<div class="kicker">Spring carnival</div>' +
+    '<h1 class="small">The big days are<br>won on <span class="mark">the price.</span></h1>' +
+    shot('lays') + mech,
+
+  springCrowd: () =>
+    '<div class="kicker">Spring carnival</div>' +
+    '<h1 class="small">Everyone bets<br>in spring.<br><span class="mark">Most of them guess.</span></h1>' +
+    '<p class="lede">Go in with a rating and a price on every runner.</p>' +
+    mech,
+
+  // ---- what people bet on now, and why it is not a price ----
+  heart: () =>
+    '<div class="kicker">Head, not heart</div>' +
+    '<h1 class="small">A feeling is not<br><span class="mark">a price.</span></h1>' +
+    '<p class="lede">Every runner gets a rating and a price, so the call is a number you can check rather than a hunch you cannot.</p>' +
+    shot('selection-card') + mech,
+
+  mate: () =>
+    '<div class="kicker">Where your tips come from</div>' +
+    '<h1 class="small">Your mate has not<br>done <span class="mark">the sectionals.</span></h1>' +
+    '<p class="lede">We rate every run on sectional time, class and tempo, then put a price on it. The mail down the pub does neither.</p>' +
+    shot('rankings-pressure') + mech,
+
+  bookietips: () =>
+    '<div class="kicker">Who is tipping you</div>' +
+    '<h1 class="small">The bookie’s tipster<br>works for <span class="mark">the bookie.</span></h1>' +
+    '<p class="lede">A bookie preview is an ad. The horse they push is the one they want the money on, at the price that suits them.</p>' +
+    shot('market') + mech,
+
+  name: () =>
+    '<div class="kicker">Why you are on it</div>' +
+    '<h1 class="small">Back it for the price,<br>not <span class="mark">the name.</span></h1>' +
+    '<p class="lede">A good horse at a bad price is a bad bet. We price the whole field so you can tell which is which.</p>' +
+    shot('selections') + mech,
+
+  // ---- the app itself ----
+  terminal: () =>
+    '<div class="kicker">Your racing terminal</div>' +
+    '<h1 class="small">The whole day<br>on <span class="mark">one screen.</span></h1>' +
+    shot('home-board') + steps,
+
+  everyrace: () =>
+    '<div class="kicker">Every race rated</div>' +
+    '<h1 class="small">Every race on<br>the card, <span class="mark">priced.</span></h1>' +
+    '<p class="lede">Blue where we back one, red where we lay one, and nothing where the price is fair.</p>' +
+    shot('home-board') + mech,
+
+  tipsters: () =>
+    '<div class="kicker">Tipsters on the app</div>' +
+    '<h1 class="small">Follow people who<br><span class="mark">show their working.</span></h1>' +
+    shot('tipster') + mech,
+
+  tipsterRecord: () =>
+    '<div class="kicker">Every tipster, measured</div>' +
+    '<h1 class="small">Their record,<br>not their <span class="mark">highlights.</span></h1>' +
+    shot('tipster-record') + mech,
+
+  springReady: () =>
+    '<div class="kicker">Spring carnival</div>' +
+    '<h1 class="small">Be ready<br><span class="mark">for spring.</span></h1>' +
+    shot('rankings') + mech,
+};
+
+const dark = {
+  call: true, map: true, board: false, price: false, record: false,
+  beat: true, edge: false, priced: true, pass: true, opinion: false,
+  springNow: true, springSaturday: false, springPriced: true, springCrowd: true, springReady: false,
+  terminal: true, everyrace: false, tipsters: false, tipsterRecord: true,
+  heart: true, mate: false, bookietips: true, name: false,
+};
+
+document.body.innerHTML = C.flatMap((c) =>
+  F.map((f) => '<div class="ad ' + f.name + (dark[c] ? ' dark' : '') + '" data-id="' + c + '-' + f.name + '">' + body[c]() + foot + '</div>')
+).join('');
+</script></html>

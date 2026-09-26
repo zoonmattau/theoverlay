@@ -1,0 +1,96 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@400;600;700&display=swap" rel="stylesheet"><style>
+:root { --ink:#14161a; --panel:#fff; --soft:#f3f5ef; --line:#dfe3d8; --lime:#c4f000; --blue:#1668ff; --red:#e63023;
+        --muted:#8a9080; --display:'Archivo',sans-serif; --mono:'IBM Plex Mono',monospace; }
+* { box-sizing:border-box; margin:0; padding:0; }
+body { background:#555; font-family:var(--display); color:var(--ink); }
+.slide { position:relative; width:1080px; height:1350px; padding:84px 76px 170px; background:var(--soft);
+         display:flex; flex-direction:column; justify-content:center; overflow:hidden; }
+.slide.dark { background:var(--ink); color:#fff; }
+.kicker { font-family:var(--mono); font-size:30px; font-weight:700; letter-spacing:.2em; text-transform:uppercase; color:var(--muted); }
+.slide.dark .kicker { color:var(--lime); }
+h1 { font-size:110px; font-weight:800; line-height:.96; letter-spacing:-.03em; margin-top:18px; }
+h2 { font-size:76px; font-weight:800; line-height:1; letter-spacing:-.025em; }
+.where { font-family:var(--mono); font-size:32px; color:var(--muted); margin-top:16px; }
+.mark { background:var(--lime); padding:0 16px; color:var(--ink); }
+.calls { margin-top:36px; display:flex; flex-direction:column; gap:20px; }
+/* No coloured spine down the side: the pill says which it is, and the bar
+   made every card look like it came out of a template. */
+.call { border-radius:30px; padding:28px 32px; background:var(--panel); border:3px solid var(--line); }
+.tagrow { display:flex; align-items:center; gap:16px; }
+.tag { font-family:var(--mono); font-size:26px; font-weight:800; letter-spacing:.12em; text-transform:uppercase;
+       padding:6px 16px; border-radius:999px; color:#fff; background:var(--blue); }
+.tag.lay { background:var(--red); }
+.tag.prime { background:var(--lime); color:var(--ink); }
+.rno { font-family:var(--mono); font-size:28px; color:var(--muted); font-weight:700; }
+.horse { font-size:48px; font-weight:800; letter-spacing:-.02em; margin-top:14px; line-height:1.05; }
+.why { font-size:29px; line-height:1.4; color:var(--color-ink-secondary, #3d4147); margin-top:14px; }
+.prices { display:flex; align-items:baseline; gap:26px; margin-top:20px; font-family:var(--mono); }
+.prices b { font-size:40px; font-weight:700; }
+.prices span { font-size:26px; color:var(--muted); font-weight:600; }
+.prices .edge { font-weight:700; color:var(--blue); font-size:30px; }
+.call.lay .prices .edge { color:var(--red); }
+.grid { margin-top:56px; display:grid; grid-template-columns:1fr 1fr; gap:24px; }
+.tile { background:var(--panel); border:3px solid var(--line); border-radius:30px; padding:34px; text-align:center; }
+.tile.blue { background:var(--blue); border-color:var(--blue); color:#fff; }
+.tile.red { background:var(--red); border-color:var(--red); color:#fff; }
+.tile.lime { background:var(--lime); border-color:var(--lime); }
+/* A plain tile on the dark cover is a dark panel, not a white one the white numbers vanish into. */
+.slide.dark .tile { background:#22252b; border-color:#3a3f48; color:#fff; }
+.slide.dark .tile.blue { background:var(--blue); border-color:var(--blue); }
+.slide.dark .tile.red { background:var(--red); border-color:var(--red); }
+.tile .n { font-family:var(--mono); font-size:112px; font-weight:700; line-height:1; letter-spacing:-.04em; }
+.tile .l { font-family:var(--mono); font-size:26px; font-weight:700; letter-spacing:.14em; text-transform:uppercase; margin-top:10px; opacity:.75; }
+.spacer { display:none; }
+.lede { font-size:40px; font-weight:600; line-height:1.4; margin-top:30px; max-width:840px; }
+.slide.dark .lede { color:#d7dccb; }
+.url { font-size:64px; font-weight:800; letter-spacing:-.02em; margin-top:52px; }
+/* The close says the address once, big; the footer keeps the lockup alone. */
+.slide.close .tag2 { display:none; }
+.foot { position:absolute; left:76px; right:76px; bottom:66px; display:flex; align-items:center; gap:20px; }
+.logo { font-size:46px; font-weight:800; letter-spacing:-.02em; }
+.logo em { font-style:normal; background:var(--lime); padding:0 12px; color:var(--ink); }
+.tag2 { font-family:var(--mono); font-size:27px; color:var(--muted); }
+.slide.dark .tag2 { color:#b9c0ad; }
+.swipe { margin-left:auto; font-family:var(--mono); font-size:27px; font-weight:700; color:var(--muted); }
+</style></head><body></body><script>
+const D = {"day":"Saturday 19 September","cover":{"meetings":12,"races":93,"runners":876,"bets":14,"lays":27,"primes":0},"slides":[{"track":"Caulfield","state":"VIC","going":"Good 4","races":10,"bet":{"race":4,"tab":10,"horse":"Saintly Dancer","live":"$7.00","rated":"$5.70","edge":"+3.4%","prime":false,"why":"Settles on the speed. Strong closer, is firming in the market."},"lay":{"race":8,"tab":14,"horse":"Zahrann","live":"$3.20","rated":"$4.20","edge":"−7.2%","why":"Settles on the speed. Rates 8th of 16 on our numbers."}},{"track":"Randwick","state":"NSW","going":"Good 4","races":10,"bet":{"race":1,"tab":5,"horse":"Brave Xena","live":"$7.50","rated":"$6.10","edge":"+3.0%","prime":false,"why":"Settles midfield. Rates 1st in the field at 92.4."},"lay":{"race":2,"tab":2,"horse":"Barrengarry","live":"$1.83","rated":"$2.20","edge":"−9.5%","why":"Settles midfield. Its fresh record costs it 1.7 points, the trip is a query, 2.5 points off its class from 4 runs near 1600m and its best runs have come near 2000m, goes up 2.5kg."}},{"track":"Eagle Farm","state":"QLD","going":"Soft 5","races":8,"bet":{"race":8,"tab":6,"horse":"Ciphertext","live":"$9.50","rated":"$8.10","edge":"+1.8%","prime":false,"why":"Settles on the speed. Best closing sectionals in the field, placed last start, has been backed."},"lay":{"race":8,"tab":11,"horse":"Olivoni","live":"$2.10","rated":"$2.65","edge":"−10.2%","why":"Should lead. Fast tempo against it, gets tested up front, has company for the lead, the two best beginners are within a point, the weight costs it 2.5 points."}},{"track":"Morphettville Parks","state":"SA","going":"Good 4","races":9,"bet":{"race":4,"tab":9,"horse":"Zoutrail","live":"$6.75","rated":"$5.60","edge":"+2.9%","prime":false,"why":"Goes back. Fast tempo suits, gets pulled into it, beat Madam Jeanette last start, placed last start."},"lay":{"race":3,"tab":6,"horse":"Light The Night","live":"$2.52","rated":"$3.00","edge":"−6.8%","why":"Settles midfield. Rates 5th of 7 on our numbers."}}]};
+const foot = (swipe) => '<div class="foot"><span class="logo">THE <em>OVERLAY</em></span>' +
+  '<span class="tag2">theoverlay.com.au</span>' + (swipe ? '<span class="swipe">swipe \u2192</span>' : '') + '</div>';
+
+const call = (c, kind) => !c ? '' :
+  '<div class="call ' + kind + (c.prime ? ' prime' : '') + '">' +
+    '<div class="tagrow"><span class="tag ' + (c.prime ? 'prime' : kind) + '">' + (c.prime ? 'Prime' : kind === 'bet' ? 'Bet' : 'Lay') + '</span>' +
+      '<span class="rno">Race ' + c.race + '</span></div>' +
+    '<div class="horse">' + c.tab + '. ' + c.horse + '</div>' +
+    '<div class="why">' + c.why + '</div>' +
+    '<div class="prices"><b>' + c.live + '</b><span>we rate it ' + c.rated + '</span><span class="edge">' + c.edge + '</span></div>' +
+  '</div>';
+
+const slides = [];
+slides.push('<div class="slide dark"><div class="kicker">' + D.day + '</div>' +
+  '<h1>The card<br><span class="mark">in numbers.</span></h1>' +
+  '<div class="grid">' +
+    '<div class="tile"><div class="n">' + D.cover.meetings + '</div><div class="l">meetings</div></div>' +
+    '<div class="tile"><div class="n">' + D.cover.races + '</div><div class="l">races</div></div>' +
+    '<div class="tile blue"><div class="n">' + D.cover.bets + '</div><div class="l">' + (D.cover.bets === 1 ? 'bet' : 'bets') + '</div></div>' +
+    '<div class="tile red"><div class="n">' + D.cover.lays + '</div><div class="l">' + (D.cover.lays === 1 ? 'lay' : 'lays') + '</div></div>' +
+  '</div>' +
+  '<div class="where" style="margin-top:40px">' + D.cover.runners + ' runners rated, every one with a price.</div>' +
+  '<div class="spacer"></div>' + foot(true) + '</div>');
+
+D.slides.forEach((s, i) => {
+  slides.push('<div class="slide"><div class="kicker">Today\'s calls</div>' +
+    '<h2>' + s.track + '</h2>' +
+    '<div class="where">' + s.state + (s.going ? ' \u00b7 ' + s.going : '') + ' \u00b7 ' + s.races + ' races</div>' +
+    '<div class="calls">' + call(s.bet, 'bet') + call(s.lay, 'lay') + '</div>' +
+    '<div class="spacer"></div>' + foot(i < D.slides.length - 1) + '</div>');
+});
+
+slides.push('<div class="slide dark close"><div class="kicker">Every race, every day</div>' +
+  '<h1>Every runner<br><span class="mark">rated.</span></h1>' +
+  '<p class="lede">A benchmark rating and a price for every horse.</p>' +
+  '<p class="lede">A bet only where the market is longer than our price. A lay only where it is shorter.</p>' +
+  '<p class="url">theoverlay.com.au</p>' + foot(false) + '</div>');
+
+document.body.innerHTML = slides.join('');
+</script></html>
