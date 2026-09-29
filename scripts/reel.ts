@@ -61,17 +61,19 @@ const CLOSER = [
   { at: 31, until: 34, id: "7-class", scene: "class" },
   { at: 34, until: 40, id: "8-close", scene: "close" },
 ] as const;
-/** A horse that leads on its own: the class gap, the early speed, the tempo, the weight query, the market, the price, the slip. */
+/**
+ * A horse that leads on its own, cut to 25 seconds so it sits after a 5 second
+ * intro recorded by hand: the class gap, the early speed, the map, the weight
+ * query, the price, the slip, the close.
+ */
 const LEADER = [
-  { at: 0, until: 5, id: "1-pick", scene: "pick" },
-  { at: 5, until: 10, id: "2-class", scene: "class" },
-  { at: 10, until: 15, id: "3-early", scene: "early" },
-  { at: 15, until: 20, id: "4-tempo", scene: "tempo" },
-  { at: 20, until: 25, id: "5-weight", scene: "topweight" },
-  { at: 25, until: 30, id: "6-move", scene: "move" },
-  { at: 30, until: 35, id: "7-price", scene: "price" },
-  { at: 35, until: 40, id: "8-slip", scene: "slip" },
-  { at: 40, until: 45, id: "9-close", scene: "close" },
+  { at: 0, until: 4, id: "1-class", scene: "class" },
+  { at: 4, until: 8, id: "2-early", scene: "early" },
+  { at: 8, until: 12, id: "3-tempo", scene: "tempo" },
+  { at: 12, until: 15, id: "4-weight", scene: "topweight" },
+  { at: 15, until: 19, id: "5-price", scene: "price" },
+  { at: 19, until: 22, id: "6-slip", scene: "slip" },
+  { at: 22, until: 25, id: "7-close", scene: "close" },
 ] as const;
 const BEATS: readonly { at: number; until: number; id: string; scene: string }[] = (story === "leader" ? LEADER : CLOSER).filter((b) => b.scene !== "slip" || slipArg);
 
