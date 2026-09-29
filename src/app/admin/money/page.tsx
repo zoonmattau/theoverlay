@@ -5,7 +5,8 @@ import { Suspense } from "react";
 
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
-import { planById } from "@/lib/billing/plans";
+import { planById, TERMS, weekly } from "@/lib/billing/plans";
+import { priceBook, type PriceCell } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
 import { bookieName } from "@/lib/bookies";
 import { moneyReport, type PlanFunnel } from "@/lib/money";
@@ -31,7 +32,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const r = await moneyReport(n);
+  const [r, prices] = await Promise.all([moneyReport(n), priceBook()]);
   const t = r.totals;
 
   return (
@@ -57,6 +58,30 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.starts} label="trials and passes" />
         <Tile n={t.paid} label="paid" tone="prime" />
         <Tile n={t.cancelled} label="cancelled" />
+      </div>
+
+      <div className="card mb-6">
+        <h2 className="font-display font-extrabold">Plan prices</h2>
+        <p className="mt-1 text-xs text-ink-soft mb-3">What Stripe charges now, per bill, before GST. The week figure is the bill spread over the weeks it covers.</p>
+        <table className="data-table stack-sm text-sm">
+          <thead><tr><th>Plan</th><th>Days</th>{TERMS.map((t) => <th key={t.id} className="text-right">{t.name}{t.off ? ` (${Math.round(t.off * 100)}% off)` : ""}</th>)}</tr></thead>
+          <tbody>
+            {prices.plans.map((p) => (
+              <tr key={p.id}>
+                <td className="font-semibold">{p.name}</td>
+                <td data-label="Days" className="text-ink-secondary">{p.days}</td>
+                {TERMS.map((t) => <td key={t.id} data-label={t.name} className="text-right nums"><Price c={p.terms[t.id]} months={t.months} /></td>)}
+              </tr>
+            ))}
+            <tr>
+              <td className="font-semibold">Day passes</td>
+              <td className="text-ink-secondary">Any one date</td>
+              <td colSpan={TERMS.length} data-label="Bundles" className="text-right nums">
+                {prices.passes.map((b, i) => <span key={b.qty}>{i ? " · " : ""}{b.qty} for <Price c={b.cell} /></span>)}
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
 
       <div className="card mb-6">
@@ -231,5 +256,18 @@ function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "p
       <div className="font-display text-2xl font-extrabold tracking-tight nums">{n}</div>
       <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
     </div>
+  );
+}
+
+/** One Stripe price: the dollars, the week figure for a plan, and a flag when it is missing or not what the code expects. */
+function Price({ c, months }: { c: PriceCell; months?: number }) {
+  if (c.dollars === undefined) return <span className="text-red">not in Stripe</span>;
+  return (
+    <>
+      <strong>${c.dollars}</strong>
+      {months ? <span className="block text-xs text-ink-soft">${weekly(c.dollars / months).toFixed(2)} a week</span> : null}
+      {!c.active && <span className="block text-xs text-red">archived in Stripe</span>}
+      {c.dollars !== c.expected && <span className="block text-xs text-red">code says ${c.expected}</span>}
+    </>
   );
 }

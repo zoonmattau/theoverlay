@@ -25,16 +25,20 @@ export async function LiveNow({ minutes = 5 }: { minutes?: number }) {
               <span className="flex items-center gap-1 nums text-ink-secondary">
                 {p.people.length}
                 <span className="flex gap-0.5 ml-1">
-                  {p.people.slice(0, 12).map((x) => (
-                    <span key={x.id} className={`inline-block w-2.5 h-2.5 rounded-full ${x.email ? "bg-ink" : "bg-ink-soft"}`} title={`${x.email ?? `visitor ${x.id.slice(2, 8)}`}, ${x.ago < 60 ? `${x.ago}s` : `${Math.round(x.ago / 60)}m`} ago`} />
-                  ))}
+                  {p.people.slice(0, 12).map((x) =>
+                    x.memberId ? (
+                      <Link key={x.id} href={`/admin/${x.memberId}`} className="tip inline-block w-3 h-3 rounded-full bg-ink" data-tip={x.tip} aria-label={x.tip} />
+                    ) : (
+                      <span key={x.id} tabIndex={0} className="tip inline-block w-3 h-3 rounded-full bg-ink-soft" data-tip={x.tip} aria-label={x.tip} />
+                    ),
+                  )}
                 </span>
               </span>
             </div>
           ))}
         </div>
       )}
-      <p className="mt-2 text-xs text-ink-soft">A dark dot is a member, a light one a visitor; hover a dot for who and how long ago. A person counts on the page they were last seen on.</p>
+      <p className="mt-2 text-xs text-ink-soft">A dark dot is a member, a light one a visitor. Hover or tap a dot for who, their plan and where they came from. Click a member&apos;s dot to open their page.</p>
     </div>
   );
 }

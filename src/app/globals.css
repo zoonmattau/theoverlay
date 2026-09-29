@@ -4462,3 +4462,81 @@ body {
 @media (max-width: 640px) {
   .race-head .race-map { width: 100%; max-width: 420px; }
 }
+
+/* --- Members table filters: a search and a row of pills under the bar --- */
+.member-filters {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-panel-alt);
+}
+.member-search {
+  width: 100%;
+  max-width: 420px;
+  padding: 7px 12px;
+  font-size: 0.875rem;
+}
+.member-pills {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+.member-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 30px;
+  padding: 0 4px 0 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 999px;
+  background: var(--color-panel);
+  font-size: 0.8125rem;
+  cursor: pointer;
+  transition: border-color 120ms var(--ease), background 120ms var(--ease);
+}
+.member-pill:hover {
+  border-color: var(--color-line-strong);
+}
+.member-pill.is-on {
+  border-color: var(--color-lime);
+  background: var(--color-lime-soft);
+}
+.member-pill-label {
+  color: var(--color-ink-soft);
+  font-weight: 600;
+}
+.member-pill select {
+  appearance: none;
+  border: 0;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none' stroke='%238b918a' stroke-width='1.6'%3E%3Cpath d='M1 1l4 4 4-4'/%3E%3C/svg%3E") no-repeat right 8px center;
+  padding: 0 24px 0 4px;
+  height: 28px;
+  font: inherit;
+  font-weight: 600;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.member-pill select:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: 999px;
+}
+.member-clear {
+  height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-ink-secondary);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.member-clear:hover {
+  color: var(--color-ink);
+}
+@media (max-width: 640px) {
+  .member-search { max-width: none; }
+}

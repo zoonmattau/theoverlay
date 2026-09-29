@@ -1,6 +1,8 @@
 import "server-only";
 
+import { foundUs } from "@/lib/arrival";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { planById } from "@/lib/billing/plans";
 
 /**
  * What people do on the site, from the page_view events the tracker writes:
@@ -234,7 +236,18 @@ export async function memberViews(userId: string, limit = 40): Promise<ViewRow[]
 export interface LivePage {
   path: string;
   label: string;
-  people: { id: string; email: string | null; ago: number }[];
+  people: LivePerson[];
+}
+
+export interface LivePerson {
+  /** The member id, or v: and the visitor cookie. */
+  id: string;
+  email: string | null;
+  ago: number;
+  /** Member id when the person is a member, signed in or known by their cookie. */
+  memberId?: string;
+  /** What the hover says: who, their plan, where they came from, how long ago. */
+  tip: string;
 }
 
 /** A path as a person would say it. */
@@ -256,20 +269,49 @@ export async function liveNow(minutes = 5): Promise<{ pages: LivePage[]; people:
   const since = new Date(Date.now() - minutes * 60_000).toISOString();
   const db = supabaseAdmin();
   const views = await pageViewsSince(since);
-  const ids = [...new Set(views.map((v) => v.user_id).filter((u): u is string => Boolean(u)))];
-  const { data: profiles } = ids.length ? await db.from("profiles").select("id, email").in("id", ids) : { data: [] };
-  const email = new Map(((profiles ?? []) as { id: string; email: string | null }[]).map((p) => [p.id, p.email]));
+  // A visitor cookie once seen signed in belongs to that member, even signed out now.
+  const vids = [...new Set(views.filter((v) => !v.user_id && v.meta?.vid).map((v) => v.meta!.vid!))];
+  const { data: known } = vids.length ? await db.from("events").select("user_id, meta").eq("kind", "page_view").not("user_id", "is", null).in("meta->>vid", vids).limit(1000) : { data: [] };
+  const owners = new Map<string, string>();
+  for (const k of (known ?? []) as { user_id: string; meta: { vid?: string } | null }[]) if (k.meta?.vid && !owners.has(k.meta.vid)) owners.set(k.meta.vid, k.user_id);
+  const ids = [...new Set([...views.map((v) => v.user_id).filter((u): u is string => Boolean(u)), ...owners.values()])];
+  const { data: profiles } = ids.length ? await db.from("profiles").select("id, email, full_name, plan, subscription_status, access_until, source, landing, referrer, utm").in("id", ids) : { data: [] };
+  type P = { id: string; email: string | null; full_name: string | null; plan: string | null; subscription_status: string | null; access_until: string | null; source: string | null; landing: string | null; referrer: string | null; utm: Record<string, string> | null };
+  const profile = new Map(((profiles ?? []) as P[]).map((p) => [p.id, p]));
+  const now = Date.now();
+  const ago = (iso: string) => {
+    const sec = Math.round((now - new Date(iso).getTime()) / 1000);
+    return sec < 60 ? `${sec}s ago` : `${Math.round(sec / 60)}m ago`;
+  };
+  // Views per person in the window, and the earliest, for where a visitor came from.
+  const count = new Map<string, number>(), first = new Map<string, ViewRow>();
+  for (const v of views) {
+    const id = who(v, owners);
+    count.set(id, (count.get(id) ?? 0) + 1);
+    const f = first.get(id);
+    if (!f || v.created_at < f.created_at) first.set(id, v);
+  }
   // Newest first, so the first view seen for a person is where they are now.
   const seen = new Set<string>();
   const byPath = new Map<string, LivePage>();
-  const now = Date.now();
   for (const v of views) {
-    const id = who(v);
+    const id = who(v, owners);
     if (id === "?" || seen.has(id)) continue;
     seen.add(id);
     const path = v.meta?.path ?? "/";
     const page = byPath.get(path) ?? { path, label: pageLabel(path), people: [] };
-    page.people.push({ id, email: id.startsWith("v:") ? null : (email.get(id) ?? null), ago: Math.round((now - new Date(v.created_at).getTime()) / 1000) });
+    const p = id.startsWith("v:") ? undefined : profile.get(id);
+    const pages = `${count.get(id) ?? 1} ${count.get(id) === 1 ? "page" : "pages"} in ${minutes} min, last ${ago(v.created_at)}`;
+    let tip: string;
+    if (p) {
+      const live = p.access_until && new Date(p.access_until).getTime() > now;
+      const plan = live ? `${planById(p.plan ?? undefined)?.name ?? p.plan ?? "Plan"}${p.subscription_status === "trialing" ? ", on trial" : ""}` : "No plan";
+      const found = foundUs(p);
+      tip = [p.full_name ? `${p.full_name}, ${p.email}` : (p.email ?? "Member"), `${plan}${v.user_id ? "" : ", signed out"}`, `Found us: ${found.group}${found.detail ? ` (${found.detail})` : ""}`, pages].join("\n");
+    } else {
+      tip = ["Visitor, not signed in", `Came from ${sourceOf(first.get(id)?.meta ?? null)}`, pages].join("\n");
+    }
+    page.people.push({ id, email: p?.email ?? null, ago: Math.round((now - new Date(v.created_at).getTime()) / 1000), memberId: p?.id, tip });
     byPath.set(path, page);
   }
   return { pages: [...byPath.values()].sort((a, b) => b.people.length - a.people.length), people: seen.size };

@@ -7,6 +7,7 @@ import { postTip, removeTip, saveBlurb } from "./actions";
 import { CopyLink } from "@/components/CopyLink";
 import { TipsterMatrix, type MatrixMeeting } from "@/components/TipsterMatrix";
 import { getViewer } from "@/lib/auth";
+import { supabaseAdmin } from "@/lib/billing/access";
 import { planById } from "@/lib/billing/plans";
 import { creatorTips, priceFlagged, stakeLabel, tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
 import { jumpTime, longDate, price } from "@/lib/format";
@@ -55,7 +56,12 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
   const card = wantTomorrow ? await getCard(tomorrow, true) : await getTodayCard(true);
   const date = wantTomorrow ? tomorrow : today;
   const { meetings } = card;
-  const [mine, record, { members, clicks30 }] = await Promise.all([creatorTips(tipster.id, date), tipsterRecord(tipster.id), tipsterMembers(tipster.id)]);
+  const [mine, record, { members, clicks30 }, { count: followers }] = await Promise.all([
+    creatorTips(tipster.id, date),
+    tipsterRecord(tipster.id),
+    tipsterMembers(tipster.id),
+    supabaseAdmin().from("follows").select("user_id", { count: "exact", head: true }).eq("tipster_id", tipster.id),
+  ]);
   const paying = members.filter((m) => m.paying);
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
   // The day as a grid, with what the tipster has on each race.
@@ -97,7 +103,8 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
         {wantTomorrow && meetings.length === 0 && (
           <p className="mt-2 text-sm text-ink-soft">Tomorrow&apos;s card is built at 9pm. Until then there is nothing to post on.</p>
         )}
-        <div className="mt-5 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <div className="mt-5 grid grid-cols-2 md:grid-cols-5 gap-3">
+          <Stat n={followers ?? 0} label={followers === 1 ? "follower" : "followers"} sub="get your calls by email" />
           <Stat n={mine.length} label="posted today" />
           <Stat n={record.month.n ? units(record.month.units) : "—"} label="last 30 days" sub={record.month.n ? `${record.month.n} calls, ${record.month.hit} landed` : "nothing settled yet"} tone={record.month.units > 0 ? "prime" : record.month.units < 0 ? "lay" : undefined} />
           <Stat n={record.n ? units(record.units) : "—"} label="all time" sub={record.n ? `${record.n} calls, ${record.hit} landed` : "nothing settled yet"} tone={record.units > 0 ? "prime" : record.units < 0 ? "lay" : undefined} />

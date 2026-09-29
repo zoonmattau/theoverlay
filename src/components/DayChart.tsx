@@ -59,7 +59,7 @@ export function DayChart({ s, cumulative }: { s: Series; cumulative?: boolean })
         <span className="nums text-sm font-semibold">{h ? `${short(h.date)}: ${fmt(h.value, s.format)}` : `${fmt(s.total, s.format)} in the window`}</span>
       </figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-labelledby={`${id}-t`} onMouseLeave={() => setHover(null)}>
-        <title id={`${id}-t`}>{s.title} by day</title>
+        <title id={`${id}-t`}>{`${s.title} by day`}</title>
         {tk.map((v) => (
           <g key={v}>
             <line x1={PAD.l} x2={W - PAD.r} y1={y(v)} y2={y(v)} stroke={v === 0 ? "#c9cec4" : "#ecefe8"} strokeWidth={1} />

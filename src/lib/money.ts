@@ -68,10 +68,14 @@ function daySeries(key: string, title: string, format: Series["format"], days: s
 
 type Ev = { user_id: string | null; kind: string; plan: string | null; amount_cents: number | null; meta: Record<string, unknown> | null; created_at: string };
 
+/** A trial beginning: the subscription made on trial, not a later change to one (a cancellation booked, a card added). */
+const trialStart = (e: Ev) => e.kind === "subscription" && e.meta?.status === "trialing" && (e.meta?.event === undefined || e.meta.event === "customer.subscription.created");
+
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
 
 function funnel(id: string, name: string, price: number, events: Ev[], members: Member[], now: number): PlanFunnel {
-  const mine = events.filter((e) => (id === "passes" ? e.plan?.startsWith("passes") : e.plan === id));
+  // A checkout on a longer term is logged as everyday_year and its trial as everyday: both are this plan.
+  const mine = events.filter((e) => (id === "passes" ? e.plan?.startsWith("passes") : e.plan === id || e.plan?.startsWith(`${id}_`)));
   // One person is one click and one checkout however many times they press it: signed in by
   // account, signed out by the day they did it, which is as close to a person as we can get.
   const people = (kind: string) => new Set(mine.filter((e) => e.kind === kind).map((e) => e.user_id ?? `anon:${sydneyDay(e.created_at)}:${e.plan}`)).size;
@@ -80,7 +84,7 @@ function funnel(id: string, name: string, price: number, events: Ev[], members: 
   const starts =
     id === "passes"
       ? mine.filter((e) => e.kind === "checkout_completed").length
-      : new Set(mine.filter((e) => e.kind === "subscription" && e.meta?.status === "trialing").map((e) => e.user_id)).size;
+      : new Set(mine.filter(trialStart).map((e) => e.user_id)).size;
   const payments = mine.filter((e) => e.kind === "payment");
   const paid = new Set(payments.map((e) => e.user_id)).size;
   const revenue_cents = payments.reduce((a, e) => a + (e.amount_cents ?? 0), 0);
@@ -168,7 +172,7 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const byDay = [
     daySeries("clicks", "Plan clicks", "count", window, events.filter((e) => e.kind === "plan_click"), one),
     daySeries("checkouts", "Checkouts opened", "count", window, events.filter((e) => e.kind === "checkout_started"), one),
-    daySeries("starts", "Trials and passes", "count", window, events.filter((e) => (e.kind === "subscription" && e.meta?.status === "trialing") || e.kind === "checkout_completed"), one),
+    daySeries("starts", "Trials and passes", "count", window, events.filter((e) => trialStart(e) || e.kind === "checkout_completed"), one),
     daySeries("revenue", "Paid", "money", window, events.filter((e) => e.kind === "payment"), (e) => (e.amount_cents ?? 0) / 100),
   ];
   const byHour = Array<number>(24).fill(0);

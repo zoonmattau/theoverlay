@@ -126,8 +126,11 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
     return out.sort((a, b) => sort.dir * cmp(a, b) || a.name.localeCompare(b.name));
   }, [rows, q, status, plan, account, emails, discord, api, found, term, sort]);
 
+  const active = [status, plan, account, emails, discord, api, found, term].filter((v) => v !== "all").length + (q.trim() ? 1 : 0);
+  const clear = () => {
+    setQ(""); setStatus("all"); setPlan("all"); setAccount("all"); setEmails("all"); setDiscord("all"); setApi("all"); setFound("all"); setTerm("all");
+  };
   const click = (key: Key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" || key === "plan" || key === "account" || key === "status" || key === "found" || key === "discordState" || key === "api" ? 1 : -1 }));
-  const sel = "field-input py-1 text-xs";
 
   return (
     <Section
@@ -136,39 +139,28 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
       title="Members"
       aside={<span className="nums">{shown.length === rows.length ? rows.length : `${shown.length} of ${rows.length}`}</span>}
       controls={
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="metric-tabs" role="tablist" aria-label="View">
-            <button type="button" role="tab" aria-selected={view === "table"} className="metric-tab" onClick={() => setView("table")}>Table</button>
-            <button type="button" role="tab" aria-selected={view === "groups"} className="metric-tab" onClick={() => setView("groups")}>Groups</button>
-          </div>
-          <input id="members-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, phone, suburb" className="field-input py-1 text-xs w-56" />
-          <select id="members-status" value={status} onChange={(e) => setStatus(e.target.value as typeof status)} className={sel}>
-            <option value="all">Any status</option><option value="live">Live</option><option value="paused">Paused</option><option value="none">No access</option>
-          </select>
-          <select id="members-plan" value={plan} onChange={(e) => setPlan(e.target.value)} className={sel}>
-            <option value="all">Any plan</option>{plans.map((p) => <option key={p} value={p}>{p}</option>)}<option value="tipster">Tipster</option>
-          </select>
-          <select id="members-term" value={term} onChange={(e) => setTerm(e.target.value)} className={sel}>
-            <option value="all">Any billing</option>{["Monthly", "Quarterly", "Yearly"].map((t) => <option key={t} value={t}>{t} ({rows.filter((r) => r.term === t).length})</option>)}
-          </select>
-          <select id="members-account" value={account} onChange={(e) => setAccount(e.target.value as typeof account)} className={sel}>
-            <option value="all">Any account</option><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="invited">Invited</option><option value="unconfirmed">Unconfirmed</option>
-          </select>
-          <select id="members-emails" value={emails} onChange={(e) => setEmails(e.target.value as typeof emails)} className={sel}>
-            <option value="all">Emails on or off</option><option value="on">Emails on</option><option value="off">Emails off</option>
-          </select>
-          <select id="members-discord" value={discord} onChange={(e) => setDiscord(e.target.value as typeof discord)} className={sel}>
-            <option value="all">Any Discord</option><option value="member">Discord Member role</option><option value="joined">In the server, no role</option><option value="linked">Linked, not in the server</option><option value="none">Not linked</option>
-          </select>
-          <select id="members-found" value={found} onChange={(e) => setFound(e.target.value)} className={sel}>
-            <option value="all">Found us anywhere</option>{foundGroups.map((g) => <option key={g} value={g}>{g} ({rows.filter((r) => r.found === g).length})</option>)}
-          </select>
-          <select id="members-api" value={api} onChange={(e) => setApi(e.target.value as typeof api)} className={sel}>
-            <option value="all">Any API</option><option value="live">API key live</option><option value="revoked">API key revoked</option><option value="none">No API key</option>
-          </select>
+        <div className="metric-tabs" role="tablist" aria-label="View">
+          <button type="button" role="tab" aria-selected={view === "table"} className="metric-tab" onClick={() => setView("table")}>Table</button>
+          <button type="button" role="tab" aria-selected={view === "groups"} className="metric-tab" onClick={() => setView("groups")}>Groups</button>
         </div>
       }
     >
+      <div className="member-filters">
+        <input id="members-q" type="search" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search name, email, phone, suburb, code" className="field-input member-search" />
+        <div className="member-pills">
+          <Pill id="members-status" label="Status" value={status} set={(v) => setStatus(v as typeof status)} options={[["live", "Live"], ["paused", "Paused"], ["none", "No access"]]} />
+          <Pill id="members-plan" label="Plan" value={plan} set={setPlan} options={[...plans.map((p) => [p, p] as [string, string]), ["tipster", "Tipster"]]} />
+          <Pill id="members-term" label="Billing" value={term} set={setTerm} options={["Monthly", "Quarterly", "Yearly"].map((t) => [t, `${t} (${rows.filter((r) => r.term === t).length})`] as [string, string])} />
+          <Pill id="members-found" label="Found us" value={found} set={setFound} options={foundGroups.map((g) => [g, `${g} (${rows.filter((r) => r.found === g).length})`] as [string, string])} />
+          <Pill id="members-account" label="Account" value={account} set={(v) => setAccount(v as typeof account)} options={[["active", "Active"], ["cancelled", "Cancelled"], ["invited", "Invited"], ["unconfirmed", "Unconfirmed"]]} />
+          <Pill id="members-emails" label="Emails" value={emails} set={(v) => setEmails(v as typeof emails)} options={[["on", "On"], ["off", "Off"]]} />
+          <Pill id="members-discord" label="Discord" value={discord} set={(v) => setDiscord(v as typeof discord)} options={[["member", "Member role"], ["joined", "In server, no role"], ["linked", "Linked, not in server"], ["none", "Not linked"]]} />
+          <Pill id="members-api" label="API" value={api} set={(v) => setApi(v as typeof api)} options={[["live", "Key live"], ["revoked", "Revoked"], ["none", "No key"]]} />
+          {active > 0 && (
+            <button type="button" className="member-clear" onClick={clear}>Clear {active === 1 ? "filter" : `${active} filters`}</button>
+          )}
+        </div>
+      </div>
       {view === "groups" ? (
         <div className="member-groups">
           {CATEGORIES.map((c) => {
@@ -277,5 +269,18 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
       </div>
       )}
     </Section>
+  );
+}
+
+/** One filter as a pill: its name, then what it is set to. Lime once it narrows the list. */
+function Pill({ id, label, value, set, options }: { id: string; label: string; value: string; set: (v: string) => void; options: [string, string][] }) {
+  return (
+    <label className={`member-pill ${value !== "all" ? "is-on" : ""}`} htmlFor={id}>
+      <span className="member-pill-label">{label}</span>
+      <select id={id} value={value} onChange={(e) => set(e.target.value)}>
+        <option value="all">Any</option>
+        {options.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
+      </select>
+    </label>
   );
 }
