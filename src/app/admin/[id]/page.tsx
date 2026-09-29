@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { revalidatePath } from "next/cache";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -7,7 +8,8 @@ import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMembe
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { AREA_LABEL, memberViews } from "@/lib/activity";
 import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
-import { arrivalSource } from "@/lib/arrival";
+import { keysByUser, revokeKeys } from "@/lib/api-keys";
+import { arrivalSource, foundUs } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
@@ -33,7 +35,9 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const { id } = await params;
-  const [m, allEvents, invites, tipster, views] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id), memberViews(id)]);
+  const [m, allEvents, invites, tipster, views, keys] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id), memberViews(id), keysByUser(id)]);
+  const apiKeys = keys.get(id) ?? [];
+  const apiIps = new Set(allEvents.filter((e) => e.kind === "api_ip").map((e) => String((e.meta as { ip?: string } | null)?.ip)));
   const events = allEvents.filter((e) => e.kind !== "page_view");
   if (!m) notFound();
   const [aff, record] = tipster ? await Promise.all([tipsterMembers(tipster.id), tipsterRecord(tipster.id)]) : [undefined, undefined];
@@ -109,6 +113,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <Row k="Last log in" v={stamp(m.last_sign_in_at)} />
           <Row k="Last seen" v={stamp(m.last_seen_at)} />
           <Row k="Source" v={m.source ?? "—"} />
+          <Row k="Found us" v={(({ group, detail }) => (detail ? `${group}, ${detail}` : group))(foundUs(m))} />
           <Row k="Came from" v={m.referrer ? <a className="text-blue" href={m.referrer} target="_blank" rel="noreferrer">{arrivalSource(m)}</a> : arrivalSource(m)} />
           <Row k="Landed on" v={m.landing ?? "—"} />
           {m.utm && <Row k="Campaign" v={Object.entries(m.utm).map(([k, v]) => `${k} ${v}`).join(", ")} />}
@@ -138,6 +143,27 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <Row k="Paused" v={m.paused_at ? stamp(m.paused_at) : "no"} />
           <Row k="Gift until" v={giftLive ? stamp(m.bonus_until) : "—"} />
           <Row k="Stripe customer" v={m.stripe_customer_id ? <a className="text-blue" href={`https://dashboard.stripe.com/customers/${m.stripe_customer_id}`} target="_blank" rel="noreferrer">{m.stripe_customer_id}</a> : "—"} />
+        </div>
+
+        <div className="card space-y-2 text-sm">
+          <h2 className="font-display font-extrabold">API</h2>
+          {apiKeys.length === 0 ? (
+            <p className="text-ink-soft">No key made.</p>
+          ) : (
+            <>
+              <Row k="Key" v={<span className="nums">{apiKeys[0].prefix}… {apiKeys[0].live ? "live" : `revoked ${stamp(apiKeys[0].revokedAt)}`}</span>} />
+              <Row k="Made" v={stamp(apiKeys[0].createdAt)} />
+              <Row k="Last used" v={stamp(apiKeys[0].lastUsedAt)} />
+              <Row k="Calls" v={<span className="nums">{apiKeys.reduce((a, k) => a + k.uses, 0)} over {apiKeys.length} {apiKeys.length === 1 ? "key" : "keys"}</span>} />
+              <Row k="Addresses" v={<span className="nums">{apiIps.size} seen{apiKeys[0].lastIp ? `, last ${apiKeys[0].lastIp}` : ""}</span>} />
+              {apiKeys[0].live && (
+                <form action={async () => { "use server"; await revokeKeys(m.id, viewer.email ?? "admin"); revalidatePath(`/admin/${m.id}`); }} className="pt-2 flex items-center gap-2">
+                  <ConfirmButton message="Switch this member's API key off?" className="btn btn-secondary btn-sm text-red">Revoke key</ConfirmButton>
+                  <span className="text-ink-soft">stops working straight away, they can make another</span>
+                </form>
+              )}
+            </>
+          )}
         </div>
 
         <div className="card space-y-3 text-sm">

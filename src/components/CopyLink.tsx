@@ -3,7 +3,7 @@
 import { useState } from "react";
 
 /** A read-only link with a copy button, for the invite page. */
-export function CopyLink({ link }: { link: string }) {
+export function CopyLink({ link, label = "Copy link" }: { link: string; label?: string }) {
   const [copied, setCopied] = useState(false);
   async function copy() {
     try {
@@ -18,7 +18,7 @@ export function CopyLink({ link }: { link: string }) {
     <div className="mt-2 flex flex-wrap gap-2">
       <input readOnly value={link} className="field-input flex-1 min-w-[220px] nums" onFocus={(e) => e.currentTarget.select()} />
       <button type="button" className="btn btn-primary" onClick={copy}>
-        {copied ? "Copied" : "Copy link"}
+        {copied ? "Copied" : label}
       </button>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 
+import { issueKey, revokeKeys } from "@/lib/api-keys";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { removeDiscordMember } from "@/lib/discord";
@@ -50,3 +51,17 @@ export async function saveDetails(form: FormData): Promise<void> {
   revalidatePath("/account");
 }
 
+/** A new API key for the member, replacing any live one. Returned once, to show on the page. */
+export async function makeApiKey(): Promise<string | undefined> {
+  const viewer = await getViewer();
+  if (!viewer.id || !(viewer.pro || viewer.admin)) return undefined;
+  return issueKey(viewer.id);
+}
+
+/** Switches the member's API key off. */
+export async function revokeApiKey(): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer.id) return;
+  await revokeKeys(viewer.id);
+  revalidatePath("/account");
+}

@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Terms of use for The Overlay.",
 };
 
-const UPDATED = "11 September 2026";
+const UPDATED = "30 September 2026";
 
 export default function Page() {
   return (
@@ -49,7 +49,9 @@ export default function Page() {
       <Clause n="05" title="Your use of our content">
         You may use what we publish for your own personal, non-commercial purposes. You
         may not scrape, republish, resell or redistribute our ratings or selections, in
-        whole or in part, without our written permission.
+        whole or in part, without our written permission. Members may read their own
+        calls through our API with their own key, for their own use; a key must not be
+        shared, and we may switch any key off at any time.
       </Clause>
 
       <Clause n="06" title="Availability">

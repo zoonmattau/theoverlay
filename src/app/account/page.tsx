@@ -4,11 +4,13 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
-import { saveDetails, setTipsEmails, unlinkDiscord } from "@/app/account/actions";
+import { makeApiKey, revokeApiKey, saveDetails, setTipsEmails, unlinkDiscord } from "@/app/account/actions";
+import { ApiKeyButton } from "@/components/ApiKeyButton";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
 import { FollowButton } from "@/components/FollowButton";
 import { allTipsters, followedTipsters, tipsterForUser } from "@/lib/creators";
+import { API_MIN_INTERVAL_S, liveKey } from "@/lib/api-keys";
 import { getViewer, type Viewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
@@ -33,7 +35,7 @@ const DAY = 86400_000;
 const daysUntil = (iso: string | undefined, now: number) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - now) / DAY)) : 0);
 
 /** The pages of the account, in menu order. */
-const TABS = ["overview", "plan", "passes", "discord", "tipsters", "invite", "details", "settings", "admin"] as const;
+const TABS = ["overview", "plan", "passes", "discord", "tipsters", "invite", "details", "settings", "api", "admin"] as const;
 type Tab = (typeof TABS)[number];
 
 /**
@@ -50,7 +52,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     viewer.id ? referralCount(viewer.id) : Promise.resolve(0),
   ]);
   const plan = planById(viewer.plan);
-  const [tipsters, following, runs] = await Promise.all([allTipsters(), followedTipsters(viewer), tipsterForUser(viewer.id)]);
+  const [tipsters, following, runs, apiKey] = await Promise.all([allTipsters(), followedTipsters(viewer), tipsterForUser(viewer.id), viewer.id ? liveKey(viewer.id) : Promise.resolve(undefined)]);
   const followingIds = new Set(following.map((t) => t.id));
   const now = new Date(card.builtAt).getTime() || 0;
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
@@ -77,9 +79,10 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     invite: invited ? `${invited} joined` : "Share your link",
     details: viewer.details.fullName ? viewer.details.fullName : "Name and address",
     settings: `Tips email ${viewer.tipsEmails ? "on" : "off"}`,
+    api: apiKey ? `Key ${apiKey.prefix}…` : "No key",
     admin: "Preview a date",
   };
-  const label: Record<Tab, string> = { overview: "Overview", plan: "Plan and billing", passes: "Day passes", discord: "Discord", tipsters: "Tipsters", invite: "Invite a friend", details: "Your details", settings: "Email and password", admin: "Admin" };
+  const label: Record<Tab, string> = { overview: "Overview", plan: "Plan and billing", passes: "Day passes", discord: "Discord", tipsters: "Tipsters", invite: "Invite a friend", details: "Your details", settings: "Email and password", api: "API", admin: "Admin" };
   const menu = TABS.filter((t) => t !== "admin" || viewer.admin);
 
   return (
@@ -236,6 +239,31 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
               <Row label="Password" what="We email you a link to set a new one."><Link href="/reset" className="btn btn-secondary btn-sm">Change password</Link></Row>
               <Row label="Log out" what="Signs this browser out. Your plan carries on."><form action={signOut}><button type="submit" className="btn btn-secondary btn-sm">Log out</button></form></Row>
               <p className="mt-4 text-xs text-ink-soft">Need a hand? <a href="mailto:hello@theoverlay.com.au" className="text-blue">hello@theoverlay.com.au</a></p>
+            </Panel>
+          )}
+
+          {tab === "api" && (
+            <Panel title="API" blurb="Today's calls as JSON, for your own scripts, on the days your plan covers. Comes with every plan.">
+              {apiKey ? (
+                <>
+                  <p className="text-sm">
+                    Live key <span className="nums font-semibold">{apiKey.prefix}…</span>, made {longDate(apiKey.createdAt.slice(0, 10))}
+                    {apiKey.lastUsedAt ? `, last used ${longDate(apiKey.lastUsedAt.slice(0, 10))}` : ", not used yet"}.
+                  </p>
+                  <Row label="New key" what="Switches this one off and makes another."><ApiKeyButton make={makeApiKey} live /></Row>
+                  <Row label="Switch it off" what="The key stops working straight away."><form action={revokeApiKey}><button type="submit" className="btn btn-secondary btn-sm">Revoke</button></form></Row>
+                </>
+              ) : viewer.pro || viewer.admin ? (
+                <Row label="Make a key" what="One key per member. Keep it to yourself, it opens your calls."><ApiKeyButton make={makeApiKey} live={false} /></Row>
+              ) : (
+                <Row label="Comes with a plan" what="Day passes and gift days do not open the API."><Link href="/pricing" className="btn btn-primary btn-sm">See plans</Link></Row>
+              )}
+              <div className="mt-4 text-sm text-ink-secondary space-y-2">
+                <p>Send the key in a header. One call every {API_MIN_INTERVAL_S} seconds at most.</p>
+                <pre className="text-xs bg-surface-alt border border-line rounded-md p-3 whitespace-pre-wrap break-all">{`curl -H "Authorization: Bearer <your key>" ${site}/api/v1/tips`}</pre>
+                <p>Each call carries the race, jump time, horse, side, stake, our price, the price it settles at, the price now, and its status: open, locked inside 30 minutes of the jump, resulted or abandoned. Settled calls carry the finish and the units.</p>
+                <p className="text-xs text-ink-soft">For your own use only, under our <Link href="/terms" className="underline">terms</Link>. A key used from many places gets switched off.</p>
+              </div>
             </Panel>
           )}
 

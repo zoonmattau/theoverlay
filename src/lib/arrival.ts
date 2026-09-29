@@ -64,3 +64,35 @@ export function arrivalSource(a?: { referrer?: string | null; utm?: Record<strin
   }
   return "direct";
 }
+
+/** Where a member found us, as the admin filters on it. */
+export const FOUND_US = ["Meta ads", "Google ads", "TikTok ads", "Instagram", "Facebook", "TikTok", "X", "Search", "AI chat", "Discord", "Affiliate", "Friend invite", "Other site", "Direct", "Unknown"] as const;
+export type FoundUs = (typeof FOUND_US)[number];
+
+/**
+ * The group a member's first visit falls in: a paid tag first, then the
+ * affiliate or friend who sent them, then the site or tag they came from.
+ * Accounts made before arrivals were recorded, with no landing page, are
+ * Unknown rather than Direct. `detail` names the campaign, code or site.
+ */
+export function foundUs(m: { source?: string | null; landing?: string | null; referrer?: string | null; utm?: Record<string, string> | null }): { group: FoundUs; detail?: string } {
+  const src = (m.utm?.source ?? "").toLowerCase();
+  const paid = /paid|cpc|ppc|ads?$/.test((m.utm?.medium ?? "").toLowerCase());
+  const campaign = m.utm?.campaign ? [m.utm.campaign, m.utm.content].filter(Boolean).join(" / ") : undefined;
+  if (paid && /meta|facebook|^fb|instagram|^ig/.test(src)) return { group: "Meta ads", detail: campaign };
+  if ((paid && /google/.test(src)) || /[?&]gclid=/.test(m.landing ?? "")) return { group: "Google ads", detail: campaign };
+  if ((paid && /tiktok/.test(src)) || /[?&]ttclid=/.test(m.landing ?? "")) return { group: "TikTok ads", detail: campaign };
+  if (m.source?.startsWith("affiliate:")) return { group: "Affiliate", detail: m.source.slice(10) };
+  if (m.source === "invite") return { group: "Friend invite" };
+  const from = arrivalSource(m);
+  const where = `${src} ${from}`;
+  if (/(^|\W)(ig|instagram)/.test(where)) return { group: "Instagram", detail: m.utm?.content ?? undefined };
+  if (/(^|\W)(fb|facebook)/.test(where)) return { group: "Facebook" };
+  if (/tiktok/.test(where)) return { group: "TikTok" };
+  if (/(^|\W)(t\.co|x\.com|twitter)/.test(where)) return { group: "X" };
+  if (/google|bing|duckduckgo|yahoo|ecosia|brave/.test(where)) return { group: "Search", detail: from };
+  if (/chatgpt|openai|perplexity|claude|gemini|copilot/.test(where)) return { group: "AI chat", detail: from };
+  if (/discord/.test(where)) return { group: "Discord" };
+  if (from !== "direct") return { group: "Other site", detail: from };
+  return m.landing ? { group: "Direct" } : { group: "Unknown" };
+}

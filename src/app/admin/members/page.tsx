@@ -4,6 +4,8 @@ import { Suspense } from "react";
 
 import { deleteMember, inviteMember } from "@/app/admin/actions";
 import { accountState, isAdmin, listMembers, now as clock } from "@/lib/admin";
+import { keysByUser } from "@/lib/api-keys";
+import { foundUs, FOUND_US } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
 import { planById, PLANS } from "@/lib/billing/plans";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -31,7 +33,7 @@ async function removeFromList(id: string) {
 async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [members, tipsters, { data: affiliates }] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code")]);
+  const [members, tipsters, { data: affiliates }, keys] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser()]);
   // Discord asked one linked account at a time, so the page knows who is really in the server.
   const { presence, serverMembers } = await discordRoster(members.map((m) => m.discord_id).filter((id): id is string => Boolean(id)));
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
@@ -39,6 +41,9 @@ async function Members() {
   const now = clock();
   const ms = (iso: string | null | undefined) => (iso ? new Date(iso).getTime() : 0);
   const rows: MemberRow[] = members.map((m) => {
+    const key = keys.get(m.id)?.[0];
+    const code = m.affiliate_id ? codeOf.get(m.affiliate_id) : undefined;
+    const found = code ? { group: "Affiliate" as const, detail: code } : foundUs(m);
     const live = Boolean(m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at);
     const giftLive = Boolean(m.bonus_until && new Date(m.bonus_until).getTime() > now);
     const state = accountState(m);
@@ -65,12 +70,14 @@ async function Members() {
       id: m.id,
       name: m.full_name || m.email || m.id,
       email: m.email ?? "",
-      haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code, m.affiliate_id ? codeOf.get(m.affiliate_id) : null, m.source].filter(Boolean).join(" ").toLowerCase(),
+      haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code, code, m.source, found.group, found.detail].filter(Boolean).join(" ").toLowerCase(),
       account: state === "active" && m.cancel_at ? "cancelled" : state,
       admin: Boolean(m.is_admin),
       tipster: tipsterIds.has(m.id),
       plan: m.plan ? (planById(m.plan)?.name ?? m.plan) : "",
-      affiliate: (m.affiliate_id && codeOf.get(m.affiliate_id)) || "",
+      affiliate: code ?? "",
+      found: found.group,
+      foundDetail: found.detail ?? "",
       source: (m.source ?? "signup").replace(/^affiliate:.*/, "affiliate"),
       status: m.paused_at ? "paused" : live ? "live" : "none",
       statusLabel: m.paused_at ? "Paused" : live ? (m.subscription_status ?? "active") : (m.subscription_status ?? "none"),
@@ -83,6 +90,9 @@ async function Members() {
       lastSeen: ms(m.last_seen_at) || ms(m.last_sign_in_at),
       discord: (m.discord_id && (presence.get(m.discord_id)?.name || m.discord_name)) || "",
       discordState: !m.discord_id ? "none" : presence.get(m.discord_id)?.member ? "member" : presence.get(m.discord_id)?.joined ? "joined" : "linked",
+      api: !key ? "none" : key.live ? "live" : "revoked",
+      apiUses: (keys.get(m.id) ?? []).reduce((a, k) => a + k.uses, 0),
+      apiLastUsed: ms(key?.lastUsedAt),
     };
   });
   const linked = rows.filter((r) => r.discordState !== "none").length;
@@ -112,7 +122,7 @@ async function Members() {
         </form>
       </div>
 
-      <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} remove={removeFromList} self={viewer.id} />
+      <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} found={FOUND_US.filter((g) => rows.some((r) => r.found === g))} remove={removeFromList} self={viewer.id} />
     </>
   );
 }
