@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { growthSeries, modelHealth, modelTipSeries, tipsterTipSeries, type HealthDay, type Series } from "@/lib/reports";
+import { daysSinceLaunch, growthSeries, modelTipSeries, tipsterTipSeries, type Series } from "@/lib/reports";
 import { recordStats, type RecordStats } from "@/lib/tips";
 import { racingToday } from "@/lib/model/source";
 
@@ -18,7 +18,7 @@ const TABS = [
   { id: "tipsters", label: "Tipsters" },
 ] as const;
 type Tab = (typeof TABS)[number]["id"];
-const WINDOWS = [14, 30, 90] as const;
+const WINDOWS = [7, 14, 30, 90] as const;
 
 export default function Page({ searchParams }: PageProps<"/admin/reports">) {
   return (
@@ -35,8 +35,11 @@ async function Reports({ searchParams }: { searchParams: PageProps<"/admin/repor
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const tab: Tab = TABS.some((t) => t.id === sp.tab) ? (sp.tab as Tab) : "growth";
-  const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const href = (t: Tab, d = n) => `/admin/reports?tab=${t}&days=${d}`;
+  // A window in days, or every day since the first account ("all").
+  const all = sp.days === "all";
+  const n = all ? await daysSinceLaunch() : WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
+  const current = all ? "all" : String(n);
+  const href = (t: Tab, d: string = current) => `/admin/reports?tab=${t}&days=${d}`;
 
   return (
     <>
@@ -47,8 +50,9 @@ async function Reports({ searchParams }: { searchParams: PageProps<"/admin/repor
         </div>
         <div className="flex gap-1" role="group" aria-label="Window">
           {WINDOWS.map((d) => (
-            <Link key={d} href={href(tab, d)} className={`btn btn-sm ${d === n ? "btn-primary" : "btn-secondary"}`}>{d} days</Link>
+            <Link key={d} href={href(tab, String(d))} className={`btn btn-sm ${!all && d === n ? "btn-primary" : "btn-secondary"}`}>{d} days</Link>
           ))}
+          <Link href={href(tab, "all")} className={`btn btn-sm ${all ? "btn-primary" : "btn-secondary"}`}>All time</Link>
         </div>
       </section>
 
@@ -106,47 +110,11 @@ async function Growth({ n }: { n: number }) {
   return <Group series={series} />;
 }
 
-/** The model against the results: calibration on the favourite and on its own pick, and the record at settled prices. */
-async function Health({ n }: { n: number }) {
-  const { days, total } = await modelHealth(n);
-  if (days.length === 0) return null;
-  const u = (v: number) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v).toFixed(1)}`;
-  const pct = (a: number, b: number) => (b ? `${((100 * a) / b).toFixed(0)}%` : "—");
-  const Row = ({ d, strong }: { d: HealthDay; strong?: boolean }) => (
-    <tr className={strong ? "font-semibold" : ""}>
-      <td className="whitespace-nowrap">{d.date === "total" ? `${days.length} days` : d.date.slice(5)}</td>
-      <td data-label="Races" className="text-right nums">{d.races}</td>
-      <td data-label="Fav won / said" className="text-right nums">{d.favWon} <span className="text-ink-soft">/ {d.favSaid.toFixed(1)}</span></td>
-      <td data-label="Fav 4th+" className="text-right nums">{pct(d.favLow, d.races)}</td>
-      <td data-label="Top pick won / said" className="text-right nums">{d.topWon} <span className="text-ink-soft">/ {d.topSaid.toFixed(1)}</span></td>
-      <td data-label="Top pick %" className="text-right nums">{pct(d.topWon, d.races)}</td>
-      <td data-label="Bets" className={`text-right nums ${d.betUnits > 0 ? "text-accent" : d.betUnits < 0 ? "text-red" : ""}`}>{d.bets} <span className="text-ink-soft">{u(d.betUnits)}u</span></td>
-      <td data-label="Lays" className={`text-right nums ${d.layUnits > 0 ? "text-accent" : d.layUnits < 0 ? "text-red" : ""}`}>{d.lays} <span className="text-ink-soft">{u(d.layUnits)}u</span></td>
-    </tr>
-  );
-  return (
-    <div className="card mb-4">
-      <h2 className="font-display font-extrabold mb-1">The model against the results</h2>
-      <p className="text-xs text-ink-soft mb-3">Won / form said: winners against the winners the form's own prices added up to, on the market favourite and on the form's top pick. A form that is right says as many as win. Fav 4th+ is how often the favourite sat outside the form's top three. Units settle at the price the call was struck at.</p>
-      <div className="overflow-x-auto">
-        <table className="data-table stack-sm text-sm">
-          <thead><tr><th>Day</th><th className="text-right">Races</th><th className="text-right">Fav won / said</th><th className="text-right">Fav 4th+</th><th className="text-right">Top pick won / said</th><th className="text-right">Top pick %</th><th className="text-right">Bets</th><th className="text-right">Lays</th></tr></thead>
-          <tbody>
-            <Row d={total} strong />
-            {days.map((d) => <Row key={d.date} d={d} />)}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
-}
-
 async function ModelTips({ n }: { n: number }) {
   const [series, record] = await Promise.all([modelTipSeries(n), recordStats(racingToday())]);
   const units = series.find((s) => s.key === "units")!;
   return (
     <>
-      <Health n={n} />
       <Group series={series} />
       <Group title="Units, running total" series={[units]} cumulativeKeys={["units"]} />
       <Pot record={record} />
