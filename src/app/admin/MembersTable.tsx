@@ -18,6 +18,8 @@ export interface MemberRow {
   admin: boolean;
   tipster: boolean;
   plan: string;
+  /** Monthly, Quarterly or Yearly while a plan is live, else "". */
+  term: string;
   /** The affiliate code they signed up through, or "" for none. */
   affiliate: string;
   /** signup, invite, google or affiliate. */
@@ -96,6 +98,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
   const [discord, setDiscord] = useState<"all" | MemberRow["discordState"]>("all");
   const [api, setApi] = useState<"all" | MemberRow["api"]>("all");
   const [found, setFound] = useState("all");
+  const [term, setTerm] = useState("all");
   const [view, setView] = useState<"table" | "groups">("table");
   const [sort, setSort] = useState<{ key: Key; dir: 1 | -1 }>({ key: "since", dir: -1 });
 
@@ -110,7 +113,8 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
         (emails === "all" || m.emails === (emails === "on")) &&
         (discord === "all" || m.discordState === discord) &&
         (api === "all" || m.api === api) &&
-        (found === "all" || m.found === found),
+        (found === "all" || m.found === found) &&
+        (term === "all" || m.term === term),
     );
     const cmp = (a: MemberRow, b: MemberRow) => {
       if (sort.key === "discordState") return DISCORD_ORDER[a.discordState] - DISCORD_ORDER[b.discordState];
@@ -120,7 +124,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
       return Number(x) - Number(y);
     };
     return out.sort((a, b) => sort.dir * cmp(a, b) || a.name.localeCompare(b.name));
-  }, [rows, q, status, plan, account, emails, discord, api, found, sort]);
+  }, [rows, q, status, plan, account, emails, discord, api, found, term, sort]);
 
   const click = (key: Key) => setSort((s) => (s.key === key ? { key, dir: s.dir === 1 ? -1 : 1 } : { key, dir: key === "name" || key === "plan" || key === "account" || key === "status" || key === "found" || key === "discordState" || key === "api" ? 1 : -1 }));
   const sel = "field-input py-1 text-xs";
@@ -143,6 +147,9 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
           </select>
           <select id="members-plan" value={plan} onChange={(e) => setPlan(e.target.value)} className={sel}>
             <option value="all">Any plan</option>{plans.map((p) => <option key={p} value={p}>{p}</option>)}<option value="tipster">Tipster</option>
+          </select>
+          <select id="members-term" value={term} onChange={(e) => setTerm(e.target.value)} className={sel}>
+            <option value="all">Any billing</option>{["Monthly", "Quarterly", "Yearly"].map((t) => <option key={t} value={t}>{t} ({rows.filter((r) => r.term === t).length})</option>)}
           </select>
           <select id="members-account" value={account} onChange={(e) => setAccount(e.target.value as typeof account)} className={sel}>
             <option value="all">Any account</option><option value="active">Active</option><option value="cancelled">Cancelled</option><option value="invited">Invited</option><option value="unconfirmed">Unconfirmed</option>
@@ -182,7 +189,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                           <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.name}</Link>
                           {m.name !== m.email && <span className="block text-xs text-ink-soft truncate">{m.email}</span>}
                         </span>
-                        <span className="text-xs text-ink-secondary">{m.plan ? `${m.plan}, ${m.found}` : m.found}</span>
+                        <span className="text-xs text-ink-secondary">{m.plan ? `${m.plan}${m.term ? ` ${m.term.toLowerCase()}` : ""}, ${m.found}` : m.found}</span>
                         <span className="text-xs text-ink-soft nums">{c.id === "paying" || c.id === "trial" || c.id === "paused" || c.id === "gift" ? `until ${day(m.accessUntil)}` : `since ${day(m.since)}`}</span>
                         <span className="text-xs text-ink-soft nums">seen {when(m.lastSeen)}</span>
                         <span>{m.discordState === "member" ? <span className="badge badge-prime">Discord</span> : m.discordState === "joined" ? <span className="badge badge-warn">No role</span> : m.discordState === "linked" ? <span className="badge badge-muted">Not joined</span> : null}{m.api === "live" && <span className="badge badge-muted ml-1">API</span>}</span>
@@ -221,7 +228,10 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
                 </td>
                 <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="badge badge-lay">Cancelled</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
-                <td data-label="Plan">{m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}</td>
+                <td data-label="Plan">
+                  {m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}
+                  {m.term && <span className="block text-xs text-ink-soft">{m.term}</span>}
+                </td>
                 <td data-label="Found us">
                   <span className="text-sm">{m.found}</span>
                   {m.foundDetail && <span className="block text-xs text-ink-soft">{m.foundDetail}</span>}

@@ -3,7 +3,7 @@ import type Stripe from "stripe";
 
 import { logEvent, recordPayment } from "@/lib/admin";
 import { creditPasses, emailForUser, grantAccess, supabaseAdmin, userIdForCustomer } from "@/lib/billing/access";
-import { planById } from "@/lib/billing/plans";
+import { billingTerm, planById } from "@/lib/billing/plans";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { syncDiscordMember } from "@/lib/discord";
 import { EMAILS } from "@/lib/email/messages";
@@ -86,6 +86,7 @@ export async function POST(request: NextRequest) {
         .from("profiles")
         .update({
           subscription_status: sub.status,
+          billing_term: sub.status === "canceled" ? null : billingTerm(sub.items.data[0]?.price.recurring),
           cancel_at: cancelAt?.toISOString() ?? null,
           cancel_reason: cancelReason,
           ...(event.type === "customer.subscription.created" ? { subscribed_since: new Date(sub.created * 1000).toISOString() } : {}),

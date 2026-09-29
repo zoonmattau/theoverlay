@@ -135,3 +135,11 @@ export const PASS_BUNDLES: PassBundle[] = [
   { qty: 10, price: 70, priceId: process.env.STRIPE_PRICE_PASS_10 },
 ];
 export const passBundle = (qty: number) => PASS_BUNDLES.find((b) => b.qty === qty);
+
+/** How often the subscription bills, from its price: month, quarter or year. */
+export function billingTerm(recurring?: { interval: string; interval_count: number } | null): TermId | null {
+  if (!recurring) return null;
+  if (recurring.interval === "year") return "year";
+  if (recurring.interval === "month") return recurring.interval_count === 3 ? "quarter" : recurring.interval_count === 12 ? "year" : "month";
+  return null;
+}

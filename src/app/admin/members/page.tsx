@@ -15,6 +15,8 @@ import { MembersTable, type Category, type MemberRow } from "../MembersTable";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
 
+const TERM_LABEL: Record<string, string> = { month: "Monthly", quarter: "Quarterly", year: "Yearly" };
+
 export default function Page() {
   return (
     <div className="page">
@@ -75,6 +77,7 @@ async function Members() {
       admin: Boolean(m.is_admin),
       tipster: tipsterIds.has(m.id),
       plan: m.plan ? (planById(m.plan)?.name ?? m.plan) : "",
+      term: live && m.billing_term ? (TERM_LABEL[m.billing_term] ?? m.billing_term) : "",
       affiliate: code ?? "",
       found: found.group,
       foundDetail: found.detail ?? "",
