@@ -124,13 +124,13 @@ def setup():
     channel("announcements", start, READ_ONLY, 5)
 
     for n, t, who in [
-        ("overlay-of-the-day", "One a day, the biggest gap between our price and the market. Members.", MEMBERS_READ),
         ("prime-overlays", "The day's Prime Overlays. Members.", MEMBERS_READ),
         ("bets-and-lays", "Every call on the card. Members.", MEMBERS_READ),
         ("results", "How the day went, in units.", READ_ONLY),
         ("free-race", "The free race of the day, open to all.", READ_ONLY),
         ("saturday-review", "How Saturday ran against our numbers, open to all.", READ_ONLY),
         ("winners", "Every winning call as it lands, open to all.", READ_ONLY),
+        ("matts-big-bets", "Matt's own big bets. Everyone reads, Matt posts.", READ_ONLY),
     ]:
         channel(n, calls, who, 0, t)
 
@@ -157,9 +157,8 @@ def setup():
     channel("tipster-lounge", tipsters, TIPSTER_ONLY, 0, "Tipsters and admin only.")
     channel("members-lounge", members, MEMBERS_ONLY, 0, "Members only.")
     channel("early-look", members, MEMBERS_READ, 0, "Tomorrow's card the night before, members only.")
-    for n in ("links", "matts-big-bets"):
-        if n in chans:
-            channel(n, adminc, ADMIN_ONLY)
+    if "links" in chans:
+        channel("links", adminc, ADMIN_ONLY)
     channel("Race Day", voice, [ov(everyone, VIEW | CONNECT | SPEAK)], 2)
     channel("The Review", voice, [ov(everyone, VIEW | CONNECT), ov(admin["id"], SPEAK), ov(tipster["id"], SPEAK)], 13, "The Saturday review, live.")
 

@@ -21,7 +21,6 @@ const API = "https://discord.com/api/v10";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
 /** Channel names as the setup script made them. */
 export const CHANNELS = {
-  overlay: "overlay-of-the-day",
   primes: "prime-overlays",
   calls: "bets-and-lays",
   results: "results",
