@@ -10,7 +10,7 @@ export type PlanId = "saturday" | "midweek" | "everyday";
 export interface Plan {
   id: PlanId;
   name: string;
-  /** AUD per month, excluding GST. */
+  /** AUD per month. No GST is charged while the business is not registered (30 Sep 2026). */
   price: number;
   blurb: string;
   features: string[];
@@ -86,7 +86,7 @@ export const TERMS: Term[] = [
 
 export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS[0];
 
-/** What a plan costs per bill on a term, whole AUD excluding GST, matching the Stripe Price. */
+/** What a plan costs per bill on a term, whole AUD, matching the Stripe Price. */
 export const termPrice = (plan: Plan, term: Term) => Math.round(plan.price * term.months * (1 - term.off));
 
 /** The Stripe Price for a plan on a term. */
@@ -122,7 +122,7 @@ export function planFor(date: string): Plan | undefined {
  */
 export interface PassBundle {
   qty: number;
-  /** AUD total, excluding GST. */
+  /** AUD total. */
   price: number;
   priceId?: string;
 }

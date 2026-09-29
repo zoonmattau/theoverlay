@@ -22,6 +22,6 @@ export const PLANS_FAQ: Faq[] = [
   { q: "Is there a free trial?", a: "Yes, every subscription starts with a 7-day free trial and nothing is charged if you cancel before it ends." },
   { q: "What does a day pass do?", a: "A day pass opens every race on one racing date of your choice, costs $10, never expires, and gets cheaper in bundles of 3, 5 or 10." },
   { q: "Can I cancel any time?", a: "Yes, cancel from your account and the board stays open until the end of the period you have paid for." },
-  { q: "Do prices include GST?", a: "Prices are in Australian dollars excluding GST, which is added at checkout." },
+  { q: "Do prices include GST?", a: "We are not registered for GST yet, so none is charged. The price shown in Australian dollars is the price you pay." },
   { q: "What is free without a plan?", a: "The race board, jump times, results, the live market and one free race every day." },
 ];

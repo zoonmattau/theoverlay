@@ -62,7 +62,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
       <div className="card mb-6">
         <h2 className="font-display font-extrabold">Plan prices</h2>
-        <p className="mt-1 text-xs text-ink-soft mb-3">What Stripe charges now, per bill, before GST. The week figure is the bill spread over the weeks it covers.</p>
+        <p className="mt-1 text-xs text-ink-soft mb-3">What Stripe charges now, per bill. No GST: we are not registered, so none is added. The week figure is the bill spread over the weeks it covers.</p>
         <table className="data-table stack-sm text-sm">
           <thead><tr><th>Plan</th><th>Days</th>{TERMS.map((t) => <th key={t.id} className="text-right">{t.name}{t.off ? ` (${Math.round(t.off * 100)}% off)` : ""}</th>)}</tr></thead>
           <tbody>
