@@ -1,16 +1,21 @@
 // A 9:16 reel cut to a voiceover, built from the card so every number on
 // screen is the one the site is showing.
 //   npx tsx --conditions=react-server --env-file=.env.local scripts/reel.ts 2026-09-19 bowraville 3 1
+//   ... scripts/reel.ts 2026-09-30 doomben 3 1 leader [path/to/bet-slip.png]
+// The fifth word picks the story: closer (the default, a horse that finishes
+// over the top of them) or leader (one that leads on its own and sets it up).
+// A sixth, a picture of the bet slip, closes the reel on the bet placed.
 // Writes marketing/reels/<date>-<track>-r<n>/: reel.webm (1080x1920), a still
 // per beat, reel.html to open and tweak, and shotlist.md with the in and out
 // of each beat for CapCut. Edit BEATS to move the timing.
 import { chromium } from "playwright-core";
-import { mkdirSync, readdirSync, renameSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { readStoredCard } from "../src/lib/model/store";
 
 void (async () => {
 
-const [date, trackArg, raceArg, tabArg] = process.argv.slice(2);
+const [date, trackArg, raceArg, tabArg, storyArg, slipArg] = process.argv.slice(2);
+const story: "closer" | "leader" = storyArg === "leader" ? "leader" : "closer";
 if (!tabArg) throw new Error("Give a date, a track, a race number and the runner's number.");
 
 const stored = await readStoredCard(date);
@@ -41,8 +46,12 @@ const features = card.meetings
   .filter((m) => m.races.length > 0)
   .sort((a, b) => Math.min(...a.races.map((r) => r.g!)) - Math.min(...b.races.map((r) => r.g!)));
 
+const others = live.filter((r) => r.tabNumber !== me.tabNumber);
+const earlyNext = Math.max(...others.map((r) => r.ratings.early));
+const heaviestOther = Math.max(...others.map((r) => r.weight ?? 0));
+
 /** Each beat: where the voiceover lands, and what is on screen while it does. */
-const BEATS = [
+const CLOSER = [
   { at: 0, until: 5, id: "1-today", scene: "today" },
   { at: 5, until: 10, id: "2-pick", scene: "pick" },
   { at: 10, until: 13, id: "3-late", scene: "late" },
@@ -52,6 +61,19 @@ const BEATS = [
   { at: 31, until: 34, id: "7-class", scene: "class" },
   { at: 34, until: 40, id: "8-close", scene: "close" },
 ] as const;
+/** A horse that leads on its own: the class gap, the early speed, the tempo, the weight query, the market, the price, the slip. */
+const LEADER = [
+  { at: 0, until: 5, id: "1-pick", scene: "pick" },
+  { at: 5, until: 10, id: "2-class", scene: "class" },
+  { at: 10, until: 15, id: "3-early", scene: "early" },
+  { at: 15, until: 20, id: "4-tempo", scene: "tempo" },
+  { at: 20, until: 25, id: "5-weight", scene: "topweight" },
+  { at: 25, until: 30, id: "6-move", scene: "move" },
+  { at: 30, until: 35, id: "7-price", scene: "price" },
+  { at: 35, until: 40, id: "8-slip", scene: "slip" },
+  { at: 40, until: 45, id: "9-close", scene: "close" },
+] as const;
+const BEATS: readonly { at: number; until: number; id: string; scene: string }[] = (story === "leader" ? LEADER : CLOSER).filter((b) => b.scene !== "slip" || slipArg);
 
 const data = {
   beats: BEATS.map((b) => ({ at: b.at, until: b.until, scene: b.scene })),
@@ -77,6 +99,14 @@ const data = {
   rated: money(me.ratedPrice),
   takeAbove: money(me.ratedPrice ? Math.round(me.ratedPrice * 1.03 * 20) / 20 : undefined),
   nextBestToday: nextBest ? one(nextBest.ratings.today) : "—",
+  classGap: nextBest ? one(me.ratings.today - nextBest.ratings.today) : "—",
+  early: one(me.ratings.early),
+  earlyNext: one(earlyNext),
+  earlyGap: one(me.ratings.early - earlyNext),
+  tempo: race.pace.tempo,
+  heaviestOther,
+  open: money(me.marketOpen),
+  kicker: story === "leader" ? "The bet" : "Best of the day",
   bars: ranked.slice(0, 5).map((r) => ({ tab: r.tabNumber, horse: r.horseName, today: r.ratings.today, me: r.tabNumber === me.tabNumber })),
   last: lastRun
     ? { track: lastRun.track ?? "", distance: lastRun.distance, className: lastRun.className ?? "", finish: lastRun.finish ?? 0, margin: lastRun.margin ?? 0, map: lastRun.map ?? "", points: one(lastRun.points) }
@@ -158,6 +188,8 @@ h2 { font-size:84px; font-weight:800; line-height:1; letter-spacing:-.02em; }
 .shot { margin-top:40px; border-radius:30px; overflow:hidden; border:3px solid var(--line);
         box-shadow:0 30px 70px rgba(20,22,26,.16); background:var(--panel); }
 .shot img { display:block; width:100%; }
+.shot.slip { background:#fff; }
+.shot.slip img { width:100%; height:auto; image-rendering:auto; }
 .scene.dark .shot { border-color:#3a3f48; box-shadow:0 30px 70px rgba(0,0,0,.5); }
 .scene.on .shot { animation: liftin .7s cubic-bezier(.2,.8,.2,1) both; animation-delay:.18s; }
 @keyframes liftin { from { opacity:0; transform:translateY(64px) scale(.97); } to { opacity:1; transform:none; } }
@@ -192,7 +224,7 @@ const SCENES = {
       '</div>') + foot,
 
   pick: () =>
-    '<div class="kicker in">Best of the day</div>' +
+    '<div class="kicker in">' + D.kicker + '</div>' +
     '<h1 class="in d1">' + D.track + '<br>Race ' + D.raceNumber + '.</h1>' +
     '<div class="runner"><span class="cloth pop">' + D.tab + '</span><div class="in d2"><h2>' + D.horse + '</h2>' +
     '<div class="meta">' + D.distance + 'm ' + D.className + ' \\u00b7 ' + D.going + ' \\u00b7 ' + D.field + ' runners</div></div></div>' +
@@ -230,12 +262,45 @@ const SCENES = {
         '<br>Settled ' + D.last.map + ' \\u00b7 won by ' + D.last.margin.toFixed(2) + 'L</div>' : '') + foot,
 
   class: () =>
-    '<div class="kicker in">The field it meets</div><h1 class="in d1">Nothing<br>near it.</h1>' +
+    '<div class="kicker in">The field it meets</div><h1 class="in d1">' + D.classGap + ' points<br>clear.</h1>' +
     (has('rankings') ? shot('rankings') :
       '<div class="barlist">' + D.bars.map((b) =>
         '<div class="row ' + (b.me ? 'me' : '') + '"><span class="who">' + b.tab + '. ' + b.horse + '</span>' +
         '<span class="t"><span style="width:' + pct(b.today, D.bars[D.bars.length - 1].today - 8, D.bars[0].today + 2) + '%"></span></span>' +
         '<span class="v">' + b.today.toFixed(1) + '</span></div>').join('') + '</div>') + foot,
+
+  early: () =>
+    '<div class="kicker in">Early speed</div>' +
+    '<h1 class="in d1">Nothing<br>can go<br>with it.</h1>' +
+    '<div class="bar in d2"><div class="lbl">' + D.horse + '</div><div class="track"><div class="fill" style="width:' +
+    pct(+D.early, +D.earlyNext - 14, +D.early + 3) + '%"></div></div><div class="num">' + D.early + '</div></div>' +
+    '<div class="bar in d3"><div class="lbl">Next fastest early</div><div class="track"><div class="fill dim" style="width:' +
+    pct(+D.earlyNext, +D.earlyNext - 14, +D.early + 3) + '%"></div></div><div class="num">' + D.earlyNext + '</div></div>' +
+    '<div class="gap pop">+' + D.earlyGap + '</div>' + foot,
+
+  tempo: () =>
+    '<div class="kicker in">The speed map</div>' +
+    '<h1 class="in d1">It leads,<br>and they let it<br><span class="mark">crawl.</span></h1>' +
+    (has('map') ? shot('map') : '') +
+    '<div class="note in d3">A ' + D.tempo + ' tempo. It sets the pace and kicks off it.</div>' + foot,
+
+  topweight: () =>
+    '<div class="kicker in">The query</div>' +
+    '<h1 class="in d1">' + D.weight + 'kg.</h1>' +
+    '<div class="big pop">+' + (D.weight - D.heaviestOther) + '<small>kg</small></div>' +
+    '<div class="note in d3">More than anything else in it, on a ' + D.going + '. That is the risk, and the ratings already carry it.</div>' + foot,
+
+  move: () =>
+    '<div class="kicker in">The market</div>' +
+    '<h1 class="in d1">The money<br>agrees.</h1>' +
+    '<div class="prices"><div class="price pop"><div class="k">Opened</div><div class="v">' + D.open + '</div></div>' +
+    '<div class="price live pop"><div class="k">Now</div><div class="v">' + D.market + '</div></div></div>' +
+    '<div class="note in d3">Still longer than our ' + D.rated + '.</div>' + foot,
+
+  slip: () =>
+    '<div class="kicker in">On it</div>' +
+    '<h1 class="in d1">The bet,<br><span class="mark">placed.</span></h1>' +
+    '<div class="shot slip"><img src="slip.png"></div>' + foot,
 
   close: () =>
     '<div class="kicker in">' + D.track + ' R' + D.raceNumber + '</div>' +
@@ -279,6 +344,7 @@ window.__run = (ms) => new Promise((done) => {
 
 const dir = `marketing/reels/${date}-${meeting.track.toLowerCase().replace(/\W+/g, "-")}-r${race.raceNumber}`;
 mkdirSync(dir, { recursive: true });
+if (slipArg) copyFileSync(slipArg, `${dir}/slip.png`);
 
 /**
  * The site itself, shot at phone width so the reel shows the thing being
@@ -402,14 +468,21 @@ const SHOT: Record<string, string> = {
   last: data.last ? `Last start ${data.last.track} ${data.last.distance}m, won from ${data.last.map}` : "Last start",
   class: `${data.today} against a next best of ${data.nextBestToday}`,
   close: "Back to the price, then the brand card",
+  early: `Early speed ${data.early} against the next fastest ${data.earlyNext}, +${data.earlyGap}`,
+  tempo: `Speed map: leads on its own, a ${data.tempo} tempo`,
+  topweight: `${data.weight}kg, ${data.weight - data.heaviestOther}kg more than anything else, on a ${data.going}`,
+  move: `Opened ${data.open}, now ${data.market}, still longer than rated ${data.rated}`,
+  slip: "The bet slip",
 };
 const mmss = (s: number) => `0:${String(s).padStart(2, "0")}`;
 writeFileSync(
   `${dir}/shotlist.md`,
   `# ${meeting.track} R${race.raceNumber}, ${date}\n\n` +
-    `**${data.tab}. ${data.horse}** — ${data.distance}m ${data.className}, ${data.going}, ${data.field} runners. ` +
-    `Rated ${data.rated} against ${data.market}. Closes ${data.late} to a field average of ${data.lateAvg}, ${data.lateGap} clear. ` +
-    `${data.weight}kg, settles ${data.map}.\n\n` +
+    `**${data.tab}. ${data.horse}**, ${data.distance}m ${data.className}, ${data.going}, ${data.field} runners. ` +
+    `Rated ${data.rated} against ${data.market}. ` +
+    (story === "leader"
+      ? `Rates ${data.today}, ${data.classGap} clear of ${data.nextBestToday}. Early speed ${data.early}, ${data.earlyGap} clear, ${data.tempo} tempo. ${data.weight}kg.\n\n`
+      : `Closes ${data.late} to a field average of ${data.lateAvg}, ${data.lateGap} clear. ${data.weight}kg, settles ${data.map}.\n\n`) +
     `| in | out | still | on screen |\n|---|---|---|---|\n` +
     BEATS.map((b) => `| ${mmss(b.at)} | ${mmss(b.until)} | \`${b.id}.png\` | ${SHOT[b.scene]} |`).join("\n") +
     `\n\n\`reel.webm\` runs the whole ${total} seconds at 1080x1920, each scene pushing in or pulling out. ` +
