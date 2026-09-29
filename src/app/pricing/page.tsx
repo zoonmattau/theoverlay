@@ -69,7 +69,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
       <FaqList items={PLANS_FAQ} />
 
       <p className="mt-8 text-xs text-ink-soft text-center">
-        Prices in AUD. We are not registered for GST, so none is charged: the price shown is the price you pay. Subscriptions renew at the end of each month, three months or year until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
+        Prices in AUD. Subscriptions renew at the end of each month, three months or year until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
         <Link href="/terms" className="underline">Terms</Link>.
       </p>
     </div>
