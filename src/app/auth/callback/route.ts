@@ -1,7 +1,8 @@
 import { cookies } from "next/headers";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { finishProviderSignup, type ProviderStash } from "@/lib/provider-signup";
+import { ARRIVAL_COOKIE, parseArrival } from "@/lib/arrival";
+import { finishProviderSignup, stampArrival, type ProviderStash } from "@/lib/provider-signup";
 import { applyReferral } from "@/lib/referrals";
 import { OAUTH_COOKIE } from "@/lib/social";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -31,7 +32,11 @@ export async function GET(request: NextRequest) {
 async function finishFromCookie(userId: string, meta: Record<string, unknown>, email?: string): Promise<void> {
   const jar = await cookies();
   const raw = jar.get(OAUTH_COOKIE)?.value;
-  if (!raw) return;
+  if (!raw) {
+    // Google by redirect from the log-in page: no stash, but still a first visit to keep.
+    if (meta.iss || meta.provider_id) await stampArrival(userId, parseArrival(jar.get(ARRIVAL_COOKIE)?.value));
+    return;
+  }
   jar.delete(OAUTH_COOKIE);
   let stash: ProviderStash;
   try {

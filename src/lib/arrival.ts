@@ -66,7 +66,7 @@ export function arrivalSource(a?: { referrer?: string | null; utm?: Record<strin
 }
 
 /** Where a member found us, as the admin filters on it. */
-export const FOUND_US = ["Meta ads", "Google ads", "TikTok ads", "Instagram", "Facebook", "TikTok", "X", "Search", "AI chat", "Discord", "Affiliate", "Friend invite", "Other site", "Direct", "Unknown"] as const;
+export const FOUND_US = ["Meta ads", "Google ads", "TikTok ads", "Instagram", "Facebook", "TikTok", "X", "Search", "AI chat", "Discord", "Affiliate", "Friend invite", "Invited by us", "Other site", "Direct", "Unknown"] as const;
 export type FoundUs = (typeof FOUND_US)[number];
 
 /**
@@ -75,7 +75,7 @@ export type FoundUs = (typeof FOUND_US)[number];
  * Accounts made before arrivals were recorded, with no landing page, are
  * Unknown rather than Direct. `detail` names the campaign, code or site.
  */
-export function foundUs(m: { source?: string | null; landing?: string | null; referrer?: string | null; utm?: Record<string, string> | null }): { group: FoundUs; detail?: string } {
+export function foundUs(m: { source?: string | null; landing?: string | null; referrer?: string | null; utm?: Record<string, string> | null; invited_at?: string | null }): { group: FoundUs; detail?: string } {
   const src = (m.utm?.source ?? "").toLowerCase();
   const paid = /paid|cpc|ppc|ads?$/.test((m.utm?.medium ?? "").toLowerCase());
   const campaign = m.utm?.campaign ? [m.utm.campaign, m.utm.content].filter(Boolean).join(" / ") : undefined;
@@ -94,5 +94,5 @@ export function foundUs(m: { source?: string | null; landing?: string | null; re
   if (/chatgpt|openai|perplexity|claude|gemini|copilot/.test(where)) return { group: "AI chat", detail: from };
   if (/discord/.test(where)) return { group: "Discord" };
   if (from !== "direct") return { group: "Other site", detail: from };
-  return m.landing ? { group: "Direct" } : { group: "Unknown" };
+  return m.landing ? { group: "Direct" } : m.invited_at ? { group: "Invited by us" } : { group: "Unknown" };
 }

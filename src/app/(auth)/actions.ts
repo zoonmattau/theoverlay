@@ -12,7 +12,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendTodaysTipsTo } from "@/lib/email/tips";
-import { finishProviderSignup } from "@/lib/provider-signup";
+import { finishProviderSignup, stampArrival } from "@/lib/provider-signup";
 import { applyReferral } from "@/lib/referrals";
 import { supabaseConfigured, supabaseServer } from "@/lib/supabase/server";
 
@@ -104,6 +104,8 @@ export async function signInWithGoogleToken(input: {
       { terms: true, marketing: input.marketing, aff, ref, provider: "google", arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) },
       data.user.email,
     );
+  } else {
+    await stampArrival(data.user.id, parseArrival(jar.get(ARRIVAL_COOKIE)?.value));
   }
   redirect(next);
 }

@@ -24,6 +24,18 @@ export interface ProviderStash {
  * on an account that has not accepted the terms yet. A returning user has
  * already, so nothing changes for them.
  */
+/**
+ * Where a Google account first came from, stamped whenever Google signs
+ * someone in and the profile has nothing yet. Pressing Continue with Google
+ * on the log-in page makes an account without the sign-up step, and those
+ * members read as Unknown in the admin until 30 Sep 2026.
+ */
+export async function stampArrival(userId: string, arrival?: Arrival): Promise<void> {
+  const update = { source: "google", ...(arrival ? { landing: arrival.landing, referrer: arrival.referrer ?? null, utm: arrival.utm ?? null } : {}) };
+  const { error } = await supabaseAdmin().from("profiles").update(update).eq("id", userId).is("source", null).is("landing", null);
+  if (error) console.error("[arrival]", error.message);
+}
+
 export async function finishProviderSignup(userId: string, meta: Record<string, unknown>, stash: ProviderStash, email?: string): Promise<void> {
   const db = supabaseAdmin();
   const { data: prof } = await db.from("profiles").select("accepted_terms_at, full_name").eq("id", userId).maybeSingle();
