@@ -5,7 +5,7 @@ import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { planCovers } from "@/lib/billing/plans";
 import { bestBookie, type Bookie } from "@/lib/bookies";
-import { longDate, price, priceWithChance } from "@/lib/format";
+import { jumpTime, longDate, price, priceWithChance } from "@/lib/format";
 import { creatorTips, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { readStoredCard, type StoredCard } from "@/lib/model/store";
 import { callPrice, isRoughie } from "@/lib/model/types";
@@ -33,10 +33,11 @@ interface Row {
  * Who gets the day's calls by email: members whose plan covers the date, gift
  * days running or a day pass on it, who ticked tips emails and are not
  * paused. Admins always; tipster accounts never, their calls are their own.
- * An account with no access gets nothing: from 16 to 30 Sep 2026 the whole
+ * The rest of the opted-in list gets the teaser on Wednesdays and Saturdays:
+ * the counts, the free race and the races the calls are in, locked. From 16 to 30 Sep 2026 the whole
  * opted-in list got every call, paying or not.
  */
-async function recipients(date: string, only?: string): Promise<Row[]> {
+async function recipients(date: string, only?: string): Promise<{ members: Row[]; rest: Row[] }> {
   const db = supabaseAdmin();
   let q = db.from("profiles").select("id, email, plan, access_until, bonus_until, paused_at, marketing_opt_in, is_admin").eq("marketing_opt_in", true).not("email", "is", null);
   if (only) q = q.eq("id", only);
@@ -48,18 +49,22 @@ async function recipients(date: string, only?: string): Promise<Row[]> {
   const tipster = new Set(((tipsters ?? []) as { user_id: string }[]).map((t) => t.user_id));
   const passed = new Set(((passes ?? []) as { user_id: string }[]).map((p) => p.user_id));
   const now = Date.now();
-  return ((data ?? []) as Row[]).filter((r) => {
-    if (r.is_admin || isAdminEmail(r.email)) return true;
-    if (r.paused_at || tipster.has(r.id)) return false;
+  const members: Row[] = [], rest: Row[] = [];
+  for (const r of (data ?? []) as Row[]) {
+    if (r.is_admin || isAdminEmail(r.email)) { members.push(r); continue; }
+    if (r.paused_at || tipster.has(r.id)) continue;
     const pro = r.access_until && new Date(r.access_until).getTime() > now;
-    if (pro && planCovers(r.plan ?? undefined, date)) return true;
-    if (r.bonus_until && new Date(r.bonus_until).getTime() > now) return true;
-    return passed.has(r.id);
-  });
+    const open = (pro && planCovers(r.plan ?? undefined, date)) || (r.bonus_until && new Date(r.bonus_until).getTime() > now) || passed.has(r.id);
+    (open ? members : rest).push(r);
+  }
+  return { members, rest };
 }
 
 interface Call {
   track: string;
+  raceId: string;
+  /** ISO jump time, "" when unknown. */
+  jump: string;
   raceNumber: number;
   url: string;
   runner: string;
@@ -83,6 +88,7 @@ function calls(date: string, card: StoredCard): Call[] {
             track: m.track,
             raceNumber: r.raceNumber,
             jump: r.jumpTime ?? "",
+            raceId: r.raceId,
             url: `${SITE}/racing/${date}/${encodeURIComponent(m.meetingId)}/${encodeURIComponent(r.raceId)}`,
             runner: `${x.tabNumber}. ${x.horseName}`,
             rated: priceWithChance(x.ratedPrice, x.ratedProbability),
@@ -149,6 +155,41 @@ export function morningTipsEmail(date: string, card: StoredCard, userId: string,
   };
 }
 
+/** The teaser goes out on Wednesdays and Saturdays only, the big days, so a free account is not emailed daily. */
+export const teaserDay = (date: string) => [3, 6].includes(new Date(`${date}T12:00:00Z`).getUTCDay());
+
+/**
+ * The day for an account with no plan: how many calls there are, the free
+ * race in full, and every other race with a call in it, locked.
+ */
+export function teaserEmail(date: string, card: StoredCard, userId: string): EmailSpec {
+  const all = calls(date, card);
+  const bets = all.filter((c) => c.side === "bet").length;
+  const lays = all.length - bets;
+  const primes = all.filter((c) => c.prime).length;
+  const free = all.filter((c) => c.raceId === card.freeRaceId);
+  const freeRace = card.meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find((x) => x.r.raceId === card.freeRaceId);
+  const locked = [...new Map(all.filter((c) => c.raceId !== card.freeRaceId).map((c) => [c.raceId, c])).values()].sort((a, b) => a.jump.localeCompare(b.jump));
+  const day = longDate(date);
+  const lockRow = (c: Call) =>
+    `<tr><td style="padding:7px 6px;border-top:1px solid #eef0ea;font:400 14px ${FONT};color:#14161a"><strong>${esc(c.track)} R${c.raceNumber}</strong></td><td style="padding:7px 6px;border-top:1px solid #eef0ea;font:400 14px ${FONT};color:#8b918a;text-align:right">${c.jump ? jumpTime(c.jump) : ""}</td><td style="padding:7px 6px;border-top:1px solid #eef0ea;font:700 12px ${FONT};color:#8b918a;text-align:right">&#128274; Members</td></tr>`;
+  return {
+    subject: `${day}: ${bets} ${bets === 1 ? "bet" : "bets"} and ${lays} ${lays === 1 ? "lay" : "lays"} are up`,
+    preheader: primes ? `${primes} Prime ${primes === 1 ? "Overlay" : "Overlays"} on the card. The free race is open to you.` : "The free race is open to you.",
+    heading: `Today's calls are up, ${day}.`,
+    paragraphs: [
+      `<strong>${bets} ${bets === 1 ? "bet" : "bets"}</strong> and <strong>${lays} ${lays === 1 ? "lay" : "lays"}</strong> on the card today${primes ? `, ${primes} of them ${primes === 1 ? "a Prime" : "Primes"}` : ""}.`,
+      ...(freeRace
+        ? [`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6f9a12">Free race: ${esc(freeRace.m.track)} R${freeRace.r.raceNumber}</strong>${free.length ? table(free) : `<p style="margin:6px 0 16px;font:400 14px ${FONT};color:#454a44">No call in it today. <a href="${SITE}/racing/${date}/${encodeURIComponent(freeRace.m.meetingId)}/${encodeURIComponent(freeRace.r.raceId)}" style="color:#1f6fd6">Every runner is rated on the race page.</a></p>`}`]
+        : []),
+      ...(locked.length ? [`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#8b918a">The rest of the calls</strong><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;border-collapse:collapse">${locked.map(lockRow).join("")}</table>`] : []),
+      "Start a free trial and every call lands here at 11am. Nothing is charged until the trial ends.",
+    ],
+    cta: { label: "Start my free trial", url: `${SITE}/pricing` },
+    note: `You get this because you ticked tips emails. <a href="${unsubscribeUrl(userId)}" style="color:#8b918a">Unsubscribe</a> with one click.`,
+  };
+}
+
 /**
  * The morning send, once per date. Returns how many went out; a second call
  * on the same date sends nothing unless forced.
@@ -159,7 +200,7 @@ export async function sendMorningTips(date: string, card: StoredCard, force = fa
     const { data } = await db.from("events").select("id").eq("kind", "tips_email").contains("meta", { date }).limit(1);
     if (data && data.length > 0) return { sent: 0, skipped: "already sent" };
   }
-  const to = await recipients(date);
+  const { members: to, rest } = await recipients(date);
   // Who follows whom, and each tipster's calls for the day, fetched once.
   const { data: followRows } = await db.from("follows").select("user_id, tipster_id").in("user_id", to.map((r) => r.id));
   const followsOf = new Map<string, string[]>();
@@ -180,7 +221,16 @@ export async function sendMorningTips(date: string, card: StoredCard, force = fa
     // Resend allows a couple of sends a second.
     await new Promise((res) => setTimeout(res, 600));
   }
-  await logEvent({ user_id: null, kind: "tips_email", plan: null, amount_cents: null, meta: { date, sent, recipients: to.length } });
+  let teased = 0;
+  for (const r of teaserDay(date) ? rest : []) {
+    const ok = await sendEmail(r.email!, teaserEmail(date, card, r.id), {
+      "List-Unsubscribe": `<${unsubscribeUrl(r.id)}>`,
+      "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+    });
+    if (ok) teased++;
+    await new Promise((res) => setTimeout(res, 600));
+  }
+  await logEvent({ user_id: null, kind: "tips_email", plan: null, amount_cents: null, meta: { date, sent, recipients: to.length, teased } });
   return { sent, skipped: "" };
 }
 
@@ -196,8 +246,8 @@ export async function sendTodaysTipsTo(userId: string, email: string, optedIn: b
     if (!optedIn) return false;
     const date = racingToday();
     if (!released(date)) return false;
-    // A new account with no plan yet gets no calls; one invited with gift days does.
-    if ((await recipients(date, userId)).length === 0) return false;
+    // A new account with no plan yet gets the teaser; one invited with gift days gets the calls.
+    const { members } = await recipients(date, userId);
     const db = supabaseAdmin();
     const { data: sent } = await db.from("events").select("id").eq("kind", "tips_email").contains("meta", { date }).gt("meta->>sent", "0").limit(1);
     if (!sent || sent.length === 0) return false;
@@ -205,7 +255,7 @@ export async function sendTodaysTipsTo(userId: string, email: string, optedIn: b
     if (!stored) return false;
     const toRun = stored.card.meetings.some((m) => m.races.some((r) => !r.result && r.jumpTime && new Date(r.jumpTime).getTime() > Date.now()));
     if (!toRun) return false;
-    return await sendEmail(email, morningTipsEmail(date, stored.card, userId), {
+    return await sendEmail(email, members.length ? morningTipsEmail(date, stored.card, userId) : teaserEmail(date, stored.card, userId), {
       "List-Unsubscribe": `<${unsubscribeUrl(userId)}>`,
       "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
     });

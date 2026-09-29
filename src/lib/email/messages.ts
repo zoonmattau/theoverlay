@@ -119,6 +119,20 @@ export const EMAILS = {
     note: "The link works once and expires in 24 hours. If you did not sign up to The Overlay, ignore this and nothing happens.",
   }),
 
+  /** The last of the sign-up chase: a week on, still no plan. */
+  trialLastCall: (days: number): EmailSpec => ({
+    subject: "Last call on your longer trial",
+    preheader: `${days} days of the full board free, then we stop asking.`,
+    heading: "One more nudge, then we leave it.",
+    paragraphs: [
+      `Your account is still there and the free trial is still <strong>${days} days</strong> for you. Pick the days you bet and every call lands in your inbox at 11am.`,
+      "Nothing is charged until the trial ends, and you can cancel from your account before then.",
+      "This is the last one of these we send.",
+    ],
+    cta: { label: "Start the trial", url: `${SITE}/pricing` },
+    note: "No promise of winning: the numbers are a guide and every bet is your own call.",
+  }),
+
   /** Signed up, confirmed, never started a plan: a longer trial to try it properly. */
   trialExtended: (days: number): EmailSpec => ({
     subject: `${days} days of the full board, free`,
