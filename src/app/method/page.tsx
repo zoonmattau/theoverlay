@@ -155,7 +155,7 @@ export default function Page() {
             The market is paying more than our price on a horse with a real chance, so the price is on our side.
           </Call>
           <Call badge={<Badge tone="prime">Prime Overlay</Badge>} title="Prime Overlay">
-            A bet where our disagreement with the market is at its strongest. There can be a few a day or none, and the biggest is the Overlay of the Day.
+            A bet where our disagreement with the market is at its strongest. There can be a few a day or none.
           </Call>
           <Call badge={<Badge tone="back">Bet</Badge>} title="Long Overlay">
             The best bet on the card at each-way odds, for when you want a price.

@@ -105,7 +105,7 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
         </h1>
         <p className="mt-4 hidden sm:block text-ink-secondary text-base max-w-xl">
           Australian horse racing tips for today, every race, every runner. Each one gets a benchmark rating and a rated price, then we
-          tell you where the market has it wrong: the bets, the lays and the Overlay of the Day, with one race free every day.
+          tell you where the market has it wrong.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
           <Link href="/pricing" className="btn btn-primary">

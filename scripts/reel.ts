@@ -63,17 +63,16 @@ const CLOSER = [
 ] as const;
 /**
  * A horse that leads on its own, cut to 25 seconds so it sits after a 5 second
- * intro recorded by hand: the class gap, the early speed, the map, the weight
- * query, the price, the slip, the close.
+ * intro recorded by hand: the class gap, the early speed, the map, the price,
+ * the slip, the close. No weight query: a bet reel sells the case for it.
  */
 const LEADER = [
   { at: 0, until: 4, id: "1-class", scene: "class" },
   { at: 4, until: 8, id: "2-early", scene: "early" },
-  { at: 8, until: 12, id: "3-tempo", scene: "tempo" },
-  { at: 12, until: 15, id: "4-weight", scene: "topweight" },
-  { at: 15, until: 19, id: "5-price", scene: "price" },
-  { at: 19, until: 22, id: "6-slip", scene: "slip" },
-  { at: 22, until: 25, id: "7-close", scene: "close" },
+  { at: 8, until: 13, id: "3-tempo", scene: "tempo" },
+  { at: 13, until: 17, id: "4-price", scene: "price" },
+  { at: 17, until: 21, id: "5-slip", scene: "slip" },
+  { at: 21, until: 25, id: "6-close", scene: "close" },
 ] as const;
 const BEATS: readonly { at: number; until: number; id: string; scene: string }[] = (story === "leader" ? LEADER : CLOSER).filter((b) => b.scene !== "slip" || slipArg);
 
@@ -274,11 +273,12 @@ const SCENES = {
   early: () =>
     '<div class="kicker in">Early speed</div>' +
     '<h1 class="in d1">Nothing<br>can go<br>with it.</h1>' +
+    (has('rankings-early') ? shot('rankings-early', '<span class="tagnum pop">+' + D.earlyGap + '</span>') :
     '<div class="bar in d2"><div class="lbl">' + D.horse + '</div><div class="track"><div class="fill" style="width:' +
     pct(+D.early, +D.earlyNext - 14, +D.early + 3) + '%"></div></div><div class="num">' + D.early + '</div></div>' +
     '<div class="bar in d3"><div class="lbl">Next fastest early</div><div class="track"><div class="fill dim" style="width:' +
     pct(+D.earlyNext, +D.earlyNext - 14, +D.early + 3) + '%"></div></div><div class="num">' + D.earlyNext + '</div></div>' +
-    '<div class="gap pop">+' + D.earlyGap + '</div>' + foot,
+    '<div class="gap pop">+' + D.earlyGap + '</div>') + foot,
 
   tempo: () =>
     '<div class="kicker in">The speed map</div>' +
@@ -289,7 +289,8 @@ const SCENES = {
   topweight: () =>
     '<div class="kicker in">The query</div>' +
     '<h1 class="in d1">' + D.weight + 'kg.</h1>' +
-    '<div class="big pop">+' + (D.weight - D.heaviestOther) + '<small>kg</small></div>' +
+    (has('field') ? shot('field', '<span class="tagnum pop">+' + (D.weight - D.heaviestOther) + 'kg</span>') :
+    '<div class="big pop">+' + (D.weight - D.heaviestOther) + '<small>kg</small></div>') +
     '<div class="note in d3">More than anything else in it, on a ' + D.going + '. That is the risk, and the ratings already carry it.</div>' + foot,
 
   move: () =>
@@ -305,6 +306,11 @@ const SCENES = {
     '<div class="shot slip"><img src="slip.png"></div>' + foot,
 
   close: () =>
+    has('pick') ?
+    '<div class="kicker in">' + D.track + ' R' + D.raceNumber + '</div>' +
+    shot('pick') +
+    '<div class="note in d3">Take anything over ' + D.takeAbove + '.</div>' +
+    '<h1 class="in d3" style="font-size:92px">Every runner<br><span class="mark">rated, every day.</span></h1>' + foot :
     '<div class="kicker in">' + D.track + ' R' + D.raceNumber + '</div>' +
     '<div class="runner" style="margin-top:22px"><span class="cloth pop">' + D.tab + '</span><div class="in d1"><h2>' + D.horse + '</h2></div></div>' +
     '<div class="prices"><div class="price pop"><div class="k">Our rated</div><div class="v">' + D.rated + '</div></div>' +
@@ -360,7 +366,7 @@ const shots = new Set<string>();
   const b = await chromium.launch({ channel: "chrome", headless: true });
   const p = await b.newPage({ viewport: { width: 390, height: 1400 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
   await p.addInitScript(() => Object.defineProperty(navigator, "webdriver", { get: () => false }));
-  const hide = ".topbar, .site-head, .ntg, .launch-offer, nextjs-portal { display: none !important } html { scroll-behavior: auto }";
+  const hide = ".topbar, .site-head, .ntg, .launch-offer, nextjs-portal, .tip-tap { display: none !important } html { scroll-behavior: auto }";
   const grab = async (name: string, what: () => Promise<{ x: number; y: number; width: number; height: number } | null>) => {
     try {
       const clip = await what();
@@ -404,6 +410,22 @@ const shots = new Set<string>();
   await grab("pick", async () => box(".pick-card"));
   await grab("map", async () => span('section.section:has(h2:text-is("Speed map")) .section-bar', ".rail"));
   await grab("rankings", async () => span('section.section:has(h2:text-is("Rankings")) .section-bar', ".bar-row:nth-of-type(4)"));
+  // The same table sorted on early speed, for a horse that leads.
+  await p.locator('section.section:has(h2:text-is("Rankings")) button[role="tab"]', { hasText: /^early$/i }).first().evaluate((b) => (b as HTMLButtonElement).click()).catch(() => {});
+  await p.waitForTimeout(600);
+  await grab("rankings-early", async () => span('section.section:has(h2:text-is("Rankings")) .section-bar', ".bar-row:nth-of-type(4)"));
+  // Every runner's row in the market table, where the weights sit side by side.
+  await grab("field", async () => {
+    const rows = p.locator('section.section:has(h2:text-is("Market")) tbody tr[id^="runner-"]');
+    const n = await rows.count();
+    if (n === 0) return null;
+    const first = await rows.nth(0).boundingBox();
+    await rows.nth(n - 1).scrollIntoViewIfNeeded();
+    const firstNow = await rows.nth(0).boundingBox();
+    const last = await rows.nth(n - 1).boundingBox();
+    if (!first || !firstNow || !last) return null;
+    return { x: 8, y: firstNow.y - 6, width: 374, height: Math.min(1380, last.y + last.height - firstNow.y + 12) };
+  });
   await grab("market", async () => {
     const row = await box(`#runner-${data.tab}`);
     if (!row) return null;
