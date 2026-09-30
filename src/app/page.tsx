@@ -17,7 +17,8 @@ import { bannerReview } from "@/lib/reviews";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
-import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
+import { getCardFor, keepFresh, keepPrices, racingToday, RELEASE_HOUR } from "@/lib/model/source";
+import { bigWinners, publicRecord } from "@/lib/tips";
 import { jumpTime, longDate } from "@/lib/format";
 import { BRAND_SOCIAL } from "@/lib/social";
 
@@ -45,13 +46,24 @@ export default function Page({ searchParams }: PageProps<"/">) {
         <FreshReview />
       </Suspense>
 
-      <section className="mt-6">
-        <Record />
-      </section>
+      <Suspense>
+        <Results />
+      </Suspense>
 
       <WhyUs />
       <JoinUs />
     </div>
+  );
+}
+
+/** The live record and the big winners, under the board with the review. */
+async function Results() {
+  await connection();
+  const [stats, winners] = await Promise.all([publicRecord(racingToday()), bigWinners()]);
+  return (
+    <section className="mt-6">
+      <Record stats={stats} winners={winners} />
+    </section>
   );
 }
 

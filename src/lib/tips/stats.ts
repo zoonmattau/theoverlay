@@ -33,3 +33,20 @@ export interface RecordStats {
   /** Earliest settled date in the window. */
   since?: string;
 }
+
+/** A bet that won, for the Big winners row. */
+export interface Winner {
+  date: string;
+  href: string;
+  horse: string;
+  race: string;
+  /** The price it settled at, from the units it won. */
+  price: number;
+  units: number;
+}
+
+/** The whole book in one: calls, units and return on turnover across bets and lays. */
+export function totals(r: RecordStats) {
+  const staked = r.bets.staked + r.lays.staked;
+  return { calls: r.bets.n + r.lays.n, units: r.net, roi: staked ? r.net / staked : 0 };
+}

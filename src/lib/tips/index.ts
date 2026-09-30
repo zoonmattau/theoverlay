@@ -1,11 +1,12 @@
 import "server-only";
+import { cacheLife } from "next/cache";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
-import { PERIODS, type RecordStats, type SideStats, type TipSource } from "./stats";
+import { PERIODS, type RecordStats, type SideStats, type TipSource, type Winner } from "./stats";
 
-export type { Period, RecordStats, SideStats, TipSource } from "./stats";
+export type { Period, RecordStats, SideStats, TipSource, Winner } from "./stats";
 
 /**
  * The tips ledger, on the user's rules of 26 Sep 2026. A call, once made, is
@@ -272,18 +273,18 @@ function tally(rows: { side: Signal; units: number; finish_position: number; sta
   return { bets, lays };
 }
 
-/** The settled record for each period, one query. */
-export async function recordStats(today: string): Promise<RecordStats[]> {
+/** The settled record for each period, one query; `source` keeps to live calls or the backtest. */
+export async function recordStats(today: string, source?: TipSource): Promise<RecordStats[]> {
   // Read a thousand at a time: the server hands back no more per request, and the record passes that.
   const rows: { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null }[] = [];
   for (let from = 0; from < 1_000_000; from += 1000) {
-    const { data, error } = await supabaseAdmin()
+    let q = supabaseAdmin()
       .from("tips")
       .select("date, side, units, finish_position, source, stake")
       .not("settled_at", "is", null)
-      .not("finish_position", "is", null)
-      .order("id")
-      .range(from, from + 999);
+      .not("finish_position", "is", null);
+    if (source) q = q.eq("source", source);
+    const { data, error } = await q.order("id").range(from, from + 999);
     if (error) {
       console.error("[tips]", error.message);
       break;
@@ -299,4 +300,35 @@ export async function recordStats(today: string): Promise<RecordStats[]> {
     const { bets, lays } = tally(inWindow);
     return { period: p.id, from, bets, lays, net: Math.round((bets.units + lays.units) * 100) / 100, backtest: inWindow.some((r) => r.source === "backtest"), since: dates[0] };
   });
+}
+
+/** The bets that paid most since launch, biggest first, read at most every quarter hour. */
+export async function bigWinners(n = 6): Promise<Winner[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
+  const { data, error } = await supabaseAdmin()
+    .from("tips")
+    .select("date, meeting_id, race_id, race_number, track, horse_name, units, stake")
+    .eq("source", "model")
+    .eq("side", "back")
+    .eq("finish_position", 1)
+    .not("settled_at", "is", null)
+    .order("units", { ascending: false })
+    .limit(n);
+  if (error) console.error("[tips]", error.message);
+  return ((data ?? []) as { date: string; meeting_id: string; race_id: string; race_number: number; track: string; horse_name: string; units: number; stake: number | null }[]).map((r) => ({
+    date: r.date,
+    href: `/racing/${r.date}/${r.meeting_id}/${r.race_id}`,
+    horse: r.horse_name,
+    race: `${r.track} R${r.race_number}`,
+    price: Number(r.units) / Number(r.stake ?? 1) + 1,
+    units: Number(r.units),
+  }));
+}
+
+/** The live record the public sees, every published call, read at most every quarter hour. */
+export async function publicRecord(today: string): Promise<RecordStats[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
+  return recordStats(today, "model");
 }
