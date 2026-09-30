@@ -17,11 +17,11 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
 
-export default function Page({ searchParams }: PageProps<"/admin">) {
+export default function Page() {
   return (
     <div className="page">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Admin searchParams={searchParams} />
+        <Admin />
       </Suspense>
     </div>
   );
@@ -31,13 +31,11 @@ const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const jump = (iso?: string) => (iso ? new Date(iso).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }) : "");
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 
-async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["searchParams"] }) {
+async function Admin() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const sp = await searchParams;
-  const activity = typeof sp.activity === "string" && ["money", "members", "admin"].includes(sp.activity) ? sp.activity : "all";
   const members = await listMembers();
-  const [stats, events, card, facts] = await Promise.all([overview(members), recentEvents(undefined, 80), getTodayCard(), todayFacts()]);
+  const [stats, events, card, facts] = await Promise.all([overview(members), recentEvents(undefined, 300), getTodayCard(), todayFacts()]);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
   const nextCall = card.meetings
@@ -133,7 +131,7 @@ async function Admin({ searchParams }: { searchParams: PageProps<"/admin">["sear
 
       <LiveRefresh seconds={30} />
       <LiveNow />
-      <ActivityFeed events={events} members={members} filter={activity} base="/admin" />
+      <ActivityFeed events={events} members={members} />
     </>
   );
 }
