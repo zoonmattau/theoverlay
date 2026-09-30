@@ -5,6 +5,7 @@ import { getViewer } from "@/lib/auth";
 import { passBundle, planById, termById, termPrice, termPriceId, TRIAL_DAYS } from "@/lib/billing/plans";
 import { integrationId, siteUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { comebackDays } from "@/lib/billing/comeback";
 
 /**
  * POST { plan, term? } or { passes } from a signed-in user: sends them to Stripe
@@ -73,6 +74,8 @@ export async function POST(request: NextRequest) {
   // seven days to the minute: buy on a Tuesday afternoon and the first
   // charge comes as the clock ticks over to next Tuesday.
   const trialEnd = trialEndAt(trialDays);
+  // A returning member offered the extra week pays now; the webhook pushes the next bill out once this one is paid.
+  const comeback = trialled ? await comebackDays(viewer.id) : 0;
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
@@ -83,7 +86,7 @@ export async function POST(request: NextRequest) {
     allow_promotion_codes: true,
     metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
     subscription_data: {
-      metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
+      metadata: { userId: viewer.id, plan: plan!.id, term: term.id, ...(comeback ? { comeback_days: String(comeback) } : {}) },
       ...(trialled ? {} : { trial_end: trialEnd }),
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),

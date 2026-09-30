@@ -146,30 +146,30 @@ export const EMAILS = {
     cta: { label: "Keep my access", url: `${SITE}/pricing` },
   }),
 
-  /** Win-back, three days after access ends: free days back, one click, and the cheapest plan after. */
-  winbackOffer: (claim: string, days: number, price: number, weekly: string): EmailSpec => ({
-    subject: `${days} more days free, on us`,
-    preheader: "One click and the full board is back. No card, nothing to cancel.",
-    heading: `${days} more days, on us.`,
+  /** Win-back, three days after access ends: pay for a month, get five weeks. */
+  winbackOffer: (days: number, price: number, weekly: string): EmailSpec => ({
+    subject: "Come back and get a week on us",
+    preheader: "Pay for a month, get five weeks. The offer is yours this week.",
+    heading: "5 weeks for the price of 4.",
     paragraphs: [
-      `We would like you back. Press the button and the full board opens again for <strong>${days} days</strong>: every runner rated, and every bet and lay in your inbox at 11am.`,
-      "No card and nothing to cancel. It just runs out.",
-      `After that, if every day was more than you need, the Saturday plan is $${price} a month, about ${weekly} a week.`,
+      `We would like you back. Start any plan and your first month runs <strong>5 weeks</strong>: you pay as normal today, and your next bill comes ${days} days later than it would.`,
+      "Every runner rated, and every bet and lay in your inbox at 11am.",
+      `If every day was more than you need, the Saturday plan is $${price} a month, about ${weekly} a week, and the extra week counts there too.`,
     ],
-    cta: { label: `Claim my ${days} free days`, url: claim },
+    cta: { label: "Get my 5 weeks", url: `${SITE}/pricing` },
   }),
 
-  /** Win-back, a week after access ends: the week's winners, the free days still waiting, then we stop. */
-  winbackLast: (week: WeekRecord, claim: string, days: number, price: number): EmailSpec => ({
+  /** Win-back, a week after access ends: the week's winners, the extra week still waiting, then we stop. */
+  winbackLast: (week: WeekRecord, days: number, price: number): EmailSpec => ({
     subject: "What you missed this week",
-    preheader: `${units(week.units)} units from ${week.bets + week.lays} calls. Your ${days} free days are still there.`,
+    preheader: `${units(week.units)} units from ${week.bets + week.lays} calls. Your extra week is still there.`,
     heading: "One last look, then we leave it.",
     paragraphs: [
       `This week the calls went <strong>${units(week.units)} units</strong> from ${week.bets} bets and ${week.lays} lays.${week.winners.length ? " Winners you would have had:" + winnerList(week.winners.slice(0, 5)) : ""}`,
-      `Your <strong>${days} free days</strong> are still there. One click and the full board is back, no card needed. After that, Saturdays are $${price} a month.`,
+      `Your extra week is still there: start any plan and your first month runs 5 weeks, the next bill ${days} days later than usual. Saturdays only is $${price} a month.`,
       "This is the last of these we send.",
     ],
-    cta: { label: `Claim my ${days} free days`, url: claim },
+    cta: { label: "Get my 5 weeks", url: `${SITE}/pricing` },
     note: "No promise of winning: the numbers are a guide and every bet is your own call.",
   }),
 

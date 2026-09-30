@@ -11,6 +11,7 @@ import { sendEmail } from "@/lib/email/send";
 import { longDate } from "@/lib/format";
 import { rewardReferral } from "@/lib/referrals";
 import { graceUntil } from "@/lib/billing/grace";
+import { spendComeback } from "@/lib/billing/comeback";
 
 /**
  * Stripe is the source of truth for who has paid. Every event that changes
@@ -66,7 +67,18 @@ export async function POST(request: NextRequest) {
       const periodEnd = sub.items.data[0]?.current_period_end;
       const planId = sub.metadata?.plan ?? "subscription";
       // A payment that failed leaves a week's grace, not the rest of the period Stripe opened.
-      const period = active && periodEnd ? new Date(periodEnd * 1000) : new Date(0);
+      let period = active && periodEnd ? new Date(periodEnd * 1000) : new Date(0);
+      // The win-back offer: the first bill is paid, so the next one moves out a
+      // week. A trial end on the paid subscription, with no proration, is the
+      // free week; the update's own event then carries the later date.
+      const extra = Number(sub.metadata?.comeback_days ?? 0);
+      if (event.type === "customer.subscription.created" && sub.status === "active" && extra > 0 && periodEnd && !sub.metadata?.comeback_applied) {
+        const trialEnd = periodEnd + extra * 86400;
+        await stripe().subscriptions.update(sub.id, { trial_end: trialEnd, proration_behavior: "none", metadata: { ...sub.metadata, comeback_applied: new Date().toISOString() } });
+        await spendComeback(userId);
+        await logEvent({ user_id: userId, kind: "comeback", plan: sub.metadata?.plan ?? null, amount_cents: null, meta: { days: extra, nextBill: new Date(trialEnd * 1000).toISOString() } });
+        period = new Date(trialEnd * 1000);
+      }
       const until = sub.status === "past_due" ? new Date(Math.min(period.getTime(), (await graceUntil(userId)).getTime())) : period;
       await grantAccess({
         userId,
