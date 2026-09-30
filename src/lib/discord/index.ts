@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
+import { planCovers } from "@/lib/billing/plans";
 import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
 import type { StoredCard } from "@/lib/model/store";
@@ -468,20 +469,26 @@ export async function discordUserFromCode(code: string): Promise<{ id: string; u
 interface MemberRow {
   id: string;
   email: string | null;
+  plan: string | null;
   access_until: string | null;
   paused_at: string | null;
   bonus_until: string | null;
   is_admin: boolean | null;
   discord_id: string | null;
 }
-const MEMBER_COLS = "id, email, access_until, paused_at, bonus_until, is_admin, discord_id";
+const MEMBER_COLS = "id, email, plan, access_until, paused_at, bonus_until, is_admin, discord_id";
 
-/** Paid access right now, on any plan: what the Member role means. */
+/**
+ * Paid access today: what the Member role means. A plan counts only on its
+ * own days, so a Saturday plan holds the role on Saturdays and the daily
+ * sweep takes it back after; the calls channels are every day's calls.
+ */
 function memberNow(p: MemberRow, tipster: boolean): boolean {
   if (p.is_admin || isAdminEmail(p.email) || tipster) return true;
   if (p.paused_at) return false;
   const now = Date.now();
-  if (p.access_until && new Date(p.access_until).getTime() > now) return true;
+  const today = new Date(now).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  if (p.access_until && new Date(p.access_until).getTime() > now && planCovers(p.plan ?? undefined, today)) return true;
   return Boolean(p.bonus_until && new Date(p.bonus_until).getTime() > now);
 }
 

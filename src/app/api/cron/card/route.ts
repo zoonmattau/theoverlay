@@ -61,8 +61,9 @@ export async function GET(request: NextRequest) {
   // Discord: today's calls with the email, tomorrow's into the members' early look.
   let discord: { linked: number; members: number } | undefined;
   if (races > 0) {
-    await postCalls(date, card, { early: date !== today });
+    // The roles first: a Saturday plan gets the Member role before Saturday's calls post, and loses it the next morning.
     if (date === today) discord = await syncDiscordMembers();
+    await postCalls(date, card, { early: date !== today });
   }
   // The evening run also closes out today: the results go up if no page view has done it.
   if (tomorrow) {
