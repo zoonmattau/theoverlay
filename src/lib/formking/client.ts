@@ -115,6 +115,99 @@ async function cached<T>(
 }
 
 /**
+ * The day's spend, counted on every call in the fk_cache row spend:<Sydney
+ * date>. Past FORMKING_WARN_CREDITS the admins get one email; past
+ * FORMKING_DAILY_CREDITS every call is refused for the rest of the day, and
+ * one more email says so. Old race pages rebuilt whole past days from Form
+ * King and ran the month's credits out on 30 Sep 2026; the cap keeps any
+ * leak like that to one day's worth. Counted on Vercel only, where the site
+ * runs; local scripts are metered by whoever runs them.
+ */
+const DAILY_CREDITS = Number(process.env.FORMKING_DAILY_CREDITS ?? 1500);
+const WARN_CREDITS = Number(process.env.FORMKING_WARN_CREDITS ?? 600);
+
+interface Spend {
+  credits: number;
+  calls: number;
+  warned?: boolean;
+  capped?: boolean;
+}
+
+const spendKey = () => `spend:${new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}`;
+
+async function readSpend(): Promise<Spend> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache?select=data&key=eq.${encodeURIComponent(spendKey())}`, {
+    headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!, authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
+    cache: "no-store",
+    signal: AbortSignal.timeout(10_000),
+  });
+  // A meter that cannot be read refuses the call: spending blind is how the credits went.
+  if (!res.ok) throw new FormKingError(`Form King spend meter unreadable: ${res.status}`, 503);
+  const rows = (await res.json()) as { data: Spend }[];
+  return rows[0]?.data ?? { credits: 0, calls: 0 };
+}
+
+async function writeSpend(spend: Spend): Promise<void> {
+  await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache`, {
+    method: "POST",
+    headers: {
+      apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`,
+      "content-type": "application/json",
+      prefer: "resolution=merge-duplicates",
+    },
+    body: JSON.stringify({ key: spendKey(), kind: "spend", data: spend, at: new Date().toISOString() }),
+  }).catch(() => undefined);
+}
+
+async function alertAdmins(subject: string, line: string): Promise<void> {
+  try {
+    const { sendEmail } = await import("@/lib/email/send");
+    const admins = (process.env.ADMIN_EMAILS ?? "").split(",").map((s) => s.trim()).filter(Boolean);
+    for (const to of admins) {
+      await sendEmail(to, {
+        subject,
+        preheader: line,
+        heading: subject,
+        paragraphs: [line, "Look at which pages or jobs are calling Form King before raising FORMKING_DAILY_CREDITS in Vercel."],
+      });
+    }
+  } catch (err) {
+    console.error("[formking] alert failed", err);
+  }
+}
+
+// One meter update at a time in this instance, so calls in flight together do not overwrite each other's count.
+let metering: Promise<unknown> = Promise.resolve();
+
+/** Refuses the call when it would take the day past the cap. */
+async function checkSpend(cost: number): Promise<void> {
+  if (!dbCache()) return;
+  const spend = await readSpend();
+  if (spend.credits + cost <= DAILY_CREDITS) return;
+  if (!spend.capped) {
+    await writeSpend({ ...spend, capped: true });
+    await alertAdmins("Form King stopped for today", `The site has spent ${spend.credits} Form King credits today, the daily cap of ${DAILY_CREDITS}, and will make no more calls until midnight. The stored card keeps showing.`);
+  }
+  throw new FormKingError(`Form King daily cap of ${DAILY_CREDITS} credits reached.`, 402);
+}
+
+/** Adds a call that went through to the day's spend, and warns once past the warning line. */
+function recordSpend(cost: number): Promise<unknown> {
+  if (!dbCache()) return Promise.resolve();
+  metering = metering.then(async () => {
+    const spend = await readSpend().catch(() => undefined);
+    if (!spend) return;
+    const next: Spend = { ...spend, credits: spend.credits + cost, calls: spend.calls + 1 };
+    const warn = !spend.warned && next.credits >= WARN_CREDITS;
+    if (warn) next.warned = true;
+    await writeSpend(next);
+    if (warn) await alertAdmins("Form King spend is high today", `The site has spent ${next.credits} Form King credits today over ${next.calls} calls. It stops at ${DAILY_CREDITS}.`);
+  });
+  return metering;
+}
+
+/**
  * A few calls in flight at once with a short gap between starts. A full day
  * is about 40 requests, well inside 300 req / 300 s, so the limiter is there
  * to stop a burst, not to pace the whole crawl.
@@ -143,6 +236,8 @@ function release() {
 async function request<T>(
   path: string,
   params: Record<string, string | number | boolean | undefined> = {},
+  /** What the call costs in credits, for the daily meter. */
+  cost = 1,
 ): Promise<T> {
   const apiKey = process.env.FORMKING_API_KEY;
   if (!apiKey) {
@@ -151,6 +246,7 @@ async function request<T>(
       401,
     );
   }
+  await checkSpend(cost);
 
   const url = new URL(path, BASE_URL);
   for (const [key, value] of Object.entries(params)) {
@@ -185,6 +281,7 @@ async function request<T>(
     );
   }
 
+  await recordSpend(cost);
   return (await res.json()) as T;
 }
 
@@ -211,7 +308,7 @@ export function getMeetingsByDate(date: string | Date, states?: string[]) {
 
 /** Full meeting with fields and the last 12 runs per horse, no benchmarks. 5 credits. */
 export function getMeeting(meetingId: string, opts: { ttlMs?: number; accept?: (m: MeetingSummary) => boolean } = {}) {
-  return cached("meeting", meetingId, () => request<MeetingSummary>(`/b2c/meetings/${meetingId}`), { ttlMs: opts.ttlMs, accept: opts.accept });
+  return cached("meeting", meetingId, () => request<MeetingSummary>(`/b2c/meetings/${meetingId}`, {}, 5), { ttlMs: opts.ttlMs, accept: opts.accept });
 }
 
 /** Full race form with sectional benchmarks. 2 credits at five benchmarks. */
@@ -224,12 +321,16 @@ export function getRace(
     "race",
     `${meetingId}/${raceId}`,
     () =>
-      request<RaceSummary>(`/b2c/meetings/${meetingId}/races/${raceId}`, {
-        racesOnly: true,
-        numBenchmarks: opts.numBenchmarks ?? 5,
-        numPastRaces: opts.numPastRaces ?? 8,
-        includeScratchings: opts.includeScratchings ?? false,
-      }),
+      request<RaceSummary>(
+        `/b2c/meetings/${meetingId}/races/${raceId}`,
+        {
+          racesOnly: true,
+          numBenchmarks: opts.numBenchmarks ?? 5,
+          numPastRaces: opts.numPastRaces ?? 8,
+          includeScratchings: opts.includeScratchings ?? false,
+        },
+        2 + Math.max(0, (opts.numBenchmarks ?? 5) - 5) * 0.5,
+      ),
     { ttlMs: opts.ttlMs, accept: opts.accept },
   );
 }
@@ -241,7 +342,7 @@ export function getSpeedmap(meetingId: string, raceId: string) {
 
 /** Every speed map at a meeting. 5 credits. */
 export function getMeetingSpeedmaps(meetingId: string) {
-  return cached("speedmap", meetingId, () => request<Speedmap[]>(`/b2c/meetings/${meetingId}/speedmaps`));
+  return cached("speedmap", meetingId, () => request<Speedmap[]>(`/b2c/meetings/${meetingId}/speedmaps`, {}, 5));
 }
 
 /**
@@ -249,11 +350,15 @@ export function getMeetingSpeedmaps(meetingId: string) {
  * benchmarks. Not cached: the review stores what it needs.
  */
 export function getHorse(horseId: string, opts: { numPastRaces?: number; numBenchmarks?: number } = {}) {
-  return request<HorseForm>(`/b2c/horses/${encodeURIComponent(horseId)}`, {
-    racesOnly: true,
-    numPastRaces: opts.numPastRaces ?? 3,
-    numBenchmarks: opts.numBenchmarks ?? 3,
-  });
+  return request<HorseForm>(
+    `/b2c/horses/${encodeURIComponent(horseId)}`,
+    {
+      racesOnly: true,
+      numPastRaces: opts.numPastRaces ?? 3,
+      numBenchmarks: opts.numBenchmarks ?? 3,
+    },
+    2,
+  );
 }
 
 /** Form King dates are DDMMYY. */
