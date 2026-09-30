@@ -250,6 +250,8 @@ export async function getCard(date: string, preview = false): Promise<Card> {
     // call for the day inside each page view for as long as the outage lasts.
     const stored = await readStoredCard(date);
     if (stored) return gate({ ...stored.card, builtAt: stored.builtAt, released: true });
+    // A past day with no card stays empty: a crawler walking old dates must not buy them from Form King.
+    if (date < racingToday()) return gate({ meetings: [], selections: [], live: true, builtAt: new Date().toISOString(), released: true });
   }
   // No card yet: build it here, once, and let the cache hold it.
   const built = await buildCard(date, { revalidate: false });
@@ -468,6 +470,9 @@ export async function refreshPrices(date: string, card?: { meetings: PublishedMe
  */
 export function keepFresh(date: string, card: Card): void {
   if (!storeConfigured() || !usingLiveData() || process.env.OVERLAY_READONLY === "1") return;
+  // Only today's card moves. A page on a past day once rebuilt that whole day from Form King
+  // on every visit, and old race pages ran the credits out (30 Sep 2026).
+  if (date !== racingToday()) return;
   if (Date.now() - new Date(card.builtAt).getTime() < STALE_MS) return;
   after(async () => {
     if (!(await claimRefresh(date))) return;
