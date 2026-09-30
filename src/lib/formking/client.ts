@@ -103,11 +103,16 @@ async function cached<T>(
   kind: string,
   key: string,
   load: () => Promise<T>,
-  opts: { ttlMs?: number; accept?: (data: T) => boolean } = {},
+  opts: { ttlMs?: number; accept?: (data: T) => boolean; cacheOnly?: boolean } = {},
 ): Promise<T> {
   if (!cacheOn()) return load();
   const ttl = opts.ttlMs ?? CACHE_TTL_MS[kind] ?? 600_000;
   const hit = await readEntry<T>(kind, key);
+  // Cache only: whatever is held, however old, and never a call. The price cron builds this way.
+  if (opts.cacheOnly) {
+    if (hit) return hit.data;
+    throw new FormKingError(`Not cached, and this build makes no Form King calls (${kind}:${key}).`, 404);
+  }
   if (hit && Date.now() - hit.at < ttl && (!opts.accept || opts.accept(hit.data))) return hit.data;
   const data = await load();
   await writeEntry(kind, key, data);
@@ -299,23 +304,26 @@ export function getUpcomingMeetings(opts: {
 }
 
 /** Meetings for a single date. `date` is a JS Date or ISO yyyy-mm-dd. 1 credit. */
-export function getMeetingsByDate(date: string | Date, states?: string[]) {
+export function getMeetingsByDate(date: string | Date, states?: string[], opts: { cacheOnly?: boolean } = {}) {
   const ddmmyy = toDdmmyy(date);
-  return cached("meetings", `${ddmmyy}:${states?.join(",")}`, () =>
-    request<MeetingSummaryLite[]>(`/b2c/meetings/date/${ddmmyy}`, { states: states?.join(",") }),
+  return cached(
+    "meetings",
+    `${ddmmyy}:${states?.join(",")}`,
+    () => request<MeetingSummaryLite[]>(`/b2c/meetings/date/${ddmmyy}`, { states: states?.join(",") }),
+    { cacheOnly: opts.cacheOnly },
   );
 }
 
 /** Full meeting with fields and the last 12 runs per horse, no benchmarks. 5 credits. */
-export function getMeeting(meetingId: string, opts: { ttlMs?: number; accept?: (m: MeetingSummary) => boolean } = {}) {
-  return cached("meeting", meetingId, () => request<MeetingSummary>(`/b2c/meetings/${meetingId}`, {}, 5), { ttlMs: opts.ttlMs, accept: opts.accept });
+export function getMeeting(meetingId: string, opts: { ttlMs?: number; accept?: (m: MeetingSummary) => boolean; cacheOnly?: boolean } = {}) {
+  return cached("meeting", meetingId, () => request<MeetingSummary>(`/b2c/meetings/${meetingId}`, {}, 5), opts);
 }
 
 /** Full race form with sectional benchmarks. 2 credits at five benchmarks. */
 export function getRace(
   meetingId: string,
   raceId: string,
-  opts: { numBenchmarks?: number; numPastRaces?: number; includeScratchings?: boolean; ttlMs?: number; accept?: (r: RaceSummary) => boolean } = {},
+  opts: { numBenchmarks?: number; numPastRaces?: number; includeScratchings?: boolean; ttlMs?: number; accept?: (r: RaceSummary) => boolean; cacheOnly?: boolean } = {},
 ) {
   return cached(
     "race",
@@ -331,7 +339,7 @@ export function getRace(
         },
         2 + Math.max(0, (opts.numBenchmarks ?? 5) - 5) * 0.5,
       ),
-    { ttlMs: opts.ttlMs, accept: opts.accept },
+    { ttlMs: opts.ttlMs, accept: opts.accept, cacheOnly: opts.cacheOnly },
   );
 }
 
@@ -341,8 +349,8 @@ export function getSpeedmap(meetingId: string, raceId: string) {
 }
 
 /** Every speed map at a meeting. 5 credits. */
-export function getMeetingSpeedmaps(meetingId: string) {
-  return cached("speedmap", meetingId, () => request<Speedmap[]>(`/b2c/meetings/${meetingId}/speedmaps`, {}, 5));
+export function getMeetingSpeedmaps(meetingId: string, opts: { cacheOnly?: boolean } = {}) {
+  return cached("speedmap", meetingId, () => request<Speedmap[]>(`/b2c/meetings/${meetingId}/speedmaps`, {}, 5), opts);
 }
 
 /**

@@ -293,7 +293,8 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     // Every bet on the record stays a bet, including one an earlier build let go.
     for (const [k, call] of known) kept.set(k, call.side);
   }
-  const raw = usingLiveData() ? await loadLive(date) : fixtureMeetings(date);
+  // A price refresh is BetWatch only: the form comes from what Form King already sold us, however old.
+  const raw = usingLiveData() ? await loadLive(date, { cacheOnly: opts.reprice }) : fixtureMeetings(date);
   // Every runner joins the horse store, so the compare and fantasy pages know it. A price refresh skips it: nothing about the horses moved.
   if (storeConfigured() && usingLiveData() && !opts.reprice) {
     for (const { meeting, races } of raw) {
@@ -542,8 +543,10 @@ export async function getRaceCard(date: string, meetingId: string, raceId: strin
   };
 }
 
-async function loadLive(date: string): Promise<FixtureMeeting[]> {
-  const index = await getMeetingsByDate(date, STATES);
+/** `cacheOnly` makes no Form King calls at all: every race, meeting and speed map comes from fk_cache or the build fails. */
+async function loadLive(date: string, opts: { cacheOnly?: boolean } = {}): Promise<FixtureMeeting[]> {
+  const { cacheOnly } = opts;
+  const index = await getMeetingsByDate(date, STATES, { cacheOnly });
 
   // Every race at once; the client caps how many are in flight. The race
   // endpoint carries the fields and benchmarks we need, so the 5-credit
@@ -554,12 +557,12 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
       const forms = await Promise.all(
         (lite.races ?? [])
           .filter((r) => !r.raceType || r.raceType === "Flat")
-          .map((r) => getRace(lite.id, r.raceId, { ttlMs: RACE_FORM_TTL_MS })),
+          .map((r) => getRace(lite.id, r.raceId, { ttlMs: RACE_FORM_TTL_MS, cacheOnly })),
       );
       if (forms.length === 0) return forms;
       let live: MeetingSummary | undefined;
       try {
-        live = await getMeeting(lite.id, { ttlMs: meetingTtl(lite), accept: meetingAccept(lite) });
+        live = await getMeeting(lite.id, { ttlMs: meetingTtl(lite), accept: meetingAccept(lite), cacheOnly });
       } catch (err) {
         console.error("[card] meeting summary failed", lite.id, err);
       }
@@ -579,7 +582,7 @@ async function loadLive(date: string): Promise<FixtureMeeting[]> {
     const speedmaps: Record<string, Speedmap> = {};
     if (WANT_SPEEDMAPS) {
       try {
-        for (const s of await getMeetingSpeedmaps(lite.id)) speedmaps[s.raceId] = s;
+        for (const s of await getMeetingSpeedmaps(lite.id, { cacheOnly })) speedmaps[s.raceId] = s;
       } catch {
         // Speed maps are a nice-to-have; the model has a fallback.
       }
