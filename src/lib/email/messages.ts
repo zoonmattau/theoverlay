@@ -8,6 +8,20 @@ const DISCORD = `Come and talk it through in <a href="${BRAND_SOCIAL.discord}" s
 const fmt = (iso: string) =>
   new Date(iso).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long", timeZone: "Australia/Sydney" });
 
+/** The model's last 7 days, for the win-back emails. */
+export interface WeekRecord {
+  bets: number;
+  lays: number;
+  units: number;
+  /** The winning calls, longest price first: "Perfect Play won at $2.60, Doomben R3". */
+  winners: string[];
+}
+const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toFixed(1)}`;
+const winnerList = (w: string[]) =>
+  w.length
+    ? `<ul style="margin:6px 0 0;padding-left:20px">${w.map((x) => `<li style="margin:4px 0;font:400 15px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#454a44">${x}</li>`).join("")}</ul>`
+    : "";
+
 /** Every email we send, in one place, so the voice stays consistent. */
 export const EMAILS = {
   trialStarted: (plan: string, trialEnds: string): EmailSpec => ({
@@ -117,6 +131,46 @@ export const EMAILS = {
     ],
     cta: { label: "Confirm my email", url: link },
     note: "The link works once and expires in 24 hours. If you did not sign up to The Overlay, ignore this and nothing happens.",
+  }),
+
+  /** Win-back, on the last day of their access: it ends today, and this is what they would miss. */
+  winbackEnding: (gift: boolean, week: WeekRecord): EmailSpec => ({
+    subject: gift ? "Your free days run out today" : "Your Overlay plan ends today",
+    preheader: week.winners.length ? `You would miss results like ${week.winners[0]}.` : "Keep the calls coming.",
+    heading: gift ? "Your gift days run out today." : "Your plan ends today.",
+    paragraphs: [
+      "From tomorrow the full board and the 11am calls stop for you, and you will miss results like these from the last 7 days:" + winnerList(week.winners.slice(0, 5)),
+      `All up, ${week.bets} bets and ${week.lays} lays for <strong>${units(week.units)} units</strong> at level stakes, settled at the price we posted.`,
+      "Pick the days you bet and nothing stops.",
+    ],
+    cta: { label: "Keep my access", url: `${SITE}/pricing` },
+  }),
+
+  /** Win-back, three days after access ends: the cheapest way back in. */
+  winbackSaturday: (price: number, weekly: string): EmailSpec => ({
+    subject: `Just Saturdays, $${price} a month`,
+    preheader: "The full board on the big day, for the price of a couple of bets.",
+    heading: `Saturdays only, $${price} a month.`,
+    paragraphs: [
+      `If every day was more than you needed, the Saturday plan is <strong>$${price} a month</strong>, about ${weekly} a week.`,
+      "Every Saturday race rated, a price for every runner, and every bet and lay in your inbox at 11am.",
+      "Change or cancel any time from your account.",
+    ],
+    cta: { label: "Get Saturdays", url: `${SITE}/pricing` },
+  }),
+
+  /** Win-back, a week after access ends: this week's winners, then we stop. */
+  winbackLast: (week: WeekRecord, price: number): EmailSpec => ({
+    subject: "What you missed this week",
+    preheader: `${units(week.units)} units from ${week.bets + week.lays} calls.`,
+    heading: "One last look, then we leave it.",
+    paragraphs: [
+      `This week the calls went <strong>${units(week.units)} units</strong> from ${week.bets} bets and ${week.lays} lays.${week.winners.length ? " Winners you would have had:" + winnerList(week.winners.slice(0, 5)) : ""}`,
+      `Come back on any plan, or just Saturdays for $${price} a month.`,
+      "This is the last of these we send.",
+    ],
+    cta: { label: "Come back", url: `${SITE}/pricing` },
+    note: "No promise of winning: the numbers are a guide and every bet is your own call.",
   }),
 
   /** The last of the sign-up chase: a week on, still no plan. */

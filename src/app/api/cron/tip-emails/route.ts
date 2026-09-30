@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { remindUnpaid } from "@/lib/billing/grace";
 import { chaseSignups } from "@/lib/email/chase";
+import { winBack } from "@/lib/email/winback";
 import { notifyFollowers, TIP_EMAIL_HOUR } from "@/lib/email/tipster";
 import { sydneyHour } from "@/lib/model/source";
 
@@ -41,6 +42,8 @@ export async function GET(request: NextRequest) {
   const reminded = await remindUnpaid();
   // And the accounts that never started a plan, one step each at most.
   const chased = await chaseSignups();
+  // And members whose access is running out and not renewing, three emails over a week.
+  const wonBack = await winBack();
   const tipsters = [...new Set((data ?? []).map((r) => r.affiliate_id as string))];
   const sent: Record<string, number> = {};
   for (const id of tipsters) sent[id] = await notifyFollowers(id, { force });
@@ -52,5 +55,6 @@ export async function GET(request: NextRequest) {
     sent,
     reminded,
     chased,
+    wonBack,
   });
 }
