@@ -5,6 +5,7 @@ import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { planById, weekly } from "@/lib/billing/plans";
 import { EMAILS, type WeekRecord } from "./messages";
+import { claimedFreeDays, FREE_DAYS, freeDaysUrl } from "./offer";
 import { sendEmail } from "./send";
 import { unsubscribeUrl } from "./unsubscribe";
 
@@ -39,8 +40,10 @@ async function lastWeek(now: number): Promise<WeekRecord> {
 /**
  * Three emails to a member whose access is running out and not renewing:
  * on the last day (it ends today, and the week's winners they will miss),
- * three days after it ends (the Saturday plan), and a week after (the week's
- * winners again, and the last one). A plan that renews is never emailed.
+ * three days after it ends (three free days, one click, then the Saturday
+ * plan), and a week after (the week's winners, the free days still waiting,
+ * and the last one). Someone who has claimed the free days gets only the
+ * last-day email from then on. A plan that renews is never emailed.
  * Only to accounts that ticked tips emails, never to admins, tipsters or our
  * own addresses, and never after a `winback` event with step "skip" (set by
  * hand for anyone who should not get them). Each lapse gets its own series,
@@ -49,12 +52,13 @@ async function lastWeek(now: number): Promise<WeekRecord> {
 export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promise<Record<Step, number>> {
   const now = opts.now ?? Date.now();
   const db = supabaseAdmin();
-  const [{ data: profs }, { data: affs }, { data: sent }, { data: cancels }] = await Promise.all([
+  const [{ data: profs }, { data: affs }, { data: sent }, { data: cancels }, claimed] = await Promise.all([
     db.from("profiles").select("id, email, plan, access_until, bonus_until, subscription_status, cancel_at, paused_at, is_admin").eq("marketing_opt_in", true).not("email", "is", null),
     db.from("affiliates").select("user_id").not("user_id", "is", null),
     db.from("events").select("user_id, meta").eq("kind", "winback"),
     // A subscription cancelled outright leaves access_until at 1970, so when it ended is when it was cancelled.
     db.from("events").select("user_id, created_at").eq("kind", "subscription").eq("meta->>status", "canceled"),
+    claimedFreeDays(),
   ]);
   const cancelledAt = new Map<string, number>();
   for (const c of (cancels ?? []) as { user_id: string; created_at: string }[]) cancelledAt.set(c.user_id, Math.max(cancelledAt.get(c.user_id) ?? 0, new Date(c.created_at).getTime()));
@@ -91,6 +95,8 @@ export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promi
     else if (since < 0) step = undefined;
     else if (since >= 3 * DAY && since < 7 * DAY && !sent(2)) step = 2;
     else if (since >= 7 * DAY && since <= FRESH_DAYS * DAY && sent(2) && !sent(3)) step = 3;
+    // The offer is once ever: after a claim, only the last-day reminder.
+    if (step && step > 1 && claimed.has(p.id)) step = undefined;
     if (!step) continue;
     if (opts.dry) {
       console.log("[winback]", step, p.email, "access ends", ended.slice(0, 16), gift >= plan ? "(gift)" : "(plan)");
@@ -99,7 +105,8 @@ export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promi
     }
 
     week ??= await lastWeek(now);
-    const spec = step === 1 ? EMAILS.winbackEnding(gift >= plan, week) : step === 2 ? EMAILS.winbackSaturday(price, `$${weekly(price).toFixed(2)}`) : EMAILS.winbackLast(week, price);
+    const claim = freeDaysUrl(p.id);
+    const spec = step === 1 ? EMAILS.winbackEnding(gift >= plan, week) : step === 2 ? EMAILS.winbackOffer(claim, FREE_DAYS, price, `$${weekly(price).toFixed(2)}`) : EMAILS.winbackLast(week, claim, FREE_DAYS, price);
     const unsub = unsubscribeUrl(p.id);
     const ok = await sendEmail(p.email, { ...spec, note: `${spec.note ? `${spec.note} ` : ""}You get this because you ticked tips emails. <a href="${unsub}" style="color:#8b918a">Unsubscribe</a> with one click.` }, {
       "List-Unsubscribe": `<${unsub}>`,

@@ -11,6 +11,7 @@ import { PortalButton } from "@/components/PortalButton";
 import { FollowButton } from "@/components/FollowButton";
 import { allTipsters, followedTipsters, tipsterForUser } from "@/lib/creators";
 import { API_MIN_INTERVAL_S, liveKey } from "@/lib/api-keys";
+import { FREE_DAYS } from "@/lib/email/offer";
 import { getViewer, type Viewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
@@ -45,7 +46,7 @@ type Tab = (typeof TABS)[number];
  */
 async function Account({ searchParams }: { searchParams: PageProps<"/account">["searchParams"] }) {
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
-  if (!viewer.id && viewer.plan !== "open") redirect("/login?next=/account");
+  if (!viewer.id && viewer.plan !== "open") redirect(`/login?next=${encodeURIComponent(typeof sp.free === "string" ? `/account?free=${sp.free}` : "/account")}`);
   const [card, code, invited] = await Promise.all([
     getTodayCard(viewer.admin),
     viewer.id ? (viewer.referralCode ?? ensureReferralCode(viewer.id)) : Promise.resolve(""),
@@ -89,6 +90,9 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     <>
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
       {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
+      {sp.free === "added" && <Notice>Done, {FREE_DAYS} more days of the full board, on us{viewer.bonusUntil ? `, until ${longDate(viewer.bonusUntil.slice(0, 10))}` : ""}. Every call lands in your inbox at 11am.</Notice>}
+      {sp.free === "claimed" && <Notice>You have already had your free days. Pick a plan to keep the full board.</Notice>}
+      {sp.free === "live" && <Notice>Your plan is running, so the full board is already yours.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}. Glad you stayed.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}

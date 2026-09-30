@@ -146,30 +146,30 @@ export const EMAILS = {
     cta: { label: "Keep my access", url: `${SITE}/pricing` },
   }),
 
-  /** Win-back, three days after access ends: the cheapest way back in. */
-  winbackSaturday: (price: number, weekly: string): EmailSpec => ({
-    subject: `Just Saturdays, $${price} a month`,
-    preheader: "The full board on the big day, for the price of a couple of bets.",
-    heading: `Saturdays only, $${price} a month.`,
+  /** Win-back, three days after access ends: free days back, one click, and the cheapest plan after. */
+  winbackOffer: (claim: string, days: number, price: number, weekly: string): EmailSpec => ({
+    subject: `${days} more days free, on us`,
+    preheader: "One click and the full board is back. No card, nothing to cancel.",
+    heading: `${days} more days, on us.`,
     paragraphs: [
-      `If every day was more than you needed, the Saturday plan is <strong>$${price} a month</strong>, about ${weekly} a week.`,
-      "Every Saturday race rated, a price for every runner, and every bet and lay in your inbox at 11am.",
-      "Change or cancel any time from your account.",
+      `We would like you back. Press the button and the full board opens again for <strong>${days} days</strong>: every runner rated, and every bet and lay in your inbox at 11am.`,
+      "No card and nothing to cancel. It just runs out.",
+      `After that, if every day was more than you need, the Saturday plan is $${price} a month, about ${weekly} a week.`,
     ],
-    cta: { label: "Get Saturdays", url: `${SITE}/pricing` },
+    cta: { label: `Claim my ${days} free days`, url: claim },
   }),
 
-  /** Win-back, a week after access ends: this week's winners, then we stop. */
-  winbackLast: (week: WeekRecord, price: number): EmailSpec => ({
+  /** Win-back, a week after access ends: the week's winners, the free days still waiting, then we stop. */
+  winbackLast: (week: WeekRecord, claim: string, days: number, price: number): EmailSpec => ({
     subject: "What you missed this week",
-    preheader: `${units(week.units)} units from ${week.bets + week.lays} calls.`,
+    preheader: `${units(week.units)} units from ${week.bets + week.lays} calls. Your ${days} free days are still there.`,
     heading: "One last look, then we leave it.",
     paragraphs: [
       `This week the calls went <strong>${units(week.units)} units</strong> from ${week.bets} bets and ${week.lays} lays.${week.winners.length ? " Winners you would have had:" + winnerList(week.winners.slice(0, 5)) : ""}`,
-      `Come back on any plan, or just Saturdays for $${price} a month.`,
+      `Your <strong>${days} free days</strong> are still there. One click and the full board is back, no card needed. After that, Saturdays are $${price} a month.`,
       "This is the last of these we send.",
     ],
-    cta: { label: "Come back", url: `${SITE}/pricing` },
+    cta: { label: `Claim my ${days} free days`, url: claim },
     note: "No promise of winning: the numbers are a guide and every bet is your own call.",
   }),
 
