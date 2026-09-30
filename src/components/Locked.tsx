@@ -50,6 +50,9 @@ export function Locked({
             <Link href="/pricing" className="mt-2 block text-xs text-blue font-semibold">
               Or a day pass from $10
             </Link>
+            <Link href="/account#instagram" className="mt-1 block text-xs text-blue font-semibold">
+              Or follow us on Instagram for a free day
+            </Link>
             <Link href="/login" className="mt-1 block text-xs text-ink-soft hover:text-ink">
               Already a member? Log in
             </Link>

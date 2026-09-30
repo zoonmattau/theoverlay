@@ -4,13 +4,14 @@ import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
 import { signOut } from "@/app/(auth)/actions";
-import { makeApiKey, revokeApiKey, saveDetails, setTipsEmails, unlinkDiscord } from "@/app/account/actions";
+import { claimInstagram, makeApiKey, revokeApiKey, saveDetails, setTipsEmails, unlinkDiscord } from "@/app/account/actions";
 import { ApiKeyButton } from "@/components/ApiKeyButton";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
 import { FollowButton } from "@/components/FollowButton";
 import { allTipsters, followedTipsters, tipsterForUser } from "@/lib/creators";
 import { API_MIN_INTERVAL_S, liveKey } from "@/lib/api-keys";
+import { claimedInstagramDay } from "@/lib/instagram-day";
 import { getViewer, type Viewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
@@ -52,7 +53,13 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     viewer.id ? referralCount(viewer.id) : Promise.resolve(0),
   ]);
   const plan = planById(viewer.plan);
-  const [tipsters, following, runs, apiKey] = await Promise.all([allTipsters(), followedTipsters(viewer), tipsterForUser(viewer.id), viewer.id ? liveKey(viewer.id) : Promise.resolve(undefined)]);
+  const [tipsters, following, runs, apiKey, igClaimed] = await Promise.all([
+    allTipsters(),
+    followedTipsters(viewer),
+    tipsterForUser(viewer.id),
+    viewer.id ? liveKey(viewer.id) : Promise.resolve(undefined),
+    viewer.id ? claimedInstagramDay(viewer.id) : Promise.resolve(true),
+  ]);
   const followingIds = new Set(following.map((t) => t.id));
   const now = new Date(card.builtAt).getTime() || 0;
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
@@ -89,6 +96,8 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     <>
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
       {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
+      {sp.ig === "added" && <Notice>Thanks for the follow. The full board is yours{viewer.bonusUntil ? ` until ${new Date(viewer.bonusUntil).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "long", hour: "numeric", minute: "2-digit" })}` : ""}.</Notice>}
+      {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}. Glad you stayed.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
@@ -115,6 +124,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         </nav>
 
         <div className="account-body">
+          {tab === "overview" && !viewer.pro && !viewer.admin && !igClaimed && <InstagramDay />}
           {tab === "overview" && <Overview viewer={viewer} plan={plan} renews={renews} following={following.length} invited={invited} runs={Boolean(runs)} now={now} />}
 
           {tab === "plan" && (
@@ -280,6 +290,23 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         </div>
       </div>
     </>
+  );
+}
+
+/** Follow us on Instagram for a free day. Instagram cannot tell us who follows, so it is their word and their handle. */
+function InstagramDay() {
+  return (
+    <div id="instagram" className="card border-lime bg-lime-soft mb-4">
+      <h2 className="font-display text-lg font-extrabold">Follow us on Instagram, get a free day</h2>
+      <p className="mt-1 text-sm text-ink-secondary">Follow @{BRAND_SOCIAL.instagram} and the full board is yours for the day: every runner rated, every bet and lay. Once per account.</p>
+      <div className="mt-3 flex flex-wrap items-end gap-2">
+        <a href={`https://instagram.com/${BRAND_SOCIAL.instagram}`} target="_blank" rel="noopener" className="btn btn-secondary btn-sm">1. Follow @{BRAND_SOCIAL.instagram}</a>
+        <form action={claimInstagram} className="flex flex-wrap items-end gap-2">
+          <label className="field"><span>Your Instagram</span><input name="handle" placeholder="@yourhandle" className="field-input w-40" /></label>
+          <button type="submit" className="btn btn-primary btn-sm">2. I followed, give me my day</button>
+        </form>
+      </div>
+    </div>
   );
 }
 

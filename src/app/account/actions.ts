@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { issueKey, revokeKeys } from "@/lib/api-keys";
+import { claimInstagramDay } from "@/lib/instagram-day";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { removeDiscordMember } from "@/lib/discord";
@@ -64,4 +66,13 @@ export async function revokeApiKey(): Promise<void> {
   if (!viewer.id) return;
   await revokeKeys(viewer.id);
   revalidatePath("/account");
+}
+
+/** Followed us on Instagram: a free day, once per account. */
+export async function claimInstagram(form: FormData): Promise<void> {
+  const viewer = await getViewer();
+  if (!viewer.id) return;
+  const { ok } = await claimInstagramDay(viewer.id, String(form.get("handle") ?? ""));
+  revalidatePath("/account");
+  redirect(`/account?ig=${ok ? "added" : "claimed"}`);
 }
