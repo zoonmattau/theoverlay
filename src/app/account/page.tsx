@@ -97,6 +97,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
       {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
       {sp.ig === "added" && <Notice>Thanks for the follow. The full board is yours{viewer.bonusUntil ? ` until ${new Date(viewer.bonusUntil).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "long", hour: "numeric", minute: "2-digit" })}` : ""}.</Notice>}
+      {sp.ig === "bill" && <Notice>Thanks for the follow. Your next bill has moved a day later{typeof sp.until === "string" && sp.until ? `, to ${longDate(sp.until.slice(0, 10))}` : ""}: a free day on us.</Notice>}
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}. Glad you stayed.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
@@ -124,7 +125,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         </nav>
 
         <div className="account-body">
-          {tab === "overview" && !viewer.pro && !viewer.admin && !igClaimed && <InstagramDay />}
+          {tab === "overview" && !viewer.admin && !igClaimed && <InstagramDay member={viewer.pro} />}
           {tab === "overview" && <Overview viewer={viewer} plan={plan} renews={renews} following={following.length} invited={invited} runs={Boolean(runs)} now={now} />}
 
           {tab === "plan" && (
@@ -294,11 +295,15 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
 }
 
 /** Follow us on Instagram for a free day. Instagram cannot tell us who follows, so it is their word and their handle. */
-function InstagramDay() {
+function InstagramDay({ member }: { member: boolean }) {
   return (
     <div id="instagram" className="card border-lime bg-lime-soft mb-4">
       <h2 className="font-display text-lg font-extrabold">Follow us on Instagram, get a free day</h2>
-      <p className="mt-1 text-sm text-ink-secondary">Follow @{BRAND_SOCIAL.instagram} and the full board is yours for the day: every runner rated, every bet and lay. Once per account.</p>
+      <p className="mt-1 text-sm text-ink-secondary">
+        {member
+          ? `Follow @${BRAND_SOCIAL.instagram} and your next bill moves a day later: a free day on us. Once per account.`
+          : `Follow @${BRAND_SOCIAL.instagram} and the full board is yours for the day: every runner rated, every bet and lay. Once per account.`}
+      </p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <a href={`https://instagram.com/${BRAND_SOCIAL.instagram}`} target="_blank" rel="noopener" className="btn btn-secondary btn-sm">1. Follow @{BRAND_SOCIAL.instagram}</a>
         <form action={claimInstagram} className="flex flex-wrap items-end gap-2">

@@ -72,7 +72,7 @@ export async function revokeApiKey(): Promise<void> {
 export async function claimInstagram(form: FormData): Promise<void> {
   const viewer = await getViewer();
   if (!viewer.id) return;
-  const { ok } = await claimInstagramDay(viewer.id, String(form.get("handle") ?? ""));
+  const { ok, billDelayed, until } = await claimInstagramDay(viewer.id, String(form.get("handle") ?? ""));
   revalidatePath("/account");
-  redirect(`/account?ig=${ok ? "added" : "claimed"}`);
+  redirect(`/account?ig=${!ok ? "claimed" : billDelayed ? `bill&until=${encodeURIComponent(until ?? "")}` : "added"}`);
 }
