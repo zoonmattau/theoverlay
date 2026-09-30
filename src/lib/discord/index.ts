@@ -479,16 +479,20 @@ interface MemberRow {
 const MEMBER_COLS = "id, email, plan, access_until, paused_at, bonus_until, is_admin, discord_id";
 
 /**
- * Paid access today: what the Member role means. A plan counts only on its
- * own days, so a Saturday plan holds the role on Saturdays and the daily
- * sweep takes it back after; the calls channels are every day's calls.
+ * Paid access on a racing date: what the Member role means. A plan counts
+ * only on its own days, so a Saturday plan holds the role from the 9pm build
+ * on Friday (Saturday's early look) until the 9pm build on Saturday, which
+ * sets the roles for Sunday before Sunday's early look posts.
  */
-function memberNow(p: MemberRow, tipster: boolean): boolean {
+function memberNow(p: MemberRow, tipster: boolean, date?: string): boolean {
   if (p.is_admin || isAdminEmail(p.email) || tipster) return true;
   if (p.paused_at) return false;
   const now = Date.now();
-  const today = new Date(now).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
-  if (p.access_until && new Date(p.access_until).getTime() > now && planCovers(p.plan ?? undefined, today)) return true;
+  // From 9pm, when tomorrow's early look goes up, the racing date that counts is tomorrow's.
+  const sydney = (t: number) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const hour = Number(new Date(now).toLocaleString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hour12: false }));
+  const day = date ?? (hour >= 21 ? sydney(now + 86400_000) : sydney(now));
+  if (p.access_until && new Date(p.access_until).getTime() > now && planCovers(p.plan ?? undefined, day)) return true;
   return Boolean(p.bonus_until && new Date(p.bonus_until).getTime() > now);
 }
 
@@ -585,8 +589,8 @@ export async function syncDiscordMember(userId: string, accessToken?: string): P
   }
 }
 
-/** Every linked account, once a day, so a lapsed plan loses the role even if a webhook was missed. */
-export async function syncDiscordMembers(): Promise<{ linked: number; members: number }> {
+/** Every linked account, twice a day for the date about to post, so a lapsed plan loses the role even if a webhook was missed. */
+export async function syncDiscordMembers(date?: string): Promise<{ linked: number; members: number }> {
   if (!discordConfigured()) return { linked: 0, members: 0 };
   const db = supabaseAdmin();
   const [{ data: rows }, { data: affs }] = await Promise.all([
@@ -597,7 +601,7 @@ export async function syncDiscordMembers(): Promise<{ linked: number; members: n
   let members = 0;
   for (const p of (rows ?? []) as MemberRow[]) {
     const tipster = tipsters.has(p.id);
-    const member = memberNow(p, tipster);
+    const member = memberNow(p, tipster, date);
     if (member) members++;
     try {
       await applyRole(p.discord_id!, member, undefined, tipster);
