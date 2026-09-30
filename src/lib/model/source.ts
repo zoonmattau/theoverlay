@@ -16,6 +16,7 @@ import { claimRefresh, newestDeploy, sameCard, touchStoredCard, readAbandoned, r
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
+import { settleFromBook } from "./settle";
 import { betwatchConfigured } from "@/lib/betwatch/client";
 import { pollPrices, racesToPrice, readPriceBook, type PriceBook } from "@/lib/betwatch/prices";
 import { callsOnRecord, holdBetRatedUnder, recordTips, type RecordedCall } from "@/lib/tips";
@@ -459,6 +460,13 @@ export async function refreshPrices(date: string, card?: { meetings: PublishedMe
     return { refreshed, rebuilt: true };
   } catch (err) {
     console.error("[card] reprice failed", err);
+    // Without Form King the card cannot rebuild, but BetWatch's results still settle.
+    try {
+      const settled = await settleFromBook(date);
+      if (settled) console.log("[card] settled from BetWatch", settled);
+    } catch (e) {
+      console.error("[card] settle from BetWatch failed", e);
+    }
     return { refreshed, rebuilt: false };
   }
 }

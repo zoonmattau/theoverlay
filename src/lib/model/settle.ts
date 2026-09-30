@@ -3,6 +3,7 @@ import "server-only";
 import { revalidateTag } from "next/cache";
 
 import { supabaseAdmin } from "@/lib/billing/access";
+import { readPriceBook } from "@/lib/betwatch/prices";
 import { settleCreatorTips } from "@/lib/creators";
 import { postWinners } from "@/lib/discord";
 import { getRace } from "@/lib/formking/client";
@@ -56,6 +57,47 @@ export async function settleByHand(date: string, raceId: string, order: number[]
   revalidateTag(`card-${date}`, "max");
   await postWinners(date, before, stored.card);
   return { ok: true, track: meeting.track, raceNumber: race.raceNumber };
+}
+
+/**
+ * BetWatch's results, laid straight on the stored card when a rebuild cannot
+ * run: Form King out of credits or past the daily cap. A result normally
+ * reaches the card through a rebuild, and a rebuild needs Form King, so on
+ * 30 Sep 2026 Rosehill R5's result sat in the price book for an hour with
+ * nothing settling. Each race lands the way a hand result does, placings
+ * and Betfair SP, and Form King's official one replaces it when it returns.
+ * Costs no Form King credits. Returns the races it settled.
+ */
+export async function settleFromBook(date: string): Promise<number> {
+  const [stored, book] = await Promise.all([readStoredCard(date), readPriceBook(date)]);
+  if (!stored) return 0;
+  const before = new Map<string, PublishedRace>(stored.card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, structuredClone(r)] as const)));
+  let settled = 0;
+  for (const m of stored.card.meetings) {
+    for (const race of m.races) {
+      const live = book.races[race.raceId];
+      if (race.result?.length || race.abandoned || !live?.result) continue;
+      const position = new Map<number, number>();
+      live.result.placings.forEach((tabs, i) => tabs.forEach((t) => position.set(t, i + 1)));
+      const order = [...position.entries()].sort((a, b) => a[1] - b[1]).map(([tab]) => tab);
+      if (order.length === 0) continue;
+      race.result = order.slice(0, 4);
+      race.placings = order.slice(0, 4).map((tab) => ({ position: position.get(tab)!, tabNumber: tab, bsp: live.result!.bsp[String(tab)] || undefined }));
+      race.handSettled = true;
+      for (const x of race.runners) {
+        if (live.runners[String(x.tabNumber)]?.scratched) x.scratched = true;
+        x.finishPosition = x.scratched ? undefined : (position.get(x.tabNumber) ?? 0);
+      }
+      settled++;
+    }
+  }
+  if (settled === 0) return 0;
+  await writeStoredCard(date, stored.card, 0);
+  await recordTips(date, stored.card);
+  await settleCreatorTips(date, stored.card);
+  revalidateTag(`card-${date}`, "max");
+  await postWinners(date, before, stored.card);
+  return settled;
 }
 
 /**
