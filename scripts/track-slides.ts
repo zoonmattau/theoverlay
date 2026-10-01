@@ -1,7 +1,7 @@
 // A carousel for the day: a cover of the card in numbers, then one slide a
 // track with its best bet and its best lay and why we make each of them.
 //   npx tsx --conditions=react-server --env-file=.env.local scripts/track-slides.ts 2026-09-19 [tracks]
-// Writes marketing/slides/<date>/: 1080x1350 PNGs numbered for the carousel,
+// Writes marketing/posts/<date>-track-slides/: 1080x1350 PNGs numbered for the carousel,
 // slides.html to open and tweak, and caption.md.
 import { chromium } from "playwright-core";
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -237,7 +237,7 @@ document.body.innerHTML = slides.join('');
     `<style>${STYLE}</style></head><body></body>` +
     `<script>${PAGE.replace("__DATA__", JSON.stringify(data))}</script></html>`;
 
-  const dir = `marketing/slides/${date}`;
+  const dir = `marketing/posts/${date}-track-slides`;
   mkdirSync(dir, { recursive: true });
   writeFileSync(`${dir}/slides.html`, html);
 

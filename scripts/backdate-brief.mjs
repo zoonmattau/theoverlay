@@ -1,7 +1,7 @@
 // Turns scripts/out/backdate.json into the Instagram brief: a week-by-week
 // list of every black-type race with the preview (our top four and calls) and
 // the review (result, where our runners finished).
-// node scripts/backdate-brief.mjs > marketing/season-record.md
+// node scripts/backdate-brief.mjs > marketing/briefs/season-record.md
 import { readFileSync } from "node:fs";
 
 const { races, calls } = JSON.parse(readFileSync("scripts/out/backdate.json", "utf8"));

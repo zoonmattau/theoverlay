@@ -1,6 +1,6 @@
-// Turns scripts/out/tip-of-week.json into marketing/saturday-wraps.md: one
+// Turns scripts/out/tip-of-week.json into marketing/briefs/saturday-wraps.md: one
 // Saturday per section, every bet and lay settled, the day's totals.
-// node scripts/wraps-brief.mjs > marketing/saturday-wraps.md
+// node scripts/wraps-brief.mjs > marketing/briefs/saturday-wraps.md
 import { readFileSync } from "node:fs";
 
 const weeks = JSON.parse(readFileSync("scripts/out/tip-of-week.json", "utf8"));

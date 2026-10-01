@@ -1,10 +1,10 @@
-// Builds marketing/season-brief.html, the shareable page holding the Claude
+// Builds marketing/briefs/season-brief.html, the shareable page holding the Claude
 // Design prompt and the season record, from backdate.json and the prompt file.
 // node scripts/backdate-page.mjs
 import { readFileSync, writeFileSync } from "node:fs";
 
 const { races, calls } = JSON.parse(readFileSync("scripts/out/backdate.json", "utf8"));
-const prompt = readFileSync("marketing/instagram-design-prompt.md", "utf8").split("\n---\n")[1].trim();
+const prompt = readFileSync("marketing/briefs/instagram-design-prompt.md", "utf8").split("\n---\n")[1].trim();
 const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const fin = (n) => (n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : n ? `${n}th` : "unpl");
 const day = (d) => new Date(`${d}T12:00:00`).toLocaleDateString("en-AU", { weekday: "long", day: "numeric", month: "long" });
@@ -187,7 +187,7 @@ tr.also td{color:var(--ink-2)}
   <section>
     <h2>Claude Design prompt</h2>
     <div class="prompt-box">
-      <div class="prompt-head"><p>Paste this into Claude Design, then paste the season record (marketing/season-record.md) after it as the data.</p><button id="copy-prompt" type="button">Copy prompt</button></div>
+      <div class="prompt-head"><p>Paste this into Claude Design, then paste the season record (marketing/briefs/season-record.md) after it as the data.</p><button id="copy-prompt" type="button">Copy prompt</button></div>
       <pre id="prompt-text">${esc(prompt)}</pre>
     </div>
   </section>
@@ -208,5 +208,5 @@ document.getElementById("copy-prompt").addEventListener("click", async () => {
 });
 </script>
 `;
-writeFileSync("marketing/season-brief.html", html);
-console.log("wrote marketing/season-brief.html", html.length);
+writeFileSync("marketing/briefs/season-brief.html", html);
+console.log("wrote marketing/briefs/season-brief.html", html.length);
