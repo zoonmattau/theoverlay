@@ -80,7 +80,8 @@ def call_sheet(ws, title, sub, where):
         d.alignment = Alignment(horizontal='left' if i in LEFT else 'center', vertical='center')
         if col in FMT: d.number_format = FMT[col]
     q = f'select * where Col1 is not null{where} order by Col1 desc, Col2, Col3'
-    ws.cell(TOP + 1, 1, f'=IFERROR(QUERY(Data!A2:O20000,"{q}",0),"Loading results")')
+    first = ws.cell(TOP + 1, 1, f'=IFERROR(QUERY(Data!A2:O20000,"{q}",0),"Loading results")')
+    first.number_format = FMT['A']  # the formula cell carries its own format, not the column's
     body = f'A{TOP+1}:O{ROWS}'
     ws.conditional_formatting.add(body, FormulaRule(formula=[f'AND($A{TOP+1}<>"",ISEVEN(ROW()))'], fill=fill(ALT)))
     text_rule(ws, f'G{TOP+1}:G{ROWS}', 'Prime', INK, LIME)

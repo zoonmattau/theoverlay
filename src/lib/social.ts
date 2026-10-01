@@ -18,4 +18,4 @@ export const BRAND_SOCIAL = {
 } as const;
 
 /** The results: every call settled, in the shared Google sheet. Linked from the footer only (2 Oct 2026). */
-export const RESULTS_SHEET = "https://docs.google.com/spreadsheets/d/1Z6ezZZMoj4NqN8JRSJwbSVzKo5K6RiOk/edit?usp=sharing";
+export const RESULTS_SHEET = "https://docs.google.com/spreadsheets/d/1REbe9VXjEswkg2E94RKAdjNKC1BzQzDmRzFIqafyk_4/edit?usp=sharing";
