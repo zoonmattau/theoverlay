@@ -104,7 +104,7 @@ def setup():
         return c
 
     start = category("Start Here", READ_ONLY)
-    calls = category("The Calls (Primes, Bets & Lays)", READ_ONLY)
+    calls = category("The Calls", READ_ONLY)
     talk = category("Talk", OPEN)
     tipsters = category("Tipsters", TIPSTER_POSTS)
     members = category("Members", MEMBERS_ONLY)
@@ -124,7 +124,6 @@ def setup():
     channel("announcements", start, READ_ONLY, 5)
 
     for n, t, who in [
-        ("prime-overlays", "The day's Prime Overlays. Members.", MEMBERS_READ),
         ("bets-and-lays", "Every call on the card. Members.", MEMBERS_READ),
         ("results", "How the day went, in units.", READ_ONLY),
         ("free-race", "The free race of the day, open to all.", READ_ONLY),
@@ -162,7 +161,7 @@ def setup():
     channel("Race Day", voice, [ov(everyone, VIEW | CONNECT | SPEAK)], 2)
     channel("The Review", voice, [ov(everyone, VIEW | CONNECT), ov(admin["id"], SPEAK), ov(tipster["id"], SPEAK)], 13, "The Saturday review, live.")
 
-    order = ["Start Here", "The Calls (Primes, Bets & Lays)", "Talk", "Tipsters", "Members", "Voice", "Admin"]
+    order = ["Start Here", "The Calls", "Talk", "Tipsters", "Members", "Voice", "Admin"]
     call("PATCH", f"/guilds/{GID}/channels", [{"id": cats[n]["id"], "position": i} for i, n in enumerate(order) if n in cats])
 
     # One permanent invite; a run after the first reuses it.

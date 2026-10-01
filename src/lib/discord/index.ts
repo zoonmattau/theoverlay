@@ -22,7 +22,6 @@ const API = "https://discord.com/api/v10";
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
 /** Channel names as the setup script made them. */
 export const CHANNELS = {
-  primes: "prime-overlays",
   calls: "bets-and-lays",
   results: "results",
   free: "free-race",
@@ -147,14 +146,14 @@ const isPrime = (c: Call) => Boolean(c.x.prime || c.tag === "prime_overlay" || c
  * square is the site's colour convention, lime for a Prime, blue for a bet,
  * red for a lay.
  */
-function line(c: Call, withTrack = false): string {
+function line(c: Call): string {
   const prime = isPrime(c);
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
   const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : isRoughie(c.x) ? "Way Overlay" : "Bet";
   const limit = callLimit(c.x);
   const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
   const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
-  return `${square} ${withTrack ? `${c.m.track} ` : ""}R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`;
+  return `${square} R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`;
 }
 
 /** Every call, a heading per meeting and a blank line between meetings, races in jump order. */
@@ -167,7 +166,7 @@ function lines(calls: Call[]): string {
 const LAYS_LATER = "Lays post here half an hour before the jump, at the exchange price then.";
 
 /**
- * The morning posts: the Primes, every bet, and the free race. Each goes
+ * The morning posts: every bet, the Primes among them, and the free race. Each goes
  * once per date, so a rebuild never repeats them. A lay is struck on the
  * exchange price at the time, so lays wait for the last half hour before
  * the jump and go from postCallChanges().
@@ -185,8 +184,6 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
       return;
     }
     if (calls.length === 0) return;
-    const primes = bets.filter(isPrime);
-    if (primes.length) await once(date, "primes", () => send(CHANNELS.primes, `**Prime Overlays, ${day}**\n${primes.map((c) => line(c, true)).join("\n")}`));
     const body = bets.length ? `**${day}: ${bets.length} ${bets.length === 1 ? "bet" : "bets"}.** ${LAYS_LATER}\n\n${lines(bets)}` : `**${day}: no bets this morning.** ${LAYS_LATER}`;
     await once(date, "calls", () => send(CHANNELS.calls, `${body}\n\n${SITE}/`));
     const free = card.meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === card.freeRaceId);
@@ -269,14 +266,13 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
         else lays.push(c);
         continue;
       }
-      // A bet that grew into a Prime during the day goes to the Primes channel as the morning ones did.
-      if (isPrime(c) && !prev?.prime && !posted.has(primeKey(c))) primes.push(c);
-      if (prev && prev.signal === c.x.signal) continue;
-      if (known.has(`${c.r.raceId}:${c.x.tabNumber}`)) continue;
-      fresh.push(c);
+      const isNew = !(prev && prev.signal === c.x.signal) && !known.has(`${c.r.raceId}:${c.x.tabNumber}`);
+      if (isNew) fresh.push(c);
+      // A bet already posted that grew into a Prime during the day is posted again as a Prime.
+      else if (isPrime(c) && !prev?.prime && !posted.has(primeKey(c))) primes.push(c);
     }
     for (const c of fresh) await send(CHANNELS.calls, callPost(c, date));
-    for (const c of primes) await remember(date, primeKey(c), () => send(CHANNELS.primes, callPost(c, date)));
+    for (const c of primes) await remember(date, primeKey(c), () => send(CHANNELS.calls, callPost(c, date)));
     for (const c of lays) await remember(date, layKey(c), () => send(CHANNELS.calls, callPost(c, date)));
     for (const c of quiet) await remember(date, layKey(c), async () => undefined);
   } catch (err) {
