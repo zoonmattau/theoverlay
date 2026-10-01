@@ -399,8 +399,9 @@ export function publishRace(
           margin: h.margin,
           sp: h.startingPrice || undefined,
           bsp: h.betfairStartingPrice || undefined,
-          // TAB dividends when Form King has them, Betfair's otherwise.
-          win: h.finishPosition === 1 ? h.toteWin || h.bestToteWin || h.startingPrice || undefined : undefined,
+          // TAB dividends when Form King has them, Betfair's otherwise: BetWatch's
+          // result carries Betfair's win and place starting prices and nothing else.
+          win: h.finishPosition === 1 ? h.toteWin || h.bestToteWin || h.startingPrice || h.betfairStartingPrice || undefined : undefined,
           place: h.finishPosition <= 3 ? h.totePlace || h.betfairPlaceDiv || undefined : undefined,
         };
       })

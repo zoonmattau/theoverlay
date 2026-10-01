@@ -405,7 +405,7 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
   const settled = (e: RaceEntry): RaceEntry => {
     if (position.size === 0 || e.scratched) return e;
     const pos = position.get(e.number) ?? position.size + 1;
-    return { ...e, horseResult: { finishPosition: pos, startingPrice: 0, betfairStartingPrice: live.result!.bsp[String(e.number)] ?? 0 } };
+    return { ...e, horseResult: { finishPosition: pos, startingPrice: 0, betfairStartingPrice: live.result!.bsp[String(e.number)] ?? 0, betfairPlaceDiv: pos <= 3 ? live.result!.bspPlace?.[String(e.number)] : undefined } };
   };
   // A closed market with no result reaches the race too: a race called off shows only as that.
   // Form King's word that a race is abandoned stands over BetWatch's closed market.

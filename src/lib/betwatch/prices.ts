@@ -32,8 +32,8 @@ export interface RacePrices {
   at: string;
   status?: string;
   runners: Record<string, LivePrice>;
-  /** Once run: tab numbers by finishing position (a dead heat shares one) and Betfair's starting price by tab. */
-  result?: { placings: number[][]; bsp: Record<string, number>; at: string };
+  /** Once run: tab numbers by finishing position (a dead heat shares one) and Betfair's win and place starting prices by tab. */
+  result?: { placings: number[][]; bsp: Record<string, number>; bspPlace?: Record<string, number>; at: string };
 }
 
 export interface PriceBook {
@@ -84,9 +84,49 @@ export async function readPriceBook(date: string): Promise<PriceBook> {
   return (data?.data as PriceBook | undefined) ?? empty();
 }
 
-async function writePriceBook(date: string, book: PriceBook): Promise<void> {
-  const { error } = await supabaseAdmin().from("fk_cache").upsert({ key: `${KIND}:${date}`, kind: KIND, data: book as never, at: new Date().toISOString() }, { onConflict: "key" });
+/**
+ * Two pollers share the book, the minute cron and a page view's refresh, and
+ * each spends seconds fetching between its read and its write. Written whole,
+ * the later write wiped what the other had added: on 1 Oct 2026 four races
+ * lost the results BetWatch had given them, and the starting prices with them.
+ * So a write merges into the book as it stands now: each race keeps its newer
+ * poll, a result once seen is never dropped, and its starting prices only gather.
+ */
+export async function writePriceBook(date: string, book: PriceBook): Promise<void> {
+  let merged = book;
+  try {
+    merged = mergeBooks(await readPriceBook(date), book);
+  } catch (err) {
+    console.error("[betwatch] merge", err instanceof Error ? err.message : err);
+  }
+  const { error } = await supabaseAdmin().from("fk_cache").upsert({ key: `${KIND}:${date}`, kind: KIND, data: merged as never, at: new Date().toISOString() }, { onConflict: "key" });
   if (error) console.error("[betwatch] write", error.message);
+}
+
+const later = (a?: string, b?: string) => (!a ? b : !b ? a : Date.parse(a) >= Date.parse(b) ? a : b);
+
+function mergeResult(a?: RacePrices["result"], b?: RacePrices["result"]): RacePrices["result"] {
+  if (!a || !b) return a ?? b;
+  const [old, recent] = Date.parse(a.at) > Date.parse(b.at) ? [b, a] : [a, b];
+  return { ...recent, bsp: { ...old.bsp, ...recent.bsp }, bspPlace: { ...old.bspPlace, ...recent.bspPlace } };
+}
+
+/** `ours` laid over what the store holds now, race by race. */
+export function mergeBooks(stored: PriceBook, ours: PriceBook): PriceBook {
+  const races: Record<string, RacePrices> = { ...stored.races };
+  for (const [raceId, mine] of Object.entries(ours.races)) {
+    const theirs = races[raceId];
+    if (!theirs) {
+      races[raceId] = mine;
+      continue;
+    }
+    const newer = Date.parse(mine.at) >= Date.parse(theirs.at) ? mine : theirs;
+    races[raceId] = { ...newer, result: mergeResult(theirs.result, mine.result) };
+  }
+  const ids = { ...stored.ids, ...ours.ids };
+  const missingAt = later(stored.missingAt, ours.missingAt);
+  const missing = (missingAt === ours.missingAt ? ours.missing : stored.missing).filter((id) => !ids[id]);
+  return { ...stored, ...ours, ids, missing, missingAt, polledAt: later(stored.polledAt, ours.polledAt), races };
 }
 
 const norm = (s: string) => (trackKey(s) ?? s).toLowerCase().replace(/[^a-z]/g, "");
@@ -137,16 +177,21 @@ export function racesToPrice(meetings: PublishedMeeting[], now = Date.now(), far
 /**
  * The races on a card that have jumped and have no result yet, each with
  * how often its result is asked for: every minute while the result is
- * expected, every five once it is overdue.
+ * expected, every five once it is overdue. A race resulted without its
+ * prices (the win and the first three's place) is asked again every five
+ * minutes: Betfair's starting prices can post after the placings, and with
+ * no Form King result they are the only ones it gets (1 Oct 2026).
  */
 export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] {
   const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] = [];
   for (const meeting of meetings) {
     for (const race of meeting.races) {
-      if (race.result?.length || !race.jumpTime) continue;
+      if (!race.jumpTime || race.abandoned) continue;
+      const priced = Boolean(race.placings?.[0]?.win) && (race.placings ?? []).slice(0, 3).every((p) => p.place);
+      if (race.result?.length && priced) continue;
       const since = now - Date.parse(race.jumpTime);
       if (since < 60_000 || since > RESULT_WINDOW_MS) continue;
-      out.push({ meeting, race, every: since <= RESULT_NEAR_MS ? RESULT_NEAR_EVERY_MS : PRICE_EVERY_MS });
+      out.push({ meeting, race, every: !race.result?.length && since <= RESULT_NEAR_MS ? RESULT_NEAR_EVERY_MS : PRICE_EVERY_MS });
     }
   }
   return out;
@@ -233,8 +278,12 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
           // official result moves settles again, see recordTips.
           if (/resulted|interim/i.test(m.status) && m.results) {
             const bsp: Record<string, number> = {};
-            for (const r of m.runners) if (r.bsp) bsp[String(r.number)] = r.bsp;
-            entry.result = { placings: m.results, bsp, at: entry.at };
+            const bspPlace: Record<string, number> = {};
+            for (const r of m.runners) {
+              if (r.bsp) bsp[String(r.number)] = r.bsp;
+              if (r.bspPlace) bspPlace[String(r.number)] = r.bspPlace;
+            }
+            entry.result = { placings: m.results, bsp, bspPlace, at: entry.at };
           }
           book.races[race.raceId] = entry;
           refreshed++;
