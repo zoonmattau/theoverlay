@@ -3,11 +3,11 @@ import { connection } from "next/server";
 import { supabaseAdmin } from "@/lib/billing/access";
 
 /**
- * Every settled call as CSV, for the public results sheet: its Data tab reads
- * this with IMPORTDATA and Google refreshes it about hourly. Settled only, so
- * a call that can still be backed never leaves the members' pages: a call
- * settles once its race has a result, or is voided by a scratching or a race
- * called off. Tags fold into Prime, Bet, Way and Lay (2 Oct 2026).
+ * Every resulted call as CSV, for the public results sheet: its Data tab reads
+ * this with IMPORTDATA and Google refreshes it about hourly. Resulted only, so
+ * a call that can still be backed never leaves the members' pages, and voids
+ * (a scratching, a race called off) are left out: the sheet does not count
+ * them. Tags fold into Prime, Bet, Way and Lay (2 Oct 2026).
  */
 const TAG: Record<string, string> = { prime_overlay: "Prime", top_overlay: "Prime", way_overlay: "Way", long_overlay: "Bet", bet: "Bet", lay: "Lay" };
 const HEAD = ["Date", "Track", "Race", "No.", "Horse", "Call", "Tag", "Rated", "Price", "Edge", "Stake", "Finish", "Result", "Profit", "At risk"];
@@ -38,12 +38,12 @@ function line(t: Row): string {
   const price = Number(t.market_price);
   const stake = Number(t.stake ?? 1);
   const units = Number(t.units ?? 0);
-  const result = t.finish_position === null ? "Void" : units > 0 ? "Win" : "Loss";
-  const risk = result === "Void" ? "" : (bet ? stake : (price - 1) * stake).toFixed(2);
+  const result = units > 0 ? "Win" : "Loss";
+  const risk = (bet ? stake : (price - 1) * stake).toFixed(2);
   return [
     t.date, t.track, t.race_number, t.tab_number, t.horse_name, bet ? "Bet" : "Lay", TAG[t.tag ?? ""] ?? (bet ? "Bet" : "Lay"),
     Number(t.rated_price).toFixed(2), price.toFixed(2), t.edge === null ? "" : Number(t.edge).toFixed(4), stake,
-    t.finish_position === null ? "" : t.finish_position === 0 ? "Unplaced" : t.finish_position, result, units.toFixed(2), risk,
+    t.finish_position === 0 ? "Unplaced" : t.finish_position, result, units.toFixed(2), risk,
   ].map(cell).join(",");
 }
 
@@ -57,6 +57,7 @@ export async function GET() {
       .select("date, track, race_number, tab_number, horse_name, side, tag, rated_price, market_price, edge, stake, finish_position, units")
       .eq("source", "model")
       .not("settled_at", "is", null)
+      .not("finish_position", "is", null)
       .order("date")
       .order("published_at")
       .order("id")

@@ -80,7 +80,7 @@ def call_sheet(ws, title, sub, where):
         d.alignment = Alignment(horizontal='left' if i in LEFT else 'center', vertical='center')
         if col in FMT: d.number_format = FMT[col]
     q = f'select * where Col1 is not null{where} order by Col1 desc, Col2, Col3'
-    ws.cell(TOP + 1, 1, f'=IFERROR(QUERY(Data!A2:O,"{q}",0),"Loading results")')
+    ws.cell(TOP + 1, 1, f'=IFERROR(QUERY(Data!A2:O20000,"{q}",0),"Loading results")')
     body = f'A{TOP+1}:O{ROWS}'
     ws.conditional_formatting.add(body, FormulaRule(formula=[f'AND($A{TOP+1}<>"",ISEVEN(ROW()))'], fill=fill(ALT)))
     text_rule(ws, f'G{TOP+1}:G{ROWS}', 'Prime', INK, LIME)
@@ -91,7 +91,6 @@ def call_sheet(ws, title, sub, where):
     text_rule(ws, f'F{TOP+1}:F{ROWS}', 'Lay', RED)
     text_rule(ws, f'M{TOP+1}:M{ROWS}', 'Win', GREEN)
     text_rule(ws, f'M{TOP+1}:M{ROWS}', 'Loss', RED)
-    text_rule(ws, f'M{TOP+1}:M{ROWS}', 'Void', SOFT, bold=False)
     sign_rules(ws, f'N{TOP+1}:N{ROWS}')
     ws.freeze_panes = f'A{TOP+1}'
 
@@ -101,7 +100,7 @@ ov = wb.active; ov.title = 'Overview'
 allc = wb.create_sheet('All Calls'); bets = wb.create_sheet('Bets'); lays = wb.create_sheet('Lays'); data = wb.create_sheet('Data')
 for ws, c in ((ov, LIME), (allc, INK), (bets, BLUE), (lays, RED), (data, SOFT)): ws.sheet_properties.tabColor = c
 
-SINCE = '="Since "&TEXT(MIN(Data!A2:A),"d mmm yyyy")&". Updates hourly."'
+SINCE = '="Since "&TEXT(MIN(Data!A2:A20000),"d mmm yyyy")&". Updates hourly."'
 call_sheet(allc, 'All calls', SINCE, '')
 call_sheet(bets, 'Bets', SINCE, " and Col6 = 'Bet'")
 call_sheet(lays, 'Lays', SINCE, " and Col6 = 'Lay'")
@@ -112,7 +111,8 @@ data['Q1'] = 'Pulled from theoverlay.com.au/api/results.csv, refreshed by Google
 data['Q1'].font = font(size=9, color=MUTED)
 
 # ---- Overview: everything is a formula over Data ----
-D = lambda c: f'Data!${c}$2:${c}'
+# Fixed ranges: the open-ended Data!N2:N is Sheets-only and breaks when the xlsx converts.
+D = lambda c: f'Data!${c}$2:${c}$20000'
 NC = 10
 band(ov, NC, 'Results', SINCE)
 ov.column_dimensions['A'].width = 20
@@ -138,9 +138,9 @@ for label, side, col in (('ALL CALLS', '', 'B'), ('BETS', 'Bet', 'E'), ('LAYS', 
 for rr in range(r0, r0 + 4): ov.row_dimensions[rr].height = 20
 
 ov.cell(11, 1, 'Level stakes: one unit a call, a tenth on a Way. Bets settle at the best of fixed odds, SP and BSP; lays at the shortest lay price or BSP.').font = font(size=9, color=MUTED)
-ov.cell(12, 1, 'A lay wins one unit when the horse loses and risks the price less one. ROI is profit over units at risk. Scratchings and abandoned races are void.').font = font(size=9, color=MUTED)
+ov.cell(12, 1, 'A lay wins one unit when the horse loses and risks the price less one. ROI is profit over units at risk. Calls on scratched horses and abandoned races are void and left out.').font = font(size=9, color=MUTED)
 
-HDR = ['', 'Calls', 'Won', 'Lost', 'Void', 'Strike', 'Profit (u)', 'At risk (u)', 'ROI']
+HDR = ['', 'Calls', 'Won', 'Lost', 'Strike', 'Profit (u)', 'At risk (u)', 'ROI']
 
 
 def section(r, title):
@@ -152,14 +152,14 @@ def stat_row(r, crit, k, guard=None):
     cs = ''.join(f',{D(c)},{v}' for c, v in crit)
     g = (lambda f: f'=IF({guard},"",{f})') if guard else (lambda f: '=' + f)
     ov.cell(r, 2, g(f'COUNTIFS({D("M")},"<>"{cs})'))
-    for j, res in zip((3, 4, 5), ('Win', 'Loss', 'Void')):
+    for j, res in zip((3, 4), ('Win', 'Loss')):
         ov.cell(r, j, g(f'COUNTIFS({D("M")},"{res}"{cs})'))
-    ov.cell(r, 6, g(f'IF(C{r}+D{r}=0,"",C{r}/(C{r}+D{r}))')).number_format = '0.0%'
-    ov.cell(r, 7, g(f'SUMIFS({D("N")}{cs})' if crit else f'SUM({D("N")})')).number_format = U
-    ov.cell(r, 8, g(f'SUMIFS({D("O")}{cs})' if crit else f'SUM({D("O")})')).number_format = '0.00'
-    ov.cell(r, 9, g(f'IF(H{r}=0,"",G{r}/H{r})')).number_format = '+0.0%;-0.0%;0.0%'
-    for j in range(1, NC):
-        c = ov.cell(r, j); c.font = font(SANS if j == 1 else MONO, bold=j in (1, 7), color=INK)
+    ov.cell(r, 5, g(f'IF(C{r}+D{r}=0,"",C{r}/(C{r}+D{r}))')).number_format = '0.0%'
+    ov.cell(r, 6, g(f'SUMIFS({D("N")}{cs})' if crit else f'SUM({D("N")})')).number_format = U
+    ov.cell(r, 7, g(f'SUMIFS({D("O")}{cs})' if crit else f'SUM({D("O")})')).number_format = '0.00'
+    ov.cell(r, 8, g(f'IF(G{r}=0,"",F{r}/G{r})')).number_format = '+0.0%;-0.0%;0.0%'
+    for j in range(1, len(HDR) + 1):
+        c = ov.cell(r, j); c.font = font(SANS if j == 1 else MONO, bold=j in (1, 6), color=INK)
         c.alignment = Alignment(horizontal='left' if j == 1 else 'center', vertical='center')
         if k % 2: c.fill = fill(ALT)
     ov.row_dimensions[r].height = 20
@@ -170,7 +170,7 @@ section(r, 'By call'); r += 1
 header(ov, r, HDR); r += 1; s = r
 for k, (lab, crit) in enumerate((('All calls', []), ('Bets', [('F', '"Bet"')]), ('Lays', [('F', '"Lay"')]))):
     ov.cell(r, 1, lab); stat_row(r, crit, k); r += 1
-sign_rules(ov, f'G{s}:G{r-1}'); sign_rules(ov, f'I{s}:I{r-1}')
+sign_rules(ov, f'F{s}:F{r-1}'); sign_rules(ov, f'H{s}:H{r-1}')
 r += 1
 
 section(r, 'By tag'); r += 1
@@ -179,7 +179,7 @@ for k, (t, bg, fg) in enumerate((('Prime', LIME, INK), ('Bet', BLUE_SOFT, BLUE),
     ov.cell(r, 1, t); stat_row(r, [('G', f'"{t}"')], k)
     ov.cell(r, 1).fill = fill(bg); ov.cell(r, 1).font = font(bold=True, color=fg)
     r += 1
-sign_rules(ov, f'G{s}:G{r-1}'); sign_rules(ov, f'I{s}:I{r-1}')
+sign_rules(ov, f'F{s}:F{r-1}'); sign_rules(ov, f'H{s}:H{r-1}')
 r += 1
 
 # The last twelve weeks, newest first, Monday to Sunday.
@@ -190,7 +190,7 @@ for k in range(12):
     stat_row(r, [('A', f'">="&$A{r}'), ('A', f'"<"&($A{r}+7)')], k, guard=f'$A{r}=""')
     a.number_format = 'd mmm yyyy'
     r += 1
-sign_rules(ov, f'G{s}:G{r-1}'); sign_rules(ov, f'I{s}:I{r-1}')
+sign_rules(ov, f'F{s}:F{r-1}'); sign_rules(ov, f'H{s}:H{r-1}')
 
 # Day by day, oldest first, feeding the chart: columns L to P.
 dr = 30
