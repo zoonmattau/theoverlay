@@ -330,8 +330,9 @@ html, body { background:transparent; }
       `<div class="horse">${r.tab}. ${r.horse}</div>` +
       `<div class="prices"><div class="price ours"><i>PRICE</i><b>${r.market}</b></div><div class="price"><i>RATED</i><b>${r.rated}</b></div></div></div></div>` +
       `<div class="edge" style="top:${BAND_TOP - 8}px"></div><div class="edge" style="top:${BAND_TOP + BAND_H}px"></div>` +
-      `<div class="panel bottom"><div class="watch"><div class="cloth">${r.tab}</div><div><i>WATCH</i><b>${r.horse}</b>` +
-      `<span>${[r.jockey, r.barrier ? `barrier ${r.barrier}` : "", r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" · ")}</span></div></div>` +
+      // The card above names the horse; down here is only how to spot it: the saddlecloth and who is riding.
+      `<div class="panel bottom"><div class="watch"><div class="cloth">${r.tab}</div><div><i>WATCH THE ${r.tab}</i><b>${r.jockey}</b>` +
+      `<span>${[r.barrier ? `barrier ${r.barrier}` : "", r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" · ")}</span></div></div>` +
       `<div class="trial"><b>Every Prime bet, ${TRIAL_DAYS} days free</b><span>then from $${Math.min(...PLANS.map((p) => p.price))} a month <em>theoverlay.com.au</em></span></div></div>` +
       `</body></html>`;
     await overlay.setContent(html, { waitUntil: "networkidle" });
