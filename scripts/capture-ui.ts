@@ -12,10 +12,17 @@
 // Writes marketing/ads/shots/<name>.png at 2x.
 import { chromium, type Locator, type Page } from "playwright-core";
 import { mkdirSync } from "node:fs";
+import { KNOWN_BOOKIES } from "../src/lib/bookies";
 
 const SITE = process.env.SITE ?? "http://localhost:3000";
 // The bar, the next-to-go strip and the dev overlay stay out of every shot.
-const HIDE = ".topbar, .ntg, nextjs-portal { display: none !important }";
+// No bookie is ever named in an ad: a bookie beside a price reads as a betting
+// call to action to Meta's gambling check. The "at Sportsbet" links go, and a
+// price box labelled with a bookie is relabelled Market.
+const HIDE = ".topbar, .ntg, nextjs-portal, .bookie-link { display: none !important }" +
+  // At phone width the price box is labelled by CSS, not text: Bet and Lay read Live.
+  ' tr.runner-row > td[data-col="live"]:has(.price-chip.is-back)::before, tr.runner-row > td[data-col="live"]:has(.price-chip.is-lay)::before { content: "Live" !important }';
+const BOOKIES = new RegExp(`^(${KNOWN_BOOKIES.join("|")})$`, "i");
 const DIR = "marketing/ads/shots";
 
 interface Opts {
@@ -27,6 +34,10 @@ interface Opts {
   within?: string;
   /** Override what counts as a row, when it is not a table or a bar. */
   rowSel?: string;
+  /** Keep only rows whose text includes this, so a settled result never lands in an ad. */
+  keep?: string;
+  /** Open the first n selection cards first: at phone width they start folded to one line. */
+  open?: number;
 }
 
 void (async () => {
@@ -39,9 +50,38 @@ void (async () => {
     const page = await browser.newPage({ viewport: { width, height: 1400 }, deviceScaleFactor: 2 });
     await page.goto(url, { waitUntil: "networkidle", timeout: 120_000 });
     await page.addStyleTag({ content: HIDE });
+    await scrub(page);
     await page.waitForTimeout(800);
     return page;
   };
+
+  // No betting word lands in an ad either (1 Oct 2026). The call badges read
+  // Pick and Fade, odds become price, and the columns that only make sense to
+  // a punter (back edge, lay at, P/L, the unit total) are taken out. Run again
+  // before every shot, since a tab click re-renders what it touched.
+  const scrub = (page: Page) =>
+    page.evaluate((source) => {
+      const bookie = new RegExp(source, "i");
+      const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+        const t = n.textContent ?? "";
+        const trimmed = t.trim();
+        if (bookie.test(trimmed)) n.textContent = "Market";
+        else if (/^bet$/i.test(trimmed)) n.textContent = "Pick";
+        else if (/^lay$/i.test(trimmed)) n.textContent = "Fade";
+        else if (/\bodds\b/i.test(t)) n.textContent = t.replace(/\bthe odds are\b/gi, "the price is").replace(/\bodds\b/gi, "price");
+      }
+      const drop = /^(back edge|lay at|p\/l|sum)$/i;
+      for (const table of document.querySelectorAll("table")) {
+        const heads = [...table.querySelectorAll("thead th")];
+        const cols = heads.map((h, i) => (drop.test(h.textContent?.trim() ?? "") ? i : -1)).filter((i) => i >= 0);
+        for (const row of table.querySelectorAll("tr")) {
+          const cells = [...row.children] as HTMLElement[];
+          if (/one unit/i.test(row.textContent ?? "")) { (row as HTMLElement).style.setProperty("display", "none", "important"); continue; }
+          if (cells.length === heads.length) for (const i of cols) cells[i]?.style.setProperty("display", "none", "important");
+        }
+      }
+    }, BOOKIES.source);
   const section = (page: Page, title: string) => page.locator(`section.section:has(h2:text-is("${title}"))`).first();
 
   /** A tab click leaves its tooltip open, which lands across the next shot. */
@@ -52,28 +92,40 @@ void (async () => {
 
   const trim = (el: Locator, o: Opts) =>
     el.evaluate(
-      (node, { bare, rows, rowSel }) => {
+      (node, { bare, rows, rowSel, keep }) => {
         if (bare) node.querySelector<HTMLElement>(".section-bar")?.style.setProperty("display", "none", "important");
         if (!rows) return;
         // Whichever of these the section actually uses to repeat a runner.
         for (const sel of [rowSel, "tbody tr", ".bar-row", ".runner-row", "tr", "[class*='row']", "article", "li"].filter(Boolean) as string[]) {
-          const found = [...node.querySelectorAll<HTMLElement>(sel)];
+          let found = [...node.querySelectorAll<HTMLElement>(sel)];
+          if (keep && found.length) {
+            found.filter((r) => !r.textContent?.includes(keep)).forEach((r) => r.style.setProperty("display", "none", "important"));
+            found = found.filter((r) => r.textContent?.includes(keep));
+          }
           if (found.length > rows) {
             found.slice(rows).forEach((r) => r.style.setProperty("display", "none", "important"));
             return;
           }
         }
       },
-      { bare: Boolean(o.bare), rows: o.rows ?? 0, rowSel: o.rowSel ?? null },
+      { bare: Boolean(o.bare), rows: o.rows ?? 0, rowSel: o.rowSel ?? null, keep: o.keep ?? null },
     );
 
   const shoot = async (page: Page, title: string, name: string, o: Opts = {}) => {
     const sec = section(page, title);
     if (!(await sec.count())) return console.log(`  - ${name}: no "${title}" section`);
+    for (let i = 0; i < (o.open ?? 0); i++) {
+      const head = sec.locator(".pick-head").nth(i);
+      if (await head.count()) { await head.click(); await page.waitForTimeout(400); }
+    }
     await trim(sec, o);
     const el = o.within ? sec.locator(o.within).first() : sec;
     if (!(await el.count())) return console.log(`  - ${name}: no "${o.within}" inside "${title}"`);
     await unhover(page);
+    await scrub(page);
+    // innerText includes text drawn by ::before, so a CSS label is checked too.
+    const left = (await el.innerText()).match(/\b(bets?|betting|odds|punt\w*|wager\w*|lays?)\b/gi);
+    if (left) console.log(`  ! ${name} still says: ${[...new Set(left)].join(", ")}`);
     await el.screenshot({ path: `${DIR}/${name}.png` });
     // Put the bar back: it carries the tabs the next shot needs to click.
     await sec.evaluate((node) => node.querySelector<HTMLElement>(".section-bar")?.style.removeProperty("display"));
@@ -122,7 +174,24 @@ void (async () => {
 
   page = await open(`${SITE}/tips`, 1180);
   await shoot(page, "Lays", "lays", { bare: true, rows: 6 });
-  await shoot(page, "Bets", "bets", { bare: true, rows: 4 });
+  await shoot(page, "Bets", "bets", { bare: true, rows: 4, rowSel: "tbody tr", keep: "to run" });
+  await page.close();
+
+  // The same sections at phone width, for the 9:16 story. A wide table in a
+  // tall frame is a thin strip with dead space around it and type too small to
+  // read on the phone it is seen on; at this width the site stacks its tables
+  // into cards, which is what someone holding a phone expects to see.
+  page = await open(race, 430);
+  // The top card opened, the second left folded: the call next to one that is not.
+  await shoot(page, "Our selections", "selections-phone", { bare: true, rows: 2, rowSel: ".grid > *", open: 1 });
+  await shoot(page, "Our selections", "selection-card-phone", { within: ".grid > *" });
+  await shoot(page, "Market", "market-phone", { bare: true, rows: 3 });
+  // The full matrix scrolls sideways on a phone, so the story gets the ranked
+  // view instead: every runner, its rating and its price, at a size that reads.
+  await shoot(page, "Rankings", "rankings-phone", { bare: true, rows: 6 });
+  await page.close();
+  page = await open(`${SITE}/tips`, 430);
+  await shoot(page, "Bets", "bets-phone", { bare: true, rows: 3, rowSel: "tbody tr", keep: "to run" });
   await page.close();
 
   // The home board: every race on the card, coloured by the call. At phone

@@ -34,7 +34,10 @@ const KNOWN: { code: string; name: string; home: string }[] = [
   { code: "robwaterhouse", name: "Rob Waterhouse", home: "https://www.robwaterhouse.com" },
 ];
 
-const RANK = new Map(KNOWN.map((b, i) => [b.code, i]));
+/** Every bookie name we print, so the ad screenshots can strip them. */
+export const KNOWN_BOOKIES = KNOWN.map((b) => b.name);
+
+const RANK =new Map(KNOWN.map((b, i) => [b.code, i]));
 /** Bookies an Australian punter cannot use. */
 const SKIP = new Set(["tab nz"]);
 
