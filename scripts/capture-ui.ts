@@ -70,6 +70,18 @@ void (async () => {
         else if (/^bet$/i.test(trimmed)) n.textContent = "Pick";
         else if (/^lay$/i.test(trimmed)) n.textContent = "Fade";
         else if (/\bodds\b/i.test(t)) n.textContent = t.replace(/\bthe odds are\b/gi, "the price is").replace(/\bodds\b/gi, "price");
+        // The board's cells: "1 BET, 1 LAY" reads "1 PICK, 1 FADE" (2 Oct 2026, the terminal ad was rejected on it).
+        else if (trimmed.length < 40 && /\b\d+ (bets?|lays?)\b/i.test(t)) {
+          n.textContent = t.replace(/\b(\d+) (bets?|lays?)\b/gi, (_, k: string, w: string) => {
+            const to = `${/^b/i.test(w) ? "pick" : "fade"}${/s$/i.test(w) ? "s" : ""}`;
+            return `${k} ${w === w.toUpperCase() ? to.toUpperCase() : to}`;
+          });
+        }
+        // What a run returned, "+1.00u", is a result, and results never go in a paid ad.
+        else if (/^[+\-−]?\d+\.\d+u$/.test(trimmed)) n.textContent = "";
+      }
+      for (const el of document.querySelectorAll<HTMLElement>("li, span, div")) {
+        if (el.children.length <= 1 && /^run, with what it returned us$/i.test(el.textContent?.trim() ?? "")) el.style.setProperty("display", "none", "important");
       }
       const drop = /^(back edge|lay at|p\/l|sum)$/i;
       for (const table of document.querySelectorAll("table")) {
@@ -200,6 +212,12 @@ void (async () => {
   page = await open(SITE, 900);
   const board = page.locator(".matrix-wrap").first();
   if (await board.count()) {
+    // A meeting called off reads as a row of "Abandoned"; it says nothing in an ad.
+    await board.evaluate((wrap) => {
+      for (const row of wrap.querySelectorAll<HTMLElement>("tr")) {
+        if ((row.textContent?.match(/Abandoned/g) ?? []).length >= 3) row.style.setProperty("display", "none", "important");
+      }
+    });
     await board.screenshot({ path: `${DIR}/home-board.png` });
     console.log("  + home-board.png");
   } else console.log("  - home-board: no .matrix-wrap");
