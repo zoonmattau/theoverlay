@@ -4,7 +4,6 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { planCovers } from "@/lib/billing/plans";
 import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
-import { RESULTS_SHEET } from "@/lib/social";
 import type { StoredCard } from "@/lib/model/store";
 import { callPrice, isRoughie, stakeOf } from "@/lib/model/types";
 import { callLimit, inCallLock } from "@/lib/model/publish";
@@ -421,7 +420,7 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
       const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : isRoughie(c.x) ? "Way Overlay" : "Bet"} ${price(priceOf(c))}, ${finish(c)}, ${fmt(units)}`).join("\n");
       return send(
         CHANNELS.results,
-        `**${longDate(date)}: ${fmt(total)}** level stakes, one unit a call and a tenth on a Way Overlay.\nBets ${bets.filter((r) => r.units > 0).length} of ${bets.length} won, ${fmt(sum(bets))}. Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length} landed, ${fmt(sum(lays))}.\n\n${body}\n\nThe record: ${RESULTS_SHEET}`,
+        `**${longDate(date)}: ${fmt(total)}** level stakes, one unit a call and a tenth on a Way Overlay.\nBets ${bets.filter((r) => r.units > 0).length} of ${bets.length} won, ${fmt(sum(bets))}. Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length} landed, ${fmt(sum(lays))}.\n\n${body}\n\nThe record: ${SITE}/results`,
       );
     });
   } catch (err) {

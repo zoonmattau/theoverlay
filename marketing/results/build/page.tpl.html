@@ -1,0 +1,179 @@
+<title>Overlay Results</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;700;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a form-guide ledger. Headline numbers up top, four tabs that mirror the workbook's sheets. */
+:root {
+  --bg: #f5f6f3; --panel: #ffffff; --ink: #17201b; --muted: #5e6b63; --line: #dfe3dc;
+  --accent: #2f6b3f; --pos: #2d7a3a; --neg: #b3362c; --prime: #6a9a12; --bet: #2c63b8; --way: #4b93c9; --lay: #b3362c;
+  --rowalt: #f9faf7; --head: #eef1eb;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --body: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --mono: "IBM Plex Mono", Consolas, "Courier New", monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121614; --panel: #191e1b; --ink: #e6ebe7; --muted: #95a39a; --line: #2b332e;
+  --accent: #8fc79c; --pos: #7fcf8c; --neg: #f08a80; --prime: #b5dc4a; --bet: #7fa8ee; --way: #8cc4ea; --lay: #f08a80;
+  --rowalt: #161a18; --head: #202622; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121614; --panel: #191e1b; --ink: #e6ebe7; --muted: #95a39a; --line: #2b332e;
+  --accent: #8fc79c; --pos: #7fcf8c; --neg: #f08a80; --prime: #b5dc4a; --bet: #7fa8ee; --way: #8cc4ea; --lay: #f08a80;
+  --rowalt: #161a18; --head: #202622; color-scheme: dark }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.5; }
+.wrap { max-width: 1120px; margin: 0 auto; padding-inline: 16px; padding-block: 28px 56px; }
+header { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px; }
+h1 { font-family: var(--display); font-weight: 800; font-size: clamp(28px, 5vw, 40px); letter-spacing: -0.02em; margin: 0; line-height: 1.05; text-wrap: balance; }
+.sub { color: var(--muted); margin: 6px 0 0; }
+button.dl { font: 600 14px var(--body); background: var(--accent); color: var(--bg); border: 0; border-radius: 6px; padding: 10px 16px; cursor: pointer; }
+button.dl:focus-visible, .tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.dlnote { color: var(--muted); font-size: 12px; margin-top: 4px; text-align: right; min-height: 1em; }
+.figures { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 24px 0 8px; }
+.fig { background: var(--panel); padding: 16px 18px; min-width: 0; }
+.fig .k { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); font-weight: 600; }
+.fig .v { font-family: var(--display); font-weight: 700; font-size: clamp(26px, 4vw, 34px); font-variant-numeric: tabular-nums; line-height: 1.15; margin-top: 2px; }
+.fig .m { color: var(--muted); font-size: 13px; }
+.rules { color: var(--muted); font-size: 13px; max-width: 72ch; margin: 12px 0 0; }
+.tabs { display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--line); margin: 28px 0 20px; position: sticky; top: env(safe-area-inset-top, 0px); background: var(--bg); z-index: 2; padding-top: 6px; }
+.tabs button { font: 600 14px var(--body); background: none; border: 0; color: var(--muted); padding: 10px 14px; border-bottom: 2px solid transparent; margin-bottom: -1px; cursor: pointer; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.tabs .n { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-left: 4px; font-weight: 400; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 18px; margin: 28px 0 10px; }
+section > h2:first-child { margin-top: 0; }
+.chartbox { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 12px 12px 4px; }
+.chartbox svg { width: 100%; height: auto; display: block; font-family: var(--mono); }
+.legend { display: flex; flex-wrap: wrap; gap: 16px; font-size: 13px; color: var(--muted); padding: 0 6px 8px; }
+.legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+svg .grid { stroke: var(--line); stroke-width: 1; }
+svg .zero { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 3; }
+svg .axis { fill: var(--muted); font-size: 11px; }
+svg polyline { fill: none; stroke-width: 2.2; stroke-linejoin: round; }
+svg .la { stroke: var(--ink); fill: var(--ink); } svg polyline.la { fill: none; stroke-width: 2.8; }
+svg .lb { stroke: var(--bet); fill: var(--bet); } svg polyline.lb { fill: none; }
+svg .ll { stroke: var(--lay); fill: var(--lay); } svg polyline.ll { fill: none; }
+svg text.end { stroke: none; font-size: 12px; font-weight: 500; }
+.scroll { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+th, td { padding: 7px 10px; text-align: right; white-space: nowrap; border-bottom: 1px solid var(--line); }
+thead th { background: var(--head); font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); font-weight: 600; }
+tbody tr:last-child > * { border-bottom: 0; }
+table.stats tbody th { text-align: left; font-weight: 600; }
+table.stats thead th:first-child { text-align: left; }
+.ledger td { font-size: 13px; }
+.ledger td:nth-child(2), .ledger td:nth-child(5), .ledger td:nth-child(6), .ledger td:nth-child(7), .ledger th:nth-child(2), .ledger th:nth-child(5), .ledger th:nth-child(6), .ledger th:nth-child(7) { text-align: left; }
+.ledger tbody tr:nth-child(even) { background: var(--rowalt); }
+.ledger thead th { position: sticky; top: 0; }
+.ledger { max-height: 75vh; overflow-y: auto; }
+.horse { font-weight: 500; }
+.tag { font-size: 12px; font-weight: 600; color: var(--bet); }
+.tag.prime { color: var(--prime); } .tag.way { color: var(--way); } .tag.lay { color: var(--lay); }
+.res { font-size: 12px; font-weight: 600; color: var(--muted); }
+.r-win .res { color: var(--pos); } .r-loss .res { color: var(--neg); }
+.r-void, .r-pending { color: var(--muted); }
+.pos { color: var(--pos); } .neg { color: var(--neg); }
+.sumline { display: flex; flex-wrap: wrap; gap: 6px 18px; margin: 0 0 12px; color: var(--muted); }
+.sumline b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.sumline .pos b { color: var(--pos); } .sumline .neg b { color: var(--neg); }
+.filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+.filter input { font: 14px var(--body); padding: 7px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); color: var(--ink); width: min(280px, 100%); }
+.filter label { color: var(--muted); font-size: 13px; }
+footer { color: var(--muted); font-size: 12px; margin-top: 32px; }
+@media (max-width: 640px) {
+  .figures { grid-template-columns: minmax(0, 1fr); }
+  .dlnote { text-align: left; }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>The Overlay results</h1>
+      <p class="sub">Every call published, {{PERIOD}}.</p>
+    </div>
+    <div>
+      <button class="dl" id="dl" type="button" hidden>Download spreadsheet (.xlsx)</button>
+      <div class="dlnote" id="dlnote"></div>
+    </div>
+  </header>
+
+  <div class="figures">
+    <div class="fig"><div class="k">All calls</div><div class="v {{ALL_C}}">{{ALL_P}}u</div><div class="m">{{N_ALL}} settled</div></div>
+    <div class="fig"><div class="k">Bets</div><div class="v {{B_C}}">{{B_P}}u</div><div class="m">{{B_N}} settled, {{B_SR}} strike, {{B_ROI}} ROI</div></div>
+    <div class="fig"><div class="k">Lays</div><div class="v {{L_C}}">{{L_P}}u</div><div class="m">{{L_N}} settled, {{L_SR}} strike, {{L_ROI}} ROI</div></div>
+  </div>
+  <p class="rules">Level stakes: one unit a call, a tenth on a Way. Bets settle at the best of fixed odds, SP and BSP. Lays settle at the shortest lay price or BSP, win one unit when the horse loses and risk the price less one. ROI is profit over units at risk. Scratchings and abandoned races are void.</p>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-overview" aria-controls="overview" aria-selected="true">Overview</button>
+    <button role="tab" id="t-all" aria-controls="all" aria-selected="false">All calls<span class="n">{{N_ALL_ROWS}}</span></button>
+    <button role="tab" id="t-bets" aria-controls="bets" aria-selected="false">Bets<span class="n">{{N_B_ROWS}}</span></button>
+    <button role="tab" id="t-lays" aria-controls="lays" aria-selected="false">Lays<span class="n">{{N_L_ROWS}}</span></button>
+  </nav>
+
+  <section id="overview" role="tabpanel">
+    <h2>Running profit</h2>
+    <div class="chartbox">
+      <div class="legend"><span><i style="background:var(--ink)"></i>All calls</span><span><i style="background:var(--bet)"></i>Bets</span><span><i style="background:var(--lay)"></i>Lays</span></div>
+      {{CHART}}
+    </div>
+    <h2>By call</h2>{{BY_CALL}}
+    <h2>By tag</h2>{{BY_TAG}}
+    <h2>By week</h2>{{BY_WEEK}}
+    <h2>By day</h2>{{BY_DAY}}
+  </section>
+
+  <section id="all" role="tabpanel" hidden>{{H_ALL}}<div class="filter"><label for="q-all">Find</label><input id="q-all" type="search" placeholder="Horse or track"></div>{{T_ALL}}</section>
+  <section id="bets" role="tabpanel" hidden>{{H_B}}<div class="filter"><label for="q-bets">Find</label><input id="q-bets" type="search" placeholder="Horse or track"></div>{{T_B}}</section>
+  <section id="lays" role="tabpanel" hidden>{{H_L}}<div class="filter"><label for="q-lays">Find</label><input id="q-lays" type="search" placeholder="Horse or track"></div>{{T_L}}</section>
+
+  <footer>Today's calls show as pending until their races are run. The 2 Oct Cranbourne meeting moved to the Pakenham synthetic, so its three calls are void.</footer>
+</div>
+
+<script type="application/octet-stream" id="xlsx">{{XLSX}}</script>
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.tabs button');
+  function show(id) {
+    tabs.forEach(function (b) {
+      var on = b.getAttribute('aria-controls') === id;
+      b.setAttribute('aria-selected', on ? 'true' : 'false');
+      document.getElementById(b.getAttribute('aria-controls')).hidden = !on;
+    });
+    try { localStorage.setItem('tab', id); } catch (e) {}
+  }
+  tabs.forEach(function (b) { b.addEventListener('click', function () { show(b.getAttribute('aria-controls')); }); });
+  var start = location.hash.slice(1);
+  if (!document.getElementById(start)) { try { start = localStorage.getItem('tab'); } catch (e) { start = null; } }
+  if (start && document.getElementById(start)) show(start);
+
+  ['all', 'bets', 'lays'].forEach(function (id) {
+    var input = document.getElementById('q-' + id);
+    var rows = document.querySelectorAll('#' + id + ' tbody tr');
+    input.addEventListener('input', function () {
+      var q = input.value.trim().toLowerCase();
+      rows.forEach(function (r) { r.hidden = q && r.textContent.toLowerCase().indexOf(q) < 0; });
+    });
+  });
+
+  var btn = document.getElementById('dl'), note = document.getElementById('dlnote');
+  if (window.claude && window.claude.use) {
+    window.claude.use('downloads').then(function (downloads) {
+      if (!downloads) return;
+      btn.hidden = false;
+      btn.addEventListener('click', function () {
+        var b64 = document.getElementById('xlsx').textContent.trim();
+        var bin = atob(b64), bytes = new Uint8Array(bin.length);
+        for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        note.textContent = '';
+        downloads.save({ filename: 'Overlay results.xlsx', data: new Blob([bytes]) }).then(function () {
+          note.textContent = 'Saved.';
+        }, function (err) {
+          if (err && err.code === 'declined') return;
+          if (err && err.code === 'rate_limited') { note.textContent = 'A save is already waiting for you to confirm.'; return; }
+          note.textContent = 'The download is not available here.';
+          btn.hidden = true;
+        });
+      });
+    });
+  }
+})();
+</script>
