@@ -10,7 +10,8 @@
 // ("Three Prime bets today"). SLAMS=1 adds each race screen stamped BACK
 // between the title and the winners, and WORDS= (comma separated) its words.
 // Writes marketing/reels/<date>-slams/: reel.webm (1080x1920), a still per
-// beat, the raw screens, reel.html and shotlist.md.
+// beat, the raw screens, reel.html, shotlist.md, and overlay-<track>.png for
+// each race: a frame to lay over its race footage, clear through the middle.
 import { chromium, type Page } from "playwright-core";
 import { mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { readStoredCard } from "../src/lib/model/store";
@@ -31,7 +32,7 @@ void (async () => {
     const jump = race.jumpTime ? new Date(race.jumpTime).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" }).replace(" ", "") : "";
     // The prices the race screen shows, so the card and the screen agree.
     const money = (n?: number) => (n ? `$${n.toFixed(2)}` : "");
-    return { id, meetingId: meeting.meetingId, track: meeting.track, number: race.raceNumber, horse: call?.horseName ?? "", tab: call?.tabNumber, won: call?.finishPosition === 1, jump, market: money(call?.marketPrice), rated: money(call?.ratedPrice) };
+    return { id, meetingId: meeting.meetingId, track: meeting.track, number: race.raceNumber, horse: call?.horseName ?? "", tab: call?.tabNumber, won: call?.finishPosition === 1, jump, market: money(call?.marketPrice), rated: money(call?.ratedPrice), jockey: call?.jockey ?? "", barrier: call?.barrier, distance: race.distance };
   });
 
   // Everything claimed comes off the ledger, the same rows the Results page
@@ -294,6 +295,45 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
     await still.evaluate((s) => (window as unknown as { __at: (s: number) => void }).__at(s), b.until - 0.1);
     await still.waitForTimeout(300);
     await still.screenshot({ path: `${dir}/${b.id}.png` });
+  }
+  // An overlay per race for its footage, which is landscape in a portrait
+  // reel. The middle band is left clear at 1080x608, where CapCut puts a
+  // 16:9 clip at fit on a 9:16 canvas: the call above, who to watch below.
+  const BAND_TOP = 656;
+  const BAND_H = 608;
+  const overlay = await browser.newPage({ viewport: { width: 1080, height: 1920 } });
+  for (const r of races) {
+    const html =
+      '<!doctype html><html><head><meta charset="utf-8">' +
+      '<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">' +
+      `<style>${STYLE}
+html, body { background:transparent; }
+.panel { position:absolute; left:0; right:0; background:var(--ink); }
+.panel.top { top:0; height:${BAND_TOP}px; padding:150px 70px 0; }
+.panel.bottom { top:${BAND_TOP + BAND_H}px; bottom:0; padding:44px 70px 0; }
+.edge { position:absolute; left:0; right:0; height:8px; background:var(--lime); z-index:2; }
+.panel .bang { position:relative; left:0; right:0; opacity:1; transform:rotate(-1.2deg); }
+.watch { display:flex; align-items:center; gap:30px; }
+.watch .cloth { width:150px; height:150px; border-radius:26px; background:var(--lime); color:var(--ink); display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:96px; letter-spacing:-.04em; flex:none; }
+.watch i { display:block; font-style:normal; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:30px; letter-spacing:.16em; color:var(--lime); }
+.watch b { display:block; font-weight:800; font-size:70px; letter-spacing:-.03em; color:#fff; line-height:1.05; margin-top:4px; }
+.watch span { display:block; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:30px; color:#b9c0ad; margin-top:8px; }
+.brand { position:absolute; left:70px; bottom:300px; font-weight:800; font-size:44px; letter-spacing:-.02em; color:#fff; }
+.brand em { font-style:normal; background:var(--lime); color:var(--ink); padding:0 12px; }
+</style></head><body>` +
+      `<div class="panel top"><div class="bang"><div class="top"><span class="pill">PRIME</span><span class="where">${r.jump} · ${r.track} R${r.number}</span></div>` +
+      `<div class="horse">${r.tab}. ${r.horse}</div>` +
+      `<div class="prices"><div class="price ours"><i>PRICE</i><b>${r.market}</b></div><div class="price"><i>RATED</i><b>${r.rated}</b></div></div></div></div>` +
+      `<div class="edge" style="top:${BAND_TOP - 8}px"></div><div class="edge" style="top:${BAND_TOP + BAND_H}px"></div>` +
+      `<div class="panel bottom"><div class="watch"><div class="cloth">${r.tab}</div><div><i>WATCH</i><b>${r.horse}</b>` +
+      `<span>${[r.jockey, r.barrier ? `barrier ${r.barrier}` : "", r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" · ")}</span></div></div>` +
+      `<div class="brand">THE <em>OVERLAY</em></div></div>` +
+      `</body></html>`;
+    await overlay.setContent(html, { waitUntil: "networkidle" });
+    await overlay.waitForTimeout(400);
+    await overlay.screenshot({ path: `${dir}/overlay-${slug(r)}.png`, omitBackground: true });
+    console.log(`  + overlay-${slug(r)}.png`);
   }
   await browser.close();
 
