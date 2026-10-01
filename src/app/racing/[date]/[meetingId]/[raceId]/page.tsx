@@ -34,9 +34,8 @@ import { setCallOff } from "@/app/admin/actions";
 import type { CallAdmin } from "@/components/RunnerTable";
 import { ReleaseNotice } from "@/components/SelectionCard";
 import { jumpTime, longDate, money } from "@/lib/format";
-import { DatahubStrip } from "@/components/DatahubStrip";
-import { racePeople, raceFacts } from "@/lib/data/race-facts";
-import { raceMix, raceTip, type GoingBand } from "@/lib/model/types";
+import { racePeople } from "@/lib/data/race-facts";
+import { raceMix, raceTip } from "@/lib/model/types";
 import { mixClass, mixStyle } from "@/components/mix";
 import { TrackMap, trackMapFor } from "@/components/TrackMap";
 
@@ -250,11 +249,6 @@ async function Race({ params }: { params: Props["params"] }) {
             )}
           </div>
         </div>
-        {open && (
-          <Suspense fallback={null}>
-            <DatahubLine track={meeting.track} distance={race.distance} going={race.going} />
-          </Suspense>
-        )}
       </header>
 
       <Results race={race} />
@@ -324,17 +318,6 @@ function RaceSkeleton() {
       <div className="skeleton h-64" />
       <div className="skeleton h-40" />
       <div className="skeleton h-96" />
-    </div>
-  );
-}
-
-/** The Datahub's line under the header, streamed in after the page so it never holds the race up. */
-async function DatahubLine({ track, distance, going }: { track: string; distance: number; going: GoingBand }) {
-  const facts = await raceFacts(track, distance, going).catch(() => undefined);
-  if (!facts) return null;
-  return (
-    <div className="border-t border-line-soft px-4 py-2">
-      <DatahubStrip f={facts} />
     </div>
   );
 }
