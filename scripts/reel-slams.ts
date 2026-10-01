@@ -17,6 +17,7 @@ import { mkdirSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "n
 import { readStoredCard } from "../src/lib/model/store";
 import { KNOWN_BOOKIES } from "../src/lib/bookies";
 import { supabaseAdmin } from "../src/lib/billing/access";
+import { PLANS, TRIAL_DAYS } from "../src/lib/billing/plans";
 
 void (async () => {
   const [date, ...raceIds] = process.argv.slice(2);
@@ -310,17 +311,20 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
 html, body { background:transparent; }
 .panel { position:absolute; left:0; right:0; background:var(--ink); }
 .panel.top { top:0; height:${BAND_TOP}px; padding:150px 70px 0; }
-.panel.bottom { top:${BAND_TOP + BAND_H}px; bottom:0; padding:44px 70px 0; }
+.panel.bottom { top:${BAND_TOP + BAND_H}px; bottom:0; padding:36px 70px 0; }
 .edge { position:absolute; left:0; right:0; height:8px; background:var(--lime); z-index:2; }
 .panel .bang { position:relative; left:0; right:0; opacity:1; transform:rotate(-1.2deg); }
 .watch { display:flex; align-items:center; gap:30px; }
-.watch .cloth { width:150px; height:150px; border-radius:26px; background:var(--lime); color:var(--ink); display:flex; align-items:center; justify-content:center;
-  font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:96px; letter-spacing:-.04em; flex:none; }
+.watch .cloth { width:128px; height:128px; border-radius:26px; background:var(--lime); color:var(--ink); display:flex; align-items:center; justify-content:center;
+  font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:84px; letter-spacing:-.04em; flex:none; }
 .watch i { display:block; font-style:normal; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:30px; letter-spacing:.16em; color:var(--lime); }
-.watch b { display:block; font-weight:800; font-size:70px; letter-spacing:-.03em; color:#fff; line-height:1.05; margin-top:4px; }
+.watch b { display:block; font-weight:800; font-size:62px; letter-spacing:-.03em; color:#fff; line-height:1.05; margin-top:4px; }
 .watch span { display:block; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:30px; color:#b9c0ad; margin-top:8px; }
-.brand { position:absolute; left:70px; bottom:300px; font-weight:800; font-size:44px; letter-spacing:-.02em; color:#fff; }
-.brand em { font-style:normal; background:var(--lime); color:var(--ink); padding:0 12px; }
+/* The trial, kept above the bottom ~350px a reel's caption and buttons cover. */
+.trial { margin-top:28px; padding:20px 28px 22px; border:4px solid var(--lime); border-radius:26px; }
+.trial b { display:block; font-weight:800; font-size:48px; letter-spacing:-.02em; color:#fff; line-height:1.1; white-space:nowrap; }
+.trial span { display:flex; align-items:center; gap:16px; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:28px; color:#b9c0ad; margin-top:10px; }
+.trial em { font-style:normal; font-family:'Archivo',sans-serif; font-weight:800; font-size:34px; letter-spacing:-.02em; color:var(--ink); background:var(--lime); padding:2px 14px 6px; border-radius:10px; }
 </style></head><body>` +
       `<div class="panel top"><div class="bang"><div class="top"><span class="pill">PRIME</span><span class="where">${r.jump} · ${r.track} R${r.number}</span></div>` +
       `<div class="horse">${r.tab}. ${r.horse}</div>` +
@@ -328,7 +332,7 @@ html, body { background:transparent; }
       `<div class="edge" style="top:${BAND_TOP - 8}px"></div><div class="edge" style="top:${BAND_TOP + BAND_H}px"></div>` +
       `<div class="panel bottom"><div class="watch"><div class="cloth">${r.tab}</div><div><i>WATCH</i><b>${r.horse}</b>` +
       `<span>${[r.jockey, r.barrier ? `barrier ${r.barrier}` : "", r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" · ")}</span></div></div>` +
-      `<div class="brand">THE <em>OVERLAY</em></div></div>` +
+      `<div class="trial"><b>Every Prime bet, ${TRIAL_DAYS} days free</b><span>then from $${Math.min(...PLANS.map((p) => p.price))} a month <em>theoverlay.com.au</em></span></div></div>` +
       `</body></html>`;
     await overlay.setContent(html, { waitUntil: "networkidle" });
     await overlay.waitForTimeout(400);
