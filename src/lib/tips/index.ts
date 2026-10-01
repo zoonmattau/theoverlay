@@ -4,6 +4,7 @@ import { cacheLife } from "next/cache";
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
+import { EXCLUDED_CALLS } from "./excluded";
 import { PERIODS, type RecordStats, type SideStats, type TipSource, type Winner } from "./stats";
 
 export type { Period, RecordStats, SideStats, TipSource, Winner } from "./stats";
@@ -126,7 +127,7 @@ interface Held {
 export async function recordTips(date: string, card: StoredCard): Promise<void> {
   if (!card.meetings.length) return;
   const db = supabaseAdmin();
-  const rows = rowsFor(date, card);
+  const rows = rowsFor(date, card).filter((r) => !EXCLUDED_CALLS.has(`${r.race_id}:${r.tab_number}`));
   const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);

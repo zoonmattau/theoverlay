@@ -140,6 +140,8 @@ for rr in range(r0, r0 + 4): ov.row_dimensions[rr].height = 20
 ov.cell(11, 1, 'Level stakes: one unit a call, a tenth on a Way. Bets settle at the best of fixed odds, SP and BSP; lays at the shortest lay price or BSP.').font = font(size=9, color=MUTED)
 ov.cell(12, 1, 'A lay wins one unit when the horse loses and risks the price less one. ROI is profit over units at risk. Calls on scratched horses and abandoned races are void and left out.').font = font(size=9, color=MUTED)
 
+ov.cell(13, 1, 'Bets at $10 or more from 11 to 15 Sep are excluded: our ratings over-priced long shots until the 15 Sep fix.').font = font(size=9, color=MUTED)
+
 HDR = ['', 'Calls', 'Won', 'Lost', 'Strike', 'Profit (u)', 'At risk (u)', 'ROI']
 
 
