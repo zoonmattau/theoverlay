@@ -9,6 +9,8 @@ interface Line {
   tone: Tone;
   /** What happened, without the who. */
   text: string;
+  /** Lines with the same key for a person show once, the newest: by default the text itself. */
+  key?: string;
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -33,7 +35,9 @@ function describe(e: Event): Line | null {
       // Renewals, retries and endings repeat what the payment, grace and cancel lines already say.
       if (m.status !== "canceled" && (m.cancelAtPeriodEnd || m.cancelAt)) {
         const ends = str(m.cancelAt) || str(m.until);
-        return { tone: "lay", text: `cancelled ${plan(e.plan)}, on until ${ends ? short(ends) : "the period ends"}${str(m.cancelReason) ? ` (${str(m.cancelReason).replace(/_/g, " ")})` : ""}` };
+        // Stripe sends a cancellation twice, a second apart: "cancellation_requested", then the reason the member picked. One line, the newest.
+        const reason = str(m.cancelReason) === "cancellation_requested" ? "" : str(m.cancelReason);
+        return { tone: "lay", key: `cancel|${ends}`, text: `cancelled ${plan(e.plan)}, on until ${ends ? short(ends) : "the period ends"}${reason ? ` (${reason.replace(/_/g, " ")})` : ""}` };
       }
       if (m.status === "trialing") return { tone: "prime", text: `started a free trial of ${plan(e.plan)}` };
       return null;
@@ -87,7 +91,7 @@ export function ActivityFeed({ events, members }: { events: Event[]; members: Me
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .flatMap((e) => {
       const line = describe(e);
-      const key = `${e.user_id}|${line?.text}`;
+      const key = `${e.user_id}|${line?.key ?? line?.text}`;
       if (!line || (e.user_id && seen.has(key))) return [];
       seen.add(key);
       return [{ e, line }];
