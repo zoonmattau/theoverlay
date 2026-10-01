@@ -16,3 +16,6 @@ export const BRAND_SOCIAL = {
   twitter: "theoverlay_au",
   discord: "https://discord.gg/V6Ww8xUve8",
 } as const;
+
+/** The results: every call settled, in the shared Google sheet. Linked from the footer only (2 Oct 2026). */
+export const RESULTS_SHEET = "https://docs.google.com/spreadsheets/d/1Z6ezZZMoj4NqN8JRSJwbSVzKo5K6RiOk/edit?usp=sharing";

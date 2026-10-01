@@ -11,7 +11,7 @@ import { PageView } from "@/components/PageView";
 import { MetaPixel } from "@/components/MetaPixel";
 import { NavUser } from "@/components/NavUser";
 import { SocialLinks } from "@/components/SocialLinks";
-import { BRAND_SOCIAL } from "@/lib/social";
+import { BRAND_SOCIAL, RESULTS_SHEET } from "@/lib/social";
 import { TopbarOffset } from "@/components/TopbarOffset";
 import { TipTap } from "@/components/TipTap";
 import "./globals.css";
@@ -52,7 +52,6 @@ export const metadata: Metadata = {
 const NAV = [
   { href: "/", label: "Today" },
   { href: "/tips", label: "Tips" },
-  { href: "/#record", label: "Results" },
   { href: "/pricing", label: "Pricing" },
   { href: "/tipsters", label: "Tipsters" },
 ];
@@ -105,6 +104,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <footer className="border-t border-line mt-16 bg-panel">
           <div className="page py-8 text-xs text-ink-soft space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <a href={RESULTS_SHEET} className="hover:text-ink-secondary" target="_blank" rel="noopener noreferrer">Results</a>
               <Link href="/method" className="hover:text-ink-secondary">How it works</Link>
               <Link href="/faq" className="hover:text-ink-secondary">Questions</Link>
               <Link href="/tipsters" className="hover:text-ink-secondary">Tipsters</Link>
