@@ -348,7 +348,9 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
       }
     }
   }
-  const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings, pinnedFreeRaceId, previousFreeRaceId, released(date)), live: usingLiveData() };
+  // A price rebuild makes no Form King call, so it carries the last one's time.
+  const formAt = opts.reprice ? previousCard?.formAt : new Date().toISOString();
+  const card: StoredCard = { meetings, selections, freeRaceId: pickFreeRace(meetings, pinnedFreeRaceId, previousFreeRaceId, released(date)), live: usingLiveData(), ...(formAt ? { formAt } : {}) };
   const seconds = Math.round((Date.now() - started) / 1000);
   if (storeConfigured()) {
     // A reprice leaves the form alone, so the runs are written on a real
@@ -484,9 +486,16 @@ export function keepFresh(date: string, card: Card): void {
   // Only today's card moves. A page on a past day once rebuilt that whole day from Form King
   // on every visit, and old race pages ran the credits out (30 Sep 2026).
   if (date !== racingToday()) return;
-  // Nothing moves overnight: the 9pm build holds until 7am, rather than summaries re-bought at 12, 3 and 6.
-  if (sydneyHour() < 7) return;
-  if (Date.now() - new Date(card.builtAt).getTime() < STALE_MS) return;
+  // The 9pm build holds until the morning cron asks Form King again: on 1 Oct 2026 page views
+  // re-bought the meeting summaries at 7am and again before the cron did at 11am. After that,
+  // a page refreshes the form once it is STALE_MS old, timed from the last Form King build:
+  // timed from built_at, which every price rebuild moves on, it never ran after 11am at all.
+  // A card from before formAt existed refreshes once to gain it.
+  if (card.formAt) {
+    const formDay = new Date(card.formAt).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    if (formDay !== date) return;
+    if (Date.now() - Date.parse(card.formAt) < STALE_MS) return;
+  }
   after(async () => {
     if (!(await claimRefresh(date))) return;
     try {

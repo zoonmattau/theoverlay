@@ -9,6 +9,12 @@ export interface StoredCard {
   selections: Selection[];
   freeRaceId?: string;
   live: boolean;
+  /**
+   * ISO, when Form King was last asked for this card. built_at moves with
+   * every BetWatch price rebuild, every minute through the day, so it cannot
+   * tell when the form, going and riders were last looked at (1 Oct 2026).
+   */
+  formAt?: string;
 }
 
 export const storeConfigured = () => supabaseConfigured() && Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY);
