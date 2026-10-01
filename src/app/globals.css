@@ -3741,6 +3741,13 @@ body {
 .race-tab.is-resulted.tip-mix {
   color: var(--color-ink-soft);
 }
+/* The race being viewed is always white on the bar, mixed or not: the pale
+   mix's ink text left the current tab blank (Prime plus a lay, 1 Oct 2026). */
+.race-tab.is-current.tip-mix,
+.race-tab.is-current.tip-mix.has-pale,
+.race-tab.is-current.is-resulted.tip-mix {
+  color: #fff;
+}
 .legend-dot-mix {
   background: linear-gradient(90deg, var(--color-blue) 0 50%, var(--color-red) 50% 100%);
 }
