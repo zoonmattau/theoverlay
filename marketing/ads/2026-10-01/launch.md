@@ -5,10 +5,13 @@ campaign. That campaign shares one budget across its ad sets, so a spring ad set
 would be starved the way terminal, price and bookietips were.
 
 - **Objective:** Sales, optimised for the website `CompleteRegistration` event, same as September
-- **Budget:** $10 to $15 a day, 5 to 7 days
-- **Audience:** Australia, 18+, Advantage+ audience, no interests
+- **Budget:** $25 a day on the ad set, campaign budget off, 5 to 7 days before judging it
+- **Audience:** Australia, 18+, Advantage+ audience, no interests, and `Signed up 180d` under
+  *Legal and operational custom audience exclusions* so members are never paid for
 - **Display link:** `theoverlay.com.au`
-- **CTA:** Learn more
+- **CTA:** Sign up (Learn more if Sign up is not offered)
+- **Special ad categories:** None. If Meta flags the ad set as financial products and services,
+  clear it: a tips subscription is not one
 - **Media:** the three sizes from `marketing/ads/2026-10-01/spring/`, assigned with *Edit per placement*
   (`-portrait` to feed, `-story` to Stories and Reels, `-square` to the rest)
 
