@@ -22,6 +22,25 @@ import { spendComeback } from "@/lib/billing/comeback";
  * customer.subscription.updated, customer.subscription.deleted, invoice.paid,
  * invoice.payment_failed.
  */
+const TERM_WORDS: Record<string, string> = { month: "a month", quarter: "every 3 months", year: "a year" };
+
+/**
+ * The first charge after a trial as the welcome email states it, "$470 a year":
+ * Stripe's preview of the bill, so a discount shows, else the price itself.
+ * A cardholder's bank asks whether the amount and term were spelled out before
+ * the first charge (a yearly trial billed $470, 3 Oct 2026). Undefined when unknown.
+ */
+async function firstBill(sub: Stripe.Subscription): Promise<string | undefined> {
+  const price = sub.items.data[0]?.price;
+  const term = TERM_WORDS[billingTerm(price?.recurring) ?? ""];
+  if (!term) return undefined;
+  const preview = await stripe().invoices.createPreview({ subscription: sub.id }).catch(() => null);
+  const cents = preview?.amount_due ?? price?.unit_amount ?? undefined;
+  if (!cents) return undefined;
+  const dollars = cents % 100 ? (cents / 100).toFixed(2) : String(cents / 100);
+  return `$${Number(dollars).toLocaleString("en-AU", { minimumFractionDigits: cents % 100 ? 2 : 0 })} ${term}`;
+}
+
 export async function POST(request: NextRequest) {
   if (!stripeConfigured() || !process.env.STRIPE_WEBHOOK_SECRET) {
     return NextResponse.json({ error: "Webhook not configured." }, { status: 503 });
@@ -120,7 +139,7 @@ export async function POST(request: NextRequest) {
       if (to) {
         const when = longDate(until.toISOString().slice(0, 10));
         if (event.type === "customer.subscription.created") {
-          await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when) : EMAILS.planActive(planName, when));
+          await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when, await firstBill(sub)) : EMAILS.planActive(planName, when));
           // An invited friend starting a plan earns both sides their fortnight.
           await rewardReferral(userId);
         } else if (event.type === "customer.subscription.updated" && cancelAt && !previousCancel(event)) {

@@ -24,13 +24,16 @@ const winnerList = (w: string[]) =>
 
 /** Every email we send, in one place, so the voice stays consistent. */
 export const EMAILS = {
-  trialStarted: (plan: string, trialEnds: string): EmailSpec => ({
+  /** `bill` is the first charge as it reads, "$470 a year", when we have it. */
+  trialStarted: (plan: string, trialEnds: string, bill?: string): EmailSpec => ({
     subject: `Your ${plan} trial has started`,
     preheader: "The full board, on us.",
     heading: "You are in.",
     paragraphs: [
       `Your <strong>${plan}</strong> trial is live and the full board is open on your race days.`,
-      `The trial runs until <strong>${trialEnds}</strong>, and you can cancel any time before then from your account with nothing charged.`,
+      bill
+        ? `The trial runs until <strong>${trialEnds}</strong>. Then it is <strong>${bill}</strong>, billed that day. Cancel or switch plans from your account before then and nothing is charged.`
+        : `The trial runs until <strong>${trialEnds}</strong>, and you can cancel any time before then from your account with nothing charged.`,
       "Every race we cover gets a top four, ratings across eight categories, a rated price for every runner and our bet or lay calls.",
       DISCORD,
     ],
