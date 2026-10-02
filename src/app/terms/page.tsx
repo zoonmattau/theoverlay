@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Terms of use for The Overlay.",
 };
 
-const UPDATED = "30 September 2026";
+const UPDATED = "2 October 2026";
 
 export default function Page() {
   return (
@@ -38,7 +38,19 @@ export default function Page() {
         and that using it and betting on racing is lawful where you are.
       </Clause>
 
-      <Clause n="04" title="Prices and data">
+      <Clause n="04" title="Plans, trials and refunds">
+        Every plan starts with a free trial. We email you the date it ends when it
+        starts, and if you do not cancel before then your plan begins and your card is
+        charged for the term you chose. Plans renew automatically until you cancel, and
+        you can cancel any time from your account, keeping access to the end of the
+        period you have paid for. We do not refund a charge because you forgot to cancel
+        a trial or a renewal, changed your mind, or did not use the site, and a day pass
+        is not refundable once bought. Nothing in this clause limits your rights under
+        the Australian Consumer Law, including a refund where we fail to provide the
+        service.
+      </Clause>
+
+      <Clause n="05" title="Prices and data">
         Market prices shown are the best prices we saw at the time a card was published.
         They move, and we do not update them in real time. We make no promise that any
         price shown is still available. Form and field data is supplied under licence
@@ -46,7 +58,7 @@ export default function Page() {
         bet.
       </Clause>
 
-      <Clause n="05" title="Your use of our content">
+      <Clause n="06" title="Your use of our content">
         You may use what we publish for your own personal, non-commercial purposes. You
         may not scrape, republish, resell or redistribute our ratings or selections, in
         whole or in part, without our written permission. Members may read their own
@@ -54,20 +66,20 @@ export default function Page() {
         shared, and we may switch any key off at any time.
       </Clause>
 
-      <Clause n="06" title="Availability">
+      <Clause n="07" title="Availability">
         We aim to publish every racing day, but we make no promise the site will be
         available, complete or on time. We may change, suspend or stop any part of it
         at any time.
       </Clause>
 
-      <Clause n="07" title="Liability">
+      <Clause n="08" title="Liability">
         To the extent the law allows, we exclude all liability for any loss arising from
         your use of this site or reliance on anything published on it, including betting
         losses. Nothing in these terms excludes rights you have under the Australian
         Consumer Law that cannot be excluded.
       </Clause>
 
-      <Clause n="08" title="Responsible gambling">
+      <Clause n="09" title="Responsible gambling">
         If betting is causing you harm, stop and get help. Free, confidential support is
         listed on our{" "}
         <Link
@@ -79,16 +91,16 @@ export default function Page() {
         , including Gambling Help Online on 1800 858 858.
       </Clause>
 
-      <Clause n="09" title="Changes">
+      <Clause n="10" title="Changes">
         We may update these terms. The date at the top tells you when we last did.
         Continuing to use the site after a change means you accept the updated terms.
       </Clause>
 
-      <Clause n="10" title="Governing law">
+      <Clause n="11" title="Governing law">
         These terms are governed by the laws of New South Wales, Australia.
       </Clause>
 
-      <Clause n="11" title="Contact">
+      <Clause n="12" title="Contact">
         Questions about these terms go to hello@theoverlay.com.au.
       </Clause>
     </div>
