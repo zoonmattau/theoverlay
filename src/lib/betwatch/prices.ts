@@ -219,8 +219,10 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
   const due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now)];
   if (due.length === 0) return 0;
   const book = await readPriceBook(date);
-  // A result already in the book is only waiting for the card to be rebuilt.
-  if (due.some(({ race }) => book.races[race.raceId]?.result)) return 1;
+  // A result already in the book and not yet on the card is only waiting for the card to be rebuilt.
+  // A race on the card with a result is still due when it waits on place prices, and counting it here
+  // stopped every poll for the night (Pakenham R3, 2 Oct 2026).
+  if (due.some(({ race }) => !race.result?.length && book.races[race.raceId]?.result)) return 1;
   // Whoever polled inside the shortest interval due has this round.
   const soonest = Math.min(...due.map((d) => d.every));
   if (book.polledAt && now - Date.parse(book.polledAt) < soonest * 0.8) return 0;
