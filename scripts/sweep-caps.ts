@@ -7,7 +7,7 @@ process.env.OVERLAY_REPLAY = "1";
 import { readdirSync, readFileSync } from "node:fs";
 import type { RaceSummary } from "../src/lib/formking/types";
 import { publishRace } from "../src/lib/model/publish";
-import { classPoints } from "../src/lib/model/ratings";
+import { classPoints, cleanClock, isJumps, RUN_WEIGHTS, runPoints } from "../src/lib/model/ratings";
 
 const races = readdirSync(".formking-cache")
   .filter((f) => f.startsWith("race-"))
@@ -30,7 +30,7 @@ const races = readdirSync(".formking-cache")
     return day.startsWith(want);
   });
 
-interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
+interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; outlier: boolean; outlierLast: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
 const rows: Row[] = [];
 let favWon = 0, favN = 0, formTopWon = 0, favRankLow = 0, layRaces = 0;
 for (const r of races) {
@@ -55,11 +55,21 @@ for (const r of races) {
     const slow = past.some((p) => p.benchmark && p.margin !== undefined && p.benchmark.vsClass < -p.margin - 4);
     const classDrop = past.slice(0, 3).some((p) => /derby|oaks|guineas|group|listed|\bg[123]\b|stakes/i.test(p.raceName ?? "")) && par <= 62;
     const ohrAbove = (e.benchmarkRating ?? 0) >= par + 8;
-    rows.push({ form: 1 / x.formPrice! / formSum, fair: 1 / x.marketPrice! / marketSum, layEdge: x.layEdge ?? x.edge!, layPrice: x.layPrice ?? x.marketPrice!, rated: x.ratedProbability, edge: x.edge!, market: x.marketPrice!, won, conf: pub.confidence, slow, classDrop, ohrAbove, fav: x === fav, formTop: x === byForm[0] });
+    // A best run 8+ points clear of the next best in the runs that count: Thickskinned's 92.6 against 83.2 (2 Oct 2026).
+    const counted = (e.pastEvents ?? [])
+      .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p) && p.date < Number(r.date))
+      .map(cleanClock)
+      .sort((a, b) => b.date - a.date)
+      .slice(0, RUN_WEIGHTS.length)
+      .map((p) => runPoints(p, par, e.horse.age, Number(r.date)));
+    const ranked = [...counted].sort((a, b) => b - a);
+    const outlier = ranked.length >= 3 && ranked[0] - ranked[1] >= 8;
+    const outlierLast = outlier && counted[0] === ranked[0];
+    rows.push({ form: 1 / x.formPrice! / formSum, fair: 1 / x.marketPrice! / marketSum, layEdge: x.layEdge ?? x.edge!, layPrice: x.layPrice ?? x.marketPrice!, rated: x.ratedProbability, edge: x.edge!, market: x.marketPrice!, won, conf: pub.confidence, slow, outlier, outlierLast, classDrop, ohrAbove, fav: x === fav, formTop: x === byForm[0] });
   }
 }
 const ll = (xs: Row[], p: (x: Row) => number) => -xs.reduce((a, x) => a + Math.log(Math.min(0.999, Math.max(0.001, x.won ? p(x) : 1 - p(x)))), 0) / Math.max(1, xs.length);
-const calib = (xs: Row[]) => `${xs.length} runners, ${xs.filter((x) => x.won).length} won, form said ${xs.reduce((a, x) => a + x.form, 0).toFixed(0)}, market ${xs.reduce((a, x) => a + 1 / x.market, 0).toFixed(0)}`;
+const calib = (xs: Row[]) => `${xs.length} runners, ${xs.filter((x) => x.won).length} won, form said ${xs.reduce((a, x) => a + x.form, 0).toFixed(0)}, rated ${xs.reduce((a, x) => a + x.rated, 0).toFixed(0)}, market ${xs.reduce((a, x) => a + 1 / x.market, 0).toFixed(0)}`;
 const BET_EDGE = Number(process.env.OVERLAY_BET_EDGE ?? 0.025);
 const bets = rows.filter((x) => x.conf >= 0.35 && x.edge >= BET_EDGE && x.rated >= 0.08 && x.market <= 26);
 const LAY = Number(process.env.OVERLAY_LAY_EDGE ?? -0.06);
@@ -70,7 +80,7 @@ const layU = lays.reduce((a, x) => a + (x.won ? -(x.layPrice - 1) : 0.95), 0);
 const tag = `${process.env.OVERLAY_SWEEP_DAYS ?? "from:2026-09-11"} pricefit ${process.env.OVERLAY_PRICE_FIT ?? 0} rrreach ${process.env.OVERLAY_RR_REACH ?? "inf"} shrink ${process.env.OVERLAY_CLASS_SHRINK ?? 1} mult ${process.env.OVERLAY_FACTOR_MULT ?? "-"} own ${process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0}/${process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0} trust ${process.env.OVERLAY_NO_TRUST_CEILING ?? 0.8}/${process.env.OVERLAY_TRUST_FLOOR ?? 0} lay ${LAY} say ${process.env.OVERLAY_EARLY_SAY ?? 0} norm ${process.env.OVERLAY_SECTION_NORM ?? 0} latefield ${process.env.OVERLAY_LATE_FIELD ?? 0} shape ${process.env.OVERLAY_SHAPE_POINTS ?? 0.5} closer ${process.env.OVERLAY_CLOSER_POINTS ?? 0} contest ${process.env.OVERLAY_CONTEST_POINTS ?? 0} sec ${process.env.OVERLAY_SECTION_WEIGHT ?? 0} rr ${process.env.OVERLAY_RR_PAR ?? 0} temp ${process.env.OVERLAY_TEMPERATURE ?? 8} floor ${process.env.OVERLAY_CLOCK_FLOOR ?? "inf"} reach ${process.env.OVERLAY_LOW_REACH ?? 12} ohr ${process.env.OVERLAY_OHR_PULL ?? 0} stakes ${process.env.OVERLAY_STAKES_LEVEL ?? 0}`;
 console.log(
   `${tag}: logloss form ${ll(rows, (x) => x.form).toFixed(4)} rated ${ll(rows, (x) => x.rated).toFixed(4)} market ${ll(rows, (x) => x.fair).toFixed(4)} | ${favN} races, fav won ${favWon}, form top won ${formTopWon}, fav ranked 4th+ ${favRankLow}, lay races ${layRaces}` +
-  `\n   fav: ${calib(rows.filter((x) => x.fav))}\n   form top: ${calib(rows.filter((x) => x.formTop))}\n   slow-run: ${calib(rows.filter((x) => x.slow))}\n   class drop: ${calib(rows.filter((x) => x.classDrop))}\n   ohr 8+ over par: ${calib(rows.filter((x) => x.ohrAbove))}` +
+  `\n   fav: ${calib(rows.filter((x) => x.fav))}\n   form top: ${calib(rows.filter((x) => x.formTop))}\n   slow-run: ${calib(rows.filter((x) => x.slow))}\n   outlier run: ${calib(rows.filter((x) => x.outlier))}\n   outlier is the last run: ${calib(rows.filter((x) => x.outlierLast))}\n   class drop: ${calib(rows.filter((x) => x.classDrop))}\n   ohr 8+ over par: ${calib(rows.filter((x) => x.ohrAbove))}` +
   `\n   ${bets.length} bets ${betU.toFixed(1)}u (${((100 * betU) / Math.max(1, bets.length)).toFixed(0)}%) | ${lays.length} lays ${layU.toFixed(1)}u (${((100 * layU) / Math.max(1, lays.length)).toFixed(0)}%)`,
 );
 // The bets by market price, so the short end is visible on its own.
