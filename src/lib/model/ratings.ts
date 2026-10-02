@@ -804,7 +804,11 @@ export const isJumps = (p: { raceName?: string; distance?: number; benchmark?: {
  * The result itself never adds points.
  */
 export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asOf?: number): number {
-  const r = cleanClock(run);
+  // A margin of nought behind the winner is a margin the feed does not have: overseas runs come with
+  // nought whatever the finish (De Armas 4th at Ellerslie, Iceford 8th at Galway, 2 Oct 2026), and read
+  // as wins. Missing, the beaten distance falls back to the placing.
+  const kept = cleanClock(run);
+  const r = kept.margin === 0 && (kept.finishPosition ?? 1) > 1 ? { ...kept, margin: undefined } : kept;
   // Today's race is the prior for the level a horse races at: an official
   // rating is trusted only within reach of it, an unparsed race name means par.
   // A jumper's BM120 or a horse dropping from a much stronger grade says
