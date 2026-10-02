@@ -331,6 +331,15 @@ const CLOCK_BY_TRIP = Number(process.env.OVERLAY_CLOCK_BY_TRIP ?? 1) === 1;
  * rating: 0 off, 1 all of it. Off until a backtest on the clean days says so.
  */
 const DAY_VARIANT = Number(process.env.OVERLAY_DAY_VARIANT ?? 0);
+/**
+ * Share of a small field's clock left out: its lengths against benchmark go
+ * toward nothing and its race rating toward what the race's name says. A
+ * fast time in five runners rated Thickskinned 92.6 at Devonport (9 Sep 2026)
+ * and made it Prime at $2.30 on 2 Oct; it ran third. 0 off, 1 all of it.
+ * SMALL_FIELD_MAX is the most runners a field can have and count as small.
+ */
+const SMALL_FIELD = Number(process.env.OVERLAY_SMALL_FIELD ?? 0);
+const SMALL_FIELD_MAX = Number(process.env.OVERLAY_SMALL_FIELD_MAX ?? 6);
 const OWN_CLOCK_BLEND = Number(process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0);
 const OWN_CLOCK_ALONE = Number(process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0);
 export const clockPoints = (distance?: number) => POINTS_PER_LENGTH * CLOCK_SCALE * (CLOCK_BY_TRIP && distance ? Math.max(1 / 3, Math.min(1, 1200 / distance)) : 1);
@@ -820,7 +829,10 @@ export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asO
   // such a rating out and falls back to the name.
   // Lengths the track ran quick that day, taken off the clock and the race rating alike.
   const variant = DAY_VARIANT > 0 && r.benchmark ? DAY_VARIANT * dayVariant(r) : 0;
-  const rrRaw = r.benchmark?.raceRating !== undefined ? r.benchmark.raceRating - variant * clockPoints(r.distance) : undefined;
+  // How much of a small field's clock still counts.
+  const keep = SMALL_FIELD > 0 && r.numRunners && r.numRunners <= SMALL_FIELD_MAX ? 1 - SMALL_FIELD : 1;
+  const rrDay = r.benchmark?.raceRating !== undefined ? r.benchmark.raceRating - variant * clockPoints(r.distance) : undefined;
+  const rrRaw = rrDay !== undefined && keep < 1 ? toFeedScale(named) + keep * (rrDay - toFeedScale(named)) : rrDay;
   const rr = rrRaw !== undefined && r.benchmark?.dataStage === "OVERALL_TIME_ONLY" && RR_TIME_ONLY === 0 ? undefined : rrRaw;
   // The feed's rating is capped within reach of today's par the same way a
   // name is, and with RR_OHR_CAP within reach of the horse's official rating
@@ -843,7 +855,7 @@ export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asO
   // and the closing sectional says a lot, so where the last 600 beats the
   // overall figure the run moves that way by SPRINT_RESCUE of the gap.
   const closing = r.benchmark?.sections?.["6-F"]?.vsClass;
-  const vsClass = (r.benchmark ? (SPRINT_RESCUE > 0 && closing !== undefined && closing > r.benchmark.vsClass ? r.benchmark.vsClass + SPRINT_RESCUE * (closing - r.benchmark.vsClass) : r.benchmark.vsClass) : 0) - variant;
+  const vsClass = (r.benchmark ? (SPRINT_RESCUE > 0 && closing !== undefined && closing > r.benchmark.vsClass ? r.benchmark.vsClass + SPRINT_RESCUE * (closing - r.benchmark.vsClass) : r.benchmark.vsClass) : 0) * keep - variant;
   // With the feed's rating as the par, the race's speed is already in the
   // par, so the run is the race's strength less the lengths behind the
   // winner, not plus the horse's lengths against a benchmark the rating
