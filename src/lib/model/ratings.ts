@@ -14,6 +14,7 @@
 import type { BenchmarkedRun, PastEvent, RaceEntry, Speedmap } from "@/lib/formking/types";
 import { FEED_A, FEED_B, bm } from "./display";
 import { ownClock } from "./standards";
+import { dayVariant } from "./variants";
 import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, parseRecord, prepStage, weightFactor } from "./factors";
 import { barrierEffect } from "./barriers";
 import fit from "./fit.json";
@@ -325,6 +326,11 @@ const CLOCK_BY_TRIP = Number(process.env.OVERLAY_CLOCK_BY_TRIP ?? 1) === 1;
  * belong as a going and track adjustment on the feed's benchmark, not in
  * its place.
  */
+/**
+ * Share of the day variant (variants.ts) taken off a run's clock and its race
+ * rating: 0 off, 1 all of it. Off until a backtest on the clean days says so.
+ */
+const DAY_VARIANT = Number(process.env.OVERLAY_DAY_VARIANT ?? 0);
 const OWN_CLOCK_BLEND = Number(process.env.OVERLAY_OWN_CLOCK_BLEND ?? 0);
 const OWN_CLOCK_ALONE = Number(process.env.OVERLAY_OWN_CLOCK_ALONE ?? 0);
 export const clockPoints = (distance?: number) => POINTS_PER_LENGTH * CLOCK_SCALE * (CLOCK_BY_TRIP && distance ? Math.max(1 / 3, Math.min(1, 1200 / distance)) : 1);
@@ -812,7 +818,9 @@ export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asO
   // was rated 96, above a city BM72, and two horses beaten 2 and 11 lengths in
   // it were top rated at $12 and $14 a fortnight later. RR_TIME_ONLY 0 leaves
   // such a rating out and falls back to the name.
-  const rrRaw = r.benchmark?.raceRating;
+  // Lengths the track ran quick that day, taken off the clock and the race rating alike.
+  const variant = DAY_VARIANT > 0 && r.benchmark ? DAY_VARIANT * dayVariant(r) : 0;
+  const rrRaw = r.benchmark?.raceRating !== undefined ? r.benchmark.raceRating - variant * clockPoints(r.distance) : undefined;
   const rr = rrRaw !== undefined && r.benchmark?.dataStage === "OVERALL_TIME_ONLY" && RR_TIME_ONLY === 0 ? undefined : rrRaw;
   // The feed's rating is capped within reach of today's par the same way a
   // name is, and with RR_OHR_CAP within reach of the horse's official rating
@@ -835,7 +843,7 @@ export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asO
   // and the closing sectional says a lot, so where the last 600 beats the
   // overall figure the run moves that way by SPRINT_RESCUE of the gap.
   const closing = r.benchmark?.sections?.["6-F"]?.vsClass;
-  const vsClass = r.benchmark ? (SPRINT_RESCUE > 0 && closing !== undefined && closing > r.benchmark.vsClass ? r.benchmark.vsClass + SPRINT_RESCUE * (closing - r.benchmark.vsClass) : r.benchmark.vsClass) : 0;
+  const vsClass = (r.benchmark ? (SPRINT_RESCUE > 0 && closing !== undefined && closing > r.benchmark.vsClass ? r.benchmark.vsClass + SPRINT_RESCUE * (closing - r.benchmark.vsClass) : r.benchmark.vsClass) : 0) - variant;
   // With the feed's rating as the par, the race's speed is already in the
   // par, so the run is the race's strength less the lengths behind the
   // winner, not plus the horse's lengths against a benchmark the rating

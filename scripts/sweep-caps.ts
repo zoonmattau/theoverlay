@@ -25,7 +25,9 @@ const races = readdirSync(".formking-cache")
     const day = d.toISOString().slice(0, 10);
     // "from:2026-09-11" keeps that day and everything after it: the days a fit never saw.
     if (want.startsWith("from:")) return day >= want.slice(5);
-    return want === "midweek" ? !sat : want === "saturday" ? sat : day.startsWith(want);
+    // "saturday" and "midweek" keep to the clean days too, unless OVERLAY_SWEEP_FROM says otherwise.
+    if (want === "midweek" || want === "saturday") return day >= (process.env.OVERLAY_SWEEP_FROM ?? "2026-09-11") && (want === "saturday" ? sat : !sat);
+    return day.startsWith(want);
   });
 
 interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }

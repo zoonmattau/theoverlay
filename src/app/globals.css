@@ -3267,6 +3267,10 @@ body {
     padding: 0;
     border: 0;
   }
+  tr.tip-divider,
+  tr.tip-divider > td {
+    display: block;
+  }
 
   /* The market is two lines a runner instead of a row that runs off the side:
      the saddlecloth over the call down the left, the horse and its facts in
@@ -4595,4 +4599,130 @@ body {
 }
 @media (max-width: 640px) {
   .member-search { max-width: none; }
+}
+
+/* Today's tips: races run sit faded above a divider, the races still to run below it at full strength. */
+tr.tip-row.is-run > td {
+  opacity: 0.6;
+}
+tr.tip-divider > td {
+  padding: 10px var(--sp-3) 6px;
+  border-top: 2px solid var(--color-line-strong);
+  border-bottom: 1px solid var(--color-line);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink);
+}
+/* The switch above the tables takes the races run off them, and the divider with them. */
+.hide-run-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+}
+.hide-run-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--color-ink);
+}
+body:has(#hide-run:checked) tr.tip-row.is-run,
+body:has(#hide-run:checked) tr.tip-divider {
+  display: none !important;
+}
+
+/* Today's tips on a phone: one purpose-built cell per call, see PhoneCall. */
+td[data-col="phone"],
+.phone-only {
+  display: none;
+}
+@media (max-width: 640px) {
+  .wide-only {
+    display: none;
+  }
+  .phone-only {
+    display: inline;
+  }
+  .data-table:has(th[data-col="race"]) > tbody {
+    display: flex;
+    flex-direction: column;
+  }
+  /* Races still to run first, then the divider, then the races run. */
+  .data-table:has(th[data-col="race"]) > tbody > tr.tip-divider { order: 1; }
+  .data-table:has(th[data-col="race"]) > tbody > tr.tip-row.is-run { order: 2; }
+  tr.tip-row {
+    display: block;
+    padding: 10px var(--sp-3);
+  }
+  tr.tip-row > td {
+    display: none !important;
+  }
+  tr.tip-row > td[data-col="phone"],
+  tr.tip-row > td[data-col="block"] {
+    display: block !important;
+  }
+  tr.tip-row > td[data-col="block"] {
+    padding-top: 6px;
+  }
+  tr.tip-row.is-run > td {
+    opacity: 0.55;
+  }
+  .tp {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .tp-line {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-width: 0;
+  }
+  .tp-meta {
+    font-size: 12px;
+    color: var(--color-ink-soft);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tp-horse {
+    font-size: 15px;
+    font-weight: 700;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .tp-prime {
+    color: var(--color-accent);
+    font-weight: 800;
+  }
+  .tp-sub {
+    font-size: 12px;
+    color: var(--color-ink-soft);
+    white-space: nowrap;
+    flex: none;
+  }
+  .tp-call {
+    flex: none;
+    padding: 4px 10px;
+    border-radius: var(--radius-md);
+    font-size: 14px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .tp-call.is-back { background: var(--color-blue); color: #fff; }
+  .tp-call.is-lay { background: var(--color-red); color: #fff; }
+  .tp-call.is-prime { background: var(--color-lime); color: var(--color-ink); }
+  .tp-pl {
+    font-size: 15px;
+    font-weight: 800;
+    flex: none;
+  }
 }

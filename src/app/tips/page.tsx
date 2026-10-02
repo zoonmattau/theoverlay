@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { connection } from "next/server";
-import { Suspense } from "react";
+import { Fragment, Suspense } from "react";
 
 import { BookieLink } from "@/components/BookieLink";
 import { JsonLd, SITE_URL } from "@/components/JsonLd";
@@ -19,7 +19,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
-import { callLimit, LAY_EDGE, MIN_EDGE, takeable } from "@/lib/model/publish";
+import { callLimit, hasJumped, LAY_EDGE, MIN_EDGE, takeable } from "@/lib/model/publish";
 import { readMutes } from "@/lib/model/store";
 import { setCallOff } from "@/app/admin/actions";
 import { CallOffButton } from "@/components/CallOffButton";
@@ -66,6 +66,8 @@ interface Call {
   raceNumber: number;
   jumpTime?: string;
   resulted: boolean;
+  /** Off and running, or run with no result yet. */
+  jumped: boolean;
   runner: PublishedRunner;
   prime: boolean;
   /** The price the call settles at: the best seen while it was live, else the live one. */
@@ -106,6 +108,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               raceNumber: r.raceNumber,
               jumpTime: r.jumpTime,
               resulted: Boolean(r.result),
+              jumped: !r.result && hasJumped(r.feedStatus, r.jumpTime),
               runner: x,
               prime: prime.has(`${r.raceId}:${x.tabNumber}`),
               price: at,
@@ -201,6 +204,12 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
 
       {open ? (
         <div className="space-y-4">
+          {calls.some((c) => c.resulted) && (
+            <label className="hide-run-toggle">
+              <input type="checkbox" id="hide-run" />
+              Hide races run ({calls.filter((c) => c.resulted).length})
+            </label>
+          )}
           <CallTable id="tips-bets" letter="B" title="Bets" side="back" calls={bets} date={date} admin={callAdmin} />
           <CallTable id="tips-lays" letter="L" title="Lays" side="lay" calls={lays} date={date} admin={callAdmin} />
         </div>
@@ -232,6 +241,68 @@ function StatCard({ n, label, sub, tone }: { n: number | string; label: string; 
   );
 }
 
+const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}`;
+
+/** A call on a phone: what to do and at what price up top, the horse under it; once run, how it went and the units. */
+function PhoneCall({ call: c, side }: { call: Call; side: Signal }) {
+  const lay = side === "lay";
+  const tone = c.prime ? "is-prime" : lay ? "is-lay" : "is-back";
+  const race = `${c.meeting.track} R${c.raceNumber}`;
+  const horse = (
+    <span className="tp-horse">
+      {c.runner.tabNumber}. {c.runner.horseName}
+      {c.prime && <span className="tp-prime"> · Prime</span>}
+    </span>
+  );
+  if (c.resulted) {
+    const pos = c.runner.finishPosition;
+    const placed = pos === 1 ? "Won" : pos ? ordinal(pos) : "Unplaced";
+    return (
+      <div className="tp">
+        <div className="tp-line">
+          <span className="tp-meta">{race}</span>
+          <span className={`tp-pl nums ${c.profit === undefined ? "" : c.profit > 0 ? "text-accent" : c.profit < 0 ? "text-red" : ""}`}>{c.profit === undefined ? "—" : units(c.profit)}</span>
+        </div>
+        <div className="tp-line">
+          {horse}
+          <span className="tp-sub nums">
+            {placed} · {lay ? "laid" : "bet"} {price(c.price)}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  const live = callPrice(c.runner) ?? c.runner.marketPrice;
+  const note =
+    !lay && (c.runner.edge ?? 0) < MIN_EDGE && c.price && c.price > (c.runner.marketPrice ?? 0)
+      ? `bet at ${price(c.price)}`
+      : lay && (c.runner.layEdge ?? LAY_EDGE) > LAY_EDGE && callLimit(c.runner)
+        ? `lay max ${price(callLimit(c.runner))}`
+        : undefined;
+  return (
+    <div className="tp">
+      <div className="tp-line">
+        <span className="tp-meta nums">
+          {c.jumped ? "Jumped" : jumpTime(c.jumpTime)} · {race}
+        </span>
+        <span className={`tp-call nums ${tone}`}>
+          {c.prime ? "Prime" : lay ? "Lay" : "Bet"} {price(live)}
+        </span>
+      </div>
+      <div className="tp-line">
+        {horse}
+        <span className="tp-sub nums">rated {price(c.runner.ratedPrice)}</span>
+      </div>
+      {(note || (!lay && !c.jumped && takeable(c.runner))) && (
+        <div className="tp-line tp-foot">
+          {!lay && !c.jumped && takeable(c.runner) ? <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="text-[11px]" /> : <span />}
+          {note && <span className="tp-sub nums">{note}</span>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function CallTable({
   id,
   letter,
@@ -251,6 +322,10 @@ function CallTable({
   admin?: CallAdmin;
 }) {
   const total = calls.reduce((a, x) => a + (x.profit ?? 0), 0);
+  // Calls stay in jump order so the running sum reads down; a divider marks where the races without a result begin.
+  const firstToRun = calls.findIndex((c) => !c.resulted);
+  const toRun = firstToRun < 0 ? 0 : calls.length - firstToRun;
+  const cols = callAdmin ? 10 : 9;
   return (
     <Section id={id} letter={letter} title={title} aside={<span className="nums">{calls.length}</span>}>
       {calls.length === 0 ? (
@@ -278,13 +353,25 @@ function CallTable({
                 const running = sofar.reduce((a, x) => a + (x.profit ?? 0), 0);
                 const anySettled = sofar.some((x) => x.profit !== undefined);
                 return (
-                <tr key={`${c.raceId}-${c.runner.tabNumber}`} className="tip-row">
+                <Fragment key={`${c.raceId}-${c.runner.tabNumber}`}>
+                {i === firstToRun && i > 0 && (
+                  <tr className="tip-divider">
+                    <td colSpan={cols}>
+                      <span className="wide-only">Still to run · {toRun}</span>
+                      <span className="phone-only">Run · {firstToRun}</span>
+                    </td>
+                  </tr>
+                )}
+                <tr className={`tip-row${c.resulted ? " is-run" : ""}`}>
+                  <td data-col="phone">
+                    <PhoneCall call={c} side={side} />
+                  </td>
                   <td data-col="race" className="whitespace-nowrap">
                     <Link href={`/racing/${date}/${c.meeting.meetingId}/${c.raceId}`} className="font-semibold hover:text-blue">
                       {c.meeting.track} R{c.raceNumber}
                     </Link>
                   </td>
-                  <td data-col="jump" className="nums text-ink-soft whitespace-nowrap">{c.resulted ? "Run" : jumpTime(c.jumpTime)}</td>
+                  <td data-col="jump" className="nums text-ink-soft whitespace-nowrap">{c.resulted ? "Run" : c.jumped ? "Jumped" : jumpTime(c.jumpTime)}</td>
                   <td data-col="runner">
                     <span className="flex items-center gap-2">
                       <span className="font-semibold">
@@ -328,7 +415,7 @@ function CallTable({
                     ) : (
                       <span className="flex items-center gap-2">
                         <SignalBadge signal={side} prime={c.prime} />
-                        <span className="text-xs text-ink-soft">to run</span>
+                        <span className="text-xs text-ink-soft">{c.jumped ? "awaiting result" : "to run"}</span>
                       </span>
                     )}
                   </td>
@@ -353,6 +440,7 @@ function CallTable({
                     </td>
                   )}
                 </tr>
+                </Fragment>
                 );
               })}
             </tbody>

@@ -7,7 +7,6 @@ import { totals, type RecordStats, type SideStats } from "@/lib/tips/stats";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}u`;
 const dollars = (u: number) => `${u < 0 ? "−" : "+"}$${Math.abs(Math.round(u * 100)).toLocaleString("en-AU")}`;
-const strike = (s: SideStats) => (s.n ? Math.round((s.hit / s.n) * 100) : 0);
 const shortDate = (d: string) => new Date(`${d}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 
 const TABS = [
@@ -17,7 +16,7 @@ const TABS = [
 
 /**
  * The live record under the board: the book as a hero with its running line,
- * bets and lays with their strike, and the way through to the full
+ * bets and lays with their units and POT, and the way through to the full
  * results sheet. Only what is in profit shows: a window
  * or a side in the red is left off, and the section goes when nothing is up
  * (the user, 30 Sep 2026). Strike rates, not returns, so every figure here
@@ -33,7 +32,8 @@ export function Record({ stats, daily }: { stats: RecordStats[]; daily: { date: 
   const hit = r ? r.bets.hit + r.lays.hit : 0;
   const days = daily.filter((d) => !r?.from || d.date >= r.from);
   // Both sides always show, in the red when they are: a side that comes and goes raises more questions than a loss (2 Oct 2026).
-  const sides: [string, SideStats, string, string][] = r ? [["Bets", r.bets, "won", "bg-blue"], ["Lays", r.lays, "held", "bg-red"]] : [];
+  // Each side is its units and POT only (2 Oct 2026).
+  const sides: [string, SideStats][] = r ? [["Bets", r.bets], ["Lays", r.lays]] : [];
 
   return (
     <Section
@@ -69,44 +69,17 @@ export function Record({ stats, daily }: { stats: RecordStats[]; daily: { date: 
               </div>
               <Spark days={days} />
             </div>
-            {sides.map(([label, s, verb, bar]) => {
-              // Counts, not rates: 45 winners against the 40 the prices gave, bars scaled to each other, so the gap is what shows.
-              const exp = Math.round(s.expected * s.n);
-              const diff = s.hit - exp;
-              const top = Math.max(s.hit, exp, 1);
-              const noun = verb === "won" ? "winners" : "held";
-              return (
-                <div key={label} className="stat flex flex-col justify-between">
-                  <div>
-                    <div className="stat-label">{label}</div>
-                    <div className="flex flex-wrap items-baseline justify-between gap-x-2 mt-1">
-                      <span className={`font-display text-2xl font-extrabold tracking-tight nums ${s.units < 0 ? "text-red" : ""}`}>{units(s.units)}</span>
-                      <Pot roi={s.roi} />
-                    </div>
-                    <div className="text-xs text-ink-soft nums">{s.n} {label.toLowerCase()}, {strike(s)}% {verb}</div>
-                  </div>
-                  <div className="mt-3 space-y-1.5 text-xs nums">
-                    {[
-                      [verb === "won" ? "Winners" : "Held", s.hit, bar],
-                      ["Prices said", exp, "bg-ink-soft/40"],
-                    ].map(([name, v, fill]) => (
-                      <div key={name as string}>
-                        <div className="flex justify-between">
-                          <span className="text-ink-soft">{name}</span>
-                          <span className="font-bold">{v}</span>
-                        </div>
-                        <div className="mt-0.5 h-2 rounded-full bg-line overflow-hidden" aria-hidden>
-                          <div className={`h-full rounded-full ${fill}`} style={{ width: `${((v as number) / top) * 100}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                    <div className={`pt-0.5 font-semibold ${diff > 0 ? "text-green" : diff < 0 ? "text-red" : "text-ink-soft"}`}>
-                      {diff > 0 ? `${diff} more ${noun} than the market expected` : diff < 0 ? `${-diff} fewer ${noun} than the market expected` : "Level with the market"}
-                    </div>
-                  </div>
+            <div className="col-span-2 grid grid-cols-2 lg:grid-cols-1 gap-2">
+            {sides.map(([label, s]) => (
+              <div key={label} className="stat flex flex-col justify-center">
+                <div className="stat-label">{label}</div>
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 mt-1">
+                  <span className={`font-display text-2xl font-extrabold tracking-tight nums ${s.units < 0 ? "text-red" : ""}`}>{units(s.units)}</span>
+                  <Pot roi={s.roi} />
                 </div>
-              );
-            })}
+              </div>
+            ))}
+            </div>
           </div>
         )}
 
