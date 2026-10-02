@@ -77,6 +77,12 @@ export interface RunnerRatings {
    * Keys: going, tempo, distance, track, weight, fresh, jockey, trainer, market.
    */
   factors: Partial<Record<Factor, number>>;
+  /**
+   * The adjustments switched off (FACTOR_DEFAULT 0: going, distance, weight, fresh,
+   * trainer and so on), worked out the same way but left out of Today: the runner
+   * detail's Horse panel shows them like the rest (2 Oct 2026).
+   */
+  offFactors?: Partial<Record<Factor, number>>;
   /** How much the rating can be trusted, 0-1: runs behind it, sectionals among them, ground they were on, the break since. Decides how far the price leans on the market. */
   trust: number;
   /** Runs behind the numbers. */

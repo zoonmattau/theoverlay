@@ -570,8 +570,12 @@ export function rateEntries(
       streak: streakFactor(e, race.date),
       market: fk[i] * FK_NUDGE,
     };
+    // A factor switched off still has its value worked out, to show as not counted.
+    const offFactors: Partial<Record<Factor, number>> = {};
     for (const k of Object.keys(factors) as Factor[]) {
+      const raw = round1(factors[k] ?? 0);
       const v = round1((factors[k] ?? 0) * (FACTOR_MULT[k] ?? 1));
+      if (FACTOR_MULT[k] === 0 && raw !== 0) offFactors[k] = raw;
       if (v === 0) delete factors[k];
       else factors[k] = v;
     }
@@ -580,7 +584,7 @@ export function rateEntries(
     return {
       key: String(e.number),
       form: e.form?.runs?.slice(-6),
-      ratings: { ...r, today, factors, ppir, map },
+      ratings: { ...r, today, factors, ...(Object.keys(offFactors).length ? { offFactors } : {}), ppir, map },
     };
   });
 

@@ -187,7 +187,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
     return front ? `A fast tempo is expected and it ${where}: it gets tested up front, unless its record under pressure says it holds on.${lead}` : `A fast tempo is expected and it ${where}: the leaders come back to it. ${closes}, and the better it closes the more a hot race gives it.`;
   }
   function weightWhy(): string {
-    const v = g.factors.weight ?? 0;
+    const v = g.factors.weight ?? g.offFactors?.weight ?? 0;
     const today = r.weight;
     const before = last?.weight;
     const diff = today && before ? today - before : 0;
@@ -197,7 +197,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
     return `${carry} About what it has been carrying, so the weight is neither here nor there.`;
   }
   function freshWhy(): string {
-    const v = g.factors.fresh ?? 0;
+    const v = g.factors.fresh ?? g.offFactors?.fresh ?? 0;
     const days = h?.daysSinceLastRun;
     const stage = h?.runInPrep ?? 0;
     if (h?.firstStarter) return "A first starter, rated off the field until it has run.";
@@ -219,12 +219,14 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
     distance: `/data/distances/${race.distance}`,
   };
   const fx = (key: keyof typeof g.factors) => {
-    const v = g.factors[key] ?? 0;
+    // A factor switched off shows what it works out at, the same as the rest (the user, 2 Oct 2026), though Today leaves it out.
+    const v = g.factors[key] ?? g.offFactors?.[key] ?? 0;
     const cls = !v ? "" : v > 0 ? "is-up" : "is-down";
     const text = `${v > 0 ? "+" : ""}${bmGap(v).toFixed(1)}`;
+    const tip = why[key];
     const href = hub[key];
-    if (href) return <Link href={href} className={`factor nums ml-1.5 tip cursor-pointer ${cls}`} data-tip={`${why[key]} Click for the profile.`}>{text}</Link>;
-    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={why[key]}>{text}</span>;
+    if (href) return <Link href={href} className={`factor nums ml-1.5 tip cursor-pointer ${cls}`} data-tip={`${tip} Click for the profile.`}>{text}</Link>;
+    return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={tip}>{text}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
     const gap = value - g.class;
