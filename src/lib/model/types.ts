@@ -129,6 +129,8 @@ export interface PublishedRun {
   latePts?: number;
   /** One of the runs the ratings are built on: the last five. */
   counted?: boolean;
+  /** No clock, no class in its name, no official rating: left out of the rating, no points shown (overseas form, 2 Oct 2026). */
+  blind?: true;
   /** We have a race page for it, set when the race is read; a non-TAB meeting never had one. */
   linked?: boolean;
   /** Identifies the race, so runs can be matched across today's field. */

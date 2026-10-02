@@ -649,10 +649,23 @@ export function fitFeatures(e: RaceEntry, g: RunnerRatings, race: RaceContext): 
  * had 3,238 of 8,937 runners with a run from after the race in their form,
  * 506 with a later win, and every sweep scored on them saw the future.
  */
+/**
+ * A run we can say nothing about: no clock, no class in its name and no
+ * official rating at the time. Overseas form comes like this, and it read as
+ * a win at today's par: Well Written's five NZ wins at 133 apiece in a Group 1
+ * (2 Oct 2026). It stays out of the rating; a horse with nothing else has no
+ * form, and a race with such a horse in the market has no call (publish.ts).
+ */
+export function blindRun(p: { benchmark?: unknown; raceName?: string; benchmarkRating?: number }): boolean {
+  const named = parseClass(p.raceName) !== undefined || (STAKES_LEVEL > 0 && STAKES_NAMES.test(p.raceName ?? ""));
+  return !p.benchmark && !named && !(p.benchmarkRating && p.benchmarkRating > 0);
+}
+
 export function recentRuns(e: RaceEntry, asOf?: number) {
   return (e.pastEvents ?? [])
     .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p) && (!asOf || p.date < asOf))
     .map(cleanClock)
+    .filter((p) => !blindRun(p))
     .sort((a, b) => b.date - a.date)
     .slice(0, RUN_WEIGHTS.length);
 }

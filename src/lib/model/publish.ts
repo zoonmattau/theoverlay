@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { decodeEntities } from "@/lib/format";
-import { classPoints, explain, lastShapeOf, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, cleanClock, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, pickLine, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
+import { blindRun, classPoints, explain, lastShapeOf, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, cleanClock, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, pickLine, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
 
@@ -258,7 +258,18 @@ export function publishRace(
   // and ten of the eleven left were bets.
   const book = race.entries.filter((e) => !e.scratched && e.odds?.bestNow && e.odds.bestNow > 1).reduce((a, e) => a + 1 / e.odds!.bestNow, 0);
   const marketWhole = priced.marketComplete && book >= BOOK_MIN && book <= BOOK_MAX;
-  const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole;
+  // A runner that has raced but whose form we cannot read (overseas runs with no clock, class or
+  // official rating, blindRun) and that the market fancies: without it the race cannot be priced,
+  // so no new call is made in it. Well Written, Randwick R8, 3 Oct 2026: five NZ wins and nothing
+  // else. "If we don't have the data we don't have to make a play" (the user, 2 Oct 2026).
+  const unread = race.entries.some(
+    (e) =>
+      !e.scratched &&
+      (e.pastEvents ?? []).some((p) => p.race !== false && !p.trial) &&
+      (ratedByTab.get(String(e.number))?.ratings.runs ?? 0) === 0 &&
+      (e.odds?.bestNow ?? Infinity) <= NO_FORM_PRICE,
+  );
+  const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole || unread;
   const signalByTab = new Map(
     priced.runners.map((p) => {
       if (abandoned) return [p.key, undefined];
@@ -431,6 +442,9 @@ export function publishRace(
   };
 }
 
+/** A runner with no readable form at this price or shorter takes the calls out of its race. */
+const NO_FORM_PRICE = Number(process.env.OVERLAY_NO_FORM_PRICE ?? 10);
+
 /** A market closed this long before the jump is a race called off. */
 const ABANDON_BEFORE_MS = 5 * 60_000;
 
@@ -600,13 +614,17 @@ function sectionsOf(p: PastEvent, today: number): { early?: number; mid?: number
 
 /** The last ten starts, most recent first, plus our points for each. */
 function runsOf(e: RaceEntry, todayPar: number, todayDistance: number, asOf?: number): PublishedRun[] {
+  // The runs the rating counts are the latest that are not blind (no clock, class or official rating).
+  let seen = 0;
   return (e.pastEvents ?? [])
     .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p)).map(cleanClock)
     .sort((a, b) => b.date - a.date)
     .slice(0, 10)
-    .map((p, i) => ({
+    .map((p) => ({ p, blind: blindRun(p) }))
+    .map(({ p, blind }) => ({
       date: new Date(p.date).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }),
-      counted: i < RUN_WEIGHTS.length,
+      counted: !blind && seen++ < RUN_WEIGHTS.length,
+      ...(blind ? { blind: true as const } : {}),
       track: p.track,
       distance: p.distance,
       going: goingLabel(p.going),

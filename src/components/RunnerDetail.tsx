@@ -313,7 +313,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
                   <td data-col="wgt" className="hide-sm">{x.weight ?? "—"}</td>
                   <td data-col="sp" className="hide-sm">{x.sp ? price(x.sp) : "—"}</td>
                   <td data-col="map" className="hide-sm">{x.map ?? "—"}</td>
-                  <td data-col="pts" className="text-right font-semibold">{bm(x.points).toFixed(1)}</td>
+                  <td data-col="pts" className={`text-right font-semibold ${x.blind ? "text-ink-soft tip cursor-help" : ""}`} data-tip={x.blind ? "No time, class or official rating for this run, so it is not rated." : undefined}>{x.blind ? "—" : bm(x.points).toFixed(1)}</td>
                 </tr>
                 {/* On a phone the columns the row drops come back on their own line under it. */}
                 <tr className="runs-more">
