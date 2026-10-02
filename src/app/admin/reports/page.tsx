@@ -6,9 +6,9 @@ import { Suspense } from "react";
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { daysSinceLaunch, growthSeries, modelTipSeries, tipsterTipSeries, type Series } from "@/lib/reports";
-import { recordStats, type RecordStats } from "@/lib/tips";
-import { racingToday } from "@/lib/model/source";
+import { daysSinceLaunch, growthSeries, modelTipSeries, tipsterTipSeries, windowStart, type Series } from "@/lib/reports";
+import { windowStats } from "@/lib/tips";
+import type { SideStats } from "@/lib/tips/stats";
 
 export const metadata: Metadata = { title: "Reports", robots: { index: false } };
 
@@ -63,7 +63,7 @@ async function Reports({ searchParams }: { searchParams: PageProps<"/admin/repor
       </div>
 
       {tab === "growth" && <Growth n={n} />}
-      {tab === "tips" && <ModelTips n={n} />}
+      {tab === "tips" && <ModelTips n={n} all={all} />}
       {tab === "tipsters" && <Tipsters n={n} />}
     </>
   );
@@ -110,14 +110,14 @@ async function Growth({ n }: { n: number }) {
   return <Group series={series} />;
 }
 
-async function ModelTips({ n }: { n: number }) {
-  const [series, record] = await Promise.all([modelTipSeries(n), recordStats(racingToday())]);
+async function ModelTips({ n, all }: { n: number; all: boolean }) {
+  const [series, record] = await Promise.all([modelTipSeries(n), windowStats(windowStart(n), "model")]);
   const units = series.find((s) => s.key === "units")!;
   return (
     <>
       <Group series={series} />
       <Group title="Units, running total" series={[units]} cumulativeKeys={["units"]} />
-      <Pot record={record} />
+      <Pot record={record} label={all ? "All time" : `Last ${n} days`} />
     </>
   );
 }
@@ -125,35 +125,34 @@ async function ModelTips({ n }: { n: number }) {
 const pot = (units: number, staked: number) => (staked ? `${units > 0 ? "+" : units < 0 ? "−" : ""}${Math.abs((units / staked) * 100).toFixed(1)}%` : "—");
 const signed = (u: number) => `${u > 0 ? "+" : u < 0 ? "−" : ""}${Math.abs(u).toFixed(2)}u`;
 
-/** Profit on turnover: units won over units staked, bets, lays and the two together, by period. */
-function Pot({ record }: { record: RecordStats[] }) {
-  const rows = record.filter((r) => r.period !== "year");
-  const label: Record<string, string> = { week: "Last week", month: "Last month", all: "All time" };
-  const tone = (u: number) => (u > 0 ? "text-accent" : u < 0 ? "text-red" : "");
+const tone = (u: number) => (u > 0 ? "text-accent" : u < 0 ? "text-red" : "");
+
+function Cell({ name, n, units, staked, strong }: { name: string; n: number; units: number; staked: number; strong?: boolean }) {
+  return (
+    <div className="min-w-0">
+      <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft">{name}</div>
+      <div className={`nums text-lg ${strong ? "font-extrabold" : "font-bold"} ${tone(units)}`}>{signed(units)}</div>
+      <div className="nums text-xs text-ink-soft">{n} calls</div>
+      <div className={`nums text-xs font-semibold ${tone(units)}`}>{pot(units, staked)}</div>
+    </div>
+  );
+}
+
+/** Profit on turnover over the window picked at the top, the same days as the charts: units won over units staked. */
+function Pot({ record, label }: { record: { bets: SideStats; lays: SideStats }; label: string }) {
+  const { bets, lays } = record;
   return (
     <div className="card mb-4">
-      <h2 className="font-display font-extrabold mb-1">Profit on turnover</h2>
-      <p className="text-xs text-ink-soft mb-3">Units won over units staked. A bet stakes one unit, a tenth on a Way Overlay; a lay stakes the unit it wins.</p>
-      <table className="data-table stack-sm text-sm">
-        <thead><tr><th>Period</th><th className="text-right">Bets</th><th className="text-right">Bets POT</th><th className="text-right">Lays</th><th className="text-right">Lays POT</th><th className="text-right">Overall</th><th className="text-right">Overall POT</th></tr></thead>
-        <tbody>
-          {rows.map((r) => {
-            const u = r.bets.units + r.lays.units;
-            const st = r.bets.staked + r.lays.staked;
-            return (
-              <tr key={r.period}>
-                <td className="font-semibold">{label[r.period] ?? r.period}</td>
-                <td data-label="Bets" className={`text-right nums ${tone(r.bets.units)}`}>{r.bets.n} · {signed(r.bets.units)}</td>
-                <td data-label="Bets POT" className={`text-right nums font-semibold ${tone(r.bets.units)}`}>{pot(r.bets.units, r.bets.staked)}</td>
-                <td data-label="Lays" className={`text-right nums ${tone(r.lays.units)}`}>{r.lays.n} · {signed(r.lays.units)}</td>
-                <td data-label="Lays POT" className={`text-right nums font-semibold ${tone(r.lays.units)}`}>{pot(r.lays.units, r.lays.staked)}</td>
-                <td data-label="Overall" className={`text-right nums ${tone(u)}`}>{r.bets.n + r.lays.n} · {signed(u)}</td>
-                <td data-label="Overall POT" className={`text-right nums font-bold ${tone(u)}`}>{pot(u, st)}</td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 mb-1">
+        <h2 className="font-display font-extrabold">Profit on turnover</h2>
+        <span className="text-xs font-semibold text-ink-soft">{label}</span>
+      </div>
+      <p className="text-xs text-ink-soft mb-3">Units won over units staked. A bet stakes one unit, a tenth on a Way; a lay stakes the unit it wins.</p>
+      <div className="grid grid-cols-3 gap-3">
+        <Cell name="Bets" n={bets.n} units={bets.units} staked={bets.staked} />
+        <Cell name="Lays" n={lays.n} units={lays.units} staked={lays.staked} />
+        <Cell name="Overall" n={bets.n + lays.n} units={bets.units + lays.units} staked={bets.staked + lays.staked} strong />
+      </div>
     </div>
   );
 }

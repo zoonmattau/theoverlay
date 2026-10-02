@@ -20,6 +20,8 @@ export interface SideStats {
   staked: number;
   /** Units per unit staked, as a fraction: the profit on turnover. */
   roi: number;
+  /** The share the prices said would land, as a fraction: a bet's chance of winning, a lay's of losing, at the price it settled at. */
+  expected: number;
 }
 
 export interface RecordStats {

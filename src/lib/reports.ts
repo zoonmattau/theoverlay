@@ -41,6 +41,9 @@ function series(key: string, title: string, format: Series["format"], window: st
   return { key, title, format, diverging, points, total: Math.round(points.reduce((a, p) => a + p.value, 0) * 100) / 100 };
 }
 
+/** The first day of an n-day window ending today, Sydney time: what the charts start on. */
+export const windowStart = (n: number) => days(n)[0];
+
 const add = (m: Map<string, number>, k: string, v: number) => m.set(k, (m.get(k) ?? 0) + v);
 
 /** Days from the first account to today, inclusive, for the all-time window. */

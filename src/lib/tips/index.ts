@@ -255,9 +255,9 @@ export async function ledgerFor(date: string): Promise<Map<string, { price: numb
   );
 }
 
-const empty = (): SideStats => ({ n: 0, hit: 0, units: 0, staked: 0, roi: 0 });
+const empty = (): SideStats => ({ n: 0, hit: 0, units: 0, staked: 0, roi: 0, expected: 0 });
 
-function tally(rows: { side: Signal; units: number; finish_position: number; stake?: number | null }[]): { bets: SideStats; lays: SideStats } {
+function tally(rows: { side: Signal; units: number; finish_position: number; stake?: number | null; market_price?: number | null }[]): { bets: SideStats; lays: SideStats } {
   const bets = empty(), lays = empty();
   for (const r of rows) {
     const s = r.side === "back" ? bets : lays;
@@ -265,23 +265,54 @@ function tally(rows: { side: Signal; units: number; finish_position: number; sta
     s.units += Number(r.units);
     s.staked += Number(r.stake ?? 1);
     if (r.side === "back" ? r.finish_position === 1 : r.finish_position !== 1) s.hit++;
+    // Summed here, averaged below: the chance the price gave the call of landing.
+    const p = Number(r.market_price) > 1 ? 1 / Number(r.market_price) : 0;
+    s.expected += r.side === "back" ? p : 1 - p;
   }
   for (const s of [bets, lays]) {
     s.units = Math.round(s.units * 100) / 100;
     s.staked = Math.round(s.staked * 100) / 100;
     s.roi = s.staked ? s.units / s.staked : 0;
+    s.expected = s.n ? s.expected / s.n : 0;
   }
   return { bets, lays };
 }
 
 /** The settled record for each period, one query; `source` keeps to live calls or the backtest. */
 export async function recordStats(today: string, source?: TipSource): Promise<RecordStats[]> {
+  const rows = await settledRows(source);
+  const day = new Date(`${today}T12:00:00Z`).getTime();
+  return PERIODS.map((p) => {
+    const from = p.days ? new Date(day - p.days * 86400_000).toISOString().slice(0, 10) : undefined;
+    const inWindow = rows.filter((r) => !from || r.date >= from);
+    const dates = inWindow.map((r) => r.date).sort();
+    const { bets, lays } = tally(inWindow);
+    return { period: p.id, from, bets, lays, net: Math.round((bets.units + lays.units) * 100) / 100, backtest: inWindow.some((r) => r.source === "backtest"), since: dates[0] };
+  });
+}
+
+/** Bets and lays settled on or after a date: the admin reports' window, the same days as its charts. */
+export async function windowStats(from: string, source?: TipSource): Promise<{ bets: SideStats; lays: SideStats }> {
+  return tally((await settledRows(source)).filter((r) => r.date >= from));
+}
+
+/** Units by day since launch, the model's settled calls, for the running line under the home page record. */
+export async function dailyUnits(): Promise<{ date: string; units: number }[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
+  const byDay = new Map<string, number>();
+  for (const r of await settledRows("model")) byDay.set(r.date, (byDay.get(r.date) ?? 0) + Number(r.units));
+  return [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([date, units]) => ({ date, units: Math.round(units * 100) / 100 }));
+}
+
+/** Every settled call that ran, voids left out. */
+async function settledRows(source?: TipSource) {
   // Read a thousand at a time: the server hands back no more per request, and the record passes that.
-  const rows: { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null }[] = [];
+  const rows: { date: string; side: Signal; units: number; finish_position: number; source: TipSource; stake: number | null; market_price: number | null }[] = [];
   for (let from = 0; from < 1_000_000; from += 1000) {
     let q = supabaseAdmin()
       .from("tips")
-      .select("date, side, units, finish_position, source, stake")
+      .select("date, side, units, finish_position, source, stake, market_price")
       .not("settled_at", "is", null)
       .not("finish_position", "is", null);
     if (source) q = q.eq("source", source);
@@ -293,14 +324,7 @@ export async function recordStats(today: string, source?: TipSource): Promise<Re
     rows.push(...((data ?? []) as typeof rows));
     if (!data || data.length < 1000) break;
   }
-  const day = new Date(`${today}T12:00:00Z`).getTime();
-  return PERIODS.map((p) => {
-    const from = p.days ? new Date(day - p.days * 86400_000).toISOString().slice(0, 10) : undefined;
-    const inWindow = rows.filter((r) => !from || r.date >= from);
-    const dates = inWindow.map((r) => r.date).sort();
-    const { bets, lays } = tally(inWindow);
-    return { period: p.id, from, bets, lays, net: Math.round((bets.units + lays.units) * 100) / 100, backtest: inWindow.some((r) => r.source === "backtest"), since: dates[0] };
-  });
+  return rows;
 }
 
 /** The bets that paid most since launch, biggest first, read at most every quarter hour. */

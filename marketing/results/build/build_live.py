@@ -65,7 +65,7 @@ def sign_rules(ws, rng):
     ws.conditional_formatting.add(rng, CellIsRule(operator='lessThan', formula=['-0.0001'], font=Font(color=RED, bold=True)))
 
 
-COLS = ['Date', 'Track', 'Race', 'No.', 'Horse', 'Call', 'Tag', 'Rated $', 'Price $', 'Edge', 'Stake (u)', 'Finish', 'Result', 'Profit (u)', 'At risk (u)']
+COLS = ['Date', 'Track', 'Race', 'No.', 'Horse', 'Call', 'Tag', 'Rated $', 'Price $', 'Edge', 'Stake (u)', 'Finish', 'Result', 'Profit (u)', 'Liability (u)']
 W = [15, 20, 8, 7, 24, 8, 10, 11, 11, 10, 11, 11, 10, 13, 13]
 FMT = {'A': 'd mmm yyyy', 'H': '$0.00', 'I': '$0.00', 'J': '0.0%', 'K': '0.0#', 'N': U, 'O': '0.00'}
 LEFT = (2, 5)
@@ -132,18 +132,18 @@ for label, side, col in (('ALL CALLS', '', 'B'), ('BETS', 'Bet', 'E'), ('LAYS', 
     ov.merge_cells(start_row=r0 + 1, start_column=ci, end_row=r0 + 2, end_column=ci + 2)
     p.alignment = Alignment(horizontal='left', vertical='center')
     won = f'COUNTIFS({D("M")},"Win"{crit})'; lost = f'COUNTIFS({D("M")},"Loss"{crit})'
-    risk = f'SUMIFS({D("O")}{crit})' if side else f'SUM({D("O")})'
-    s = ov.cell(r0 + 3, ci, f'=IFERROR({won}+{lost}&" settled, "&TEXT({won}/({won}+{lost}),"0%")&" strike, "&TEXT({p.coordinate}/{risk},"+0.0%;-0.0%")&" ROI","")')
+    risk = f'SUMIFS({D("K")}{crit})' if side else f'SUM({D("K")})'
+    s = ov.cell(r0 + 3, ci, f'=IFERROR({won}+{lost}&" settled, "&TEXT({won}/({won}+{lost}),"0%")&" strike, "&TEXT({p.coordinate}/{risk},"+0.0%;-0.0%")&" POT","")')
     s.font = font(MONO, size=8, color=SOFT if dark else MUTED)
     if side: ov.conditional_formatting.add(p.coordinate, CellIsRule(operator='lessThan', formula=['0'], font=Font(color=RED, bold=True)))
 for rr in range(r0, r0 + 4): ov.row_dimensions[rr].height = 20
 
 ov.cell(11, 1, 'Level stakes: one unit a call, a tenth on a Way. Bets settle at the best of fixed odds, SP and BSP; lays at the shortest lay price or BSP.').font = font(size=9, color=MUTED)
-ov.cell(12, 1, 'A lay wins one unit when the horse loses and risks the price less one. ROI is profit over units at risk. Calls on scratched horses and abandoned races are void and left out.').font = font(size=9, color=MUTED)
+ov.cell(12, 1, 'A lay wins one unit when the horse loses. POT is units won over units staked: one a call, a tenth on a Way. Calls on scratched horses and abandoned races are void and left out.').font = font(size=9, color=MUTED)
 
 ov.cell(13, 1, 'Bets at $10 or more from 11 to 15 Sep are excluded: our ratings over-priced long shots until the 15 Sep fix.').font = font(size=9, color=MUTED)
 
-HDR = ['', 'Calls', 'Won', 'Lost', 'Strike', 'Profit (u)', 'At risk (u)', 'ROI']
+HDR = ['', 'Calls', 'Won', 'Lost', 'Strike', 'Profit (u)', 'Staked (u)', 'POT']
 
 
 def section(r, title):
@@ -159,7 +159,7 @@ def stat_row(r, crit, k, guard=None):
         ov.cell(r, j, g(f'COUNTIFS({D("M")},"{res}"{cs})'))
     ov.cell(r, 5, g(f'IF(C{r}+D{r}=0,"",C{r}/(C{r}+D{r}))')).number_format = '0.0%'
     ov.cell(r, 6, g(f'SUMIFS({D("N")}{cs})' if crit else f'SUM({D("N")})')).number_format = U
-    ov.cell(r, 7, g(f'SUMIFS({D("O")}{cs})' if crit else f'SUM({D("O")})')).number_format = '0.00'
+    ov.cell(r, 7, g(f'SUMIFS({D("K")}{cs})' if crit else f'SUM({D("K")})')).number_format = '0.00'
     ov.cell(r, 8, g(f'IF(G{r}=0,"",F{r}/G{r})')).number_format = '+0.0%;-0.0%;0.0%'
     for j in range(1, len(HDR) + 1):
         c = ov.cell(r, j); c.font = font(SANS if j == 1 else MONO, bold=j in (1, 6), color=INK)
