@@ -7,7 +7,7 @@ process.env.OVERLAY_REPLAY = "1";
 import { readdirSync, readFileSync } from "node:fs";
 import type { RaceSummary } from "../src/lib/formking/types";
 import { publishRace } from "../src/lib/model/publish";
-import { classPoints, cleanClock, isJumps, RUN_WEIGHTS, runPoints } from "../src/lib/model/ratings";
+import { classPoints, cleanClock, goingBand, isJumps, RUN_WEIGHTS, runPoints } from "../src/lib/model/ratings";
 
 const races = readdirSync(".formking-cache")
   .filter((f) => f.startsWith("race-"))
@@ -28,6 +28,14 @@ const races = readdirSync(".formking-cache")
     // "saturday" and "midweek" keep to the clean days too, unless OVERLAY_SWEEP_FROM says otherwise.
     if (want === "midweek" || want === "saturday") return day >= (process.env.OVERLAY_SWEEP_FROM ?? "2026-09-11") && (want === "saturday" ? sat : !sat);
     return day.startsWith(want);
+  })
+  // OVERLAY_SWEEP_GOING=7 keeps races on a going of 7 or worse (Soft 7, Heavy 8 to 10), the wet-track test of 2 Oct 2026.
+  .filter((r) => {
+    const min = Number(process.env.OVERLAY_SWEEP_GOING ?? 0);
+    if (!min) return true;
+    const band = goingBand(r.going);
+    const n = r.goingNumber || (band === "heavy" ? 8 : band === "soft" ? 5 : 3);
+    return n >= min;
   });
 
 interface Row { form: number; rated: number; edge: number; market: number; fair: number; layEdge: number; layPrice: number; won: boolean; conf: number; slow: boolean; outlier: boolean; outlierLast: boolean; classDrop: boolean; ohrAbove: boolean; fav: boolean; formTop: boolean }
