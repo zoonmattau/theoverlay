@@ -28,7 +28,7 @@ POST = {
     "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
 }
 # Chute starts known from the club: each built chute takes the nearest.
-CHUTE_STARTS = {"waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400]}
+CHUTE_STARTS = {"waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
 NO_OUTER = {"newcastle"}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
@@ -170,7 +170,7 @@ def find_chutes(inner, outer, gap):
     chutes = []
     for sp in spans:
         depth = max(d[i] for i in sp)
-        if depth < 45 or len(sp) < 2:
+        if depth < 45:
             continue
         tip = max(sp, key=lambda i: d[i])
         a, b = (sp[0] - 1) % n, (sp[-1] + 1) % n
@@ -283,11 +283,16 @@ def build(slug, path, state, venue=None):
     post = tg.point_at(run, along, post_along)
     for c in chutes:
         c["startDistance"] = round(c["length"] + (post_along - c["joinAlong"]) % total)
+        c["measured"] = c["startDistance"]
         if slug in CHUTE_STARTS:
             c["startDistance"] = min(CHUTE_STARTS[slug], key=lambda d: abs(d - c["startDistance"]))
     # A chute stands well clear of the course and starts a distance they race; a bulge in the outer rail on a turn does neither.
     dense = tg.resample(run, max(200, int(total / 5)))
-    chutes = [c for c in chutes if to_line(c["line"][0], dense) >= 70 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
+    chutes = [c for c in chutes if to_line(c["line"][0], dense) >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
+    # One chute to a start: the one that measures closest.
+    chutes = [c for c in chutes if c is min((o for o in chutes if o["startDistance"] == c["startDistance"]), key=lambda o: abs(o["measured"] - o["startDistance"]))]
+    for c in chutes:
+        print(f"  {slug} chute {c['startDistance']} measured {c['measured']}", file=sys.stderr)
     per_chute = (fit / len(chutes)) if chutes and fit is not None else None
     confidence = "high" if how == "by hand" or (how == "grandstand" and (per_chute is None or per_chute < 25)) or (per_chute is not None and per_chute < 12 and len(chutes) >= 2) else "medium" if how == "grandstand" or (per_chute is not None and per_chute < 30) else "low"
 
