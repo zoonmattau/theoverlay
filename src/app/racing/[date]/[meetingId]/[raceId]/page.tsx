@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { bm } from "@/lib/model/display";
+import { bmPar } from "@/lib/model/display";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
@@ -201,9 +201,9 @@ async function Race({ params }: { params: Props["params"] }) {
             <span className="race-chip tip" data-tip="Race distance">{race.distance}m</span>
             <span
               className="race-chip tip"
-              data-tip={`Race class and its par in benchmark points. A horse rating ${bm(race.classPoints).toFixed(0)} is a typical ${race.className ?? "runner"} horse.`}
+              data-tip={`Race class and its par in benchmark points. A horse rating ${bmPar(race.classPoints).toFixed(0)} is a typical ${race.className ?? "runner"} horse.`}
             >
-              {race.className ?? "—"} · {bm(race.classPoints).toFixed(0)}
+              {race.className ?? "—"} · {bmPar(race.classPoints).toFixed(0)}
             </span>
             <span className="race-chip tip" data-tip="Track condition: Firm 1-2, Good 3-4, Soft 5-7, Heavy 8-10">
               {race.goingText ?? race.going}

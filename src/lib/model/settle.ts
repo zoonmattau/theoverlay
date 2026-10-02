@@ -3,7 +3,8 @@ import "server-only";
 import { revalidateTag } from "next/cache";
 
 import { supabaseAdmin } from "@/lib/billing/access";
-import { readPriceBook } from "@/lib/betwatch/prices";
+import { betwatchMarkets } from "@/lib/betwatch/client";
+import { readPriceBook, writePriceBook } from "@/lib/betwatch/prices";
 import { settleCreatorTips } from "@/lib/creators";
 import { postWinners } from "@/lib/discord";
 import { getRace } from "@/lib/formking/client";
@@ -98,6 +99,40 @@ export async function settleFromBook(date: string): Promise<number> {
   revalidateTag(`card-${date}`, "max");
   await postWinners(date, before, stored.card);
   return settled;
+}
+
+/**
+ * Asks BetWatch for one race's result now rather than waiting for the next
+ * poll, and settles it if it is in: placings and Betfair SP, the way the
+ * poll would. No Form King credits; the official result still follows.
+ */
+export async function checkBetwatchResult(date: string, raceId: string): Promise<{ ok: true; track: string; raceNumber: number } | { ok: false; error: string }> {
+  const [stored, book] = await Promise.all([readStoredCard(date), readPriceBook(date)]);
+  if (!stored) return { ok: false, error: "No card for that day." };
+  const meeting = stored.card.meetings.find((m) => m.races.some((r) => r.raceId === raceId));
+  const race = meeting?.races.find((r) => r.raceId === raceId);
+  if (!meeting || !race) return { ok: false, error: "That race is not on the card." };
+  if (race.result?.length) return { ok: false, error: "That race already has its result." };
+  const id = book.ids[raceId];
+  if (!id) return { ok: false, error: "BetWatch has no market for this race. Settle by hand." };
+  let m: Awaited<ReturnType<typeof betwatchMarkets>>;
+  try {
+    m = await betwatchMarkets(id);
+  } catch (err) {
+    return { ok: false, error: `BetWatch did not answer: ${err instanceof Error ? err.message : String(err)}` };
+  }
+  if (!/resulted|interim/i.test(m.status) || !m.results?.length) return { ok: false, error: `No result on BetWatch yet (${m.status}). Try again in a minute, or settle by hand.` };
+  const bsp: Record<string, number> = {};
+  const bspPlace: Record<string, number> = {};
+  for (const r of m.runners) {
+    if (r.bsp) bsp[String(r.number)] = r.bsp;
+    if (r.bspPlace) bspPlace[String(r.number)] = r.bspPlace;
+  }
+  const at = new Date().toISOString();
+  book.races[raceId] = { ...(book.races[raceId] ?? { betwatchId: id, runners: {} }), at: book.races[raceId]?.at ?? at, status: m.status, result: { placings: m.results, bsp, bspPlace, at } };
+  await writePriceBook(date, book);
+  if ((await settleFromBook(date)) === 0) return { ok: false, error: "The result is in but nothing settled. Settle by hand." };
+  return { ok: true, track: meeting.track, raceNumber: race.raceNumber };
 }
 
 /**

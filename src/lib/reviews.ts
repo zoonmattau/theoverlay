@@ -1,7 +1,7 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
-import { bm, bmGap } from "@/lib/model/display";
+import { bm, bmGap, bmPar } from "@/lib/model/display";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { postReview } from "@/lib/discord";
@@ -109,7 +109,7 @@ export function featuresOf(review: Review): FeatureLine[] {
     const rankWord = !w ? "" : isTop ? `our top-rated runner${w.runner.rank ? ` and #${w.runner.rank} in our four` : ""}` : w.runner.rank ? `#${w.runner.rank} in our four` : "outside our four";
     const top = t && !isTop ? ` Our top-rated ${t.runner.horseName} ${t.finish === 1 ? "won" : t.finish ? `ran ${ordinal(t.finish)}` : "ran"}.` : "";
     const calls = f.calls.length ? ` ${f.calls.map((c) => `${c.runner.signal === "lay" ? "Laid" : "Backed"} ${c.runner.horseName}, ${c.finish === 1 ? "won" : c.finish ? `${ordinal(c.finish)}` : "to run"}`).join("; ")}.` : "";
-    const par = Math.round(bm(f.race.race.classPoints));
+    const par = Math.round(bmPar(f.race.race.classPoints));
     const ran = w?.ranTo !== undefined ? ` The winner's run was worth ${bm(w.ranTo).toFixed(1)} on our scale against a par of ${par} for the grade${f.race.tempo ? `, run at a ${f.race.tempo} tempo` : ""}.` : "";
     return {
       grade: f.grade,

@@ -6,7 +6,7 @@ import { TipChip } from "./Badge";
 import { RatingsTable } from "./RatingsTable";
 import { Section } from "./Section";
 import { price } from "@/lib/format";
-import { bm } from "@/lib/model/display";
+import { bm, bmPar } from "@/lib/model/display";
 import type { PublishedRace, PublishedRunner, RunnerRatings } from "@/lib/model/types";
 
 type Metric = {
@@ -80,9 +80,9 @@ export function Rankings({ race }: { race: PublishedRace }) {
       aside={
         <span
           className="nums hidden md:inline tip tip-right cursor-help"
-          data-tip={`Par is the benchmark for a ${race.className ?? "race of this class"}: a horse rating ${bm(race.classPoints).toFixed(0)} is a typical runner at this level, above it is better than the grade.`}
+          data-tip={`Par is the benchmark for a ${race.className ?? "race of this class"}: a horse rating ${bmPar(race.classPoints).toFixed(0)} is a typical runner at this level, above it is better than the grade.`}
         >
-          Par {bm(race.classPoints).toFixed(0)}
+          Par {bmPar(race.classPoints).toFixed(0)}
         </span>
       }
     >

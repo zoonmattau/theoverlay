@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { bm } from "@/lib/model/display";
+import { bm, bmPar } from "@/lib/model/display";
 import { useEffect, useState } from "react";
 
 import { price } from "@/lib/format";
@@ -53,7 +53,7 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
   const n = Math.max(2, ...field.map((x) => (x.runs?.length ?? 0) + 1));
   const pts = field.flatMap((x) => [...(x.runs ?? []).map((r) => bm(r.points)), bm(x.ratings.today)]);
   if (pts.length === 0) return null;
-  const par = bm(race.classPoints);
+  const par = bmPar(race.classPoints);
   const lo = Math.floor(Math.min(par - 15, ...pts) / 10) * 10;
   const hi = Math.ceil(Math.max(par + 15, ...pts) / 10) * 10;
   const plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b;

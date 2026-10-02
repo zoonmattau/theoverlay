@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { fetchOfficialResult, settleByHand } from "@/lib/model/settle";
+import { checkBetwatchResult, settleByHand } from "@/lib/model/settle";
 
 export interface SettleState {
   error?: string;
@@ -27,7 +27,7 @@ export async function settleRace(_prev: SettleState, form: FormData): Promise<Se
   return { done: `${r.track} R${r.raceNumber} settled ${new Date().toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" })}.` };
 }
 
-/** An admin pulls the official result from Form King now, two credits, instead of waiting for the next rebuild. */
+/** An admin asks BetWatch for the result now, no credits, instead of waiting for the next poll. */
 export async function fetchResult(_prev: SettleState, form: FormData): Promise<SettleState> {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) return { error: "Not allowed." };
@@ -35,10 +35,10 @@ export async function fetchResult(_prev: SettleState, form: FormData): Promise<S
   const meetingId = String(form.get("meetingId") ?? "");
   const raceId = String(form.get("raceId") ?? "");
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !meetingId || !raceId) return { error: "Bad race." };
-  const r = await fetchOfficialResult(date, meetingId, raceId);
+  const r = await checkBetwatchResult(date, raceId);
   if (!r.ok) return { error: r.error };
   revalidatePath(`/racing/${date}/${meetingId}/${raceId}`);
   revalidatePath("/tips");
   revalidatePath("/");
-  return { done: `${r.track} R${r.raceNumber}: official result in, ${r.placings} placings with dividends.` };
+  return { done: `${r.track} R${r.raceNumber} settled from BetWatch.` };
 }

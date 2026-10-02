@@ -1,5 +1,5 @@
 import { Badge } from "./Badge";
-import { bm } from "@/lib/model/display";
+import { bm, bmPar } from "@/lib/model/display";
 import { FormWorm } from "./FormWorm";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
 import { percent, price, signedPercent } from "@/lib/format";
@@ -68,7 +68,7 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
       <div className="panel">
         <div className="panel-title">
           Top rated
-          <span className="ml-auto text-xs text-ink-soft nums">par {bm(race.classPoints).toFixed(0)}</span>
+          <span className="ml-auto text-xs text-ink-soft nums">par {bmPar(race.classPoints).toFixed(0)}</span>
         </div>
         {topRated.map((r, i) => (
           <div key={r.tabNumber} className="panel-row">

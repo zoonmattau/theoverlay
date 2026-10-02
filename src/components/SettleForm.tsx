@@ -45,10 +45,12 @@ export function SettleForm({ date, meetingId, raceId, runners, current = [] }: {
         </button>
       </div>
       <div className="mt-1.5 flex flex-wrap items-center gap-x-3 text-[11px] text-ink-soft">
-        <span>{settled ? "Official dividends, margins and starting prices come with the feed's result." : "Placings settle every call; dividends come with the feed's result."}</span>
-        <button type="submit" formAction={fetchAction} formNoValidate className="underline hover:text-ink" disabled={pending || fetching}>
-          {fetching ? "Asking Form King…" : "Check for it now (2 credits)"}
-        </button>
+        <span>{settled ? "Margins, SP and dividends follow with Form King's result, within three hours." : "BetWatch settles within a minute of the result."}</span>
+        {!settled && (
+          <button type="submit" formAction={fetchAction} formNoValidate className="underline hover:text-ink" disabled={pending || fetching}>
+            {fetching ? "Asking BetWatch…" : "Check BetWatch now"}
+          </button>
+        )}
         {fstate.error && <span className="text-red font-semibold">{fstate.error}</span>}
       </div>
       {state.error && <p className="mt-2 text-sm text-red font-semibold">{state.error}</p>}

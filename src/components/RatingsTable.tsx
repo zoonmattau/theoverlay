@@ -1,7 +1,7 @@
 import { TipChip } from "./Badge";
 import { MapHover } from "./MapHover";
 import { MAP_LABEL } from "./Ratings";
-import { bm, bmGap } from "@/lib/model/display";
+import { FIELD_LIFT, bm, bmGap, bmPar } from "@/lib/model/display";
 import type { PublishedRace } from "@/lib/model/types";
 
 /**
@@ -17,7 +17,7 @@ function Cell({ value, par, avg, strong }: { value: number; par: number; avg: nu
   const background = t < 0 ? `rgba(217, 54, 54, ${alpha})` : `rgba(111, 154, 18, ${alpha})`;
   const signed = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(bmGap(v)).toFixed(1)}`;
   return (
-    <td className={`text-right nums tip tip-right cursor-help ${strong ? "font-semibold" : ""}`} style={{ background }} data-tip={`${signed(value - par)} v par
+    <td className={`text-right nums tip tip-right cursor-help ${strong ? "font-semibold" : ""}`} style={{ background }} data-tip={`${signed(value + FIELD_LIFT - par)} v par
 ${signed(value - avg)} v avg`}>
       {bm(value).toFixed(1)}
     </td>
@@ -45,7 +45,7 @@ export function RatingsTable({ race, bare }: { race: PublishedRace; bare?: boole
       {!bare && (
         <div className="panel-head px-4 pt-4 mb-0">
           <h2>Ratings</h2>
-          <span className="text-xs text-muted nums">Par {bm(par).toFixed(0)}</span>
+          <span className="text-xs text-muted nums">Par {bmPar(par).toFixed(0)}</span>
         </div>
       )}
       <div className="overflow-x-auto">
