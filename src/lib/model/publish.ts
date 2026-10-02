@@ -24,7 +24,7 @@ import type {
 } from "./types";
 import { callEdge, callPrice, ROUGHIE_FROM } from "./types";
 import { decodeEntities } from "@/lib/format";
-import { classPoints, explain, lastShapeOf, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, pickLine, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
+import { classPoints, explain, lastShapeOf, FIT_TEMPERATURE, FITTED, goingBand, goingLabel, goingSurplus, cleanClock, isJumps, labelPinsGrade, mapOf, PAR_FROM_FIELD, pickLine, parFromField, rateEntries, RUN_WEIGHTS, runPoints, sectionPoints, splitOf, toFeedScale, verdict } from "./ratings";
 import { prepStage } from "./factors";
 import { rateRace, roundPrice } from "./rate";
 
@@ -591,7 +591,7 @@ function sectionsOf(p: PastEvent, today: number): { early?: number; mid?: number
 /** The last ten starts, most recent first, plus our points for each. */
 function runsOf(e: RaceEntry, todayPar: number, todayDistance: number, asOf?: number): PublishedRun[] {
   return (e.pastEvents ?? [])
-    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p))
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p)).map(cleanClock)
     .sort((a, b) => b.date - a.date)
     .slice(0, 10)
     .map((p, i) => ({

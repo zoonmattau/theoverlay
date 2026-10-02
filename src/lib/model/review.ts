@@ -1,6 +1,7 @@
 import "server-only";
 
 import { getHorse } from "@/lib/formking/client";
+import { bmGap } from "./display";
 import type { PastEvent, SectionKey } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { clockPoints, TEMPO_LENGTHS } from "./ratings";
@@ -472,7 +473,7 @@ function talkingPoints(withRace: (ReviewedRunner & { race: ReviewedRace })[]): T
   // Against the field: the relative gap takes the race's own level out, so
   // a horse beaten two lengths in a race run eight under par is not blamed
   // for the race.
-  const level = (r: ReviewedRunner & { race: ReviewedRace }) => (r.race.bias !== undefined && Math.abs(r.race.bias) >= 3 ? ` The race was run ${Math.abs(r.race.bias).toFixed(1)} points ${r.race.bias > 0 ? "above" : "below"} par.` : "");
+  const level = (r: ReviewedRunner & { race: ReviewedRace }) => (r.race.bias !== undefined && Math.abs(r.race.bias) >= 3 ? ` The race was run ${Math.abs(bmGap(r.race.bias)).toFixed(1)} points ${r.race.bias > 0 ? "above" : "below"} par.` : "");
   const fancied = sane.filter((r) => r.relGap !== undefined && r.runner.ratings.runs >= 2 && (r.runner.rank || (r.sp && r.sp <= 5)));
   for (const r of [...fancied].filter((r) => r.relGap! <= -3).sort((a, b) => a.relGap! - b.relGap!).slice(0, 3)) {
     out.push({ kind: "disappointing", runner: r, text: `${r.runner.rank ? `Our #${r.runner.rank}` : "Fancied by the market"}, and ran well below its place in our order.${level(r)}` });

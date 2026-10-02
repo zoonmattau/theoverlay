@@ -123,6 +123,8 @@ export interface PublishedRun {
   latePts?: number;
   /** One of the runs the ratings are built on: the last five. */
   counted?: boolean;
+  /** We have a race page for it, set when the race is read; a non-TAB meeting never had one. */
+  linked?: boolean;
   /** Identifies the race, so runs can be matched across today's field. */
   raceKey?: string;
   /** Form King's ids, so the run can link to that race's page when we hold a card for the day. */

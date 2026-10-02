@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { bm, bmGap } from "@/lib/model/display";
 import { useMemo, useState } from "react";
 
 import type { HorseSummary } from "@/lib/model/horses";
@@ -47,7 +48,8 @@ function value(h: HorseSummary, key: Key): number | string {
   }
 }
 
-const fmt = (v: number | string) => (typeof v === "number" ? (v < 0 ? "—" : v.toFixed(1)) : v);
+// Ratings print in benchmark points; a negative engine number is the "no rating" sentinel.
+const fmt = (v: number | string) => (typeof v === "number" ? (v < 0 ? "—" : bm(v).toFixed(1)) : v);
 const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 
 /**
@@ -138,7 +140,7 @@ export function HorsesTable({ rows, chosen, total, query, canPick, seen }: { row
                   <td className="text-right nums font-semibold">{fmt(value(h, "class"))}</td>
                   <td className="text-right nums">{fmt(value(h, "peak"))}</td>
                   <td className={`text-right nums ${h.trend === null ? "text-ink-soft" : h.trend > 0.5 ? "text-accent" : h.trend < -0.5 ? "text-red" : ""}`}>
-                    {h.trend === null ? "\u2014" : `${h.trend > 0 ? "+" : h.trend < 0 ? "\u2212" : ""}${Math.abs(h.trend).toFixed(1)}${h.trend > 0.5 ? " \u2197" : h.trend < -0.5 ? " \u2198" : ""}`}
+                    {h.trend === null ? "\u2014" : `${h.trend > 0 ? "+" : h.trend < 0 ? "\u2212" : ""}${Math.abs(bmGap(h.trend)).toFixed(1)}${h.trend > 0.5 ? " \u2197" : h.trend < -0.5 ? " \u2198" : ""}`}
                   </td>
                   <td className="text-right nums">{fmt(value(h, "early"))}</td>
                   <td className="text-right nums">{fmt(value(h, "mid"))}</td>

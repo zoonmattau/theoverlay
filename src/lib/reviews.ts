@@ -1,6 +1,7 @@
 import "server-only";
 
 import { revalidatePath } from "next/cache";
+import { bm, bmGap } from "@/lib/model/display";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { postReview } from "@/lib/discord";
@@ -78,7 +79,7 @@ export const REVIEW_BANNER_MS = 2 * 24 * 60 * 60_000;
 
 const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? "th" : (["th", "st", "nd", "rd"][n % 10] ?? "th")}`;
 const money = (n?: number) => (n ? ` at $${n.toFixed(2)}` : "");
-const pts = (n: number) => `${Math.abs(n).toFixed(1)} points`;
+const pts = (n: number) => `${Math.abs(bmGap(n)).toFixed(1)} points`;
 
 /** The talking points said for the public: points on our scale, never lengths against a benchmark. */
 export function storylinesOf(review: Review): Storyline[] {
@@ -87,10 +88,10 @@ export function storylinesOf(review: Review): Storyline[] {
     const r = t.runner;
     const where = `${r.race.meeting.track} R${r.race.race.raceNumber}`;
     const result = r.finish === 1 ? "won" : r.finish ? `ran ${ordinal(r.finish)}${r.margin !== undefined ? `, beaten ${r.margin.toFixed(1)} lengths` : ""}` : "ran";
-    const mark = r.expected.toFixed(1);
+    const mark = bm(r.expected).toFixed(1);
     let text: string | undefined;
-    if (t.kind === "run of the day") text = `${r.runner.horseName} put up the run of the day at ${where}: a run worth ${r.ranTo?.toFixed(1)} on our scale against the ${mark} we expected, and ${result}${money(r.sp)}.`;
-    else if (t.kind === "under the radar" && r.gap !== undefined) text = `${r.runner.horseName} slipped under the radar at ${where}: ${result}${money(r.sp)}, but the run was worth ${r.ranTo?.toFixed(1)}, ${pts(r.gap)} above what we expected. One to follow.`;
+    if (t.kind === "run of the day") text = `${r.runner.horseName} put up the run of the day at ${where}: a run worth ${r.ranTo !== undefined ? bm(r.ranTo).toFixed(1) : ""} on our scale against the ${mark} we expected, and ${result}${money(r.sp)}.`;
+    else if (t.kind === "under the radar" && r.gap !== undefined) text = `${r.runner.horseName} slipped under the radar at ${where}: ${result}${money(r.sp)}, but the run was worth ${r.ranTo !== undefined ? bm(r.ranTo).toFixed(1) : ""}, ${pts(r.gap)} above what we expected. One to follow.`;
     else if (t.kind === "disappointing" && r.relGap !== undefined) text = `${r.runner.horseName} was the disappointment at ${where}: ${result}${money(r.sp)}, ${pts(r.relGap)} below its place in our order.`;
     else if (t.kind === "improver" && r.relGap !== undefined) text = `${r.runner.horseName} improved the most on our numbers: ${pts(r.relGap)} above its place in our order at ${where}, and ${result}${money(r.sp)}.`;
     if (!text) continue;
@@ -108,8 +109,8 @@ export function featuresOf(review: Review): FeatureLine[] {
     const rankWord = !w ? "" : isTop ? `our top-rated runner${w.runner.rank ? ` and #${w.runner.rank} in our four` : ""}` : w.runner.rank ? `#${w.runner.rank} in our four` : "outside our four";
     const top = t && !isTop ? ` Our top-rated ${t.runner.horseName} ${t.finish === 1 ? "won" : t.finish ? `ran ${ordinal(t.finish)}` : "ran"}.` : "";
     const calls = f.calls.length ? ` ${f.calls.map((c) => `${c.runner.signal === "lay" ? "Laid" : "Backed"} ${c.runner.horseName}, ${c.finish === 1 ? "won" : c.finish ? `${ordinal(c.finish)}` : "to run"}`).join("; ")}.` : "";
-    const par = f.race.race.classPoints;
-    const ran = w?.ranTo !== undefined ? ` The winner's run was worth ${w.ranTo.toFixed(1)} on our scale against a par of ${par} for the grade${f.race.tempo ? `, run at a ${f.race.tempo} tempo` : ""}.` : "";
+    const par = Math.round(bm(f.race.race.classPoints));
+    const ran = w?.ranTo !== undefined ? ` The winner's run was worth ${bm(w.ranTo).toFixed(1)} on our scale against a par of ${par} for the grade${f.race.tempo ? `, run at a ${f.race.tempo} tempo` : ""}.` : "";
     return {
       grade: f.grade,
       track: f.race.meeting.track,
@@ -119,18 +120,18 @@ export function featuresOf(review: Review): FeatureLine[] {
       meetingId: f.race.meeting.meetingId,
       raceId: f.race.race.raceId,
       par,
-      winnerRanTo: w?.ranTo,
+      winnerRanTo: w?.ranTo !== undefined ? bm(w.ranTo) : undefined,
       tempo: f.race.tempo,
       winner: w?.runner.horseName,
       winnerSp: w?.sp,
       winnerRank: w?.runner.rank ?? undefined,
       topRated: t?.runner.horseName,
       topRatedFinish: t?.finish,
-      placings: f.placings.map((p) => ({ finish: p.finish!, horse: p.runner.horseName, sp: p.sp, mark: p.expected, rank: p.runner.rank ?? undefined, ranTo: p.ranTo })),
+      placings: f.placings.map((p) => ({ finish: p.finish!, horse: p.runner.horseName, sp: p.sp, mark: bm(p.expected), rank: p.runner.rank ?? undefined, ranTo: p.ranTo !== undefined ? bm(p.ranTo) : undefined })),
       ourFour: f.race.runners
         .filter((x) => x.runner.rank)
         .sort((a, b) => a.runner.rank! - b.runner.rank!)
-        .map((x) => ({ rank: x.runner.rank!, horse: x.runner.horseName, mark: x.expected, ratedPrice: x.runner.ratedPrice, marketPrice: x.runner.marketPrice, finish: x.finish, call: x.runner.signal })),
+        .map((x) => ({ rank: x.runner.rank!, horse: x.runner.horseName, mark: bm(x.expected), ratedPrice: x.runner.ratedPrice, marketPrice: x.runner.marketPrice, finish: x.finish, call: x.runner.signal })),
       calls: f.calls.map((c) => ({ side: c.runner.signal!, horse: c.runner.horseName, marketPrice: c.runner.marketPrice!, finish: c.finish, units: c.finish !== undefined ? settle(c.runner.signal!, c.runner.marketPrice!, c.finish, stakeOf(c.runner)) : undefined })),
       units: f.units,
       text: w ? `${w.runner.horseName} won${money(w.sp)}, ${rankWord}.${top}${ran}${calls}` : "Not run yet.",

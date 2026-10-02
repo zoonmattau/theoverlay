@@ -1,5 +1,6 @@
 import { price, signedPercent } from "@/lib/format";
 import type { PublishedRace, PublishedRunner } from "./types";
+import { bmGap } from "./display";
 
 /** Points above or below class that count as a real difference. */
 const GAP = 1.5;
@@ -153,7 +154,7 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
   const h = r.horse;
   const last = r.runs?.[0];
   const field = race.runners.filter((x) => !x.scratched).length;
-  const pts = (v: number) => `${Math.abs(v).toFixed(1)} ${Math.abs(v) === 1 ? "point" : "points"}`;
+  const pts = (v: number) => `${Math.abs(bmGap(v)).toFixed(1)} ${Math.abs(bmGap(v)) === 1 ? "point" : "points"}`;
 
   // Class move from the last start.
   const lastClass = classNumber(last?.className);
@@ -166,8 +167,8 @@ export function observations(r: PublishedRunner, race: PublishedRace): Observati
 
   // The fight for the lead.
   const front = g.map === "leader" || g.map === "on pace";
-  if (front && race.pace.leaderGap !== undefined && race.pace.leaderGap < 1) out.push({ weight: 4, tone: -1, text: "has company for the lead, the two best beginners are within a point" });
-  else if (g.map === "leader" && race.pace.leaderGap !== undefined && race.pace.leaderGap >= 3) out.push({ weight: 4, tone: 1, text: "is the lone speed, three points clear on early sectionals" });
+  if (front && race.pace.leaderGap !== undefined && race.pace.leaderGap < 1) out.push({ weight: 4, tone: -1, text: "has company for the lead, the two best beginners are close together on early speed" });
+  else if (g.map === "leader" && race.pace.leaderGap !== undefined && race.pace.leaderGap >= 3) out.push({ weight: 4, tone: 1, text: "is the lone speed, well clear on early sectionals" });
 
   // Last start.
   if (last?.finish === 1) out.push({ weight: 3, tone: 1, text: pick(r, ["won last start", "comes off a win", "is a last-start winner"]) });

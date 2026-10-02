@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/billing/access";
+import { bm } from "@/lib/model/display";
 import { planCovers } from "@/lib/billing/plans";
 import { isAdminEmail } from "@/lib/auth";
 import { longDate } from "@/lib/format";
@@ -205,7 +206,7 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
   const lead = r.pace.leaderGap !== undefined && r.pace.leaderGap < 1 ? "a contested lead" : r.pace.leaderGap !== undefined && r.pace.leaderGap >= 3 ? "one horse on its own in front" : "no fight for the lead";
   const leader = live.find((x) => x.ratings.map === "leader");
   const shape = `${tempo} on our read of the early sectionals, with ${lead}${leader ? `, ${leader.horseName} the likely leader` : ""}.`;
-  const four = top.map((x) => `${x.rank}. **${x.tabNumber}. ${x.horseName}** rates ${x.ratings.today.toFixed(0)}, ${price(x.ratedPrice)} against ${price(x.marketPrice)}${x.why ? `. ${x.why}` : ""}`).join("\n");
+  const four = top.map((x) => `${x.rank}. **${x.tabNumber}. ${x.horseName}** rates ${bm(x.ratings.today).toFixed(0)}, ${price(x.ratedPrice)} against ${price(x.marketPrice)}${x.why ? `. ${x.why}` : ""}`).join("\n");
   const own = calls.filter((c) => c.r.raceId === r.raceId);
   const bets = own.filter((c) => c.x.signal === "back");
   const called = [

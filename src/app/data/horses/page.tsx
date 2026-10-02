@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { bm } from "@/lib/model/display";
 import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
@@ -89,7 +90,7 @@ async function Horses({ searchParams }: { searchParams: Params }) {
             {hits.map((h) => (
               <li key={h.id}>
                 <Link href={open ? withHorse(h.id) : "/pricing"} className="badge badge-muted hover:bg-lime hover:text-ink">
-                  {h.name}{h.class !== null ? ` · ${h.class.toFixed(1)}` : ""}{h.lastTrack ? ` · ${h.lastTrack}` : ""}
+                  {h.name}{h.class !== null ? ` · ${bm(h.class).toFixed(1)}` : ""}{h.lastTrack ? ` · ${h.lastTrack}` : ""}
                 </Link>
               </li>
             ))}
@@ -164,7 +165,7 @@ async function Horses({ searchParams }: { searchParams: Params }) {
                             <td>{r.horseName}</td>
                             <td className="text-right nums">{price(r.ratedPrice)}</td>
                             <td className="text-right nums">{percent(r.ratedProbability)}</td>
-                            <td className="text-right nums">{r.ratings.today.toFixed(1)}</td>
+                            <td className="text-right nums">{bm(r.ratings.today).toFixed(1)}</td>
                             <td className="text-xs text-ink-secondary">{MAP_LABEL[r.ratings.map]}</td>
                             <td className="text-xs text-ink-secondary">{r.why ?? ""}</td>
                           </tr>

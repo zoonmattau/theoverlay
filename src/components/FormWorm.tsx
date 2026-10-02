@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { bm } from "@/lib/model/display";
 import { useEffect, useState } from "react";
 
 import { price } from "@/lib/format";
@@ -17,8 +18,8 @@ interface Hover {
 }
 
 /** The first date we hold a card for; earlier races have no page to open. */
-const FIRST_CARD = "2026-09-11";
-const raceHref = (run: PublishedRun) => (run.raceId && run.meetingId && run.date >= FIRST_CARD ? `/racing/${run.date}/${encodeURIComponent(run.meetingId)}/${encodeURIComponent(run.raceId)}` : undefined);
+// Only a race we built a page for: a run at a non-TAB meeting has nowhere to land.
+const raceHref = (run: PublishedRun) => (run.linked && run.raceId && run.meetingId ? `/racing/${run.date}/${encodeURIComponent(run.meetingId)}/${encodeURIComponent(run.raceId)}` : undefined);
 
 const ord = (n: number) => `${n}${n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th"}`;
 /** "4.5 above par" or "2.0 below par", from the points and today's par. */
@@ -50,19 +51,19 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
   const field = race.runners.filter((x) => !x.scratched && (x.runs?.length ?? 0) > 0);
   // One slot per past run, plus one on the right for today.
   const n = Math.max(2, ...field.map((x) => (x.runs?.length ?? 0) + 1));
-  const pts = field.flatMap((x) => [...(x.runs ?? []).map((r) => r.points), x.ratings.today]);
+  const pts = field.flatMap((x) => [...(x.runs ?? []).map((r) => bm(r.points)), bm(x.ratings.today)]);
   if (pts.length === 0) return null;
-  const par = race.classPoints;
-  const lo = Math.floor(Math.min(par - 6, ...pts) / 5) * 5;
-  const hi = Math.ceil(Math.max(par + 6, ...pts) / 5) * 5;
+  const par = bm(race.classPoints);
+  const lo = Math.floor(Math.min(par - 15, ...pts) / 10) * 10;
+  const hi = Math.ceil(Math.max(par + 15, ...pts) / 10) * 10;
   const plotW = W - PAD.l - PAD.r, plotH = H - PAD.t - PAD.b;
   // Slot i from the right: today sits in the rightmost slot, the last run next to it.
   const x = (back: number) => PAD.l + plotW - (back * plotW) / (n - 1);
   const y = (v: number) => PAD.t + ((hi - v) / (hi - lo)) * plotH;
-  const series = (f: PublishedRunner) => [f.ratings.today, ...(f.runs ?? []).map((r) => r.points)];
+  const series = (f: PublishedRunner) => [bm(f.ratings.today), ...(f.runs ?? []).map((r) => bm(r.points))];
   const path = (values: number[]) => values.map((v, i) => `${i === 0 ? "M" : "L"}${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(" ");
   const ticks: number[] = [];
-  for (let v = lo; v <= hi; v += 5) ticks.push(v);
+  for (let v = lo; v <= hi; v += 10) ticks.push(v);
   const tone = runner ? (runner.prime ? "is-prime" : runner.signal === "back" ? "is-back" : runner.signal === "lay" ? "is-lay" : "") : "";
   const toneOf = (f: PublishedRunner) => (f.prime ? "is-prime" : f.signal === "back" ? "is-back" : f.signal === "lay" ? "is-lay" : "");
   const dots = (f: PublishedRunner, cls: string, r: number) => (
@@ -71,10 +72,10 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
         <circle
           key={`${run.date}-${i}`}
           cx={x(i + 1)}
-          cy={y(run.points)}
+          cy={y(bm(run.points))}
           r={r}
           className={`${cls} ${raceHref(run) ? "worm-dot-link" : ""}`}
-          onMouseEnter={() => setHover({ x: x(i + 1), y: y(run.points), runner: f, run })}
+          onMouseEnter={() => setHover({ x: x(i + 1), y: y(bm(run.points)), runner: f, run })}
           onMouseLeave={() => setHover(null)}
           onClick={(e) => {
             const href = raceHref(run);
@@ -86,10 +87,10 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
       ))}
       <circle
         cx={x(0)}
-        cy={y(f.ratings.today)}
+        cy={y(bm(f.ratings.today))}
         r={r + 1}
         className={cls}
-        onMouseEnter={() => setHover({ x: x(0), y: y(f.ratings.today), runner: f })}
+        onMouseEnter={() => setHover({ x: x(0), y: y(bm(f.ratings.today)), runner: f })}
         onMouseLeave={() => setHover(null)}
       />
     </>
@@ -117,7 +118,7 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
             </g>
           ))}
           <line x1={PAD.l} x2={W - PAD.r} y1={y(par)} y2={y(par)} className="worm-par" />
-          <text x={W - PAD.r} y={y(par) - 4} className="worm-tick" textAnchor="end">par {par}</text>
+          <text x={W - PAD.r} y={y(par) - 4} className="worm-tick" textAnchor="end">par {par.toFixed(0)}</text>
           <line x1={x(0.5)} x2={x(0.5)} y1={PAD.t} y2={H - PAD.b} className="worm-today" />
           {field.filter((f) => f.tabNumber !== runner?.tabNumber).map((f) => (
             <g key={f.tabNumber} className={`worm-runner ${hover?.runner.tabNumber === f.tabNumber ? "is-hover" : ""} ${!runner && f.signal ? `is-called ${toneOf(f)}` : ""}`}>
@@ -147,12 +148,12 @@ export function FormWorm({ race, runner, full: isFull }: { race: PublishedRace; 
                 {hover.run.className ? <><dt>Class</dt><dd>{hover.run.className}</dd></> : null}
                 <dt>Result</dt><dd>{hover.run.finish ? `${ord(hover.run.finish)}${hover.run.runners ? ` of ${hover.run.runners}` : ""}` : "unplaced"}{hover.run.margin !== undefined && hover.run.finish !== 1 ? `, ${hover.run.margin.toFixed(1)}L` : ""}</dd>
                 {hover.run.sp ? <><dt>SP</dt><dd>{price(hover.run.sp)}</dd></> : null}
-                <dt>Points</dt><dd className="worm-tip-pts">{hover.run.points.toFixed(1)}<span>, {vsPar(hover.run.points, par)}</span></dd>
+                <dt>Points</dt><dd className="worm-tip-pts">{bm(hover.run.points).toFixed(1)}<span>, {vsPar(bm(hover.run.points), par)}</span></dd>
                 {raceHref(hover.run) && <><dt /><dd className="text-accent font-bold">Click to open this race</dd></>}
               </dl>
             ) : (
               <dl className="worm-tip-grid">
-                <dt>Today</dt><dd className="worm-tip-pts">{hover.runner.ratings.today.toFixed(1)}<span>, {vsPar(hover.runner.ratings.today, par)}</span></dd>
+                <dt>Today</dt><dd className="worm-tip-pts">{bm(hover.runner.ratings.today).toFixed(1)}<span>, {vsPar(bm(hover.runner.ratings.today), par)}</span></dd>
                 <dt>Rated</dt><dd>{price(hover.runner.ratedPrice)}</dd>
                 {hover.runner.marketPrice ? <><dt>Market</dt><dd>{price(hover.runner.marketPrice)}</dd></> : null}
               </dl>

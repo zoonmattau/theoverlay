@@ -1,4 +1,5 @@
 import { PickCard } from "./PickCard";
+import { bm } from "@/lib/model/display";
 import { BookieLink } from "./BookieLink";
 import { MarketHover } from "./MarketHover";
 import { Factors } from "./Factors";
@@ -78,11 +79,11 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
             <div className="flex items-center gap-3 pt-2 border-t border-line-soft">
               <div className="today-tile py-2 px-3 min-w-[84px]">
                 <div className="today-label">Today</div>
-                <div className="today-value nums text-xl">{r.ratings.today.toFixed(1)}</div>
+                <div className="today-value nums text-xl">{bm(r.ratings.today).toFixed(1)}</div>
               </div>
               <div className="pick-nums flex-1 border-t-0 pt-0" style={{ gridTemplateColumns: "repeat(3, 1fr)" }}>
-                <Num label="Class" value={r.ratings.class.toFixed(1)} />
-                <Num label="Late" value={r.ratings.late.toFixed(1)} />
+                <Num label="Class" value={bm(r.ratings.class).toFixed(1)} />
+                <Num label="Late" value={bm(r.ratings.late).toFixed(1)} />
                 <Num label="Map" value={MAP_LABEL[r.ratings.map]} small />
               </div>
             </div>

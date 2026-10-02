@@ -135,6 +135,14 @@ export async function readRaceRuns(date: string, raceId: string): Promise<Record
   return (data?.runs as Record<string, unknown[]> | undefined) ?? {};
 }
 
+/** Which of these races we built a page for: the ones with a race_runs row. */
+export async function racesWithPages(raceIds: string[]): Promise<Set<string>> {
+  if (raceIds.length === 0) return new Set();
+  const { data, error } = await supabaseAdmin().from("race_runs").select("race_id").in("race_id", raceIds);
+  if (error) throw new Error(`[race_runs] pages: ${error.message}`);
+  return new Set((data ?? []).map((r) => String(r.race_id)));
+}
+
 /** Takes the refresh lock for a date; false when someone else holds a fresh one. */
 export async function claimRefresh(date: string): Promise<boolean> {
   const db = supabaseAdmin();

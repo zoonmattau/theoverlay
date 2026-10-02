@@ -1,4 +1,5 @@
 import { Badge } from "./Badge";
+import { bm } from "@/lib/model/display";
 import { FormWorm } from "./FormWorm";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
 import { percent, price, signedPercent } from "@/lib/format";
@@ -67,7 +68,7 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
       <div className="panel">
         <div className="panel-title">
           Top rated
-          <span className="ml-auto text-xs text-ink-soft nums">par {race.classPoints}</span>
+          <span className="ml-auto text-xs text-ink-soft nums">par {bm(race.classPoints).toFixed(0)}</span>
         </div>
         {topRated.map((r, i) => (
           <div key={r.tabNumber} className="panel-row">
@@ -78,7 +79,7 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
               </span>
             </span>
             <span className="nums whitespace-nowrap">
-              <span className="font-bold">{r.ratings.today.toFixed(1)}</span>
+              <span className="font-bold">{bm(r.ratings.today).toFixed(1)}</span>
               <span className="text-ink-soft text-xs"> · {price(r.ratedPrice)}</span>
             </span>
           </div>

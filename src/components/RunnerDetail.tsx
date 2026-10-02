@@ -7,6 +7,7 @@ import type { CallAdmin } from "./RunnerTable";
 import { Factors } from "./Factors";
 import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
+import { bm, bmGap } from "@/lib/model/display";
 import { MAP_LABEL } from "./Ratings";
 import { personKey } from "@/lib/data/people";
 import type { PersonPower } from "@/lib/data/race-facts";
@@ -51,12 +52,12 @@ const SECTION_WHAT: Record<string, string> = {
 /** The runs a sectional rating is built on, one line each: the section is class plus each counted run's lengths at what a length was worth over that trip. */
 function sectionLines(runs: PublishedRun[], cls: number, pick: (run: PublishedRun) => number | undefined, points: (run: PublishedRun) => number | undefined): string {
   const used = runs.filter((run) => run.counted && pick(run) !== undefined && points(run) !== undefined);
-  if (used.length === 0) return `\nNo sectionals in its last ${Math.min(5, runs.length)} runs, so it sits at its class rating of ${cls.toFixed(1)}.`;
+  if (used.length === 0) return `\nNo sectionals in its last ${Math.min(5, runs.length)} runs, so it sits at its class rating of ${bm(cls).toFixed(1)}.`;
   const signed = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}L`;
-  const pts = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}`;
+  const pts = (v: number) => `${v >= 0 ? "+" : "−"}${Math.abs(bmGap(v)).toFixed(1)}`;
   const lines = used.map((run) => `${day(run.date)} ${run.track ?? ""} ${run.distance}m${run.finish ? `, ${ord(run.finish)}` : ""}: ${signed(pick(run)!)} v benchmark, worth ${pts(points(run)!)} read for the trip`);
   const mean = used.reduce((a, run) => a + points(run)!, 0) / used.length;
-  return `\nClass ${cls.toFixed(1)} plus the average over ${used.length} of its last ${Math.min(5, runs.length)} runs, ${pts(mean)}:\n${lines.join("\n")}`;
+  return `\nClass ${bm(cls).toFixed(1)} plus the average over ${used.length} of its last ${Math.min(5, runs.length)} runs, ${pts(mean)}:\n${lines.join("\n")}`;
 }
 
 function SectionalBar({ label, value, avg, runs, cls, pick, points }: { label: string; value: number; avg: number; runs: PublishedRun[]; cls: number; pick: (run: PublishedRun) => number | undefined; points: (run: PublishedRun) => number | undefined }) {
@@ -64,7 +65,7 @@ function SectionalBar({ label, value, avg, runs, cls, pick, points }: { label: s
   const pct = Math.min(100, Math.max(0, 50 + diff * 5));
   const verdict =
     diff >= 2 ? "well above this field" : diff >= 0.5 ? "a little above this field" : diff <= -2 ? "well below this field" : diff <= -0.5 ? "a little below this field" : "about the field average";
-  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${value.toFixed(1)} against a field average of ${avg.toFixed(1)}, so ${verdict}.${sectionLines(runs, cls, pick, points)}`;
+  const tip = `${label} speed: ${SECTION_WHAT[label]}. Rated ${bm(value).toFixed(1)} against a field average of ${bm(avg).toFixed(1)}, so ${verdict}.${sectionLines(runs, cls, pick, points)}`;
   return (
     <div className="sec-row tip" data-tip={tip}>
       <span className="sec-label">{label}</span>
@@ -73,7 +74,7 @@ function SectionalBar({ label, value, avg, runs, cls, pick, points }: { label: s
         <span className={`sec-fill ${diff >= 0 ? "is-up" : "is-down"}`} style={diff >= 0 ? { left: "50%", width: `${pct - 50}%` } : { left: `${pct}%`, width: `${50 - pct}%` }} />
       </span>
       <span className={`sec-value nums ${diff > 0.5 ? "text-accent" : diff < -0.5 ? "text-red" : "text-ink-soft"}`}>
-        {value.toFixed(1)} <small>{diff >= 0 ? "+" : ""}{diff.toFixed(1)}</small>
+        {bm(value).toFixed(1)} <small>{diff >= 0 ? "+" : ""}{bmGap(diff).toFixed(1)}</small>
       </span>
     </div>
   );
@@ -159,18 +160,18 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
   // The points a factor adds to or takes from Today, next to the fact it came from, with the reason on hover.
   const last = runs[0];
   const band = race.going;
-  const gap = (v: number) => `${Math.abs(v).toFixed(1)} ${v >= 0 ? "above" : "below"}`;
+  const gap = (v: number) => `${Math.abs(bmGap(v)).toFixed(1)} ${v >= 0 ? "above" : "below"}`;
   const why: Record<keyof typeof g.factors, string> = {
     trainer: r.trainerWin !== undefined ? `The stable has won ${r.trainerWin.toFixed(0)}% of its runners in the last twelve months, against 12% for an average stable.` : "No stable record to go on.",
     jockey: r.jockeyWin !== undefined ? `The rider has won ${r.jockeyWin.toFixed(0)}% of rides in the last twelve months, against 12% for an average rider.` : "No riding record to go on.",
     weight: weightWhy(),
-    distance: `Its runs within 200m of ${race.distance}m rate ${g.distance.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.distance - g.class)}.`,
-    track: `Its runs at this track rate ${g.track.toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.track - g.class)}.`,
-    going: `Its ${band}-track runs rate ${g.going[band].toFixed(1)}, class ${g.class.toFixed(1)}, so ${gap(g.going[band] - g.class)}. A band with no runs sits at class.`,
-    tempo: race.pace.tempo === "even" ? "An even tempo is expected, which favours nobody." : `A ${race.pace.tempo} tempo is expected. Its runs at that tempo rate ${(race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow).toFixed(1)}, class ${g.class.toFixed(1)}.`,
+    distance: `Its runs within 200m of ${race.distance}m rate ${bm(g.distance).toFixed(1)}, class ${bm(g.class).toFixed(1)}, so ${gap(g.distance - g.class)}.`,
+    track: `Its runs at this track rate ${bm(g.track).toFixed(1)}, class ${bm(g.class).toFixed(1)}, so ${gap(g.track - g.class)}.`,
+    going: `Its ${band}-track runs rate ${bm(g.going[band]).toFixed(1)}, class ${bm(g.class).toFixed(1)}, so ${gap(g.going[band] - g.class)}. A band with no runs sits at class.`,
+    tempo: race.pace.tempo === "even" ? "An even tempo is expected, which favours nobody." : `A ${race.pace.tempo} tempo is expected. Its runs at that tempo rate ${bm(race.pace.tempo === "fast" ? g.tempo.fast : g.tempo.slow).toFixed(1)}, class ${bm(g.class).toFixed(1)}.`,
     fresh: freshWhy(),
     barrier: `Barrier ${r.barrier}, ${ord(race.runners.filter((x) => !x.scratched && x.barrier < r.barrier).length + 1)} from the rail of ${race.runners.filter((x) => !x.scratched).length} once scratchings are out, for a runner that ${MAP_LABEL[g.map].toLowerCase()}, over ${race.distance}m. ${g.map === "leader" || g.map === "on pace" ? "A wide gate means working early to hold a spot; an inside one saves that." : "Back in the field the draw matters less, though a very wide gate costs cover and a rail draw in a big field can mean being held up."}`,
-    sections: race.pace.tempo === "fast" ? `A fast tempo is expected, so its late sectional under pressure counts: ${g.pressure.toFixed(1)}, class ${g.class.toFixed(1)}, ${gap(g.pressure - g.class)}.` : race.pace.tempo === "slow" ? `A slow tempo is expected, so its early speed counts: ${g.early.toFixed(1)}, class ${g.class.toFixed(1)}, ${gap(g.early - g.class)}.` : `An even tempo is expected, so its whole sectional profile counts: ${((g.early + g.mid + g.late) / 3).toFixed(1)}, class ${g.class.toFixed(1)}, ${gap((g.early + g.mid + g.late) / 3 - g.class)}.`,
+    sections: race.pace.tempo === "fast" ? `A fast tempo is expected, so its late sectional under pressure counts: ${bm(g.pressure).toFixed(1)}, class ${bm(g.class).toFixed(1)}, ${gap(g.pressure - g.class)}.` : race.pace.tempo === "slow" ? `A slow tempo is expected, so its early speed counts: ${bm(g.early).toFixed(1)}, class ${bm(g.class).toFixed(1)}, ${gap(g.early - g.class)}.` : `An even tempo is expected, so its whole sectional profile counts: ${bm((g.early + g.mid + g.late) / 3).toFixed(1)}, class ${bm(g.class).toFixed(1)}, ${gap((g.early + g.mid + g.late) / 3 - g.class)}.`,
     shape: shapeWhy(),
     streak: "A horse on a winning run goes better than its clock says: over the cache the form gave horses with their last two runs won about half their real chance.",
     market: "Form King's own view of this runner against the rest of the field.",
@@ -178,7 +179,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
   function shapeWhy(): string {
     const front = g.map === "leader" || g.map === "on pace";
     const where = front ? "settles on the speed" : "settles off the speed";
-    const lead = race.pace.leaderGap === undefined ? "" : race.pace.leaderGap < 1 ? " The lead is contested, the two best beginners within a point of each other, which costs the horses on the speed." : race.pace.leaderGap >= 3 && g.map === "leader" ? " It is the lone speed, three points clear on early sectionals, and gets the lead to itself." : "";
+    const lead = race.pace.leaderGap === undefined ? "" : race.pace.leaderGap < 1 ? " The lead is contested, the two best beginners close together on early speed, which costs the horses on the speed." : race.pace.leaderGap >= 3 && g.map === "leader" ? " It is the lone speed, well clear on early sectionals, and gets the lead to itself." : "";
     const closes = `It closes ${gap(g.late - avg.late)} the field's average`;
     if (race.pace.tempo === "even") return `An even tempo is expected, so where it settles is no edge either way.${front ? lead : ""}`;
     if (race.pace.tempo === "slow") return front ? `A slow tempo is expected and it ${where}: an easy time up front, hard to run down.${lead}` : `A slow tempo is expected and it ${where}: it has to make its own ground. ${closes}, and the better it closes the more a crawl costs it.`;
@@ -219,17 +220,17 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
   const fx = (key: keyof typeof g.factors) => {
     const v = g.factors[key] ?? 0;
     const cls = !v ? "" : v > 0 ? "is-up" : "is-down";
-    const text = `${v > 0 ? "+" : ""}${v.toFixed(1)}`;
+    const text = `${v > 0 ? "+" : ""}${bmGap(v).toFixed(1)}`;
     const href = hub[key];
     if (href) return <Link href={href} className={`factor nums ml-1.5 tip cursor-pointer ${cls}`} data-tip={`${why[key]} Click for the profile.`}>{text}</Link>;
     return <span className={`factor nums ml-1.5 tip cursor-help ${cls}`} data-tip={why[key]}>{text}</span>;
   };
   const tile = (label: string, value: number, what: string) => {
     const gap = value - g.class;
-    const verdict = gap > 1 ? `above its class rating of ${g.class.toFixed(1)}, a plus today` : gap < -1 ? `below its class rating of ${g.class.toFixed(1)}, a query today` : `in line with its class rating of ${g.class.toFixed(1)}`;
+    const verdict = gap > 1 ? `above its class rating of ${bm(g.class).toFixed(1)}, a plus today` : gap < -1 ? `below its class rating of ${bm(g.class).toFixed(1)}, a query today` : `in line with its class rating of ${bm(g.class).toFixed(1)}`;
     return (
-      <div className={`cond-tile tip ${gap > 1 ? "is-up" : gap < -1 ? "is-down" : ""}`} data-tip={`${what}: rated ${value.toFixed(1)}, ${verdict}.`}>
-        <span className="nums">{value.toFixed(1)}</span>
+      <div className={`cond-tile tip ${gap > 1 ? "is-up" : gap < -1 ? "is-down" : ""}`} data-tip={`${what}: rated ${bm(value).toFixed(1)}, ${verdict}.`}>
+        <span className="nums">{bm(value).toFixed(1)}</span>
         <small>{label}</small>
       </div>
     );
@@ -245,7 +246,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
           <div><dt>Jockey</dt><dd>{r.jockey ?? "—"}{fx("jockey")}<Standing people={people} name={r.jockey} what="rides" /></dd></div>
           <div><dt>Barrier</dt><dd className="nums">{r.barrier}{fx("barrier")}</dd></div>
           <div><dt>Weight</dt><dd className="nums">{r.weight ?? "—"}kg{fx("weight")}</dd></div>
-          <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}<span className="factor is-base nums ml-1.5" title={`Class rating from its runs, the base every factor moves. Today ${g.today.toFixed(1)}.`}>{g.class.toFixed(1)}</span></dd></div>
+          <div><dt>Career</dt><dd className="nums">{h?.career ?? "—"}<span className="factor is-base nums ml-1.5" title={`Class rating from its runs, the base every factor moves. Today ${bm(g.today).toFixed(1)}.`}>{bm(g.class).toFixed(1)}</span></dd></div>
           <div><dt>This trip</dt><dd className="nums">{h?.distanceForm ?? "—"}{fx("distance")}</dd></div>
           <div><dt>This track</dt><dd className="nums">{h?.trackForm ?? "—"}{fx("track")}</dd></div>
           <div><dt>Last run</dt><dd className="nums">{h?.daysSinceLastRun ? `${h.daysSinceLastRun} days ago` : h?.firstStarter ? "first starter" : "—"}{fx("fresh")}</dd></div>
@@ -309,7 +310,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
                   <td data-col="wgt" className="hide-sm">{x.weight ?? "—"}</td>
                   <td data-col="sp" className="hide-sm">{x.sp ? price(x.sp) : "—"}</td>
                   <td data-col="map" className="hide-sm">{x.map ?? "—"}</td>
-                  <td data-col="pts" className="text-right font-semibold">{x.points.toFixed(1)}</td>
+                  <td data-col="pts" className="text-right font-semibold">{bm(x.points).toFixed(1)}</td>
                 </tr>
                 {/* On a phone the columns the row drops come back on their own line under it. */}
                 <tr className="runs-more">

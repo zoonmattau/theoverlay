@@ -1,3 +1,4 @@
+import { bm, bmGap } from "@/lib/model/display";
 import type { MapPosition, RunnerRatings, Signal, Tempo } from "@/lib/model/types";
 
 export const MAP_LABEL: Record<MapPosition, string> = {
@@ -41,7 +42,7 @@ export function Points({
   const tone = gap >= 3 ? "text-accent" : gap <= -3 ? "text-muted" : "text-ink-secondary";
   return (
     <span className={`nums ${strong ? "font-semibold" : ""} ${tone}`}>
-      {value.toFixed(1)}
+      {bm(value).toFixed(1)}
     </span>
   );
 }
@@ -75,10 +76,10 @@ export function RatingTiles({ r, par }: { r: RunnerRatings; par: number }) {
     <div className="grid grid-cols-1 gap-2 md:grid-cols-[180px_1fr]">
       <div className="today-tile">
         <div className="today-label">Today&apos;s rating</div>
-        <div className="today-value nums">{r.today.toFixed(1)}</div>
+        <div className="today-value nums">{bm(r.today).toFixed(1)}</div>
         <div className="today-sub nums">
           {gap >= 0 ? "+" : ""}
-          {gap.toFixed(1)} v par {par}
+          {bmGap(gap).toFixed(1)} v par {bm(par).toFixed(0)}
         </div>
       </div>
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">

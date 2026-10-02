@@ -6,6 +6,7 @@ import { FaqList, JsonLd, faqSchema } from "@/components/JsonLd";
 import { RATINGS_FAQ } from "@/lib/faq";
 import { Factors } from "@/components/Factors";
 import { RatingTiles, SignalBadge } from "@/components/Ratings";
+import { FEED_A, FEED_B } from "@/lib/model/display";
 import type { RunnerRatings } from "@/lib/model/types";
 
 export const metadata: Metadata = {
@@ -16,19 +17,23 @@ export const metadata: Metadata = {
 };
 
 
+/** Benchmark points onto the engine's scale, so the sample reads back as written. */
+const f = (v: number) => FEED_A + FEED_B * v;
+const g = (d: number) => FEED_B * d;
+
 /** A sample horse, so the page shows the real components rather than describing them. */
 const SAMPLE: RunnerRatings = {
-  class: 71.4,
-  early: 74.1,
-  mid: 72.4,
-  late: 75.3,
-  pressure: 73.9,
-  tempo: { fast: 72.8, slow: 70.2 },
-  going: { good: 71.4, soft: 69.6, heavy: 68.1 },
-  distance: 72.6,
-  track: 71.9,
-  today: 74.2,
-  factors: { sections: 1.1, tempo: 0.7, track: 0.5, shape: 0.4, jockey: -0.2 },
+  class: f(71.4),
+  early: f(74.1),
+  mid: f(72.4),
+  late: f(75.3),
+  pressure: f(73.9),
+  tempo: { fast: f(72.8), slow: f(70.2) },
+  going: { good: f(71.4), soft: f(69.6), heavy: f(68.1) },
+  distance: f(72.6),
+  track: f(71.9),
+  today: f(74.2),
+  factors: { sections: g(1.2), tempo: g(0.8), track: g(0.5), shape: g(0.5), jockey: g(-0.2) },
   runs: 5,
   trust: 1,
   ppir: 3,
@@ -77,7 +82,7 @@ export default function Page() {
               <span className="font-display font-extrabold text-lg">4. Sample Runner</span>
               <span className="text-xs text-ink-soft">Bar 5 · 56.5kg</span>
             </div>
-            <RatingTiles r={SAMPLE} par={72} />
+            <RatingTiles r={SAMPLE} par={f(72)} />
             <div className="mt-3">
               <Factors r={SAMPLE} compact />
             </div>

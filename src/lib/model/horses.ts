@@ -3,7 +3,7 @@ import "server-only";
 import type { MeetingSummary, RaceEntry, RaceSummary } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { rememberRuns, runRowsOf, type RunRow } from "./runs";
-import { classPoints, goingBand, isJumps, rateEntries, runPoints } from "./ratings";
+import { classPoints, goingBand, cleanClock, isJumps, rateEntries, runPoints } from "./ratings";
 import { publishRace } from "./publish";
 import type { GoingBand, PublishedRace, RunnerRatings } from "./types";
 
@@ -107,7 +107,7 @@ export async function rememberHorses(meeting: MeetingSummary, races: RaceSummary
  * horse has none rather than a number made of one run.
  */
 function formShape(e: RaceEntry, classPoints: number, asOf?: number): { peak: number | null; trend: number | null; starts: number | null } {
-  const past = (e.pastEvents ?? []).filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && p.date && !isJumps(p));
+  const past = (e.pastEvents ?? []).filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && p.date && !isJumps(p)).map(cleanClock);
   const pts = past.map((p) => runPoints(p, classPoints, e.horse?.age, asOf)).filter((v) => Number.isFinite(v));
   if (pts.length === 0) return { peak: null, trend: null, starts: null };
   const mean = (a: number[]) => a.reduce((x, y) => x + y, 0) / a.length;

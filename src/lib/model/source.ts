@@ -12,7 +12,7 @@ import {
 import type { MeetingSummary, MeetingSummaryLite, RaceEntry, RaceSummary, Speedmap } from "@/lib/formking/types";
 import { abandonWithMeeting, hasJumped, pickFreeRace, publishMeeting, ratingRank, selectBestBets, zoneFor, zoneOffset, type KeptSignals } from "./publish";
 import { explain } from "./ratings";
-import { claimRefresh, newestDeploy, sameCard, touchStoredCard, readAbandoned, readMutes, writeAbandoned, readRaceRuns, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
+import { claimRefresh, newestDeploy, sameCard, touchStoredCard, readAbandoned, readMutes, writeAbandoned, readRaceRuns, racesWithPages, readStoredCard, storeConfigured, writeStoredCard, type StoredCard } from "./store";
 import { settleCreatorTips } from "@/lib/creators";
 import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
@@ -542,6 +542,19 @@ async function raceRuns(date: string, raceId: string): Promise<Record<string, Pu
   }
 }
 
+/** The races among these we have a page for, so a past run only links where it can land. */
+async function pagesFor(raceIds: string[]): Promise<string[]> {
+  "use cache";
+  cacheLife("hours");
+  if (!storeConfigured() || raceIds.length === 0) return [];
+  try {
+    return [...(await racesWithPages(raceIds))];
+  } catch (err) {
+    console.error("[race_runs]", err);
+    return [];
+  }
+}
+
 export async function getRaceCard(date: string, meetingId: string, raceId: string, preview = false) {
   const card = await getCard(date, preview);
   const { meetings, selections, freeRaceId } = card;
@@ -550,13 +563,16 @@ export async function getRaceCard(date: string, meetingId: string, raceId: strin
   if (!meeting || !found) return undefined;
   // A card built before the split still carries its runs; one built after
   // takes them from race_runs, for this race alone.
-  const race = found.runners.some((x) => x.runs?.length)
+  const withRuns = found.runners.some((x) => x.runs?.length)
     ? found
     : await (async () => {
         const runs = await raceRuns(date, raceId);
         if (Object.keys(runs).length === 0) return found;
         return { ...found, runners: found.runners.map((x) => ({ ...x, runs: runs[String(x.tabNumber)] ?? x.runs })) };
       })();
+  const runIds = [...new Set(withRuns.runners.flatMap((x) => (x.runs ?? []).map((run) => run.raceId).filter((id): id is string => Boolean(id))))].sort();
+  const pages = new Set(await pagesFor(runIds));
+  const race = { ...withRuns, runners: withRuns.runners.map((x) => ({ ...x, runs: x.runs?.map((run) => ({ ...run, linked: Boolean(run.raceId && pages.has(run.raceId)) })) })) };
   return {
     meeting,
     race,

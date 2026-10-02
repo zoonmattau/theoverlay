@@ -12,6 +12,7 @@
  */
 
 import type { BenchmarkedRun, PastEvent, RaceEntry, Speedmap } from "@/lib/formking/types";
+import { FEED_A, FEED_B, bm } from "./display";
 import { ownClock } from "./standards";
 import { barrierFactor, distanceGapFactor, freshFactor, layoffFactor, parseRecord, prepStage, weightFactor } from "./factors";
 import { barrierEffect } from "./barriers";
@@ -297,8 +298,8 @@ const OHR_PULL = Number(process.env.OVERLAY_OHR_PULL ?? 0);
  * over the cache in scripts/out/run-vs-wfa.ts. Lengths stay 1.2 points each.
  */
 const RR_PAR = Number(process.env.OVERLAY_RR_PAR ?? 1) === 1;
-const RR_A = Number(process.env.OVERLAY_RR_A ?? 56);
-const RR_B = Number(process.env.OVERLAY_RR_B ?? 0.4);
+const RR_A = Number(process.env.OVERLAY_RR_A ?? FEED_A);
+const RR_B = Number(process.env.OVERLAY_RR_B ?? FEED_B);
 /** Below this a race rating is a placeholder, not a rating: the weakest real one in the cache is in the fifties. */
 const RR_FLOOR = 30;
 /** Our benchmark points onto the feed's class scale, to the tenth we show. */
@@ -628,6 +629,7 @@ export function fitFeatures(e: RaceEntry, g: RunnerRatings, race: RaceContext): 
 export function recentRuns(e: RaceEntry, asOf?: number) {
   return (e.pastEvents ?? [])
     .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p) && (!asOf || p.date < asOf))
+    .map(cleanClock)
     .sort((a, b) => b.date - a.date)
     .slice(0, RUN_WEIGHTS.length);
 }
@@ -733,6 +735,22 @@ const sameTrack = (a?: string, b?: string) =>
   Boolean(a && b) && a!.trim().toLowerCase() === b!.trim().toLowerCase();
 
 /** Hurdles and steeplechases are rated on their own scale and never count. */
+/** Lengths faster than the class benchmark past which a run's clock is a mistake, not a run. */
+const FAST_CLOCK = Number(process.env.OVERLAY_FAST_CLOCK ?? 8);
+
+/**
+ * A run whose clock cannot be right loses its benchmark, the time and the
+ * feed's race rating built from it, and is rated off its class and margin.
+ * One run in a thousand beats the benchmark by more than 9.6 lengths, nearly
+ * all at bush and picnic meetings timed by hand. August Joe, Gladstone C2,
+ * 19 Sep 2026: second, beaten two lengths, the clock 13 lengths under the
+ * benchmark and the race rated 113 against an expected 75, which made him
+ * twenty points clear of a Rockhampton Class 1 on 2 Oct.
+ */
+export function cleanClock<T extends { benchmark?: { vsClass: number } }>(p: T): T {
+  return p.benchmark && p.benchmark.vsClass > FAST_CLOCK ? { ...p, benchmark: undefined } : p;
+}
+
 /**
  * A run that says nothing about form at a normal trip and stays out of the
  * ratings: a jumps race by name, anything past 3400m (the Jericho Cup is
@@ -750,7 +768,8 @@ export const isJumps = (p: { raceName?: string; distance?: number; benchmark?: {
  * time performance in lengths vs the class benchmark moves it up or down.
  * The result itself never adds points.
  */
-export function runPoints(r: PastEvent, todayPar: number, ageNow?: number, asOf?: number): number {
+export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asOf?: number): number {
+  const r = cleanClock(run);
   // Today's race is the prior for the level a horse races at: an official
   // rating is trusted only within reach of it, an unparsed race name means par.
   // A jumper's BM120 or a horse dropping from a much stronger grade says
@@ -1010,15 +1029,17 @@ export function explain(
   const say = (bank: string[], slot: string) => bank[hash(`${seed}|${slot}`) % bank.length];
 
   const place = ordinal(rank);
+  // Printed in benchmark points; the engine number stays on the feed scale.
+  const at = bm(r.today).toFixed(1);
   const lead = say(
     rank === 1
       ? [
-          `Rates top of the field at ${r.today}`, `Our top rated at ${r.today}`, `Best in the race on our numbers at ${r.today}`, `Heads our ratings at ${r.today}`,
-          `The one to beat on our numbers at ${r.today}`, `Tops the field at ${r.today}`, `Our number one at ${r.today}`, `Sets the standard here at ${r.today}`,
+          `Rates top of the field at ${at}`, `Our top rated at ${at}`, `Best in the race on our numbers at ${at}`, `Heads our ratings at ${at}`,
+          `The one to beat on our numbers at ${at}`, `Tops the field at ${at}`, `Our number one at ${at}`, `Sets the standard here at ${at}`,
         ]
       : [
-          `Rates ${place} at ${r.today}`, `${cap(place)} on our numbers at ${r.today}`, `Sits ${place} in our ratings at ${r.today}`, `Comes out ${place} at ${r.today}`,
-          `${cap(place)} best in the field at ${r.today}`, `Ranks ${place} for us at ${r.today}`, `Our ${place} pick at ${r.today}`, `${cap(place)} in the ratings at ${r.today}`,
+          `Rates ${place} at ${at}`, `${cap(place)} on our numbers at ${at}`, `Sits ${place} in our ratings at ${at}`, `Comes out ${place} at ${at}`,
+          `${cap(place)} best in the field at ${at}`, `Ranks ${place} for us at ${at}`, `Our ${place} pick at ${at}`, `${cap(place)} in the ratings at ${at}`,
         ],
     "lead",
   );
@@ -1146,6 +1167,7 @@ export interface LastShape {
 export function lastShapeOf(e: RaceEntry): LastShape | undefined {
   const p = (e.pastEvents ?? [])
     .filter((x) => x.race !== false && !x.trial && !x.spell && !x.scratched && !isJumps(x))
+    .map(cleanClock)
     .sort((a, b) => b.date - a.date)[0];
   const tempo = p?.benchmark ? splitOf(p.benchmark).tempo : undefined;
   if (!p?.posSettling || !p.numRunners || p.numRunners < 2 || !tempo) return undefined;
