@@ -139,10 +139,19 @@ const dayAfter = (date: string, n: number) => new Date(Date.parse(`${date}T00:00
  * which settles a track the two feeds name differently (Kembla Grange is
  * Illawarra Grange there).
  */
-export function matchRace(meeting: PublishedMeeting, race: PublishedMeeting["races"][number], list: BetwatchRace[]): BetwatchRace | undefined {
+export function matchRace(meeting: PublishedMeeting, race: PublishedMeeting["races"][number], list: BetwatchRace[], otherTracks: Set<string> = new Set()): BetwatchRace | undefined {
   const jump = race.jumpTime ? Date.parse(race.jumpTime) : undefined;
   const names = new Set(race.runners.map((r) => nameKey(r.horseName)));
-  const candidates = list.filter((b) => b.number === race.raceNumber && b.meeting.location === meeting.state && (!jump || Math.abs(Date.parse(b.startTime) - jump) < 90 * 60_000));
+  // A market belonging to another meeting on our card by name is that meeting's, whatever the runners say.
+  // Cranbourne moved to the Pakenham synthetic on 2 Oct 2026 with the same fields: Pakenham took
+  // Cranbourne's closed markets and every race read as abandoned.
+  const candidates = list.filter(
+    (b) =>
+      b.number === race.raceNumber &&
+      b.meeting.location === meeting.state &&
+      (!jump || Math.abs(Date.parse(b.startTime) - jump) < 90 * 60_000) &&
+      (norm(b.meeting.track) === norm(meeting.track) || !otherTracks.has(norm(b.meeting.track))),
+  );
   const scored = candidates
     .map((b) => {
       const shared = b.runners.filter((r) => names.has(nameKey(r.name))).length;
@@ -226,8 +235,10 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
     try {
       const list = await betwatchRaces(dayAfter(date, -1), dayAfter(date, 1));
       const still = new Set(book.missing.filter((id) => !unmatched.some((u) => u.race.raceId === id)));
+      const onCard = new Set(meetings.map((m) => norm(m.track)));
       for (const { meeting, race } of unmatched) {
-        const hit = matchRace(meeting, race, list);
+        const others = new Set([...onCard].filter((t) => t !== norm(meeting.track)));
+        const hit = matchRace(meeting, race, list, others);
         if (hit) book.ids[race.raceId] = hit.id;
         else still.add(race.raceId);
       }
