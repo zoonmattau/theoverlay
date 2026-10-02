@@ -91,9 +91,9 @@ const first = <T>(x: T[] | T | null | undefined): T | undefined => (Array.isArra
  * best back and lay; once it has run, the placings (tab numbers by
  * position, a dead heat sharing one) and Betfair's win and place starting prices.
  */
-export async function betwatchMarkets(id: string): Promise<{ status: string; results?: number[][]; runners: BetwatchMarket[] }> {
-  const d = await query<{ race: { status: string; results?: number[][] | null; runners: RawRunner[] } | null }>(
-    `query($id:ID!,$b:[String!]){ race(id:$id){ status results runners{ id name number scratchedTime bookmakerMarkets(bookmakers:$b){ bookmaker fixedWin{ price lastUpdated } } betfairMarkets{ marketName back{ price size } lay{ price size } totalMatched sp } } } }`,
+export async function betwatchMarkets(id: string): Promise<{ status: string; startTime?: string; results?: number[][]; runners: BetwatchMarket[] }> {
+  const d = await query<{ race: { status: string; startTime?: string | null; results?: number[][] | null; runners: RawRunner[] } | null }>(
+    `query($id:ID!,$b:[String!]){ race(id:$id){ status startTime results runners{ id name number scratchedTime bookmakerMarkets(bookmakers:$b){ bookmaker fixedWin{ price lastUpdated } } betfairMarkets{ marketName back{ price size } lay{ price size } totalMatched sp } } } }`,
     { id, b: Object.keys(BOOKMAKERS) },
   );
   if (!d.race) throw new Error(`BetWatch: race ${id} missing`);
@@ -115,5 +115,5 @@ export async function betwatchMarkets(id: string): Promise<{ status: string; res
     return { number: r.number, name: r.name, scratched: Boolean(r.scratchedTime), bsp, bspPlace, bookies, exchange: exchange?.lay || exchange?.back ? exchange : undefined };
   });
   const results = d.race.results?.filter((p) => Array.isArray(p) && p.length > 0);
-  return { status: d.race.status, results: results?.length ? results : undefined, runners };
+  return { status: d.race.status, startTime: d.race.startTime ?? undefined, results: results?.length ? results : undefined, runners };
 }

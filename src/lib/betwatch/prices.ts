@@ -31,6 +31,8 @@ export interface RacePrices {
   /** ISO, when these were fetched. */
   at: string;
   status?: string;
+  /** BetWatch's start time, ISO: a race put back moves with it, where Form King's stays as bought. */
+  startTime?: string;
   runners: Record<string, LivePrice>;
   /** Once run: tab numbers by finishing position (a dead heat shares one) and Betfair's win and place starting prices by tab. */
   result?: { placings: number[][]; bsp: Record<string, number>; bspPlace?: Record<string, number>; at: string };
@@ -294,7 +296,7 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
               scratched: r.scratched || undefined,
             };
           }
-          const entry: RacePrices = { betwatchId: book.ids[race.raceId], at: new Date().toISOString(), status: m.status, runners };
+          const entry: RacePrices = { betwatchId: book.ids[race.raceId], at: new Date().toISOString(), status: m.status, startTime: m.startTime, runners };
           // The interim result, with the placings and BSP, comes about five
           // minutes after the jump; "Resulted" waits on correct weight, nine
           // to sixteen (22 Sep 2026). The interim settles, and a placing the

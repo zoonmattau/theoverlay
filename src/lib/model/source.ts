@@ -151,6 +151,7 @@ function freezeRun(live: PublishedRace, previous?: PublishedRace): PublishedRace
   const scratched = new Set(live.runners.filter((x) => x.scratched).map((x) => x.tabNumber));
   return {
     ...previous,
+    jumpTime: live.jumpTime,
     going: live.going,
     goingText: live.goingText,
     result: official ? live.result : previous.result,
@@ -442,7 +443,10 @@ function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
       },
     };
   });
-  return { ...race, status, entries };
+  // BetWatch's start time over the one Form King sold us: price rebuilds reuse the morning's form, so
+  // a race put back stayed at its old time, read as jumped and waited on a result (Launceston, 2 Oct 2026).
+  const start = live.startTime ? Date.parse(live.startTime) : NaN;
+  return { ...race, ...(start > 1e12 ? { date: start } : {}), status, entries };
 }
 
 /**
