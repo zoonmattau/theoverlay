@@ -96,6 +96,37 @@ def sharpest(pts):
     return worst
 
 
+def despur(ring, gap=35, span=80):
+    """A ring with its spurs cut out: wherever it runs out and comes back within a few metres of itself, the loop between goes."""
+    pts = [tuple(p) for p in (ring[:-1] if ring[0] == ring[-1] else ring)]
+    joins = []
+    while len(pts) > 8:
+        n = len(pts)
+        along = [0.0]
+        for a, b in zip(pts, pts[1:] + pts[:1]):
+            along.append(along[-1] + tg.seglen(a, b))
+        total = along[-1]
+        best = None
+        for i in range(n):
+            for j in range(i + 2, n):
+                run = along[j] - along[i]
+                if span < run < total / 2 and tg.seglen(pts[i], pts[j]) < gap and (best is None or run > best[0]):
+                    best = (run, i, j)
+        if not best:
+            break
+        _, i, j = best
+        joins = [k if k <= i else k - (j - i - 1) for k in joins if k <= i or k >= j] + [i]
+        pts = pts[: i + 1] + pts[j:]
+    # Ease each join where a spur came out, a few points either side, so the line has no kink.
+    n = len(pts)
+    for _ in range(4):
+        for k0 in joins:
+            for k in range(k0 - 2, k0 + 4):
+                a, b, c = pts[(k - 1) % n], pts[k % n], pts[(k + 1) % n]
+                pts[k % n] = ((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3)
+    return pts + [pts[0]]
+
+
 def find_rings(ways, centre, within=None):
     """The course (inner rail) and, when mapped, the outer rail around it."""
     rings = []
@@ -116,6 +147,11 @@ def find_rings(ways, centre, within=None):
     # A course is a ring 1,000m to 2,800m round; the outer rail, if mapped, runs round it 8m to 60m out.
     best = None
     for r in rings:
+        if sharpest(r["pts"]) > 30:
+            # A course drawn with its chutes or a cross-course in the same line: cut the spurs out and try again.
+            clean = despur(r["pts"])
+            if sharpest(clean) <= 30:
+                r = {**r, "pts": clean, "L": length(clean)}
         if not (1000 <= r["L"] <= 2800):
             continue
         # Inside the venue's own boundary when we have one, so the course next door is never taken.
@@ -127,7 +163,7 @@ def find_rings(ways, centre, within=None):
         sample = r["pts"][:: max(1, len(r["pts"]) // 40)]
         outer = None
         for o in rings:
-            if o is r or o["L"] <= r["L"]:
+            if o["id"] == r["id"] or o["L"] <= r["L"]:
                 continue
             if not all(inside(p, o["pts"]) for p in sample[::4]):
                 continue
