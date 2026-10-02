@@ -175,7 +175,8 @@ export function TrackMap({ track, distance, className = "" }: { track: Track; di
       <figcaption className="track-legend">
         <span><i className="dot start" />Start</span>
         <span><i className="dot post" />Post</span>
-        <span className="track-credit">{track.attribution.replace("(c)", "©")}</span>
+        {/* OpenStreetMap's licence wants the credit shown with the map; a small mark with it on hover or tap keeps it out of the way (2 Oct 2026). */}
+        <span className="track-credit tip cursor-help" data-tip={`Track outline: ${track.attribution.replace("(c)", "©")}`} aria-label={track.attribution.replace("(c)", "©")}>ⓘ</span>
       </figcaption>
     </figure>
   );
