@@ -22,7 +22,8 @@ spec.loader.exec_module(tg)
 # Posts placed by hand, in rail metres round the loop, where the stand or straight finder gets it wrong.
 POST = {
     "doomben": 1675,  # on the straight just before the turn; the chute then comes out near the 1350
-    "goldcoast": 1870,  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
+    "goldcoast": 1870,
+    "rosehill": 1807,  # where the stand finder first put it, with the 1400 chute measuring 1400 on the back straight  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
     "murtoa": 380,  # near the end of the straight; the chutes then come out at 1200 and 1600
     "toowoomba": 1485,  # about 400m before the stand finder's guess, placed by eye
     "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
@@ -285,7 +286,23 @@ def build(slug, path, state, venue=None):
         except Exception:
             continue
         line = smooth(straight_tip(line))
-        chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"], "rails": chute_rails(line, run, half, clean_outer)})
+        # The way they run at the join, and the chute's own line from tip to mouth.
+        j = tg.point_at(run, along, ja)
+        j2 = tg.point_at(run, along, (ja + 10) % total)
+        tn = tg.seglen(j, j2) or 1
+        tx, ty = (j2[0] - j[0]) / tn, (j2[1] - j[1]) / tn
+        tip, mouth = line[0], line[min(23, len(line) - 1)]
+        un = tg.seglen(tip, mouth) or 1
+        ux, uy = (mouth[0] - tip[0]) / un, (mouth[1] - tip[1]) / un
+        # How far the mapped tip stands off the course, measured before any straightening.
+        clear = to_line(tip, tg.resample(run, max(200, int(total / 5))))
+        if ux * tx + uy * ty < 0.2:
+            continue  # faces against the way they race: not a start for this direction
+        if ux * tx + uy * ty > math.cos(math.radians(20)):
+            # Near enough in line with the course: run it dead straight on from the join.
+            ln = length(line)
+            line = [(j[0] - tx * (ln - k * ln / 30), j[1] - ty * (ln - k * ln / 30)) for k in range(31)]
+        chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"], "clear": clear, "rails": chute_rails(line, run, half, clean_outer)})
 
     # The post: in front of the main stand, fine-tuned so the chutes land on standard starts.
     stand = grandstand(ways, loop, outer["pts"] if outer else loop)
@@ -324,7 +341,7 @@ def build(slug, path, state, venue=None):
             c["startDistance"] = min(CHUTE_STARTS[slug], key=lambda d: abs(d - c["startDistance"]))
     # A chute stands well clear of the course and starts a distance they race; a bulge in the outer rail on a turn does neither.
     dense = tg.resample(run, max(200, int(total / 5)))
-    chutes = [c for c in chutes if to_line(c["line"][0], dense) >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
+    chutes = [c for c in chutes if c["clear"] >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
     # One chute to a start: the one that measures closest.
     chutes = [c for c in chutes if c is min((o for o in chutes if o["startDistance"] == c["startDistance"]), key=lambda o: abs(o["measured"] - o["startDistance"]))]
     for c in chutes:
@@ -423,29 +440,22 @@ def to_line(p, pts):
 
 
 def chute_rails(line, run, half, outer_ring):
-    """Two rails either side of a chute, closed across the tip, each run on from the mouth to the course's outer rail."""
-    tip, mouth = line[0], line[min(23, len(line) - 1)]  # the straight part: tip to mouth, then the ease into the course
-    L = tg.seglen(tip, mouth) or 1
-    ux, uy = (mouth[0] - tip[0]) / L, (mouth[1] - tip[1]) / L
-    nx, ny = -uy, ux
+    """The chute's two rails, offset either side of the line the runners take, closed across the tip,
+    each ending where it reaches the course's outer rail, so they always wrap the run and open onto the course."""
+    pts = tg.resample(line, max(20, int(length(line) / 3)))
     rail = tg.resample(outer_ring, max(600, int(length(outer_ring) / 2)))
     sides = []
     for sgn in (1, -1):
-        start = (tip[0] + sgn * nx * half, tip[1] + sgn * ny * half)
-        d, best = L * 0.3, None
-        while d < L + 250:
-            q = (start[0] + ux * d, start[1] + uy * d)
-            gap = to_line(q, rail)
-            if inside(q, outer_ring) or gap <= 2:
-                best = (0, d)
+        side = []
+        for i, p in enumerate(pts):
+            a, b = pts[max(0, i - 2)], pts[min(len(pts) - 1, i + 2)]
+            L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
+            q = (p[0] - sgn * (b[1] - a[1]) / L * half, p[1] + sgn * (b[0] - a[0]) / L * half)
+            if i > 2 and (inside(q, outer_ring) or to_line(q, rail) <= 1.5):
+                side.append(min(rail, key=lambda r: tg.seglen(r, q)))
                 break
-            if best is None or gap < best[0]:
-                best = (gap, d)
-            d += 2
-        end = (start[0] + ux * best[1], start[1] + uy * best[1])
-        # A side running alongside the rail without touching it steps across at its closest.
-        near = min(rail, key=lambda r: tg.seglen(r, end))
-        sides.append([start, end, near])
+            side.append(q)
+        sides.append(side)
     a, b = sides
     return list(reversed(a)) + b
 
