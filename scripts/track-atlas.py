@@ -21,13 +21,14 @@ spec.loader.exec_module(tg)
 
 # Posts placed by hand, in rail metres round the loop, where the stand or straight finder gets it wrong.
 POST = {
+    "doomben": 1675,  # on the straight just before the turn; the chute then comes out near the 1350
     "goldcoast": 1870,  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
     "murtoa": 380,  # near the end of the straight; the chutes then come out at 1200 and 1600
     "toowoomba": 1485,  # about 400m before the stand finder's guess, placed by eye
     "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
 }
 # Chute starts known from the club: each built chute takes the nearest.
-CHUTE_STARTS = {"waggariverside": [1100, 1400, 1600]}
+CHUTE_STARTS = {"waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400]}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
 NO_OUTER = {"newcastle"}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
@@ -95,7 +96,7 @@ def sharpest(pts):
     return worst
 
 
-def find_rings(ways, centre):
+def find_rings(ways, centre, within=None):
     """The course (inner rail) and, when mapped, the outer rail around it."""
     rings = []
     for w in ways:
@@ -116,6 +117,9 @@ def find_rings(ways, centre):
     best = None
     for r in rings:
         if not (1000 <= r["L"] <= 2800):
+            continue
+        # Inside the venue's own boundary when we have one, so the course next door is never taken.
+        if within and not inside(centroid(r["pts"]), within):
             continue
         # A fence or a site boundary has corners; the course has none.
         if sharpest(r["pts"]) > 30:
@@ -182,7 +186,7 @@ def walk(n, a, b):
     return out
 
 
-def build(slug, path, state):
+def build(slug, path, state, venue=None):
     data = json.load(open(path, encoding="utf-8"))
     els = [e for e in data["elements"] if e.get("geometry")]
     if not els:
@@ -190,10 +194,12 @@ def build(slug, path, state):
     lat0 = sum(p["lat"] for e in els for p in e["geometry"]) / sum(len(e["geometry"]) for e in els)
     ways = [{"id": e["id"], "tags": e.get("tags", {}), "pts": tg.local(e["geometry"], lat0)} for e in els]
     # Centre on what is tagged as horse racing; a long creek or road would drag the middle of everything off the course.
-    racing = [p for w in ways if w["tags"].get("sport") == "horse_racing" for p in w["pts"]]
+    # The venue's own feature first: a neighbour (Eagle Farm beside Doomben) is horse racing too.
+    own = [p for w in ways if venue and f"way/{w['id']}" == venue for p in w["pts"]]
+    racing = own or [p for w in ways if w["tags"].get("sport") == "horse_racing" for p in w["pts"]]
     allpts = racing or [p for w in ways if length(w["pts"]) < 5000 for p in w["pts"]] or [p for w in ways for p in w["pts"]]
     centre = centroid(allpts)
-    inner, outer, gap = find_rings(ways, centre)
+    inner, outer, gap = find_rings(ways, centre, own if len(own) > 8 and own[0] == own[-1] else None)
     if slug in NO_OUTER:
         outer, gap = None, None
     if not inner:
@@ -203,11 +209,12 @@ def build(slug, path, state):
     ar = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(loop, loop[1:])) / 2
     if (ar > 0) != clockwise:
         loop = loop[::-1]
-    if outer:
-        run = tg.centre_line(loop, outer["pts"])
-    else:
-        # A single mapped ring: treat it as the middle of the track.
-        run = loop
+    # Every map drawn like Flemington's: the track as wide, for the size of the map, as its 29m is on its 1,310m frame.
+    xs0, ys0 = [x for x, _ in loop], [y for _, y in loop]
+    half = max(max(xs0) - min(xs0), max(ys0) - min(ys0)) * 29.4 / 1310 / 2
+    run = ring_offset(loop, half)
+    # Drawn rails: the inner as mapped, the outer an even width out, so a jagged or fenced outer ring never shows.
+    clean_outer = ring_offset(loop, half * 2)
     rail = loop[:-1] + [loop[0]]
     along = [0.0]
     for a, b in zip(rail, rail[1:]):
@@ -241,7 +248,8 @@ def build(slug, path, state):
             line, ja = chute_from_walls(wall_a, wall_b, run, along, total, rail_along)
         except Exception:
             continue
-        chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"]})
+        line = smooth(straight_tip(line))
+        chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"], "rails": chute_rails(line, run, half, clean_outer)})
 
     # The post: in front of the main stand, fine-tuned so the chutes land on standard starts.
     stand = grandstand(ways, loop, outer["pts"] if outer else loop)
@@ -277,11 +285,16 @@ def build(slug, path, state):
         c["startDistance"] = round(c["length"] + (post_along - c["joinAlong"]) % total)
         if slug in CHUTE_STARTS:
             c["startDistance"] = min(CHUTE_STARTS[slug], key=lambda d: abs(d - c["startDistance"]))
+    # A chute stands well clear of the course and starts a distance they race; a bulge in the outer rail on a turn does neither.
+    dense = tg.resample(run, max(200, int(total / 5)))
+    chutes = [c for c in chutes if to_line(c["line"][0], dense) >= 70 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
     per_chute = (fit / len(chutes)) if chutes and fit is not None else None
     confidence = "high" if how == "by hand" or (how == "grandstand" and (per_chute is None or per_chute < 25)) or (per_chute is not None and per_chute < 12 and len(chutes) >= 2) else "medium" if how == "grandstand" or (per_chute is not None and per_chute < 30) else "low"
 
-    xs = [x for x, _ in (outer["pts"] if outer else []) + loop]
-    ys = [y for _, y in (outer["pts"] if outer else []) + loop]
+    outer_parts = open_rail(clean_outer, [(c["rails"][0], c["rails"][-1]) for c in chutes])
+    every = clean_outer + loop + [p for c in chutes for p in c["rails"]]
+    xs = [x for x, _ in every]
+    ys = [y for _, y in every]
     ox, oy = min(xs), min(ys)
     sh = lambda pts: [[round(x - ox, 1), round(y - oy, 1)] for x, y in pts]
     out = {
@@ -289,14 +302,15 @@ def build(slug, path, state):
         "clockwise": clockwise,
         "width": round(max(xs) - ox, 1),
         "height": round(max(ys) - oy, 1),
-        "outer": sh(outer["pts"]) if outer else sh(loop),
-        "inner": sh(loop) if outer else [],
+        "outer": sh(clean_outer),
+        "outerParts": [sh(p) for p in outer_parts],
+        "inner": sh(loop),
         "loop": sh(run),
         "loopAlong": [round(a, 1) for a in along],
         "loopLength": round(total, 1),
         "postAlong": round(post_along, 1),
         "post": sh([post])[0],
-        "chutes": [{"name": f"chute {i + 1}", "line": sh(c["line"]), "joinAlong": round(c["joinAlong"], 1), "length": round(c["length"], 1), "startDistance": c["startDistance"], "straight": False} for i, c in enumerate(chutes)],
+        "chutes": [{"name": f"chute {i + 1}", "line": sh(c["line"]), "joinAlong": round(c["joinAlong"], 1), "length": round(c["length"], 1), "startDistance": c["startDistance"], "straight": False, "rails": sh(c["rails"])} for i, c in enumerate(chutes)],
         "attribution": "Map data (c) OpenStreetMap contributors",
         "auto": {"confidence": confidence, "post": how, "chuteError": round(per_chute, 1) if per_chute is not None else None, "outerRail": bool(outer)},
     }
@@ -310,10 +324,111 @@ def build(slug, path, state):
     return {"slug": slug, "ok": True, "loop": round(total), "chutes": [c["startDistance"] for c in chutes], "post": how, "confidence": confidence, "outer": bool(outer)}
 
 
+def open_rail(ring, mouths):
+    """The outer rail as pieces, with an opening between each chute's two sides where it comes onto the course."""
+    pts = tg.resample(ring, max(600, int(length(ring) / 2)))[:-1]
+    n = len(pts)
+    cut = [False] * n
+    for a, b in mouths:
+        i = min(range(n), key=lambda k: tg.seglen(pts[k], a))
+        j = min(range(n), key=lambda k: tg.seglen(pts[k], b))
+        fwd = (j - i) % n
+        span = range(i, i + fwd + 1) if fwd <= n - fwd else range(j, j + (n - fwd) + 1)
+        for k in span:
+            cut[k % n] = True
+    if not any(cut):
+        return [pts + [pts[0]]]
+    s0 = cut.index(True)
+    parts, cur = [], []
+    for k in range(1, n + 1):
+        i = (s0 + k) % n
+        if cut[i]:
+            if len(cur) > 1:
+                parts.append(cur)
+            cur = []
+        else:
+            cur.append(pts[i])
+    if len(cur) > 1:
+        parts.append(cur)
+    return parts
+
+
+def ring_offset(ring, d):
+    """A closed ring moved d metres outward, square to itself at every point."""
+    pts = ring[:-1] if ring[0] == ring[-1] else ring
+    cx, cy = centroid(pts)
+    n = len(pts)
+    out = []
+    for i, p in enumerate(pts):
+        a, b = pts[i - 1], pts[(i + 1) % n]
+        L = math.hypot(b[0] - a[0], b[1] - a[1]) or 1
+        nx, ny = -(b[1] - a[1]) / L, (b[0] - a[0]) / L
+        if (p[0] - cx) * nx + (p[1] - cy) * ny < 0:
+            nx, ny = -nx, -ny
+        out.append((p[0] + nx * d, p[1] + ny * d))
+    return out + [out[0]]
+
+
+def smooth(pts, passes=3):
+    """A moving average that keeps both ends: takes the jags out of a line traced from the map."""
+    pts = [tuple(p) for p in pts]
+    for _ in range(passes):
+        pts = [pts[0]] + [((a[0] + b[0] + c[0]) / 3, (a[1] + b[1] + c[1]) / 3) for a, b, c in zip(pts, pts[1:], pts[2:])] + [pts[-1]]
+    return pts
+
+
+def to_line(p, pts):
+    return min(tg.seglen(p, q) for q in pts)
+
+
+def chute_rails(line, run, half, outer_ring):
+    """Two rails either side of a chute, closed across the tip, each run on from the mouth to the course's outer rail."""
+    tip, mouth = line[0], line[min(23, len(line) - 1)]  # the straight part: tip to mouth, then the ease into the course
+    L = tg.seglen(tip, mouth) or 1
+    ux, uy = (mouth[0] - tip[0]) / L, (mouth[1] - tip[1]) / L
+    nx, ny = -uy, ux
+    rail = tg.resample(outer_ring, max(600, int(length(outer_ring) / 2)))
+    sides = []
+    for sgn in (1, -1):
+        start = (tip[0] + sgn * nx * half, tip[1] + sgn * ny * half)
+        d, best = L * 0.3, None
+        while d < L + 250:
+            q = (start[0] + ux * d, start[1] + uy * d)
+            gap = to_line(q, rail)
+            if inside(q, outer_ring) or gap <= 2:
+                best = (0, d)
+                break
+            if best is None or gap < best[0]:
+                best = (gap, d)
+            d += 2
+        end = (start[0] + ux * best[1], start[1] + uy * best[1])
+        # A side running alongside the rail without touching it steps across at its closest.
+        near = min(rail, key=lambda r: tg.seglen(r, end))
+        sides.append([start, end, near])
+    a, b = sides
+    return list(reversed(a)) + b
+
+
+def straight_tip(line):
+    """Drops the first points of a chute's middle while they turn hard off its run: the hook a traced tip leaves."""
+    line = list(line)
+    while len(line) > 6:
+        a, b, c = line[0], line[1], line[4]
+        h1 = math.atan2(b[1] - a[1], b[0] - a[0])
+        h2 = math.atan2(c[1] - b[1], c[0] - b[0])
+        if abs((math.degrees(h2 - h1) + 180) % 360 - 180) <= 25:
+            break
+        line.pop(0)
+    return line
+
+
 def chute_from_walls(wall_a, wall_b, run, along, total, rail_along):
     n = 24
     a, b = tg.resample(wall_a, n), tg.resample(wall_b, n)
     middle = [((p[0] + q[0]) / 2, (p[1] + q[1]) / 2) for p, q in zip(a, b)]
+    # A chute is dead straight: tip to mouth in a line, whatever wobble the traced walls have.
+    t0, t1 = middle[0], middle[-1]
+    middle = [(t0[0] + (t1[0] - t0[0]) * k / (n - 1), t0[1] + (t1[1] - t0[1]) * k / (n - 1)) for k in range(n)]
     m = middle[-1]
     ux, uy = m[0] - middle[-4][0], m[1] - middle[-4][1]
     un = math.hypot(ux, uy) or 1
@@ -398,7 +513,7 @@ def main():
             report.append({"slug": slug, "ok": False, "why": "not downloaded"})
             continue
         try:
-            r = build(slug, path, f["state"])
+            r = build(slug, path, f["state"], f.get("osm"))
         except Exception as e:
             r = {"slug": slug, "ok": False, "why": f"error {e}"}
         r["track"] = track

@@ -21,7 +21,10 @@ export interface Track {
   loopLength: number;
   postAlong: number;
   post: number[];
-  chutes: { name: string; line: number[][]; joinAlong: number; length: number; startDistance: number; straight: boolean }[];
+  /** rails: the chute's two sides, closed across the tip, drawn instead of the mapped outer rail's spur. */
+  chutes: { name: string; line: number[][]; joinAlong: number; length: number; startDistance: number; straight: boolean; rails?: number[][] }[];
+  /** The outer rail in pieces, open where each chute comes onto the course; outer is the whole ring. */
+  outerParts?: number[][][];
   attribution: string;
   /** How sure the automatic build is of the post, for tracks not set up by hand. */
   auto?: { confidence: string; post: string; chuteError: number | null; outerRail: boolean };
@@ -148,28 +151,32 @@ function homeStraightDown(t: Track): number {
 }
 
 export function TrackMap({ track, distance, className = "" }: { track: Track; distance: number; className?: string }) {
-  const pad = 60;
+  // Lines, dots and arrows sized to the map, so every track draws like Flemington's.
+  const k = Math.max(track.width, track.height) / 1310;
+  const pad = 60 * k;
+  const rail = { strokeWidth: 7 * k };
   const { path, start } = racePath(track, distance);
   const total = path.reduce((a, p, i) => (i ? a + dist(path[i - 1], p) : 0), 0);
-  const marks = arrows(path, Math.max(250, total / 7));
+  const marks = arrows(path, Math.max(250 * k, total / 7));
   // The frame round the turned drawing.
   const turn = homeStraightDown(track);
   const r = (turn * Math.PI) / 180;
-  const turned = [...track.outer, ...track.inner, ...track.loop].map(([x, y]) => [x * Math.cos(r) - y * Math.sin(r), x * Math.sin(r) + y * Math.cos(r)]);
+  const turned = [...track.outer, ...track.inner, ...track.loop, ...track.chutes.flatMap((c) => c.rails ?? [])].map(([x, y]) => [x * Math.cos(r) - y * Math.sin(r), x * Math.sin(r) + y * Math.cos(r)]);
   const minX = Math.min(...turned.map((p) => p[0])), maxX = Math.max(...turned.map((p) => p[0]));
   const minY = Math.min(...turned.map((p) => p[1])), maxY = Math.max(...turned.map((p) => p[1]));
   return (
     <figure className={`track-map ${className}`}>
       <svg viewBox={`${(minX - pad).toFixed(0)} ${(minY - pad).toFixed(0)} ${(maxX - minX + pad * 2).toFixed(0)} ${(maxY - minY + pad * 2).toFixed(0)}`} role="img" aria-label={`${track.name} ${distance}m: the run from the start to the post`}>
         <g transform={`rotate(${turn.toFixed(2)})`}>
-        <path d={line(track.outer)} className="track-rail" />
-        {track.inner.length > 0 && <path d={line(track.inner)} className="track-rail" />}
-        <path d={line(path)} className="track-run" />
+        {(track.outerParts ?? [track.outer]).map((p, i) => <path key={`o${i}`} d={line(p)} className="track-rail" style={rail} />)}
+        {track.inner.length > 0 && <path d={line(track.inner)} className="track-rail" style={rail} />}
+        {track.chutes.map((c, i) => c.rails?.length ? <path key={i} d={line(c.rails)} className="track-rail" style={rail} /> : null)}
+        <path d={line(path)} className="track-run" style={{ strokeWidth: 16 * k }} />
         {marks.map((m, i) => (
-          <path key={i} d="M-14,-10 L4,0 L-14,10" className="track-arrow" transform={`translate(${m.at[0].toFixed(1)},${m.at[1].toFixed(1)}) rotate(${m.angle.toFixed(1)})`} />
+          <path key={i} d="M-14,-10 L4,0 L-14,10" className="track-arrow" transform={`translate(${m.at[0].toFixed(1)},${m.at[1].toFixed(1)}) rotate(${m.angle.toFixed(1)}) scale(${k.toFixed(3)})`} />
         ))}
-        <circle cx={start[0]} cy={start[1]} r={26} className="track-start" />
-        <circle cx={track.post[0]} cy={track.post[1]} r={26} className="track-post" />
+        <circle cx={start[0]} cy={start[1]} r={26 * k} className="track-start" style={{ strokeWidth: 6 * k }} />
+        <circle cx={track.post[0]} cy={track.post[1]} r={26 * k} className="track-post" style={{ strokeWidth: 6 * k }} />
         </g>
       </svg>
       <figcaption className="track-legend">
