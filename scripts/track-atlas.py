@@ -19,6 +19,15 @@ spec = importlib.util.spec_from_file_location("tg", os.path.join(os.path.dirname
 tg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tg)
 
+# Posts placed by hand, in rail metres round the loop, where the stand or straight finder gets it wrong.
+POST = {
+    "goldcoast": 1870,  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
+    "murtoa": 380,  # near the end of the straight; the chutes then come out at 1200 and 1600
+    "toowoomba": 1485,  # about 400m before the stand finder's guess, placed by eye
+    "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
+}
+# Chute starts known from the club: each built chute takes the nearest.
+CHUTE_STARTS = {"waggariverside": [1100, 1400, 1600]}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
 NO_OUTER = {"newcastle"}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
@@ -261,11 +270,15 @@ def build(slug, path, state):
             if best is None or err < best[0]:
                 best = (err, a)
         post_along, fit = best[1], best[0]
+    if slug in POST:
+        post_along, how, fit = float(POST[slug]), "by hand", None
     post = tg.point_at(run, along, post_along)
     for c in chutes:
         c["startDistance"] = round(c["length"] + (post_along - c["joinAlong"]) % total)
-    per_chute = (fit / len(chutes)) if chutes else None
-    confidence = "high" if (how == "grandstand" and (per_chute is None or per_chute < 25)) or (per_chute is not None and per_chute < 12 and len(chutes) >= 2) else "medium" if how == "grandstand" or (per_chute is not None and per_chute < 30) else "low"
+        if slug in CHUTE_STARTS:
+            c["startDistance"] = min(CHUTE_STARTS[slug], key=lambda d: abs(d - c["startDistance"]))
+    per_chute = (fit / len(chutes)) if chutes and fit is not None else None
+    confidence = "high" if how == "by hand" or (how == "grandstand" and (per_chute is None or per_chute < 25)) or (per_chute is not None and per_chute < 12 and len(chutes) >= 2) else "medium" if how == "grandstand" or (per_chute is not None and per_chute < 30) else "low"
 
     xs = [x for x, _ in (outer["pts"] if outer else []) + loop]
     ys = [y for _, y in (outer["pts"] if outer else []) + loop]
