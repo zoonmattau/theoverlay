@@ -39,6 +39,8 @@ export const breadcrumbs = (trail: { name: string; path: string }[]) => ({
 export interface Faq {
   q: string;
   a: string;
+  /** Where the answer points: shown as buttons under it, left out of the schema. */
+  links?: { label: string; href: string }[];
 }
 
 export const faqSchema = (items: Faq[]) => ({
@@ -61,6 +63,15 @@ export function FaqList({ items, title = "Questions" }: { items: Faq[]; title?: 
           <div key={f.q} className="py-4">
             <dt className="font-semibold">{f.q}</dt>
             <dd className="mt-1 text-sm text-ink-secondary leading-relaxed">{f.a}</dd>
+            {f.links && f.links.length > 0 && (
+              <dd className="mt-2 flex flex-wrap gap-2">
+                {f.links.map((l) => (
+                  <a key={l.href} href={l.href} className="faq-link" {...(/^https?:/.test(l.href) ? { target: "_blank", rel: "noopener" } : {})}>
+                    {l.label} <span aria-hidden>→</span>
+                  </a>
+                ))}
+              </dd>
+            )}
           </div>
         ))}
       </dl>

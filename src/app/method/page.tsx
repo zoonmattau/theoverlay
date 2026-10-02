@@ -28,7 +28,7 @@ const SAMPLE: RunnerRatings = {
   distance: 72.6,
   track: 71.9,
   today: 74.2,
-  factors: { going: 0.5, tempo: 0.7, distance: 0.6, weight: 1.2, jockey: -0.2 },
+  factors: { sections: 1.1, tempo: 0.7, track: 0.5, shape: 0.4, jockey: -0.2 },
   runs: 5,
   trust: 1,
   ppir: 3,
@@ -152,17 +152,21 @@ export default function Page() {
         </div>
         <div className="section-body grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Call badge={<Badge tone="back">Bet</Badge>} title="Bet">
-            The market is paying more than our price on a horse with a real chance, so the price is on our side.
+            The market is at least two points of win chance longer than our price, at $26 or under.
           </Call>
           <Call badge={<Badge tone="prime">Prime Overlay</Badge>} title="Prime Overlay">
-            A bet where our disagreement with the market is at its strongest. There can be a few a day or none.
+            A bet five points or more clear on a horse with a 15% chance or better and at least two runs behind its rating.
           </Call>
-          <Call badge={<Badge tone="back">Bet</Badge>} title="Long Overlay">
-            The best bet on the card at each-way odds, for when you want a price.
+          <Call badge={<Badge tone="roughie">Way Overlay</Badge>} title="Way Overlay">
+            A bet at $21 or more, struck at small stakes because the few that win pay for the rest.
           </Call>
           <Call badge={<Badge tone="lay">Lay</Badge>} title="Lay">
             A horse the market has too short, usually a favourite, and one to bet against on Betfair.
           </Call>
+          <p className="sm:col-span-2 text-sm text-ink-secondary">
+            Calls go up at 11am Sydney time, move with the market until 30 minutes before each jump, then lock and
+            are settled as they stand.
+          </p>
         </div>
       </section>
 
@@ -173,10 +177,11 @@ export default function Page() {
           <h2>Reading the board</h2>
         </div>
         <div className="section-body">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-4 mb-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-5 mb-4">
             <Cell cls="tip-back" race="R4" line="2h 11m" tag="1 bet" note="A race with a bet" />
             <Cell cls="tip-lay" race="R5" line="2h 41m" tag="1 lay" note="A race with a lay" />
             <Cell cls="tip-prime" race="R6" line="3h 11m" tag="Prime" note="A Prime Overlay" />
+            <Cell cls="tip-roughie" race="R7" line="3h 41m" tag="Way Overlay" note="A Way Overlay" />
             <Cell cls="race-resulted had-back" race="R2" line="6,1,9,3" note="Run, first four home, border shows what we had on" />
           </div>
           <p className="text-sm text-ink-secondary">

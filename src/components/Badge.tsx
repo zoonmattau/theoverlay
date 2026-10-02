@@ -9,6 +9,7 @@ const TONES = {
   prime: "badge-prime",
   back: "badge-back",
   lay: "badge-lay",
+  roughie: "badge-roughie",
 } as const;
 
 export function Badge({

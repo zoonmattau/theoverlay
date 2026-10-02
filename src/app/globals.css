@@ -463,6 +463,11 @@ body {
   background: var(--color-blue);
   color: #fff;
 }
+.badge-roughie {
+  background: var(--color-blue-soft);
+  color: var(--color-blue);
+  border-color: var(--color-blue-dim);
+}
 .badge-lay {
   background: var(--color-red);
   color: #fff;
@@ -3562,6 +3567,23 @@ body {
     border: 0;
   }
 }
+/* An answer's way on: a small outlined button, the arrow nudges on hover. */
+.faq-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--color-line-strong);
+  background: var(--color-panel);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-ink);
+  transition: border-color 120ms var(--ease), background 120ms var(--ease);
+}
+.faq-link:hover { border-color: var(--color-ink); background: var(--color-lime-soft); }
+.faq-link span { transition: transform 120ms var(--ease); }
+.faq-link:hover span { transform: translateX(2px); }
 .topbar-count {
   display: inline-grid;
   place-items: center;
