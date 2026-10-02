@@ -19,6 +19,8 @@ spec = importlib.util.spec_from_file_location("tg", os.path.join(os.path.dirname
 tg = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(tg)
 
+# Where the ring round the course in OSM is a property fence, not the outer rail.
+NO_OUTER = {"newcastle"}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
 STARTS = [800, 900, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1800, 1850, 1900, 2000, 2050, 2100, 2200, 2300, 2400, 2500]
 SKIP_TAGS = ("building", "highway", "railway", "waterway", "power", "boundary", "admin_level", "amenity", "shop", "natural", "barrier_skip")
@@ -71,6 +73,19 @@ def usable(t):
     return True
 
 
+def sharpest(pts):
+    """The sharpest turn round a ring, in degrees, read every 25m: a running rail never turns hard."""
+    n = max(12, int(length(pts) / 25))
+    q = tg.resample(pts, n + 1)[:-1]  # the ring's last point is its first
+    worst = 0.0
+    for i in range(len(q)):
+        a, b, c = q[i - 2], q[i - 1], q[i]
+        h1 = math.atan2(b[1] - a[1], b[0] - a[0])
+        h2 = math.atan2(c[1] - b[1], c[0] - b[0])
+        worst = max(worst, abs((math.degrees(h2 - h1) + 180) % 360 - 180))
+    return worst
+
+
 def find_rings(ways, centre):
     """The course (inner rail) and, when mapped, the outer rail around it."""
     rings = []
@@ -82,7 +97,7 @@ def find_rings(ways, centre):
         if not (850 <= L <= 4600):
             continue
         c = centroid(pts)
-        if math.hypot(c[0] - centre[0], c[1] - centre[1]) > 900:
+        if math.hypot(c[0] - centre[0], c[1] - centre[1]) > 1300:
             continue
         shape = area(pts) / (L * L)
         if shape < 0.012:
@@ -92,6 +107,9 @@ def find_rings(ways, centre):
     best = None
     for r in rings:
         if not (1000 <= r["L"] <= 2800):
+            continue
+        # A fence or a site boundary has corners; the course has none.
+        if sharpest(r["pts"]) > 30:
             continue
         sample = r["pts"][:: max(1, len(r["pts"]) // 40)]
         outer = None
@@ -162,9 +180,13 @@ def build(slug, path, state):
         return {"slug": slug, "ok": False, "why": "no lines"}
     lat0 = sum(p["lat"] for e in els for p in e["geometry"]) / sum(len(e["geometry"]) for e in els)
     ways = [{"id": e["id"], "tags": e.get("tags", {}), "pts": tg.local(e["geometry"], lat0)} for e in els]
-    allpts = [p for w in ways for p in w["pts"]]
+    # Centre on what is tagged as horse racing; a long creek or road would drag the middle of everything off the course.
+    racing = [p for w in ways if w["tags"].get("sport") == "horse_racing" for p in w["pts"]]
+    allpts = racing or [p for w in ways if length(w["pts"]) < 5000 for p in w["pts"]] or [p for w in ways for p in w["pts"]]
     centre = centroid(allpts)
     inner, outer, gap = find_rings(ways, centre)
+    if slug in NO_OUTER:
+        outer, gap = None, None
     if not inner:
         return {"slug": slug, "ok": False, "why": "no course ring found"}
     clockwise = state not in ANTICLOCKWISE
@@ -265,7 +287,13 @@ def build(slug, path, state):
         "attribution": "Map data (c) OpenStreetMap contributors",
         "auto": {"confidence": confidence, "post": how, "chuteError": round(per_chute, 1) if per_chute is not None else None, "outerRail": bool(outer)},
     }
-    json.dump(out, open(f"src/lib/tracks/{slug}.json", "w", encoding="utf-8"))
+    # A rebuild keeps the hand review.
+    dest = f"src/lib/tracks/{slug}.json"
+    if os.path.exists(dest):
+        was = json.load(open(dest, encoding="utf-8")).get("auto") or {}
+        if was.get("reviewed"):
+            out["auto"]["reviewed"] = was["reviewed"]
+    json.dump(out, open(dest, "w", encoding="utf-8"))
     return {"slug": slug, "ok": True, "loop": round(total), "chutes": [c["startDistance"] for c in chutes], "post": how, "confidence": confidence, "outer": bool(outer)}
 
 

@@ -23,7 +23,7 @@ STATES = {
 }
 # Our names where the club or the map uses another.
 ALIASES = {
-    "Wagga": ["Wagga Wagga", "Murrumbidgee Turf Club"], "Canterbury": ["Canterbury Park"], "Randwick": ["Royal Randwick", "Randwick"],
+    "Wagga": ["Wagga Wagga", "Murrumbidgee Turf Club"], "Wagga Riverside": ["Wagga Wagga", "Murrumbidgee Turf Club"], "Canterbury": ["Canterbury Park"], "Randwick": ["Royal Randwick", "Randwick"],
     "Illawarra Grange": ["Kembla Grange"], "Caulfield Heath": ["Caulfield"], "Morphettville Parks": ["Morphettville"],
     "Sunshine Coast": ["Corbould Park", "Sunshine Coast"], "Gold Coast": ["Gold Coast Turf Club", "Aquis Park", "Gold Coast"],
     "Mt Magnet": ["Mount Magnet"], "Hawkesbury": ["Clarendon", "Hawkesbury"], "Newcastle": ["Broadmeadow", "Newcastle"],
@@ -35,6 +35,9 @@ ALIASES = {
     "Townsville": ["Cluden", "Townsville Turf"], "Echuca": ["Echuca"], "Kalgoorlie": ["Kalgoorlie", "Boulder Racing"], "Narromine": ["Narromine"],
     "Murray Bridge": ["Gifford Hill", "Murray Bridge"], "Toodyay": ["Toodyay"],
 }
+
+# Courses mapped in OSM with no name on them: the centre of the unnamed horse-racing way.
+COORDS = {"Murray Bridge": (-35.1163, 139.3021), "Kalgoorlie": (-30.7627, 121.4682)}
 
 slug = lambda s: re.sub(r"[^a-z]", "", s.lower())
 
@@ -74,13 +77,20 @@ def main():
         names = ALIASES.get(t["track"], []) + [t["track"]]
         cands = sorted(((score(e, names), e) for e in feats if in_state(e, t["state"])), key=lambda x: -x[0])
         cands = [c for c in cands if c[0] >= 2]
+        if t["track"] in COORDS:
+            lat, lon = COORDS[t["track"]]
+            found[t["track"]] = {"state": t["state"], "osm": "unnamed", "name": t["track"], "lat": lat, "lon": lon}
+            continue
         if not cands:
             print("NO MATCH", t["track"], t["state"])
             continue
         e = cands[0][1]
         c = e.get("center") or {"lat": e.get("lat"), "lon": e.get("lon")}
         found[t["track"]] = {"state": t["state"], "osm": f"{e['type']}/{e['id']}", "name": e["tags"].get("name"), "lat": c["lat"], "lon": c["lon"]}
-    json.dump(found, open(os.path.join(out, "_index.json"), "w", encoding="utf-8"), indent=1)
+    # Add to what earlier runs found rather than replace it.
+    idx = os.path.join(out, "_index.json")
+    known = json.load(open(idx, encoding="utf-8")) if os.path.exists(idx) else {}
+    json.dump({**known, **found}, open(idx, "w", encoding="utf-8"), indent=1)
     print(len(found), "matched of", len(tracks))
     for track, f in found.items():
         path = os.path.join(out, slug(track) + ".json")
