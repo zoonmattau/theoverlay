@@ -28,9 +28,10 @@ function describe(e: Event): Line | null {
     case "joined":
       return { tone: "prime", text: "signed up" };
     case "payment":
-      return { tone: "bet", text: `paid ${money(e.amount_cents ?? 0)} for ${plan(e.plan)}` };
+      // A pass is logged twice, as the payment and the checkout, a moment apart; both share a key so one line shows.
+      return { tone: "bet", text: `paid ${money(e.amount_cents ?? 0)} for ${plan(e.plan)}`, key: e.plan?.startsWith("passes_") ? `pass|${e.plan}|${e.created_at.slice(0, 16)}` : undefined };
     case "checkout_completed":
-      return e.plan?.startsWith("passes_") ? { tone: "bet", text: `bought ${e.plan.slice(7)} day ${e.plan === "passes_1" ? "pass" : "passes"} for ${money(e.amount_cents ?? 0)}` } : null;
+      return e.plan?.startsWith("passes_") ? { tone: "bet", text: `bought ${e.plan.slice(7)} day ${e.plan === "passes_1" ? "pass" : "passes"} for ${money(e.amount_cents ?? 0)}`, key: `pass|${e.plan}|${e.created_at.slice(0, 16)}` } : null;
     case "subscription":
       // Renewals, retries and endings repeat what the payment, grace and cancel lines already say.
       if (m.status !== "canceled" && (m.cancelAtPeriodEnd || m.cancelAt)) {

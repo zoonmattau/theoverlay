@@ -480,16 +480,30 @@ const MEMBER_COLS = "id, email, plan, access_until, paused_at, bonus_until, is_a
  * on Friday (Saturday's early look) until the 9pm build on Saturday, which
  * sets the roles for Sunday before Sunday's early look posts.
  */
-function memberNow(p: MemberRow, tipster: boolean, date?: string): boolean {
+function memberNow(p: MemberRow, tipster: boolean, date?: string, passDates: Set<string> = new Set()): boolean {
   if (p.is_admin || isAdminEmail(p.email) || tipster) return true;
   if (p.paused_at) return false;
   const now = Date.now();
-  // From 9pm, when tomorrow's early look goes up, the racing date that counts is tomorrow's.
+  const day = date ?? roleDay(now);
+  if (p.access_until && new Date(p.access_until).getTime() > now && planCovers(p.plan ?? undefined, day)) return true;
+  // A day pass used on the date counts the same as a plan's day (2 Oct 2026: a pass holder sat without the role).
+  if (passDates.has(`${p.id}|${day}`)) return true;
+  return Boolean(p.bonus_until && new Date(p.bonus_until).getTime() > now);
+}
+
+/** The racing date the roles are for: today, or tomorrow from 9pm, when tomorrow's early look goes up. */
+function roleDay(now = Date.now()): string {
   const sydney = (t: number) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
   const hour = Number(new Date(now).toLocaleString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hour12: false }));
-  const day = date ?? (hour >= 21 ? sydney(now + 86400_000) : sydney(now));
-  if (p.access_until && new Date(p.access_until).getTime() > now && planCovers(p.plan ?? undefined, day)) return true;
-  return Boolean(p.bonus_until && new Date(p.bonus_until).getTime() > now);
+  return hour >= 21 ? sydney(now + 86400_000) : sydney(now);
+}
+
+/** Day passes used on a date, as "userId|date". */
+async function passesOn(day: string, userId?: string): Promise<Set<string>> {
+  let q = supabaseAdmin().from("day_passes").select("user_id, date").eq("date", day);
+  if (userId) q = q.eq("user_id", userId);
+  const { data } = await q;
+  return new Set(((data ?? []) as { user_id: string; date: string }[]).map((r) => `${r.user_id}|${r.date}`));
 }
 
 /**
@@ -579,7 +593,8 @@ export async function syncDiscordMember(userId: string, accessToken?: string): P
   ]);
   if (!p?.discord_id) return;
   try {
-    await applyRole(p.discord_id, memberNow(p as MemberRow, Boolean(aff)), accessToken, Boolean(aff));
+    const passes = await passesOn(roleDay(), userId);
+    await applyRole(p.discord_id, memberNow(p as MemberRow, Boolean(aff), undefined, passes), accessToken, Boolean(aff));
   } catch (err) {
     console.error("[discord] sync", userId, err);
   }
@@ -594,10 +609,11 @@ export async function syncDiscordMembers(date?: string): Promise<{ linked: numbe
     db.from("affiliates").select("user_id").eq("active", true),
   ]);
   const tipsters = new Set((affs ?? []).map((a) => String(a.user_id)));
+  const passes = await passesOn(date ?? roleDay());
   let members = 0;
   for (const p of (rows ?? []) as MemberRow[]) {
     const tipster = tipsters.has(p.id);
-    const member = memberNow(p, tipster, date);
+    const member = memberNow(p, tipster, date, passes);
     if (member) members++;
     try {
       await applyRole(p.discord_id!, member, undefined, tipster);

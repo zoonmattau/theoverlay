@@ -122,3 +122,83 @@ export async function switchPlan(userId: string, planId: string): Promise<boolea
   await logEvent({ user_id: userId, kind: "downgrade", plan: to.id, amount_cents: termPrice(to, offer.term) * 100, meta: { from: offer.current, trialing: offer.trialing, term: offer.term.id } });
   return true;
 }
+
+/**
+ * For a trial on a 3-month or yearly term: pay monthly instead, from today,
+ * with a week on the house (payMonthlyNow). Since 26 Sep the pricing page leads with yearly, and the first
+ * two to cancel a yearly trial (1 Oct, Saturday at $182) gave "too expensive"
+ * and "unused": the bill in one hit, not the weekly figure, put them off.
+ * Before the first paid bill only; the trial and its end date carry over.
+ */
+export interface MonthlySwitch {
+  subscriptionId: string;
+  planName: string;
+  /** The term they are on now, and what it would bill. */
+  term: Term;
+  termPrice: number;
+  /** What the plan costs a month. */
+  monthly: number;
+  /** When the first bill falls, yyyy-mm-dd. */
+  chargeOn?: string;
+}
+
+/** The switch to monthly a member can make now, or nothing when they are already monthly or have paid. */
+export async function monthlyFor(userId: string): Promise<MonthlySwitch | null> {
+  const { data: p } = await supabaseAdmin().from("profiles").select("plan, stripe_subscription_id, subscription_status").eq("id", userId).maybeSingle();
+  if (!p?.stripe_subscription_id || !["trialing", "active"].includes(p.subscription_status ?? "")) return null;
+  const plan = planById(p.plan ?? undefined);
+  const month = termById("month");
+  if (!plan || !termPriceId(plan, month)) return null;
+  const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
+  const term = termById(sub.metadata?.term);
+  if (term.id === "month") return null;
+  if (sub.status !== "trialing") {
+    const paid = await stripe().invoices.list({ subscription: sub.id, status: "paid", limit: 3 });
+    if (paid.data.some((i) => i.amount_paid > 0)) return null;
+  }
+  const chargeOn = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString().slice(0, 10) : undefined;
+  return { subscriptionId: sub.id, planName: plan.name, term, termPrice: termPrice(plan, term), monthly: termPrice(plan, month), chargeOn };
+}
+
+/** The extra time for paying now instead of when the trial ends: the first month runs this many days longer. */
+export const PAY_NOW_DAYS = 7;
+
+/**
+ * Pay monthly from today, with a week on the house: the trial ends now, the
+ * first month is charged straight away, and the next bill moves a week
+ * later, the same way the win-back's five-week month does (trial_end past
+ * the period's end, nothing prorated). A card that fails leaves the
+ * subscription as it was, still on its trial.
+ */
+export async function payMonthlyNow(userId: string): Promise<"paid" | "failed" | "not-eligible"> {
+  const offer = await monthlyFor(userId);
+  const { data: p } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
+  const plan = planById(p?.plan ?? undefined);
+  const price = plan ? termPriceId(plan, termById("month")) : undefined;
+  if (!offer || !plan || !price) return "not-eligible";
+  const s = stripe();
+  const sub = await s.subscriptions.retrieve(offer.subscriptionId);
+  const item = sub.items.data[0];
+  if (!item) return "not-eligible";
+  try {
+    await s.subscriptions.update(sub.id, {
+      items: [{ id: item.id, price }],
+      metadata: { ...sub.metadata, term: "month" },
+      trial_end: "now",
+      proration_behavior: "none",
+      // Charged here and now: a declined card throws and the subscription is left untouched.
+      payment_behavior: "error_if_incomplete",
+      ...(sub.cancel_at_period_end ? { cancel_at_period_end: false } : sub.cancel_at ? { cancel_at: "" as const } : {}),
+    });
+  } catch (err) {
+    console.error("[retention] pay now", userId, err);
+    await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: null, meta: { from: offer.term.id, to: "month", paidNow: false, error: err instanceof Error ? err.message : String(err) } });
+    return "failed";
+  }
+  const paid = await s.subscriptions.retrieve(sub.id);
+  const periodEnd = paid.items.data[0]?.current_period_end;
+  if (periodEnd) await s.subscriptions.update(sub.id, { trial_end: periodEnd + PAY_NOW_DAYS * 86400, proration_behavior: "none" });
+  await supabaseAdmin().from("profiles").update({ billing_term: "month", cancel_at: null, cancel_reason: null }).eq("id", userId);
+  await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: offer.monthly * 100, meta: { from: offer.term.id, to: "month", paidNow: true, extraDays: PAY_NOW_DAYS } });
+  return "paid";
+}

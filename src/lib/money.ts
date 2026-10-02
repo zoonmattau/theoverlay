@@ -233,20 +233,20 @@ async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
   const byCustomer = new Map(((profiles ?? []) as { id: string; email: string | null; full_name: string | null; stripe_customer_id: string }[]).map((p) => [p.stripe_customer_id, p]));
   const out = await Promise.all(
     subs.map(async (s): Promise<UpcomingCharge | null> => {
+      const p = byCustomer.get(typeof s.customer === "string" ? s.customer : s.customer.id);
+      const planId = s.metadata?.plan ?? "subscription";
+      const base = { userId: p?.id, who: p?.full_name || p?.email || "a member", plan: `${planById(planId)?.name ?? planId}${termOf(s.items.data[0]?.price.recurring)}` };
+      // A card that failed: the open invoice, on the day Stripe next tries it, not the bill after.
+      if (s.status === "past_due") {
+        const open = (await stripe().invoices.list({ subscription: s.id, status: "open", limit: 1 })).data[0];
+        if (!open?.next_payment_attempt || open.next_payment_attempt > until) return null;
+        return { ...base, at: open.next_payment_attempt, kind: "retry", amount_cents: open.amount_due };
+      }
       const at = s.status === "trialing" && s.trial_end ? s.trial_end : (s.items.data[0]?.current_period_end ?? 0);
       if (!at || at > until) return null;
       if (s.cancel_at_period_end || (s.cancel_at && s.cancel_at <= at)) return null;
       const preview = await stripe().invoices.createPreview({ subscription: s.id }).catch(() => null);
-      const p = byCustomer.get(typeof s.customer === "string" ? s.customer : s.customer.id);
-      const planId = s.metadata?.plan ?? "subscription";
-      return {
-        at: s.status === "past_due" ? Math.floor(Date.now() / 1000) : at,
-        userId: p?.id,
-        who: p?.full_name || p?.email || "a member",
-        plan: `${planById(planId)?.name ?? planId}${termOf(s.items.data[0]?.price.recurring)}`,
-        kind: s.status === "trialing" ? "first bill" : s.status === "past_due" ? "retry" : "renewal",
-        amount_cents: preview?.amount_due ?? 0,
-      };
+      return { ...base, at, kind: s.status === "trialing" ? "first bill" : "renewal", amount_cents: preview?.amount_due ?? 0 };
     }),
   );
   return out.filter((c): c is UpcomingCharge => c !== null).sort((a, b) => a.at - b.at);

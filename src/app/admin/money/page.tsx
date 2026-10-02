@@ -296,8 +296,9 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const paying = charges.filter((c) => c.kind !== "first bill");
   const sum = (xs: UpcomingCharge[]) => xs.reduce((a, c) => a + c.amount_cents, 0);
   const today = sydney(Math.floor(now() / 1000));
+  // Tomorrow on: today's charges have already been tried.
   const days = Array.from({ length: 14 }, (_, i) => {
-    const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + i * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + (i + 1) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
     const on = charges.filter((c) => sydney(c.at) === iso);
     // Hover or tap a day for who is billed: "Gabriel Carr, Every day, yearly: $470 (trial ends)".
     const tip = on.map((c) => `${c.who}, ${c.plan}: ${dollars(c.amount_cents)}${c.kind === "first bill" ? " (trial ends)" : c.kind === "retry" ? " (retrying)" : ""}`).join("\n");
@@ -317,7 +318,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
             <div className="stat">
               <div className="stat-label">From paying members</div>
               <div className="font-display text-2xl font-extrabold nums mt-1">{dollars(sum(paying))}</div>
-              <div className="text-xs text-ink-soft">{paying.length ? `${paying.length} renewal${paying.length === 1 ? "" : "s"}` : "No renewals due"}</div>
+              <div className="text-xs text-ink-soft">{paying.length ? `${paying.length} ${paying.length === 1 ? "charge" : "charges"} due${paying.some((c) => c.kind === "retry") ? ", incl. a failed card retrying" : ""}` : "Nothing due"}</div>
             </div>
             {/* What the trials should bring at the rate trials have paid so far, not the most they could. */}
             <div className="stat border-lime bg-lime-soft">

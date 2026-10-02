@@ -15,7 +15,7 @@ export function UsePassButton({ date, credits }: { date: string; credits: number
     <div className="flex flex-wrap items-center gap-3">
       <button
         type="button"
-        className="btn btn-primary"
+        className="btn btn-primary gap-1.5"
         disabled={pending}
         onClick={() =>
           start(async () => {
@@ -25,11 +25,13 @@ export function UsePassButton({ date, credits }: { date: string; credits: number
           })
         }
       >
-        {pending ? "Opening" : "Use a day pass for today"}
+        {pending ? "Opening" : (
+          <>
+            Use a day pass for today
+            <span className="nums font-normal opacity-70">· {credits} left</span>
+          </>
+        )}
       </button>
-      <span className="text-xs text-ink-soft nums">
-        {credits} {credits === 1 ? "pass" : "passes"} left
-      </span>
       {failed && <span className="text-xs text-red font-semibold">No passes left.</span>}
     </div>
   );

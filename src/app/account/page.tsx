@@ -8,15 +8,16 @@ import { claimInstagram, makeApiKey, revokeApiKey, saveDetails, setTipsEmails, u
 import { ApiKeyButton } from "@/components/ApiKeyButton";
 import { CopyLink } from "@/components/CopyLink";
 import { PortalButton } from "@/components/PortalButton";
+import { UsePassButton } from "@/components/UsePassButton";
 import { FollowButton } from "@/components/FollowButton";
 import { allTipsters, followedTipsters, tipsterForUser } from "@/lib/creators";
 import { API_MIN_INTERVAL_S, liveKey } from "@/lib/api-keys";
 import { claimedInstagramDay } from "@/lib/instagram-day";
-import { getViewer, type Viewer } from "@/lib/auth";
+import { getViewer, hasAccess, type Viewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
 import { discordLinkConfigured } from "@/lib/discord";
-import { getTodayCard } from "@/lib/model/source";
+import { getTodayCard, racingToday } from "@/lib/model/source";
 import { BONUS_DAYS, ensureReferralCode, referralCount } from "@/lib/referrals";
 import { BRAND_SOCIAL } from "@/lib/social";
 
@@ -100,11 +101,21 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
       {sp.ig === "bill" && <Notice>Thanks for the follow. Your next bill has moved a day later{typeof sp.until === "string" && sp.until ? `, to ${longDate(sp.until.slice(0, 10))}` : ""}: a free day on us.</Notice>}
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}. Glad you stayed.</Notice>}
+      {sp.switched === "paid-now" && <Notice>Paid, thank you. Your first month runs 5 weeks, so the next bill is 5 weeks from today.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
       {sp.discord === "failed" && <Notice>Discord did not link. Try again.</Notice>}
       {sp.checkout === "success" && <Notice>You are in. Your plan shows below within a few seconds, refresh if it has not.</Notice>}
-      {sp.checkout === "passes" && <Notice>Passes bought. They show below within a few seconds, refresh if they have not.</Notice>}
+      {sp.checkout === "passes" && (
+        <Notice>
+          Passes bought. A pass opens the full board for one race day: on the day, tap <strong>Use a day pass</strong> on the home page, Today&apos;s tips or any race.{" "}
+          {!hasAccess(viewer, racingToday()) && viewer.passCredits > 0 ? (
+            <div className="mt-2"><UsePassButton date={racingToday()} credits={viewer.passCredits} /></div>
+          ) : viewer.passCredits === 0 ? (
+            "They show here within a few seconds; refresh if they have not."
+          ) : null}
+        </Notice>
+      )}
 
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
@@ -396,7 +407,8 @@ function Row({ label, what, children }: { label: string; what: string; children?
 function Notice({ children }: { children: React.ReactNode }) {
   return (
     <div className="card border-lime bg-lime-soft mt-6">
-      <p className="font-semibold">{children}</p>
+      {/* A div, not a p: a notice can hold a button. */}
+      <div className="font-semibold">{children}</div>
     </div>
   );
 }

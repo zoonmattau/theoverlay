@@ -12,6 +12,7 @@ import type { PublishedMeeting, PublishedRace } from "@/lib/model/types";
 import { RaceMatrix } from "@/components/RaceMatrix";
 import { Record } from "@/components/Record";
 import { SocialLinks } from "@/components/SocialLinks";
+import { UsePassButton } from "@/components/UsePassButton";
 import { ReviewBanner } from "@/components/ReviewStory";
 import { bannerReview } from "@/lib/reviews";
 import { now } from "@/lib/admin";
@@ -120,9 +121,14 @@ async function Hero({ searchParams }: { searchParams: PageProps<"/">["searchPara
           tell you where the market has it wrong.
         </p>
         <div className="mt-5 flex flex-wrap gap-3">
-          <Link href="/pricing" className="btn btn-primary">
-            Get today&apos;s tips
-          </Link>
+          {/* Passes in hand on a locked day: spend one here, not a trip to pricing to buy another. */}
+          {!open && viewer.passCredits > 0 ? (
+            <UsePassButton date={card.date} credits={viewer.passCredits} />
+          ) : (
+            <Link href="/pricing" className="btn btn-primary">
+              Get today&apos;s tips
+            </Link>
+          )}
           {free ? (
             <Link href={`/racing/${card.date}/${free.meeting.meetingId}/${free.race.raceId}`} className="btn btn-secondary">
               See today&apos;s free race

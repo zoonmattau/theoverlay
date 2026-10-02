@@ -34,8 +34,10 @@ export async function NavUser({ links }: { links: { href: string; label: string 
     ));
 
   const passButton = open ? null : viewer.passCredits > 0 ? (
-    <Link href="/tips" className="btn btn-primary btn-sm ml-1">
+    <Link href="/tips" className="btn btn-primary btn-sm ml-1 relative" aria-label={`Use a day pass, ${viewer.passCredits} left`}>
       Use a day pass
+      {/* How many are left, on the corner of the button. */}
+      <span className="pass-count" aria-hidden>{viewer.passCredits}</span>
     </Link>
   ) : (
     <Link href="/pricing#passes" className={`btn btn-sm ml-1 ${signedOut ? "btn-secondary btn-onbar" : "btn-primary"}`}>

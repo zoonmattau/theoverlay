@@ -146,6 +146,18 @@ export const EMAILS = {
     cta: { label: "Keep my access", url: `${SITE}/pricing` },
   }),
 
+  /** Two days before a cancelled yearly or 3-month trial ends: pay the first month today and it runs 5 weeks. */
+  trialMonthly: (plan: string, term: string, termPrice: number, monthly: number, ends: string): EmailSpec => ({
+    subject: `Pay today, get a week of ${plan} free`,
+    preheader: `$${monthly} for 5 weeks, no $${termPrice} bill.`,
+    heading: "Pay today, get a week free.",
+    paragraphs: [
+      `Your <strong>${plan}</strong> trial runs to the end of <strong>${fmt(new Date(new Date(ends).getTime() - 60_000).toISOString())}</strong>, and you have cancelled it. If the ${term} bill of $${termPrice} in one go was the problem, there is another way.`,
+      `Pay <strong>$${monthly}</strong> for your first month today and it runs <strong>5 weeks</strong>. After that it is $${monthly} a month, same board, same calls, and you can cancel any month.`,
+    ],
+    cta: { label: `Pay $${monthly} for 5 weeks`, url: `${SITE}/account/cancel` },
+  }),
+
   /** Win-back, three days after access ends: pay for a month, get five weeks. */
   winbackOffer: (days: number, price: number, weekly: string): EmailSpec => ({
     subject: "Come back and get a week on us",

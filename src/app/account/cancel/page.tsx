@@ -6,34 +6,36 @@ import { Suspense } from "react";
 import { PortalButton } from "@/components/PortalButton";
 import { getViewer } from "@/lib/auth";
 import { weeklyLabel } from "@/lib/billing/plans";
-import { downgradesFor, offerFor, type Downgrades } from "@/lib/billing/retention";
+import { downgradesFor, monthlyFor, offerFor, type Downgrades } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
 import { longDate } from "@/lib/format";
+import { MonthlyOffer as Monthly } from "@/components/MonthlyOffer";
 import { cancelAnyway, keepAtHalfPrice, moveToPlan } from "./actions";
 
 export const metadata: Metadata = { title: "Before you go", robots: { index: false } };
 
-export default function Page() {
+export default function Page({ searchParams }: PageProps<"/account/cancel">) {
   return (
     <div className="page max-w-2xl">
       <Suspense fallback={<div className="skeleton h-64 mt-6" />}>
-        <Cancel />
+        <Cancel searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
 /** The step before Stripe's cancellation: half price on the first month, once, for anyone not yet charged. */
-async function Cancel() {
-  const viewer = await getViewer();
+async function Cancel({ searchParams }: { searchParams: PageProps<"/account/cancel">["searchParams"] }) {
+  const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   if (!viewer.id) redirect("/login?next=%2Faccount%2Fcancel");
   if (!stripeConfigured() || !viewer.stripeCustomerId) redirect("/account");
-  const [offer, cheaper] = await Promise.all([offerFor(viewer.id), downgradesFor(viewer.id)]);
+  const [offer, cheaper, monthly] = await Promise.all([offerFor(viewer.id), downgradesFor(viewer.id), monthlyFor(viewer.id)]);
 
   if ("reason" in offer) {
     return (
       <section className="py-10">
-        <h1 className="font-display text-3xl font-extrabold tracking-tight">Cancel your plan</h1>
+        {monthly && <Monthly offer={monthly} declined={sp.card === "declined"} />}
+        <h1 className={`font-display tracking-tight font-extrabold ${monthly ? "mt-10 text-xl" : "text-3xl"}`}>{monthly ? "Or cancel your plan" : "Cancel your plan"}</h1>
         <p className="mt-2 text-sm text-ink-secondary">
           {offer.reason === "no-subscription" ? "There is no plan on this account to cancel." : "Cancelling stops the next charge; the board stays open until the end of what you have paid for."}
         </p>
