@@ -5,7 +5,7 @@ import type { Period } from "./stats";
  * being developed. This is what the Results section shows. Edit the figures
  * here; nothing else reads them.
  */
-export const PRIOR_RECORD: { to: string; windows: Record<Period, { tips: number; units: number; roi: number }> } = {
+export const PRIOR_RECORD: { to: string; windows: Partial<Record<Period, { tips: number; units: number; roi: number }>> } = {
   /** Last day the hand-kept record covers, yyyy-mm-dd. */
   to: "2026-08-31",
   windows: {

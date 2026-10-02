@@ -296,13 +296,18 @@ export async function windowStats(from: string, source?: TipSource): Promise<{ b
   return tally((await settledRows(source)).filter((r) => r.date >= from));
 }
 
-/** Units by day since launch, the model's settled calls, for the running line under the home page record. */
-export async function dailyUnits(): Promise<{ date: string; units: number }[]> {
+/** Units by day since launch, the model's settled calls, all and by side, for the running lines in the home page record. */
+export async function dailyUnits(): Promise<{ date: string; units: number; bets: number; lays: number }[]> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
-  const byDay = new Map<string, number>();
-  for (const r of await settledRows("model")) byDay.set(r.date, (byDay.get(r.date) ?? 0) + Number(r.units));
-  return [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([date, units]) => ({ date, units: Math.round(units * 100) / 100 }));
+  const byDay = new Map<string, { bets: number; lays: number }>();
+  for (const r of await settledRows("model")) {
+    const d = byDay.get(r.date) ?? { bets: 0, lays: 0 };
+    d[r.side === "lay" ? "lays" : "bets"] += Number(r.units);
+    byDay.set(r.date, d);
+  }
+  const round = (n: number) => Math.round(n * 100) / 100;
+  return [...byDay].sort(([a], [b]) => a.localeCompare(b)).map(([date, d]) => ({ date, units: round(d.bets + d.lays), bets: round(d.bets), lays: round(d.lays) }));
 }
 
 /** Every settled call that ran, voids left out. */

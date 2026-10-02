@@ -2,9 +2,10 @@ export type TipSource = "model" | "backtest";
 
 /** Types shared with the Record component, no server imports. */
 
-export type Period = "week" | "month" | "year" | "all";
+export type Period = "week" | "fortnight" | "month" | "year" | "all";
 export const PERIODS: { id: Period; label: string; days?: number }[] = [
   { id: "week", label: "Last week", days: 7 },
+  { id: "fortnight", label: "Last fortnight", days: 14 },
   { id: "month", label: "Last month", days: 30 },
   { id: "year", label: "Last year", days: 365 },
   { id: "all", label: "All time" },
