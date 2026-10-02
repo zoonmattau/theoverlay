@@ -737,6 +737,15 @@ const sameTrack = (a?: string, b?: string) =>
 /** Hurdles and steeplechases are rated on their own scale and never count. */
 /** Lengths faster than the class benchmark past which a run's clock is a mistake, not a run. */
 const FAST_CLOCK = Number(process.env.OVERLAY_FAST_CLOCK ?? 8);
+/**
+ * Points a race's feed rating may sit above the feed's own expected rating
+ * before the race is a mistake too: one race in a hundred is more than 20
+ * over, one in a thousand more than 26 (13,117 cached races). The clock guard
+ * only sees each horse's own time, so a runner beaten eight lengths in the bad
+ * Gladstone race kept its 113 race rating: Whatta Mission, top rated at $251
+ * at Rockhampton on 2 Oct 2026 off a run worth 104.
+ */
+const RR_OVER_EXPECTED = Number(process.env.OVERLAY_RR_OVER_EXPECTED ?? 20);
 
 /**
  * A run whose clock cannot be right loses its benchmark, the time and the
@@ -747,8 +756,11 @@ const FAST_CLOCK = Number(process.env.OVERLAY_FAST_CLOCK ?? 8);
  * benchmark and the race rated 113 against an expected 75, which made him
  * twenty points clear of a Rockhampton Class 1 on 2 Oct.
  */
-export function cleanClock<T extends { benchmark?: { vsClass: number } }>(p: T): T {
-  return p.benchmark && p.benchmark.vsClass > FAST_CLOCK ? { ...p, benchmark: undefined } : p;
+export function cleanClock<T extends { benchmark?: { vsClass: number; raceRating?: number; expectedRating?: number } }>(p: T): T {
+  const b = p.benchmark;
+  if (!b) return p;
+  const overRated = b.raceRating !== undefined && b.expectedRating !== undefined && b.raceRating - b.expectedRating > RR_OVER_EXPECTED;
+  return b.vsClass > FAST_CLOCK || overRated ? { ...p, benchmark: undefined } : p;
 }
 
 /**
