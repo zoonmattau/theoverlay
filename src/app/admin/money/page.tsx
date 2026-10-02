@@ -9,7 +9,7 @@ import { planById, TERMS, weekly } from "@/lib/billing/plans";
 import { priceBook, type PriceCell } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
 import { bookieName } from "@/lib/bookies";
-import { moneyReport, type PlanFunnel } from "@/lib/money";
+import { moneyReport, upcomingCharges, type PlanFunnel, type UpcomingCharge } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Money", robots: { index: false } };
 
@@ -32,7 +32,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const [r, prices] = await Promise.all([moneyReport(n), priceBook()]);
+  const [r, prices, upcoming] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(14)]);
   const t = r.totals;
 
   return (
@@ -59,6 +59,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.paid} label="paid" tone="prime" />
         <Tile n={t.cancelled} label="cancelled" />
       </div>
+
+      <ComingUp {...upcoming} />
 
       <div className="card mb-6">
         <h2 className="font-display font-extrabold">Plan prices</h2>
@@ -269,5 +271,51 @@ function Price({ c, months }: { c: PriceCell; months?: number }) {
       {!c.active && <span className="block text-xs text-red">archived in Stripe</span>}
       {c.dollars !== c.expected && <span className="block text-xs text-red">code says ${c.expected}</span>}
     </>
+  );
+}
+
+const day = (at: number) => new Date(at * 1000).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+const KIND: Record<UpcomingCharge["kind"], string> = { "first bill": "badge-prime", renewal: "badge-muted", retry: "badge-lay" };
+
+/** The next fortnight's charges by day, from Stripe: what lands, and when, if every trial goes on to pay. */
+function ComingUp({ charges, error }: { charges: UpcomingCharge[]; error?: string }) {
+  const total = charges.reduce((a, c) => a + c.amount_cents, 0);
+  const trials = charges.filter((c) => c.kind === "first bill");
+  const days = [...new Set(charges.map((c) => day(c.at)))];
+  return (
+    <div className="card mb-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display font-extrabold">Coming up, next 14 days</h2>
+        {charges.length > 0 && <span className="nums font-extrabold text-lg">{money(total)}</span>}
+      </div>
+      <p className="mt-1 text-xs text-ink-soft mb-3">
+        What Stripe will try to charge, at the amount it will bill. {trials.length > 0 && `${trials.length} ${trials.length === 1 ? "is a trial" : "are trials"} turning into a first bill (${money(trials.reduce((a, c) => a + c.amount_cents, 0))}), and a trial can still cancel before then. `}A plan booked to cancel is left out. Day passes are paid up front, so none show here.
+      </p>
+      {error && <p className="text-sm text-red">Stripe did not answer: {error}</p>}
+      {!error && charges.length === 0 && <p className="text-sm text-ink-soft">Nothing due in the next fortnight.</p>}
+      <div className="divide-y divide-line-soft">
+        {days.map((d) => {
+          const on = charges.filter((c) => day(c.at) === d);
+          return (
+            <div key={d} className="py-2 grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-4">
+              <div className="flex justify-between sm:block">
+                <span className="font-semibold">{d}</span>
+                <span className="nums text-xs text-ink-soft sm:block">{money(on.reduce((a, c) => a + c.amount_cents, 0))}</span>
+              </div>
+              <ul className="space-y-1">
+                {on.map((c, i) => (
+                  <li key={i} className="flex items-center gap-2 text-sm min-w-0">
+                    <span className={`badge ${KIND[c.kind]} shrink-0`}>{c.kind}</span>
+                    {c.userId ? <Link href={`/admin/${c.userId}`} className="truncate hover:text-blue">{c.who}</Link> : <span className="truncate">{c.who}</span>}
+                    <span className="text-ink-soft truncate hidden sm:inline">{c.plan}</span>
+                    <span className="ml-auto nums font-bold shrink-0">{money(c.amount_cents)}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }

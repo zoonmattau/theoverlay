@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useState } from "react";
 
 import { Section } from "./Section";
-import { totals, type RecordStats, type SideStats, type Winner } from "@/lib/tips/stats";
+import { totals, type RecordStats, type SideStats } from "@/lib/tips/stats";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(1)}u`;
 const dollars = (u: number) => `${u < 0 ? "−" : "+"}$${Math.abs(Math.round(u * 100)).toLocaleString("en-AU")}`;
@@ -18,17 +17,17 @@ const TABS = [
 
 /**
  * The live record under the board: the book as a hero with its running line,
- * bets and lays with their strike, the bets that paid most, and the way
- * through to the full results sheet. Only what is in profit shows: a window
+ * bets and lays with their strike, and the way through to the full
+ * results sheet. Only what is in profit shows: a window
  * or a side in the red is left off, and the section goes when nothing is up
  * (the user, 30 Sep 2026). Strike rates, not returns, so every figure here
  * matches the sheet (2 Oct 2026).
  */
-export function Record({ stats, winners, daily }: { stats: RecordStats[]; winners: Winner[]; daily: { date: string; units: number }[] }) {
+export function Record({ stats, daily }: { stats: RecordStats[]; daily: { date: string; units: number }[] }) {
   const tabs = TABS.filter((p) => (stats.find((s) => s.period === p.id)?.net ?? 0) > 0);
   const [period, setPeriod] = useState(tabs[0]?.id);
   const r = stats.find((s) => s.period === (tabs.some((p) => p.id === period) ? period : tabs[0]?.id));
-  if (!r && !winners.length) return null;
+  if (!r) return null;
   const t = r ? totals(r) : undefined;
   const settled = r ? r.bets.n + r.lays.n : 0;
   const hit = r ? r.bets.hit + r.lays.hit : 0;
@@ -108,26 +107,6 @@ export function Record({ stats, winners, daily }: { stats: RecordStats[]; winner
                 </div>
               );
             })}
-          </div>
-        )}
-
-        {winners.length > 0 && (
-          <div>
-            <h3 className="mb-2 text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft">Big winners</h3>
-            <ul className="grid gap-x-6 sm:grid-cols-2 lg:grid-cols-3 border-t border-line-soft">
-              {winners.map((w) => (
-                <li key={w.href + w.horse} className="border-b border-line-soft">
-                  <Link href={w.href} className="flex items-center gap-3 py-2 group">
-                    <span className="min-w-0 flex-1">
-                      <span className="block font-bold truncate group-hover:text-blue">{w.horse}</span>
-                      <span className="block text-xs text-ink-soft truncate">{w.race}, {shortDate(w.date)}</span>
-                    </span>
-                    <span className="price-chip is-back text-sm">${w.price.toFixed(2)}</span>
-                    <span className="nums text-sm font-extrabold w-16 text-right rounded-[var(--radius-sm)] bg-lime text-ink px-1.5 py-0.5">{units(w.units)}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
           </div>
         )}
 

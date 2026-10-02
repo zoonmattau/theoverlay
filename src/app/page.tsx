@@ -18,7 +18,7 @@ import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
 import { getCardFor, keepFresh, keepPrices, racingToday, RELEASE_HOUR } from "@/lib/model/source";
-import { bigWinners, dailyUnits, publicRecord } from "@/lib/tips";
+import { dailyUnits, publicRecord } from "@/lib/tips";
 import { jumpTime, longDate } from "@/lib/format";
 import { BRAND_SOCIAL } from "@/lib/social";
 
@@ -56,13 +56,13 @@ export default function Page({ searchParams }: PageProps<"/">) {
   );
 }
 
-/** The live record and the big winners, under the board with the review. */
+/** The live record, under the board with the review. */
 async function Results() {
   await connection();
-  const [stats, winners, daily] = await Promise.all([publicRecord(racingToday()), bigWinners(), dailyUnits()]);
+  const [stats, daily] = await Promise.all([publicRecord(racingToday()), dailyUnits()]);
   return (
     <section className="mt-6">
-      <Record stats={stats} winners={winners} daily={daily} />
+      <Record stats={stats} daily={daily} />
     </section>
   );
 }

@@ -5,6 +5,7 @@ import { arrivalSource } from "@/lib/arrival";
 import { listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { PLANS, planById } from "@/lib/billing/plans";
+import { stripe, stripeConfigured } from "@/lib/billing/stripe";
 import type { Series } from "@/lib/reports";
 
 /** One plan's funnel over the window: from a click on the plan to money in. */
@@ -190,4 +191,71 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     .map((e) => ({ at: e.created_at, kind: e.kind, plan: e.plan, who: e.user_id ? (names.get(e.user_id) ?? "a member") : "a visitor", anonymous: !e.user_id, userId: e.user_id ?? undefined }));
 
   return { days, plans, totals, mrr_cents, signups, sources, bookies, trials, byDay, byHour, byWeekday, recent };
+}
+
+/** A charge Stripe will try on a live subscription: a trial turning into its first bill, or a renewal. */
+export interface UpcomingCharge {
+  /** Unix seconds: when the charge will be tried. */
+  at: number;
+  userId?: string;
+  who: string;
+  plan: string;
+  kind: "first bill" | "renewal" | "retry";
+  amount_cents: number;
+}
+
+/**
+ * Every charge due in the next `days` days, soonest first. Read from Stripe,
+ * the subscription's own next invoice previewed, so discounts, terms and the
+ * half-price first month come through as Stripe will bill them. A
+ * subscription booked to end before its next bill is left out.
+ */
+export async function upcomingCharges(days = 14): Promise<{ charges: UpcomingCharge[]; error?: string }> {
+  if (!stripeConfigured()) return { charges: [], error: "Stripe is not set up here." };
+  try {
+    return { charges: await chargesWithin(days) };
+  } catch (err) {
+    // A restricted key needs read access to subscriptions, customers and invoices.
+    console.error("[money] upcoming", err);
+    return { charges: [], error: err instanceof Error ? err.message : String(err) };
+  }
+}
+
+async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
+  const until = Math.floor(Date.now() / 1000) + days * 86400;
+  const subs = [];
+  for await (const s of stripe().subscriptions.list({ status: "all", limit: 100 })) {
+    if (s.status === "trialing" || s.status === "active" || s.status === "past_due") subs.push(s);
+  }
+  const custIds = subs.map((s) => (typeof s.customer === "string" ? s.customer : s.customer.id));
+  const { data: profiles } = await supabaseAdmin().from("profiles").select("id, email, full_name, stripe_customer_id").in("stripe_customer_id", custIds);
+  const byCustomer = new Map(((profiles ?? []) as { id: string; email: string | null; full_name: string | null; stripe_customer_id: string }[]).map((p) => [p.stripe_customer_id, p]));
+  const out = await Promise.all(
+    subs.map(async (s): Promise<UpcomingCharge | null> => {
+      const at = s.status === "trialing" && s.trial_end ? s.trial_end : (s.items.data[0]?.current_period_end ?? 0);
+      if (!at || at > until) return null;
+      if (s.cancel_at_period_end || (s.cancel_at && s.cancel_at <= at)) return null;
+      const preview = await stripe().invoices.createPreview({ subscription: s.id }).catch(() => null);
+      const p = byCustomer.get(typeof s.customer === "string" ? s.customer : s.customer.id);
+      const planId = s.metadata?.plan ?? "subscription";
+      return {
+        at: s.status === "past_due" ? Math.floor(Date.now() / 1000) : at,
+        userId: p?.id,
+        who: p?.full_name || p?.email || "a member",
+        plan: `${planById(planId)?.name ?? planId}${termOf(s.items.data[0]?.price.recurring)}`,
+        kind: s.status === "trialing" ? "first bill" : s.status === "past_due" ? "retry" : "renewal",
+        amount_cents: preview?.amount_due ?? 0,
+      };
+    }),
+  );
+  return out.filter((c): c is UpcomingCharge => c !== null).sort((a, b) => a.at - b.at);
+}
+
+/** ", yearly" or ", every 3 months" after a plan's name; nothing for a monthly bill. */
+function termOf(r?: { interval: string; interval_count: number } | null): string {
+  if (!r) return "";
+  if (r.interval === "year") return r.interval_count === 1 ? ", yearly" : `, every ${r.interval_count} years`;
+  if (r.interval === "month" && r.interval_count > 1) return `, every ${r.interval_count} months`;
+  if (r.interval === "week") return r.interval_count === 1 ? ", weekly" : `, every ${r.interval_count} weeks`;
+  return "";
 }
