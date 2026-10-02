@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { DayChart, DayTable } from "@/components/DayChart";
-import { isAdmin } from "@/lib/admin";
+import { isAdmin, now } from "@/lib/admin";
 import { planById, TERMS, weekly } from "@/lib/billing/plans";
 import { priceBook, type PriceCell } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
@@ -60,41 +60,46 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
-      <ComingUp {...upcoming} />
+      {/* Side by side on a wide screen, stacked on a phone: Coming up on the left, prices and new accounts down the right, both ending level. */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <ComingUp {...upcoming} />
 
-      <div className="card mb-6">
+      <div className="flex flex-col gap-6 min-w-0">
+      <div className="card min-w-0">
         <h2 className="font-display font-extrabold">Plan prices</h2>
         <p className="mt-1 text-xs text-ink-soft mb-3">What Stripe charges now, per bill. The week figure is the bill spread over the weeks it covers.</p>
-        <table className="data-table stack-sm text-sm">
-          <thead><tr><th>Plan</th><th>Days</th>{TERMS.map((t) => <th key={t.id} className="text-right">{t.name}{t.off ? ` (${Math.round(t.off * 100)}% off)` : ""}</th>)}</tr></thead>
-          <tbody>
-            {prices.plans.map((p) => (
-              <tr key={p.id}>
-                <td className="font-semibold">{p.name}</td>
-                <td data-label="Days" className="text-ink-secondary">{p.days}</td>
-                {TERMS.map((t) => <td key={t.id} data-label={t.name} className="text-right nums"><Price c={p.terms[t.id]} months={t.months} /></td>)}
-              </tr>
-            ))}
-            <tr>
-              <td className="font-semibold">Day passes</td>
-              <td className="text-ink-secondary">Any one date</td>
-              <td colSpan={TERMS.length} data-label="Bundles" className="text-right nums">
-                {prices.passes.map((b, i) => <span key={b.qty}>{i ? " · " : ""}{b.qty} for <Price c={b.cell} /></span>)}
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        {/* Half width on a wide screen: a column that does not fit scrolls inside the card. */}
+        <div className="overflow-x-auto">
+          <table className="data-table stack-sm text-xs">
+            <thead><tr><th>Plan</th>{TERMS.map((t) => <th key={t.id} className="text-right whitespace-nowrap">{t.name}{t.off ? <span className="block font-normal normal-case">{Math.round(t.off * 100)}% off</span> : null}</th>)}</tr></thead>
+            <tbody>
+              {prices.plans.map((p) => (
+                <tr key={p.id}>
+                  <td className="font-semibold text-sm">{p.name}</td>
+                  {TERMS.map((t) => <td key={t.id} data-label={t.name} className="text-right nums whitespace-nowrap"><Price c={p.terms[t.id]} months={t.months} /></td>)}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <p className="mt-3 text-xs nums">
+          <span className="font-semibold">Day passes</span> <span className="text-ink-soft">any one date:</span>{" "}
+          {prices.passes.map((b, i) => <span key={b.qty} className="whitespace-nowrap">{i ? " · " : ""}{b.qty} for <Price c={b.cell} /></span>)}
+        </p>
       </div>
 
-      <div className="card mb-6">
+      {/* How far the window's new accounts got, each step's share of the one before; it takes up the rest of the column. */}
+      <div className="card flex-1 flex flex-col">
         <h2 className="font-display font-extrabold">New accounts</h2>
-        <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the window, and how far they got.</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center text-sm">
+        <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got.</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 content-center">
           <Step n={r.signups.made} label="signed up" />
           <Step n={r.signups.confirmed} label="confirmed email" of={r.signups.made} />
           <Step n={r.signups.trials} label="started a plan" of={r.signups.confirmed} />
           <Step n={r.signups.paying} label="paying now" of={r.signups.trials} />
         </div>
+      </div>
+      </div>
       </div>
 
       <div className="section mb-6">
@@ -223,10 +228,12 @@ function Bars({ title, values, labels }: { title: string; values: number[]; labe
 /** One step of the account funnel: the count, and the share of the step before. */
 function Step({ n, label, of }: { n: number; label: string; of?: number }) {
   return (
-    <div className="rounded-md bg-panel-alt py-3">
-      <div className="font-display text-2xl font-extrabold nums">{n}</div>
+    <div className="rounded-md bg-panel-alt px-3 py-2">
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="font-display text-2xl font-extrabold nums">{n}</span>
+        {of !== undefined && <span className="nums text-xs text-ink-secondary">{of ? `${Math.round((n / of) * 100)}%` : "—"}</span>}
+      </div>
       <div className="text-[10px] uppercase tracking-[0.06em] text-ink-soft font-bold">{label}</div>
-      {of !== undefined && <div className="nums text-xs text-ink-secondary mt-0.5">{of ? `${Math.round((n / of) * 100)}% of the step before` : "—"}</div>}
     </div>
   );
 }
@@ -274,48 +281,110 @@ function Price({ c, months }: { c: PriceCell; months?: number }) {
   );
 }
 
-const day = (at: number) => new Date(at * 1000).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" });
-const KIND: Record<UpcomingCharge["kind"], string> = { "first bill": "badge-prime", renewal: "badge-muted", retry: "badge-lay" };
+const sydney = (at: number) => new Date(at * 1000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { ...opts, timeZone: "Australia/Sydney" });
+const dollars = (cents: number) => `$${Math.round(cents / 100).toLocaleString("en-AU")}`;
 
-/** The next fortnight's charges by day, from Stripe: what lands, and when, if every trial goes on to pay. */
-function ComingUp({ charges, error }: { charges: UpcomingCharge[]; error?: string }) {
-  const total = charges.reduce((a, c) => a + c.amount_cents, 0);
-  const trials = charges.filter((c) => c.kind === "first bill");
-  const days = [...new Set(charges.map((c) => day(c.at)))];
+/**
+ * The next fortnight's charges from Stripe: the sums first, then a day by
+ * day strip of when the money lands, then each charge. A trial's first bill
+ * is money that may not come, so it is kept apart from a paying member's
+ * renewal everywhere it shows.
+ */
+function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; conversion?: { ended: number; paid: number; rate: number }; error?: string }) {
+  const trial = charges.filter((c) => c.kind === "first bill");
+  const paying = charges.filter((c) => c.kind !== "first bill");
+  const sum = (xs: UpcomingCharge[]) => xs.reduce((a, c) => a + c.amount_cents, 0);
+  const today = sydney(Math.floor(now() / 1000));
+  const days = Array.from({ length: 14 }, (_, i) => {
+    const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + i * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    const on = charges.filter((c) => sydney(c.at) === iso);
+    // Hover or tap a day for who is billed: "Gabriel Carr, Every day, yearly: $470 (trial ends)".
+    const tip = on.map((c) => `${c.who}, ${c.plan}: ${dollars(c.amount_cents)}${c.kind === "first bill" ? " (trial ends)" : c.kind === "retry" ? " (retrying)" : ""}`).join("\n");
+    return { iso, tip, trial: sum(on.filter((c) => c.kind === "first bill")), paying: sum(on.filter((c) => c.kind !== "first bill")) };
+  });
+  const top = Math.max(1, ...days.map((d) => d.trial + d.paying));
+
   return (
-    <div className="card mb-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display font-extrabold">Coming up, next 14 days</h2>
-        {charges.length > 0 && <span className="nums font-extrabold text-lg">{money(total)}</span>}
-      </div>
-      <p className="mt-1 text-xs text-ink-soft mb-3">
-        What Stripe will try to charge, at the amount it will bill. {trials.length > 0 && `${trials.length} ${trials.length === 1 ? "is a trial" : "are trials"} turning into a first bill (${money(trials.reduce((a, c) => a + c.amount_cents, 0))}), and a trial can still cancel before then. `}A plan booked to cancel is left out. Day passes are paid up front, so none show here.
-      </p>
-      {error && <p className="text-sm text-red">Stripe did not answer: {error}</p>}
-      {!error && charges.length === 0 && <p className="text-sm text-ink-soft">Nothing due in the next fortnight.</p>}
-      <div className="divide-y divide-line-soft">
-        {days.map((d) => {
-          const on = charges.filter((c) => day(c.at) === d);
-          return (
-            <div key={d} className="py-2 grid gap-1 sm:grid-cols-[8rem_1fr] sm:gap-4">
-              <div className="flex justify-between sm:block">
-                <span className="font-semibold">{d}</span>
-                <span className="nums text-xs text-ink-soft sm:block">{money(on.reduce((a, c) => a + c.amount_cents, 0))}</span>
-              </div>
-              <ul className="space-y-1">
-                {on.map((c, i) => (
-                  <li key={i} className="flex items-center gap-2 text-sm min-w-0">
-                    <span className={`badge ${KIND[c.kind]} shrink-0`}>{c.kind}</span>
-                    {c.userId ? <Link href={`/admin/${c.userId}`} className="truncate hover:text-blue">{c.who}</Link> : <span className="truncate">{c.who}</span>}
-                    <span className="text-ink-soft truncate hidden sm:inline">{c.plan}</span>
-                    <span className="ml-auto nums font-bold shrink-0">{money(c.amount_cents)}</span>
-                  </li>
-                ))}
-              </ul>
+    <div className="card min-w-0 flex flex-col">
+      <h2 className="font-display font-extrabold">Coming up, next 14 days</h2>
+      <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill. Plans booked to cancel are left out.</p>
+      {error && <p className="mt-3 text-sm text-red">Stripe did not answer: {error}</p>}
+
+      {!error && (
+        <>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 xl:grid-cols-3 gap-2">
+            <div className="stat">
+              <div className="stat-label">From paying members</div>
+              <div className="font-display text-2xl font-extrabold nums mt-1">{dollars(sum(paying))}</div>
+              <div className="text-xs text-ink-soft">{paying.length ? `${paying.length} renewal${paying.length === 1 ? "" : "s"}` : "No renewals due"}</div>
             </div>
-          );
-        })}
-      </div>
+            {/* What the trials should bring at the rate trials have paid so far, not the most they could. */}
+            <div className="stat border-lime bg-lime-soft">
+              <div className="stat-label">Expected from trials</div>
+              <div className="font-display text-2xl font-extrabold nums mt-1">{dollars(sum(trial) * (conversion?.rate ?? 0))}</div>
+              <div className="text-xs text-ink-soft">
+                {conversion?.ended ? `${Math.round(conversion.rate * 100)}% of trials pay (${conversion.paid} of ${conversion.ended} so far), of ${dollars(sum(trial))} from ${trial.length} ending` : `${trial.length} trials ending, no trial has finished yet`}
+              </div>
+            </div>
+            <div className="stat">
+              <div className="stat-label">Most that can land</div>
+              <div className="font-display text-2xl font-extrabold nums mt-1">{dollars(sum(charges))}</div>
+              <div className="text-xs text-ink-soft">Trials can cancel before they are billed</div>
+            </div>
+          </div>
+
+          {/* When it lands: a bar a day, renewals in blue under trials in lime. */}
+          <div className="mt-5 overflow-x-auto flex-1 flex flex-col">
+            <div className="grid gap-1 min-w-[26rem] flex-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
+              {days.map((d) => {
+                const total = d.trial + d.paying;
+                return (
+                  <div key={d.iso} className={`flex flex-col items-center h-full ${d.tip ? "cursor-help" : ""}`} data-tip={d.tip ? `${dayLabel(d.iso, { weekday: "long", day: "numeric", month: "short" })}, ${dollars(total)}\n${d.tip}` : undefined}>
+                    <div className="nums text-[10px] font-bold h-4">{total ? dollars(total) : ""}</div>
+                    <div className="w-full flex-1 min-h-24 flex flex-col justify-end rounded-sm bg-panel-alt">
+                      {d.trial > 0 && <div className="w-full bg-lime rounded-t-sm" style={{ height: `${(d.trial / top) * 100}%` }} />}
+                      {d.paying > 0 && <div className="w-full bg-blue" style={{ height: `${(d.paying / top) * 100}%` }} />}
+                    </div>
+                    <div className="text-[10px] text-ink-soft mt-1 leading-tight text-center">
+                      {dayLabel(d.iso, { weekday: "short" })}
+                      <br />
+                      {dayLabel(d.iso, { day: "numeric" })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="mt-2 flex gap-4 text-xs text-ink-soft">
+              <span><i className="legend-dot bg-lime" /> Trial ending</span>
+              <span><i className="legend-dot bg-blue" /> Paying member</span>
+            </div>
+          </div>
+
+          {charges.length > 0 && (
+            <details className="mt-4 group">
+              <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+                <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
+                Every charge ({charges.length})
+              </summary>
+            <table className="data-table stack-sm text-xs mt-3">
+              <thead><tr><th>Date</th><th>Member</th><th>Plan</th><th>Bill</th><th className="text-right">Amount</th></tr></thead>
+              <tbody>
+                {charges.map((c, i) => (
+                  <tr key={i}>
+                    <td className="nums whitespace-nowrap">{dayLabel(sydney(c.at), { weekday: "short", day: "numeric", month: "short" })}</td>
+                    <td data-label="Member">{c.userId ? <Link href={`/admin/${c.userId}`} className="hover:text-blue">{c.who}</Link> : c.who}</td>
+                    <td data-label="Plan" className="text-ink-secondary">{c.plan}</td>
+                    <td data-label="Bill" className={"whitespace-nowrap " + (c.kind === "first bill" ? "text-accent font-semibold" : c.kind === "retry" ? "text-red font-semibold" : "")}>{c.kind === "first bill" ? "Trial ends" : c.kind === "retry" ? "Retrying" : "Renewal"}</td>
+                    <td data-label="Amount" className="text-right nums font-bold">{dollars(c.amount_cents)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            </details>
+          )}
+        </>
+      )}
     </div>
   );
 }

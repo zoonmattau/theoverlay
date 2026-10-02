@@ -210,10 +210,11 @@ export interface UpcomingCharge {
  * half-price first month come through as Stripe will bill them. A
  * subscription booked to end before its next bill is left out.
  */
-export async function upcomingCharges(days = 14): Promise<{ charges: UpcomingCharge[]; error?: string }> {
+export async function upcomingCharges(days = 14): Promise<{ charges: UpcomingCharge[]; conversion?: { ended: number; paid: number; rate: number }; error?: string }> {
   if (!stripeConfigured()) return { charges: [], error: "Stripe is not set up here." };
   try {
-    return { charges: await chargesWithin(days) };
+    const [charges, conversion] = await Promise.all([chargesWithin(days), trialConversion()]);
+    return { charges, conversion };
   } catch (err) {
     // A restricted key needs read access to subscriptions, customers and invoices.
     console.error("[money] upcoming", err);
@@ -258,4 +259,23 @@ function termOf(r?: { interval: string; interval_count: number } | null): string
   if (r.interval === "month" && r.interval_count > 1) return `, every ${r.interval_count} months`;
   if (r.interval === "week") return r.interval_count === 1 ? ", weekly" : `, every ${r.interval_count} weeks`;
   return "";
+}
+
+/**
+ * Of the trials that have run their course, how many paid: a trial whose end
+ * has passed counts once, and it converted if its subscription has a paid
+ * invoice for more than nothing. A trial cancelled early counts as ended.
+ */
+export async function trialConversion(): Promise<{ ended: number; paid: number; rate: number }> {
+  const nowS = Math.floor(Date.now() / 1000);
+  let ended = 0, paid = 0;
+  for await (const s of stripe().subscriptions.list({ status: "all", limit: 100 })) {
+    if (!s.trial_end) continue;
+    const over = s.trial_end <= nowS || s.status === "canceled" || s.status === "incomplete_expired";
+    if (!over) continue;
+    ended++;
+    const inv = await stripe().invoices.list({ subscription: s.id, status: "paid", limit: 10 });
+    if (inv.data.some((i) => i.amount_paid > 0)) paid++;
+  }
+  return { ended, paid, rate: ended ? paid / ended : 0 };
 }
