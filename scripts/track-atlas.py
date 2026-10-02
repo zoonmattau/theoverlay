@@ -31,6 +31,8 @@ POST = {
 }
 # Chute starts known from the club: each built chute takes the nearest.
 CHUTE_STARTS = {"murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
+# Chutes the imagery or map draws longer than they are: the one measuring near "from" is cut back at its tip to start "to".
+CHUTE_CUT = {"murraybridge": [(1200, 900)]}  # the top chute is a short one, for 900m races only
 # Courses not in OpenStreetMap, traced from aerial imagery by scripts/out/tracks/trace.py.
 TRACED = {"murraybridge": "traced from Esri World Imagery"}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
@@ -305,7 +307,7 @@ def build(slug, path, state, venue=None):
             # Near enough in line with the course: run it dead straight on from the join.
             ln = length(line)
             line = [(j[0] - tx * (ln - k * ln / 30), j[1] - ty * (ln - k * ln / 30)) for k in range(31)]
-        chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"], "clear": clear, "rails": chute_rails(line, run, half, clean_outer)})
+        chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"], "clear": clear})
 
     # The post: in front of the main stand, fine-tuned so the chutes land on standard starts.
     stand = grandstand(ways, loop, outer["pts"] if outer else loop)
@@ -350,8 +352,16 @@ def build(slug, path, state, venue=None):
     chutes = [c for c in chutes if c["clear"] >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
     # One chute to a start: the one that measures closest.
     chutes = [c for c in chutes if c is min((o for o in chutes if o["startDistance"] == c["startDistance"]), key=lambda o: abs(o["measured"] - o["startDistance"]))]
+    for frm, to in CHUTE_CUT.get(slug, []):
+        for c in chutes:
+            if abs(c["measured"] - frm) <= 80 and c["measured"] - to < c["length"] - 10:
+                cut = c["measured"] - to
+                line = tg.resample(c["line"], 200)
+                keep = [p for p, a in zip(line, [length(line[: i + 1]) for i in range(len(line))]) if a >= cut]
+                c["line"], c["length"], c["startDistance"] = keep, length(keep), to
     for c in chutes:
-        print(f"  {slug} chute {c['startDistance']} measured {c['measured']}", file=sys.stderr)
+        c["rails"] = chute_rails(c["line"], run, half, clean_outer)
+        print(f"  {slug} chute {c['startDistance']} measured {c['measured']} length {c['length']:.0f}", file=sys.stderr)
     per_chute = (fit / len(chutes)) if chutes and fit is not None else None
     confidence = "high" if how == "by hand" or (how == "grandstand" and (per_chute is None or per_chute < 25)) or (per_chute is not None and per_chute < 12 and len(chutes) >= 2) else "medium" if how == "grandstand" or (per_chute is not None and per_chute < 30) else "low"
 
