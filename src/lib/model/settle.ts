@@ -38,8 +38,16 @@ export async function settleByHand(date: string, raceId: string, order: number[]
 
   const before = new Map<string, PublishedRace>(stored.card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, r] as const)));
   race.result = placed;
-  // Placings only: margins, starting prices and dividends come with the feed's result.
-  race.placings = placed.map((n, i) => ({ position: i + 1, tabNumber: n }));
+  // The prices we already hold: each horse's last price before the jump, and Betfair's SP once
+  // BetWatch has the result. Margins, the SP and dividends come with the feed's result.
+  const book = (await readPriceBook(date)).races[raceId]?.result;
+  race.placings = placed.map((n, i) => ({
+    position: i + 1,
+    tabNumber: n,
+    jump: race.runners.find((x) => x.tabNumber === n)?.marketPrice,
+    bsp: book?.bsp[String(n)] || undefined,
+    bspPlace: i < 3 ? book?.bspPlace?.[String(n)] || undefined : undefined,
+  }));
   race.handSettled = true;
   for (const x of race.runners) {
     const pos = placed.indexOf(x.tabNumber);
@@ -83,7 +91,13 @@ export async function settleFromBook(date: string): Promise<number> {
       const order = [...position.entries()].sort((a, b) => a[1] - b[1]).map(([tab]) => tab);
       if (order.length === 0) continue;
       race.result = order.slice(0, 4);
-      race.placings = order.slice(0, 4).map((tab) => ({ position: position.get(tab)!, tabNumber: tab, bsp: live.result!.bsp[String(tab)] || undefined }));
+      race.placings = order.slice(0, 4).map((tab) => ({
+        position: position.get(tab)!,
+        tabNumber: tab,
+        jump: race.runners.find((x) => x.tabNumber === tab)?.marketPrice,
+        bsp: live.result!.bsp[String(tab)] || undefined,
+        bspPlace: position.get(tab)! <= 3 ? live.result!.bspPlace?.[String(tab)] || undefined : undefined,
+      }));
       race.handSettled = true;
       for (const x of race.runners) {
         if (live.runners[String(x.tabNumber)]?.scratched) x.scratched = true;

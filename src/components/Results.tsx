@@ -2,7 +2,7 @@ import { RankChip } from "./Badge";
 import { SignalBadge } from "./Ratings";
 import { Section } from "./Section";
 import { price } from "@/lib/format";
-import type { PublishedRace } from "@/lib/model/types";
+import type { Placing, PublishedRace } from "@/lib/model/types";
 
 const ORDINAL = ["", "1st", "2nd", "3rd", "4th"];
 
@@ -41,14 +41,19 @@ export function Results({ race }: { race: PublishedRace }) {
                 <div className="flex items-center gap-2 shrink-0">
                   {won && (
                     <div className="div-box is-win">
-                      <div className="label">Win</div>
-                      <div className="value nums">{price(p.win ?? p.sp)}</div>
+                      <div className="label">{winLabel(p)}</div>
+                      <div className="value nums">{price(p.win ?? p.sp ?? p.bsp ?? p.jump)}</div>
                     </div>
                   )}
-                  {p.place ? (
+                  {p.place || p.bspPlace ? (
                     <div className="div-box">
-                      <div className="label">Place</div>
-                      <div className="value nums">{price(p.place)}</div>
+                      <div className="label">{p.place ? "Place" : "BSP place"}</div>
+                      <div className="value nums">{price(p.place ?? p.bspPlace)}</div>
+                    </div>
+                  ) : !won && (p.bsp ?? p.jump) ? (
+                    <div className="div-box">
+                      <div className="label">{p.bsp ? "BSP" : "Jump"}</div>
+                      <div className="value nums">{price(p.bsp ?? p.jump)}</div>
                     </div>
                   ) : (
                     <span className="text-ink-soft px-4">—</span>
@@ -61,4 +66,9 @@ export function Results({ race }: { race: PublishedRace }) {
       </Section>
     </div>
   );
+}
+
+/** The win box says which price it is: the dividend or SP once official, Betfair SP or the jump price until then. */
+function winLabel(p: Placing): string {
+  return p.win || p.sp ? "Win" : p.bsp ? "BSP" : "Jump";
 }

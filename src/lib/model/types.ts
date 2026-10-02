@@ -228,6 +228,10 @@ export interface Placing {
   /** Official starting price. */
   sp?: number;
   bsp?: number;
+  /** Betfair place SP, until the TAB place dividend lands. */
+  bspPlace?: number;
+  /** Its best fixed price as the race jumped, shown until a starting price or dividend lands. */
+  jump?: number;
   /** TAB win dividend, winner only. */
   win?: number;
   /** TAB place dividend, first three only. */
