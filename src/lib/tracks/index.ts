@@ -8,6 +8,7 @@ import flemington from "./flemington.json";
 import goldcoast from "./goldcoast.json";
 import gunbower from "./gunbower.json";
 import kalgoorlie from "./kalgoorlie.json";
+import murraybridge from "./murraybridge.json";
 import murtoa from "./murtoa.json";
 import newcastle from "./newcastle.json";
 import northam from "./northam.json";
@@ -23,6 +24,7 @@ export const TRACKS: Record<string, Track> = {
   goldcoast: goldcoast as Track,
   gunbower: gunbower as Track,
   kalgoorlie: kalgoorlie as Track,
+  murraybridge: murraybridge as Track,
   murtoa: murtoa as Track,
   newcastle: newcastle as Track,
   northam: northam as Track,

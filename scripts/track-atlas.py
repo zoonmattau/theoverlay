@@ -23,13 +23,16 @@ spec.loader.exec_module(tg)
 POST = {
     "doomben": 1675,  # on the straight just before the turn; the chute then comes out near the 1350
     "goldcoast": 1870,
+    "murraybridge": 734,  # foot of the home straight down the left side, in front of the stands; chutes then 1200, 1800, 2000
     "rosehill": 1807,  # where the stand finder first put it, with the 1400 chute measuring 1400 on the back straight  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
     "murtoa": 380,  # near the end of the straight; the chutes then come out at 1200 and 1600
     "toowoomba": 1485,  # about 400m before the stand finder's guess, placed by eye
     "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
 }
 # Chute starts known from the club: each built chute takes the nearest.
-CHUTE_STARTS = {"waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
+CHUTE_STARTS = {"murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
+# Courses not in OpenStreetMap, traced from aerial imagery by scripts/out/tracks/trace.py.
+TRACED = {"murraybridge": "traced from Esri World Imagery"}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
 NO_OUTER = {"newcastle"}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
@@ -341,6 +344,9 @@ def build(slug, path, state, venue=None):
             c["startDistance"] = min(CHUTE_STARTS[slug], key=lambda d: abs(d - c["startDistance"]))
     # A chute stands well clear of the course and starts a distance they race; a bulge in the outer rail on a turn does neither.
     dense = tg.resample(run, max(200, int(total / 5)))
+    if os.environ.get("ATLAS_DEBUG") == slug:
+        for c in chutes:
+            print(f"  raw {slug} {c['measured']} clear {c['clear']:.0f} tip {[round(v) for v in c['line'][0]]}", file=sys.stderr)
     chutes = [c for c in chutes if c["clear"] >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
     # One chute to a start: the one that measures closest.
     chutes = [c for c in chutes if c is min((o for o in chutes if o["startDistance"] == c["startDistance"]), key=lambda o: abs(o["measured"] - o["startDistance"]))]
@@ -369,7 +375,7 @@ def build(slug, path, state, venue=None):
         "postAlong": round(post_along, 1),
         "post": sh([post])[0],
         "chutes": [{"name": f"chute {i + 1}", "line": sh(c["line"]), "joinAlong": round(c["joinAlong"], 1), "length": round(c["length"], 1), "startDistance": c["startDistance"], "straight": False, "rails": sh(c["rails"])} for i, c in enumerate(chutes)],
-        "attribution": "Map data (c) OpenStreetMap contributors",
+        "attribution": TRACED.get(slug, "Map data (c) OpenStreetMap contributors"),
         "auto": {"confidence": confidence, "post": how, "chuteError": round(per_chute, 1) if per_chute is not None else None, "outerRail": bool(outer)},
     }
     # A rebuild keeps the hand review.
