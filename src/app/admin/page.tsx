@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
 import { ActionButton } from "@/components/ActionButton";
 import { ActivityFeed } from "@/components/ActivityFeed";
-import { isAdmin, listMembers, now, overview, recentEvents } from "@/lib/admin";
+import { isAdmin, listMembers, now, overview, recentEvents, recentPassDays } from "@/lib/admin";
 import { getTodayCard } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
@@ -35,7 +35,7 @@ async function Admin() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const members = await listMembers();
-  const [stats, events, card, facts] = await Promise.all([overview(members), recentEvents(undefined, 300), getTodayCard(), todayFacts()]);
+  const [stats, events, card, facts, passDays] = await Promise.all([overview(members), recentEvents(undefined, 300), getTodayCard(), todayFacts(), recentPassDays()]);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
   const nextCall = card.meetings
@@ -131,7 +131,7 @@ async function Admin() {
 
       <LiveRefresh seconds={30} />
       <LiveNow />
-      <ActivityFeed events={events} members={members} />
+      <ActivityFeed events={events} members={members} passDays={passDays} />
     </>
   );
 }

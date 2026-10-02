@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { now, type Event, type Member } from "@/lib/admin";
+import { now, type Event, type Member, type PassDay } from "@/lib/admin";
 import { planById } from "@/lib/billing/plans";
 
 type Tone = "prime" | "bet" | "lay";
@@ -47,6 +47,14 @@ function describe(e: Event, member?: Member): Line | null {
         return { tone: "prime", text: `started a free trial of ${plan(e.plan)}${term ? `, ${term}` : ""}` };
       }
       return null;
+    case "ig_follow_claim": {
+      const handle = str(m.handle) ? ` (@${str(m.handle)})` : "";
+      // A free day runs to midnight at its end: the day before the stored instant.
+      if (m.nextBill) return { tone: "prime", text: `followed on Instagram${handle}, next bill moved to ${short(str(m.nextBill))}` };
+      return { tone: "prime", text: `followed on Instagram${handle} for a free day, ${m.until ? short(new Date(new Date(str(m.until)).getTime() - 1).toISOString()) : "today"}` };
+    }
+    case "pass_used":
+      return { tone: "prime", text: `used a day pass on ${new Date(`${str(m.date)}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" })}` };
     case "payment_grace":
       return { tone: "lay", text: `payment failed, access held until ${m.until ? short(str(m.until)) : "it is paid"}` };
     case "comeback":
@@ -81,7 +89,7 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-AU", { hour:
  * did what in a sentence, a dot in the colour of the news. Green is someone
  * joining or staying, blue is money in, red is money at risk or something broken.
  */
-export function ActivityFeed({ events, members }: { events: Event[]; members: Member[] }) {
+export function ActivityFeed({ events, members, passDays = [] }: { events: Event[]; members: Member[]; passDays?: PassDay[] }) {
   const who = new Map(members.map((m) => [m.id, m]));
   const at = now();
   const today = new Date(at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -91,9 +99,13 @@ export function ActivityFeed({ events, members }: { events: Event[]; members: Me
   const joined: Event[] = members
     .filter((m) => m.created_at && m.created_at >= oldest && !m.is_admin)
     .map((m) => ({ id: -new Date(m.created_at).getTime(), user_id: m.id, kind: "joined", plan: null, amount_cents: null, meta: null, created_at: m.created_at }));
+  // Nor are passes spent: those are rows in day_passes.
+  const used: Event[] = passDays
+    .filter((p) => p.created_at >= oldest)
+    .map((p) => ({ id: -new Date(p.created_at).getTime() - 1, user_id: p.user_id, kind: "pass_used", plan: null, amount_cents: null, meta: { date: p.date }, created_at: p.created_at }));
   // Stripe says the same thing several times; each person's news shows once, newest.
   const seen = new Set<string>();
-  const rows = [...events, ...joined]
+  const rows = [...events, ...joined, ...used]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .flatMap((e) => {
       const line = describe(e, e.user_id ? who.get(e.user_id) : undefined);

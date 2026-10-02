@@ -141,6 +141,19 @@ export async function recentEvents(kind?: string, limit = 100): Promise<Event[]>
   return (data ?? []) as Event[];
 }
 
+export interface PassDay {
+  user_id: string;
+  date: string;
+  created_at: string;
+}
+
+/** Day passes spent in the last fortnight, newest first. */
+export async function recentPassDays(): Promise<PassDay[]> {
+  const since = new Date(now() - 14 * 86400_000).toISOString();
+  const { data } = await supabaseAdmin().from("day_passes").select("user_id, date, created_at").gte("created_at", since).order("created_at", { ascending: false });
+  return (data ?? []) as PassDay[];
+}
+
 /** Never throws: an event log must not break a checkout or a webhook. */
 export async function logEvent(e: Omit<Event, "id" | "created_at">): Promise<void> {
   try {
