@@ -322,9 +322,10 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const paying = charges.filter((c) => c.kind !== "first bill");
   const sum = (xs: UpcomingCharge[]) => xs.reduce((a, c) => a + c.amount_cents, 0);
   const today = sydney(Math.floor(now() / 1000));
-  // Tomorrow on: today's charges have already been tried.
+  // Today on: a trial ends at 11pm, so a charge later today is still to come; one already tried is no longer due in Stripe.
+  // Starting tomorrow left a yearly bill due at 11pm Saturday 3 Oct 2026 off the bars on the day itself.
   const days = Array.from({ length: 14 }, (_, i) => {
-    const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + (i + 1) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + i * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
     const on = charges.filter((c) => sydney(c.at) === iso);
     // Hover or tap a day for who is billed: "Gabriel Carr, Every day, yearly: $470 (trial ends)".
     const tip = on.map((c) => `${c.who}, ${c.plan}: ${dollars(c.amount_cents)}${c.kind === "first bill" ? " (trial ends)" : c.kind === "retry" ? " (retrying)" : ""}`).join("\n");
@@ -374,7 +375,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
                       {d.paying > 0 && <div className="w-full bg-blue" style={{ height: `${(d.paying / top) * 100}%` }} />}
                     </div>
                     <div className="text-[10px] text-ink-soft mt-1 leading-tight text-center">
-                      {dayLabel(d.iso, { weekday: "short" })}
+                      {d.iso === today ? "Today" : dayLabel(d.iso, { weekday: "short" })}
                       <br />
                       {dayLabel(d.iso, { day: "numeric" })}
                     </div>
