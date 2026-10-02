@@ -4,19 +4,23 @@
 // results follow at night (reel-slams.ts with LAYS=1).
 //   OVERLAY_OPEN=1 OVERLAY_READONLY=1 npx next dev
 //   npx tsx --conditions=react-server --env-file=.env.local scripts/reel-lays.ts 2026-10-02 moruya marketing/reels/2026-10-02-moruya-lays/reasons.json
-// reasons.json maps a race number to the line said about its lay, in words a
-// punter uses: { "1": "Our top pick, but $1.90 says it wins more than half the time." }.
+// reasons.json maps a race number to why we do not like its lay, in words a
+// punter uses, and the part of the race page that shows it:
+// { "3": { "reason": "Slowest late in the field.", "shot": "rankings:Late" } }.
+// shot is rankings (or rankings:<tab>, as the tabs are named), speedmap, or form
+// (the horse's own row opened up). The horse is picked out in each.
 // Writes reel.webm (1080x1920), a still per beat and shotlist.md beside it.
-import { chromium } from "playwright-core";
+import { chromium, type Locator, type Page } from "playwright-core";
 import { readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { KNOWN_BOOKIES } from "../src/lib/bookies";
+import { PLANS, TRIAL_DAYS } from "../src/lib/billing/plans";
 import { readStoredCard } from "../src/lib/model/store";
 
 void (async () => {
   const [date, trackArg, reasonsFile] = process.argv.slice(2);
   if (!reasonsFile) throw new Error("Give a date, a track and the reasons file.");
-  const reasons = JSON.parse(readFileSync(reasonsFile, "utf8")) as Record<string, string>;
+  const reasons = JSON.parse(readFileSync(reasonsFile, "utf8")) as Record<string, { reason: string; shot: string }>;
   const dir = dirname(reasonsFile);
   const stored = await readStoredCard(date);
   if (!stored) throw new Error(`no card for ${date}`);
@@ -30,9 +34,9 @@ void (async () => {
     .map((r) => ({ r, x: r.runners.find((y) => y.signal === "lay" && !y.scratched) }))
     .filter((l): l is { r: (typeof meeting.races)[number]; x: NonNullable<(typeof l)["x"]> } => Boolean(l.x))
     .map(({ r, x }) => {
-      const reason = reasons[String(r.raceNumber)];
-      if (!reason) throw new Error(`no reason for R${r.raceNumber} in ${reasonsFile}`);
-      return { id: r.raceId, number: r.raceNumber, jump: clock(r.jumpTime), horse: x.horseName, tab: x.tabNumber, market: money(x.marketPrice), rated: money(x.ratedPrice), marketPct: pct(x.marketPrice), ratedPct: pct(x.ratedPrice), reason };
+      const said = reasons[String(r.raceNumber)];
+      if (!said?.reason) throw new Error(`no reason for R${r.raceNumber} in ${reasonsFile}`);
+      return { id: r.raceId, number: r.raceNumber, jump: clock(r.jumpTime), horse: x.horseName, tab: x.tabNumber, market: money(x.marketPrice), rated: money(x.ratedPrice), marketPct: pct(x.marketPrice), ratedPct: pct(x.ratedPrice), reason: said.reason, shot: said.shot ?? "rankings" };
     });
   if (lays.length === 0) throw new Error(`no lays at ${meeting.track} on ${date}`);
   const NUMBERS = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
@@ -42,29 +46,65 @@ void (async () => {
   // No bookie is named on screen, same as the ads.
   const SITE = process.env.SITE ?? "http://localhost:3000";
   const browser = await chromium.launch({ channel: "chrome", headless: true });
+  const section = (page: Page, title: string) => page.locator(`section.section:has(h2:text-is("${title}"))`).first();
   for (const l of lays) {
-    const page = await browser.newPage({ viewport: { width: 390, height: 844 }, deviceScaleFactor: 3 });
+    const [kind, tabName] = l.shot.split(":");
+    // Narrow, the way a phone shows it: the speed map drops the names and the rankings stay short.
+    const page = await browser.newPage({ viewport: { width: kind === "form" ? 430 : 540, height: 1100 }, deviceScaleFactor: 2 });
     await page.goto(`${SITE}/racing/${date}/${meeting.meetingId}/${l.id}`, { waitUntil: "networkidle", timeout: 180_000 });
-    await page.addStyleTag({ content: "nextjs-portal, .ntg, .bookie-link, .topbar, header { display:none !important } tr.reel-pick { outline:5px solid #c4f000; outline-offset:-3px; } tr.reel-pick > td:first-child { box-shadow:inset 10px 0 0 #c4f000; }" });
+    await page.addStyleTag({ content: "nextjs-portal, .ntg, .bookie-link, .topbar, header { display:none !important } .reel-pick { outline:5px solid #c4f000 !important; outline-offset:-3px; border-radius:8px; }" });
     await page.evaluate((source) => {
       const re = new RegExp(source, "i");
       const walk = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
       for (let n = walk.nextNode(); n; n = walk.nextNode()) if (re.test(n.textContent?.trim() ?? "")) n.textContent = "Live";
     }, new RegExp(`^(${KNOWN_BOOKIES.join("|")})$`, "i").source);
-    const row = page.locator(`tr.runner-row:has-text("${l.horse}")`).first();
-    if (!(await row.count())) throw new Error(`no row for ${l.horse} on R${l.number}`);
-    await row.evaluate((el) => {
-      el.classList.add("reel-pick");
-      el.scrollIntoView({ block: "center" });
-    });
-    await page.waitForTimeout(700);
-    const box = (await row.boundingBox())!;
-    // A window of the table around the horse: a few runners either side.
-    const h = 300;
-    const y = Math.max(0, Math.min(box.y + box.height / 2 - h / 2, 844 - h));
-    await page.screenshot({ path: `${dir}/race-r${l.number}.png`, clip: { x: 0, y, width: 390, height: h } });
+    // Picks out the horse wherever it is named inside an element: its row, its bar, its chip.
+    const pick = (el: Locator) =>
+      el.evaluate((root, horse) => {
+        const walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        for (let n = walk.nextNode(); n; n = walk.nextNode()) {
+          if (!n.textContent?.includes(horse)) continue;
+          const row = (n.parentElement?.closest("tr, li, .bar-row, .runner-row, [class*='row']") ?? n.parentElement) as HTMLElement | null;
+          row?.classList.add("reel-pick");
+          return Boolean(row);
+        }
+        return false;
+      }, l.horse);
+    let shot: Locator;
+    if (kind === "form") {
+      const row = page.locator(`tr.runner-row:has-text("${l.horse}")`).first();
+      await row.click();
+      await page.waitForTimeout(900);
+      const detail = page.locator("tr.runner-row.is-open + tr").first();
+      // Only the last runs, where the finishing positions are: the whole breakdown is too small to read.
+      const found = await detail.evaluate((root) => {
+        for (const el of root.querySelectorAll<HTMLElement>("*")) {
+          if (/^last \d+ runs/i.test(el.textContent?.trim() ?? "") && el.children.length > 1) {
+            el.id = "reel-runs";
+            return true;
+          }
+        }
+        return false;
+      }).catch(() => false);
+      shot = found ? page.locator("#reel-runs") : (await detail.count()) ? detail : row;
+    } else {
+      const title = kind === "speedmap" ? "Speed map" : "Rankings";
+      shot = section(page, title);
+      if (!(await shot.count())) throw new Error(`R${l.number}: no "${title}" section`);
+      if (tabName) {
+        const tab = shot.locator(`[role="tab"]:text-is("${tabName}")`).first();
+        if (!(await tab.count())) throw new Error(`R${l.number}: no "${tabName}" tab in ${title}`);
+        await tab.click();
+        await page.waitForTimeout(800);
+      }
+    }
+    const picked = await pick(shot);
+    await page.mouse.move(2, 2);
+    await shot.scrollIntoViewIfNeeded();
+    await page.waitForTimeout(500);
+    await shot.screenshot({ path: `${dir}/race-r${l.number}.png` });
     await page.close();
-    console.log(`  + race-r${l.number}.png  ${l.horse}`);
+    console.log(`  + race-r${l.number}.png  ${l.shot}  ${l.horse}${picked ? "" : " (not picked out)"}`);
   }
 
   // Timeline in seconds: the title, each lay in turn, then the close.
@@ -74,7 +114,7 @@ void (async () => {
   const beats: { id: string; at: number; until: number; say: string }[] = [{ id: "0-title", at: 0, until: TITLE, say: title }];
   lays.forEach((l, i) => beats.push({ id: `${i + 1}-r${l.number}`, at: TITLE + i * EACH, until: TITLE + (i + 1) * EACH, say: `R${l.number} ${l.horse}: ${l.market} against our ${l.rated}. ${l.reason}` }));
   const closeAt = TITLE + lays.length * EACH;
-  beats.push({ id: `${lays.length + 1}-close`, at: closeAt, until: closeAt + CLOSE, say: `all ${lays.length}, results tonight, theoverlay.com.au, 18+` });
+  beats.push({ id: `${lays.length + 1}-close`, at: closeAt, until: closeAt + CLOSE, say: `all ${lays.length}, every runner rated, ${TRIAL_DAYS} days free, theoverlay.com.au, 18+` });
   const total = closeAt + CLOSE;
 
   const anim = (name: string, at: number, dur: number) => `animation:${name} ${dur}s cubic-bezier(.2,.9,.25,1) ${at}s forwards;`;
@@ -91,8 +131,8 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
 .pill { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:32px; letter-spacing:.12em; background:var(--lime); color:var(--ink); border-radius:999px; padding:12px 26px; }
 .where { font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:34px; color:var(--soft); }
 .count { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:32px; color:var(--soft); }
-.shot { position:absolute; left:40px; right:40px; top:230px; border-radius:28px; overflow:hidden; border:6px solid #2b3036; }
-.shot img { width:100%; display:block; }
+.shot { position:absolute; left:40px; right:40px; top:230px; height:780px; border-radius:28px; overflow:hidden; border:6px solid #2b3036; background:#f3f4f0; display:flex; align-items:center; justify-content:center; }
+.shot img { max-width:100%; max-height:100%; display:block; }
 .panel { position:absolute; left:80px; right:80px; top:1060px; }
 .horse { font-weight:800; font-size:84px; letter-spacing:-.035em; line-height:1.02; }
 .prices { display:flex; gap:20px; margin-top:26px; }
@@ -109,8 +149,9 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
 .close .row b { font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:28px; color:var(--soft); }
 .close .row span { font-weight:800; font-size:44px; letter-spacing:-.02em; }
 .close .row i { font-style:normal; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:32px; color:var(--soft); }
-.close .tonight { margin-top:44px; font-weight:800; font-size:110px; letter-spacing:-.045em; line-height:1; }
-.close .tonight em { font-style:normal; color:var(--lime); }
+.close .tonight { margin-top:44px; font-weight:800; font-size:88px; letter-spacing:-.04em; line-height:1.02; }
+.close .then { margin-top:18px; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:30px; color:var(--soft); }
+.close .tonight em { font-style:normal; color:var(--lime); white-space:nowrap; }
 .close .site { margin-top:30px; font-weight:800; font-size:76px; letter-spacing:-.04em; color:var(--ink); background:var(--lime); padding:4px 24px 10px; width:fit-content; }
 .close .rg { margin-top:20px; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:28px; color:var(--soft); }
 @keyframes show { from { opacity:1; } to { opacity:1; } }
@@ -121,7 +162,7 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
   const body =
     `<div class="layer title" style="z-index:1;${anim("show", 0, TITLE)}">` +
     `<h1 style="${anim("rise", 0.1, 0.5)}">${title.replace(/laying/i, "<em>laying</em>")}</h1>` +
-    `<p style="${anim("rise", 0.6, 0.5)}">Where the market is shorter than our price</p></div>` +
+    `<p style="${anim("rise", 0.6, 0.5)}">And why we do not like them</p></div>` +
     lays
       .map((l, i) => {
         const at = TITLE + i * EACH;
@@ -139,7 +180,8 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
     `<div class="what" style="${anim("rise", closeAt + 0.05, 0.35)}">Today's ${lays.length} lays at ${meeting.track}</div>` +
     `<div class="rows" style="${anim("rise", closeAt + 0.2, 0.45)}">` +
     lays.map((l) => `<div class="row"><b>R${l.number}</b><span>${l.horse}</span><i>${l.market} · ours ${l.rated}</i></div>`).join("") +
-    `</div><div class="tonight" style="${anim("pop", closeAt + 0.8, 0.4)}">Results <em>tonight.</em></div>` +
+    `</div><div class="tonight" style="${anim("pop", closeAt + 0.8, 0.4)}">Every runner rated. <em>${TRIAL_DAYS} days free.</em></div>` +
+    `<div class="then" style="${anim("rise", closeAt + 1.1, 0.35)}">Every call before the jump, then from $${Math.min(...PLANS.map((p) => p.price))} a month</div>` +
     `<div class="site" style="${anim("pop", closeAt + 1.3, 0.4)}">theoverlay.com.au</div>` +
     `<div class="rg" style="${anim("rise", closeAt + 1.6, 0.35)}">18+ · Gamble responsibly · 1800 858 858</div></div>`;
   const html =

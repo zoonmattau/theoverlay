@@ -1,8 +1,8 @@
 {
-  "1": "Our top pick, but $1.90 says it wins more than half the time. We don't.",
-  "2": "Only fourth-best on our ratings, priced like a sure thing.",
-  "3": "Sixth of seven on our numbers, and the pace map is against it.",
-  "6": "Third-best on our numbers, and the leader they'll all chase.",
-  "7": "Our top pick, but not a coin flip in a field of ten.",
-  "8": "Top-rated, but Johntialjo is right there with it."
+  "1": { "reason": "A maiden beaten in all eight starts, and it rates lower on a soft track.", "shot": "form" },
+  "2": { "reason": "Only fourth on our ratings, first-up in four months, beaten its last two.", "shot": "rankings" },
+  "3": { "reason": "Slowest early and slowest late in the field. Keikoku is ten points better.", "shot": "rankings:Late" },
+  "6": { "reason": "Has to lead, and only seventh of eleven for late speed. Hurry Miss runs over it.", "shot": "rankings:Late" },
+  "7": { "reason": "Still a maiden after seven tries, and a fast pace today doesn't suit it.", "shot": "form" },
+  "8": { "reason": "Barrier 12 of 13, top weight, and Johntialjo finishes faster.", "shot": "rankings:Late" }
 }
