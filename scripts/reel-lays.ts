@@ -7,15 +7,16 @@
 // reasons.json maps a race number to why we do not like its lay, in words a
 // punter uses, and the part of the race page that shows it:
 // { "3": { "reason": "Slowest late in the field.", "shot": "rankings:Late" } }.
-// shot is rankings (or rankings:<tab>, as the tabs are named), speedmap, or form
-// (the horse's own row opened up). The horse is picked out in each.
+// shot is rankings (or rankings:<tab>, as the tabs are named), speedmap, form
+// (the horse's own row opened up), or maiden: a graphic of its starts without a
+// win, drawn here from its runs. The horse is picked out in each.
 // Writes reel.webm (1080x1920), a still per beat and shotlist.md beside it.
 import { chromium, type Locator, type Page } from "playwright-core";
 import { readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { KNOWN_BOOKIES } from "../src/lib/bookies";
 import { PLANS, TRIAL_DAYS } from "../src/lib/billing/plans";
-import { readStoredCard } from "../src/lib/model/store";
+import { readRaceRuns, readStoredCard } from "../src/lib/model/store";
 
 void (async () => {
   const [date, trackArg, reasonsFile] = process.argv.slice(2);
@@ -39,6 +40,13 @@ void (async () => {
       return { id: r.raceId, number: r.raceNumber, jump: clock(r.jumpTime), horse: x.horseName, tab: x.tabNumber, market: money(x.marketPrice), rated: money(x.ratedPrice), marketPct: pct(x.marketPrice), ratedPct: pct(x.ratedPrice), reason: said.reason, shot: said.shot ?? "rankings" };
     });
   if (lays.length === 0) throw new Error(`no lays at ${meeting.track} on ${date}`);
+  type Run = { finish: number; runners: number; track: string; date: string; margin?: number };
+  const runsOf = new Map<string, Run[]>();
+  for (const l of lays.filter((x) => x.shot === "maiden")) {
+    const stored = (await readRaceRuns(date, l.id)) as Record<string, Run[]>;
+    const card = meeting.races.find((r) => r.raceId === l.id)?.runners.find((y) => y.tabNumber === l.tab)?.runs as Run[] | undefined;
+    runsOf.set(l.id, (stored[String(l.tab)] ?? card ?? []).filter((u) => u.finish > 0).slice(0, 8));
+  }
   const NUMBERS = ["", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight"];
   const title = process.env.TITLE ?? `${NUMBERS[lays.length] ?? lays.length} we're laying at ${meeting.track} today`;
 
@@ -49,6 +57,7 @@ void (async () => {
   const section = (page: Page, title: string) => page.locator(`section.section:has(h2:text-is("${title}"))`).first();
   for (const l of lays) {
     const [kind, tabName] = l.shot.split(":");
+    if (kind === "maiden") continue;
     // Narrow, the way a phone shows it: the speed map drops the names and the rankings stay short.
     const page = await browser.newPage({ viewport: { width: kind === "form" ? 430 : 540, height: 1100 }, deviceScaleFactor: 2 });
     await page.goto(`${SITE}/racing/${date}/${meeting.meetingId}/${l.id}`, { waitUntil: "networkidle", timeout: 180_000 });
@@ -117,6 +126,20 @@ void (async () => {
   beats.push({ id: `${lays.length + 1}-close`, at: closeAt, until: closeAt + CLOSE, say: `all ${lays.length}, every runner rated, ${TRIAL_DAYS} days free, theoverlay.com.au, 18+` });
   const total = closeAt + CLOSE;
 
+  const ord = (n: number) => `${n}<sup>${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}</sup>`;
+  const day = (iso: string) => new Date(`${iso}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
+  /** Its starts as tiles, newest first, under how many it has won: none, for a maiden. */
+  const maidenGraphic = (runs: { finish: number; runners: number; track: string; date: string; margin?: number }[]) => {
+    const wins = runs.filter((u) => u.finish === 1).length;
+    return (
+      `<div class="maiden"><div class="mhead"><b>${wins}</b><span>${wins === 1 ? "win" : "wins"} from<br>${runs.length} starts</span></div>` +
+      `<div class="tiles">` +
+      runs
+        .map((u) => `<div class="tile ${u.finish === 1 ? "won" : u.finish <= 3 ? "placed" : ""}"><b>${ord(u.finish)}</b><i>of ${u.runners}</i><span>${u.track}</span><small>${day(u.date)}${u.margin ? ` · ${u.margin.toFixed(1)}L` : ""}</small></div>`)
+        .join("") +
+      `</div><div class="mfoot">Newest first</div></div>`
+    );
+  };
   const anim = (name: string, at: number, dur: number) => `animation:${name} ${dur}s cubic-bezier(.2,.9,.25,1) ${at}s forwards;`;
   const STYLE = `
 :root { --ink:#14161a; --lime:#c4f000; --soft:#b9c0ad; }
@@ -133,6 +156,23 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
 .count { margin-left:auto; font-family:'IBM Plex Mono',monospace; font-weight:700; font-size:32px; color:var(--soft); }
 .shot { position:absolute; left:40px; right:40px; top:230px; height:780px; border-radius:28px; overflow:hidden; border:6px solid #2b3036; background:#f3f4f0; display:flex; align-items:center; justify-content:center; }
 .shot img { max-width:100%; max-height:100%; display:block; }
+.shot.dark { background:#1b1e23; border-color:#33383f; }
+.maiden { width:100%; padding:40px 44px; }
+.mhead { display:flex; align-items:center; gap:28px; }
+.mhead b { font-weight:800; font-size:200px; line-height:.85; letter-spacing:-.06em; color:#ff5a4e; }
+.mhead span { font-weight:800; font-size:64px; line-height:1; letter-spacing:-.03em; color:#fff; }
+.tiles { margin-top:36px; display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:16px; }
+.tile { border-radius:22px; padding:16px 16px 18px; background:#262a30; border:3px solid #33383f; text-align:center; }
+.tile.placed { border-color:#7d8a3a; }
+.tile.won { border-color:var(--lime); background:#2c3313; }
+.tile b { display:block; font-weight:800; font-size:72px; line-height:1; letter-spacing:-.04em; color:#8a9080; }
+.tile.placed b { color:#fff; }
+.tile.won b { color:var(--lime); }
+.tile sup { font-size:.42em; vertical-align:.95em; margin-left:2px; }
+.tile i { display:block; font-style:normal; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:24px; color:var(--soft); margin-top:4px; }
+.tile span { display:block; font-weight:800; font-size:20px; letter-spacing:-.01em; color:#dfe3d8; margin-top:10px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.tile small { display:block; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:19px; color:var(--soft); margin-top:2px; white-space:nowrap; }
+.mfoot { margin-top:18px; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:22px; letter-spacing:.12em; text-transform:uppercase; color:#6c7268; text-align:right; }
 .panel { position:absolute; left:80px; right:80px; top:1060px; }
 .horse { font-weight:800; font-size:84px; letter-spacing:-.035em; line-height:1.02; }
 .prices { display:flex; gap:20px; margin-top:26px; }
@@ -169,7 +209,9 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
         return (
           `<div class="layer" style="z-index:${i + 2};${anim("show", at, EACH)}">` +
           `<div class="head" style="${anim("rise", at, 0.35)}"><span class="pill">LAY</span><span class="where">${l.jump} · ${meeting.track} R${l.number}</span><span class="count">${i + 1} of ${lays.length}</span></div>` +
-          `<div class="shot" style="${anim("rise", at + 0.1, 0.45)}"><img src="race-r${l.number}.png"></div>` +
+          (l.shot === "maiden"
+            ? `<div class="shot dark" style="${anim("rise", at + 0.1, 0.45)}">${maidenGraphic(runsOf.get(l.id) ?? [])}</div>`
+            : `<div class="shot" style="${anim("rise", at + 0.1, 0.45)}"><img src="race-r${l.number}.png"></div>`) +
           `<div class="panel" style="${anim("rise", at + 0.35, 0.45)}"><div class="horse">${l.tab}. ${l.horse}</div>` +
           `<div class="prices"><div class="price"><i>MARKET</i><b>${l.market}</b><small>${l.marketPct}</small></div><div class="price ours"><i>OURS</i><b>${l.rated}</b><small>${l.ratedPct}</small></div></div>` +
           `<div class="reason">${l.reason}</div></div></div>`

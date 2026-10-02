@@ -1,8 +1,8 @@
 {
-  "1": { "reason": "A maiden beaten in all eight starts, and it rates lower on a soft track.", "shot": "form" },
+  "1": { "reason": "A maiden beaten in all eight starts, and it rates lower on a soft track.", "shot": "maiden" },
   "2": { "reason": "Only fourth on our ratings, first-up in four months, beaten its last two.", "shot": "rankings" },
   "3": { "reason": "Slowest early and slowest late in the field. Keikoku is ten points better.", "shot": "rankings:Late" },
   "6": { "reason": "Has to lead, and only seventh of eleven for late speed. Hurry Miss runs over it.", "shot": "rankings:Late" },
-  "7": { "reason": "Still a maiden after seven tries, and a fast pace today doesn't suit it.", "shot": "form" },
+  "7": { "reason": "Still a maiden after seven tries, and a fast pace today doesn't suit it.", "shot": "maiden" },
   "8": { "reason": "Barrier 12 of 13, top weight, and Johntialjo finishes faster.", "shot": "rankings:Late" }
 }
