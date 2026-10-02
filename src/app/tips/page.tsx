@@ -19,7 +19,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
-import { callLimit, LAY_EDGE, MIN_EDGE } from "@/lib/model/publish";
+import { callLimit, LAY_EDGE, MIN_EDGE, takeable } from "@/lib/model/publish";
 import { readMutes } from "@/lib/model/store";
 import { setCallOff } from "@/app/admin/actions";
 import { CallOffButton } from "@/components/CallOffButton";
@@ -298,7 +298,7 @@ function CallTable({
                     <MarketHover r={c.runner} className="market-right">
                       <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : callPrice(c.runner) ?? c.runner.marketPrice)}</span>
                     </MarketHover>
-                    {side === "lay" ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
+                    {side === "lay" || c.resulted || !takeable(c.runner) ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
                   </td>
                   <td data-col="rated" className="text-right nums font-semibold whitespace-nowrap">
                     {price(c.runner.ratedPrice)}

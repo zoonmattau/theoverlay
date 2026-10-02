@@ -39,7 +39,7 @@ export interface MoneyReport {
   /** Estimated monthly recurring revenue from active subscriptions, cents. */
   mrr_cents: number;
   /** Accounts made in the window, and how many confirmed their email. */
-  signups: { made: number; confirmed: number; trials: number; paying: number };
+  signups: { made: number; confirmed: number; trials: number; trialling: number; paying: number };
   /** Sign-ups in the window by where they came from. */
   sources: { source: string; signups: number; confirmed: number; paying: number; revenue_cents: number }[];
   /** Bookie clicks in the window. */
@@ -142,6 +142,7 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     made: joined.length,
     confirmed: joined.filter((m) => m.confirmed_at).length,
     trials: joined.filter((m) => m.subscribed_since).length,
+    trialling: joined.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && m.subscription_status === "trialing").length,
     paying: joined.filter(paying).length,
   };
   const bySource = new Map<string, { signups: number; confirmed: number; paying: number; revenue_cents: number }>();

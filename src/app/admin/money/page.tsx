@@ -92,11 +92,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       <div className="card flex-1 flex flex-col">
         <h2 className="font-display font-extrabold">New accounts</h2>
         <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got.</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 flex-1 content-center">
-          <Step n={r.signups.made} label="signed up" />
-          <Step n={r.signups.confirmed} label="confirmed email" of={r.signups.made} />
-          <Step n={r.signups.trials} label="started a plan" of={r.signups.confirmed} />
-          <Step n={r.signups.paying} label="paying now" of={r.signups.trials} />
+        <div className="flex-1 flex flex-col justify-center">
+          <Funnel {...r.signups} />
         </div>
       </div>
       </div>
@@ -226,14 +223,43 @@ function Bars({ title, values, labels }: { title: string; values: number[]; labe
 }
 
 /** One step of the account funnel: the count, and the share of the step before. */
-function Step({ n, label, of }: { n: number; label: string; of?: number }) {
+/**
+ * The window's sign-ups as one bar, each person in the furthest place they got:
+ * never confirmed, confirmed with no plan, a plan that has ended, on a trial now, or paying.
+ * Each piece is its share of everyone; hovering one gives the count.
+ */
+function Funnel({ made, confirmed, trials, trialling, paying }: { made: number; confirmed: number; trials: number; trialling: number; paying: number }) {
+  if (made === 0) return <p className="text-sm text-ink-soft">No sign-ups in this window.</p>;
+  // Left to right, red to green: how far each person got.
+  const parts = [
+    { n: Math.max(0, made - confirmed), label: "never confirmed their email", cls: "bg-red" },
+    { n: Math.max(0, confirmed - trials), label: "confirmed, no plan", cls: "bg-amber" },
+    { n: Math.max(0, trials - trialling - paying), label: "plan ended", cls: "bg-ink-soft" },
+    { n: trialling, label: "on a trial now", cls: "bg-blue" },
+    { n: paying, label: "paying now", cls: "bg-lime" },
+  ];
+  const pct = (n: number) => `${Math.round((n / made) * 100)}%`;
   return (
-    <div className="rounded-md bg-panel-alt px-3 py-2">
-      <div className="flex items-baseline justify-between gap-2">
-        <span className="font-display text-2xl font-extrabold nums">{n}</span>
-        {of !== undefined && <span className="nums text-xs text-ink-secondary">{of ? `${Math.round((n / of) * 100)}%` : "—"}</span>}
+    <div>
+      <div className="flex items-baseline gap-2 mb-2">
+        <span className="font-display text-3xl font-extrabold nums">{made}</span>
+        <span className="text-xs text-ink-soft">signed up</span>
       </div>
-      <div className="text-[10px] uppercase tracking-[0.06em] text-ink-soft font-bold">{label}</div>
+      <div className="flex h-8 w-full overflow-hidden rounded-md">
+        {parts.filter((x) => x.n > 0).map((x) => (
+          <div key={x.label} className={`${x.cls} h-full cursor-help border-r-2 border-panel last:border-r-0`} style={{ width: `${(x.n / made) * 100}%` }} data-tip={`${x.n} ${x.label}, ${pct(x.n)} of sign-ups`} />
+        ))}
+      </div>
+      <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
+        {parts.map((x) => (
+          <li key={x.label} className="flex items-center gap-2 min-w-0">
+            <span className={`${x.cls} h-2.5 w-2.5 shrink-0 rounded-sm`} />
+            <span className="nums font-semibold">{x.n}</span>
+            <span className="text-ink-soft truncate">{x.label}</span>
+            <span className="nums text-ink-soft ml-auto">{pct(x.n)}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

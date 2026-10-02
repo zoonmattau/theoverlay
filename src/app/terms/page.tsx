@@ -38,16 +38,12 @@ export default function Page() {
         and that using it and betting on racing is lawful where you are.
       </Clause>
 
-      <Clause n="04" title="Plans, trials and refunds">
+      <Clause n="04" title="Plans and trials">
         Every plan starts with a free trial. We email you the date it ends when it
         starts, and if you do not cancel before then your plan begins and your card is
         charged for the term you chose. Plans renew automatically until you cancel, and
         you can cancel any time from your account, keeping access to the end of the
-        period you have paid for. We do not refund a charge because you forgot to cancel
-        a trial or a renewal, changed your mind, or did not use the site, and a day pass
-        is not refundable once bought. Nothing in this clause limits your rights under
-        the Australian Consumer Law, including a refund where we fail to provide the
-        service.
+        period you have paid for.
       </Clause>
 
       <Clause n="05" title="Prices and data">

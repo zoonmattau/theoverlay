@@ -42,7 +42,9 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
   if (!m) notFound();
   const [aff, record] = tipster ? await Promise.all([tipsterMembers(tipster.id), tipsterRecord(tipster.id)]) : [undefined, undefined];
   const now = clock();
-  const live = m.access_until && new Date(m.access_until).getTime() > now;
+  // Stripe writes 0 for "no date", which would read as 1 Jan 1970.
+  const accessUntil = m.access_until && new Date(m.access_until).getTime() > 0 ? m.access_until : null;
+  const live = accessUntil && new Date(accessUntil).getTime() > now;
   const giftLive = m.bonus_until && new Date(m.bonus_until).getTime() > now;
   const plan = planById(m.plan ?? undefined);
   const state = accountState(m);
@@ -96,15 +98,16 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
         </div>
       )}
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <Tile n={money(m.total_spent_cents ?? 0)} label="spent" />
         <Tile n={m.subscribed_since ? `${daysBetween(m.subscribed_since, now)}d` : "—"} label="subscribed for" />
-        <Tile n={m.access_until ? stamp(m.access_until).split(",")[0] : "—"} label={live ? "sub renews / ends" : "sub ended"} />
+        <Tile n={accessUntil ? stamp(accessUntil).split(",")[0] : "—"} label={live ? "sub renews / ends" : "sub ended"} />
         <Tile n={m.pass_credits} label="passes unused" />
       </div>
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 mb-6">
-        <div className="card space-y-2 text-sm">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 items-start mb-4">
+        <div className="space-y-4">
+        <div className="card space-y-1.5 text-sm">
           <h2 className="font-display font-extrabold">Account</h2>
           <Row k="State" v={state === "active" ? "Active" : state === "invited" ? "Invited, not accepted" : "Signed up, email not confirmed"} />
           <Row k="Created" v={stamp(m.created_at)} />
@@ -124,8 +127,27 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             </form>
           )}
         </div>
+      <div className="section !mt-0">
+        <div className="section-bar">
+          <span className="section-letter">W</span>
+          <h2>Where they go</h2>
+          <span className="ml-auto text-xs text-ink-soft">{views.length ? `last ${views.length} pages` : ""}</span>
+        </div>
+        <ul className="divide-y divide-line-soft">
+          {views.length === 0 && <li className="p-4 text-sm text-ink-soft">No page views recorded yet.</li>}
+          {views.slice(0, SHOWN).map((v) => <View key={v.id} v={v} />)}
+        </ul>
+        {views.length > SHOWN && (
+          <details className="border-t border-line-soft">
+            <summary className="cursor-pointer px-4 py-2 text-xs text-ink-soft hover:text-ink">{views.length - SHOWN} more</summary>
+            <ul className="divide-y divide-line-soft">{views.slice(SHOWN).map((v) => <View key={v.id} v={v} />)}</ul>
+          </details>
+        )}
+      </div>
+        </div>
 
-        <div className="card space-y-2 text-sm">
+        <div className="space-y-4">
+        <div className="card space-y-1.5 text-sm">
           <h2 className="font-display font-extrabold">Details</h2>
           <Row k="Name" v={m.full_name ?? "—"} />
           <Row k="Mobile" v={m.phone ? <a className="text-blue" href={`tel:${m.phone}`}>{m.phone}</a> : "—"} />
@@ -133,20 +155,41 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <Row k="Address" v={address || "—"} />
         </div>
 
-        <div className="card space-y-2 text-sm">
+        <div className="card space-y-1.5 text-sm">
           <h2 className="font-display font-extrabold">Subscription</h2>
           <Row k="Plan" v={plan?.name ?? m.plan ?? "—"} />
           <Row k="Billed" v={m.billing_term === "year" ? "Yearly" : m.billing_term === "quarter" ? "Every 3 months" : m.billing_term === "month" ? "Monthly" : "—"} />
           <Row k="Status" v={m.subscription_status ?? "—"} />
           <Row k="Since" v={stamp(m.subscribed_since)} />
-          <Row k="Access until" v={stamp(m.access_until)} />
+          <Row k="Access until" v={accessUntil ? stamp(accessUntil) : "—"} />
           <Row k="Cancels" v={m.cancel_at ? `${stamp(m.cancel_at)}${m.cancel_reason ? ` (${m.cancel_reason.replace(/_/g, " ")})` : ""}` : "no"} />
           <Row k="Paused" v={m.paused_at ? stamp(m.paused_at) : "no"} />
           <Row k="Gift until" v={giftLive ? stamp(m.bonus_until) : "—"} />
           <Row k="Stripe customer" v={m.stripe_customer_id ? <a className="text-blue" href={`https://dashboard.stripe.com/customers/${m.stripe_customer_id}`} target="_blank" rel="noreferrer">{m.stripe_customer_id}</a> : "—"} />
         </div>
 
-        <div className="card space-y-2 text-sm">
+      <div className="section !mt-0">
+        <div className="section-bar">
+          <span className="section-letter">E</span>
+          <h2>Activity</h2>
+        </div>
+        <ul className="divide-y divide-line-soft">
+          {events.length === 0 && <li className="p-4 text-sm text-ink-soft">Nothing yet.</li>}
+          {events.map((e) => (
+            <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 text-sm">
+              <span className="nums text-ink-soft whitespace-nowrap shrink-0 sm:w-48">{stamp(e.created_at)}</span>
+              <span className="badge badge-muted">{e.kind}</span>
+              {e.plan && <span>{planById(e.plan)?.name ?? e.plan}</span>}
+              {e.amount_cents ? <span className="nums font-semibold">{money(e.amount_cents)}</span> : null}
+              {e.meta && <span className="min-w-0 text-xs text-ink-soft [overflow-wrap:anywhere]">{JSON.stringify(e.meta)}</span>}
+            </li>
+          ))}
+        </ul>
+      </div>
+        </div>
+
+        <div className="space-y-4 md:col-span-2 xl:col-span-1">
+        <div className="card space-y-1.5 text-sm">
           <h2 className="font-display font-extrabold">API</h2>
           {apiKeys.length === 0 ? (
             <p className="text-ink-soft">No key made.</p>
@@ -167,7 +210,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           )}
         </div>
 
-        <div className="card space-y-3 text-sm">
+        <div className="card space-y-2.5 text-sm">
           <h2 className="font-display font-extrabold">Actions</h2>
           {tipster ? (
             <form action={unmakeTipster.bind(null, m.id)} className="flex items-center gap-2">
@@ -214,7 +257,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             <span className="text-ink-soft">admins see every race free and can open this panel</span>
           </div>
           <form action={async (fd) => { "use server"; await saveNote(m.id, String(fd.get("note") ?? "")); }} className="pt-2 border-t border-line-soft">
-            <label className="field"><span>Note</span><textarea name="note" defaultValue={m.admin_note ?? ""} rows={3} className="field-input w-full" /></label>
+            <label className="field"><span>Note</span><textarea name="note" defaultValue={m.admin_note ?? ""} rows={2} className="field-input w-full" /></label>
             <button className="btn btn-secondary btn-sm mt-2" type="submit">Save note</button>
           </form>
           {m.id !== viewer.id && (
@@ -224,51 +267,28 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
             </form>
           )}
         </div>
-      </div>
-
-      <div className="section">
-        <div className="section-bar">
-          <span className="section-letter">W</span>
-          <h2>Where they go</h2>
-          <span className="ml-auto text-xs text-ink-soft">{views.length ? `last ${views.length} pages` : ""}</span>
         </div>
-        <ul className="divide-y divide-line-soft">
-          {views.length === 0 && <li className="p-4 text-sm text-ink-soft">No page views recorded yet.</li>}
-          {views.map((v) => (
-            <li key={v.id} className="flex flex-wrap items-center gap-3 px-4 py-1.5 text-sm">
-              <span className="nums text-ink-soft whitespace-nowrap sm:w-44">{stamp(v.created_at)}</span>
-              <span className="badge badge-muted">{AREA_LABEL[v.meta?.area ?? "other"]}</span>
-              <span className="min-w-0 text-xs text-ink-soft [overflow-wrap:anywhere]">{v.meta?.path}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-
-      <div className="section">
-        <div className="section-bar">
-          <span className="section-letter">E</span>
-          <h2>Activity</h2>
-        </div>
-        <ul className="divide-y divide-line-soft">
-          {events.length === 0 && <li className="p-4 text-sm text-ink-soft">Nothing yet.</li>}
-          {events.map((e) => (
-            <li key={e.id} className="flex flex-wrap items-center gap-3 px-4 py-2 text-sm">
-              <span className="nums text-ink-soft whitespace-nowrap sm:w-44">{stamp(e.created_at)}</span>
-              <span className="badge badge-muted">{e.kind}</span>
-              {e.plan && <span>{planById(e.plan)?.name ?? e.plan}</span>}
-              {e.amount_cents ? <span className="nums font-semibold">{money(e.amount_cents)}</span> : null}
-              {e.meta && <span className="min-w-0 text-xs text-ink-soft [overflow-wrap:anywhere]">{JSON.stringify(e.meta)}</span>}
-            </li>
-          ))}
-        </ul>
       </div>
     </>
   );
 }
 
+/** Page views shown before the rest fold away. */
+const SHOWN = 12;
+
+function View({ v }: { v: { created_at: string; meta?: { area?: string; path?: string } | null } }) {
+  return (
+    <li className="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-1.5 text-sm">
+      <span className="nums text-ink-soft whitespace-nowrap shrink-0 sm:w-48">{stamp(v.created_at)}</span>
+      <span className="badge badge-muted">{AREA_LABEL[(v.meta?.area ?? "other") as keyof typeof AREA_LABEL] ?? v.meta?.area}</span>
+      <span className="min-w-0 text-xs text-ink-soft [overflow-wrap:anywhere]">{v.meta?.path}</span>
+    </li>
+  );
+}
+
 function Row({ k, v }: { k: string; v: React.ReactNode }) {
   return (
-    <div className="flex justify-between gap-4 border-t border-line-soft pt-2 first:border-t-0 first:pt-0">
+    <div className="flex justify-between gap-4 border-t border-line-soft pt-1.5 first:border-t-0 first:pt-0">
       <span className="shrink-0 text-ink-soft">{k}</span>
       <span className="min-w-0 nums text-right [overflow-wrap:anywhere]">{v}</span>
     </div>
@@ -277,7 +297,7 @@ function Row({ k, v }: { k: string; v: React.ReactNode }) {
 
 function Tile({ n, label }: { n: number | string; label: string }) {
   return (
-    <div className="card text-center">
+    <div className="card text-center !py-3">
       <div className="font-display text-xl font-extrabold tracking-tight nums">{n}</div>
       <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
     </div>

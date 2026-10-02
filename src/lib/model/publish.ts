@@ -484,6 +484,16 @@ export function callLimit(x: { signal?: Signal; ratedProbability: number }): num
   return undefined;
 }
 
+/**
+ * A bet whose best price is still at or above the price we said to take: only
+ * then is "take $X at <bookie>" shown. Under it the call stays a call, the
+ * link just goes, so nobody is sent to take a price we would not.
+ */
+export function takeable(x: { signal?: Signal; ratedProbability: number; marketPrice?: number }): boolean {
+  const limit = callLimit(x);
+  return x.signal === "back" && Boolean(x.marketPrice && limit && x.marketPrice >= limit);
+}
+
 export function hasJumped(status?: string, jumpTime?: string, now = Date.now()): boolean {
   if (/result|abandon|closed|interim/i.test(status ?? "")) return true;
   return Boolean(jumpTime && new Date(jumpTime).getTime() <= now);

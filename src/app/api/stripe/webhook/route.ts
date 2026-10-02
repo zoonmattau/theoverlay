@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
         kind: "subscription",
         plan: planId,
         amount_cents: null,
-        meta: { status: sub.status, event: event.type, cancelAtPeriodEnd: sub.cancel_at_period_end, cancelAt: cancelAt?.toISOString() ?? null, cancelReason, until: until.toISOString() },
+        meta: { status: sub.status, term: billingTerm(sub.items.data[0]?.price.recurring), event: event.type, cancelAtPeriodEnd: sub.cancel_at_period_end, cancelAt: cancelAt?.toISOString() ?? null, cancelReason, until: until.toISOString() },
       });
 
       // One email per state change, never one per Stripe retry.

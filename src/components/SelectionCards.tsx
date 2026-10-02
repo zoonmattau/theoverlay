@@ -1,5 +1,6 @@
 import { PickCard } from "./PickCard";
 import { bm } from "@/lib/model/display";
+import { takeable } from "@/lib/model/publish";
 import { BookieLink } from "./BookieLink";
 import { MarketHover } from "./MarketHover";
 import { Factors } from "./Factors";
@@ -75,7 +76,7 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
               {r.jockey ? ` · ${r.jockey}` : ""}
             </div>
             <p className="pick-why">{r.why ?? ""}</p>
-            {r.signal === "back" && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block text-xs font-bold" /> : null}
+            {takeable(r) ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block text-xs font-bold" /> : null}
             <div className="flex items-center gap-3 pt-2 border-t border-line-soft">
               <div className="today-tile py-2 px-3 min-w-[84px]">
                 <div className="today-label">Today</div>

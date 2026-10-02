@@ -16,13 +16,15 @@ interface Line {
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const plan = (id: string | null) => (id ? (planById(id)?.name ?? id) : "a plan");
 const str = (v: unknown) => (typeof v === "string" ? v : "");
+/** How often the plan bills: the event's own term, else the member's current one for events logged before it was. */
+const TERM: Record<string, string> = { month: "monthly", quarter: "every 3 months", year: "yearly" };
 const short = (iso: string) => new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
 
 /**
  * One event as a sentence and a colour, or nothing when it is not worth
  * reading: only people joining, money in, money at risk, and things that broke.
  */
-function describe(e: Event): Line | null {
+function describe(e: Event, member?: Member): Line | null {
   const m = e.meta ?? {};
   switch (e.kind) {
     case "joined":
@@ -40,7 +42,10 @@ function describe(e: Event): Line | null {
         const reason = str(m.cancelReason) === "cancellation_requested" ? "" : str(m.cancelReason);
         return { tone: "lay", key: `cancel|${ends}`, text: `cancelled ${plan(e.plan)}, on until ${ends ? short(ends) : "the period ends"}${reason ? ` (${reason.replace(/_/g, " ")})` : ""}` };
       }
-      if (m.status === "trialing") return { tone: "prime", text: `started a free trial of ${plan(e.plan)}` };
+      if (m.status === "trialing") {
+        const term = TERM[str(m.term) || (member?.billing_term ?? "")];
+        return { tone: "prime", text: `started a free trial of ${plan(e.plan)}${term ? `, ${term}` : ""}` };
+      }
       return null;
     case "payment_grace":
       return { tone: "lay", text: `payment failed, access held until ${m.until ? short(str(m.until)) : "it is paid"}` };
@@ -91,7 +96,7 @@ export function ActivityFeed({ events, members }: { events: Event[]; members: Me
   const rows = [...events, ...joined]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .flatMap((e) => {
-      const line = describe(e);
+      const line = describe(e, e.user_id ? who.get(e.user_id) : undefined);
       const key = `${e.user_id}|${line?.key ?? line?.text}`;
       if (!line || (e.user_id && seen.has(key))) return [];
       seen.add(key);
