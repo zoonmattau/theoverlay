@@ -227,6 +227,16 @@ export async function pollPrices(date: string, meetings: PublishedMeeting[], opt
   book.polledAt = new Date(now).toISOString();
   await writePriceBook(date, book);
 
+  // A market linked to two of our races is in dispute: both lose the link and are matched
+  // again below, under the rule that keeps a market with its own meeting. Undoes what an
+  // older deploy's matcher wrote (Pakenham onto Cranbourne, 2 Oct 2026).
+  const claims = new Map<string, string[]>();
+  for (const [raceId, id] of Object.entries(book.ids)) claims.set(id, [...(claims.get(id) ?? []), raceId]);
+  for (const ids of claims.values()) if (ids.length > 1) for (const raceId of ids) {
+    delete book.ids[raceId];
+    delete book.races[raceId];
+  }
+
   // Races not yet matched to BetWatch's list, looked up in one call; the
   // missing are looked for again once the retry wait has passed.
   const retry = !book.missingAt || now - Date.parse(book.missingAt) >= MISSING_RETRY_MS;

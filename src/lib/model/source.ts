@@ -313,7 +313,8 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   const meetings = raw
     .map(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept))
     .map((m) => ({ ...m, races: abandonWithMeeting(m.races, calledOff).map((r) => freezeRun(r, before.get(r.raceId))) }))
-    .sort((a, b) => meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
+    // A meeting called off goes to the bottom, whatever its weight (2 Oct 2026).
+    .sort((a, b) => Number(calledOffMeeting(a)) - Number(calledOffMeeting(b)) || meetingWeight(b) - meetingWeight(a) || firstJump(a).localeCompare(firstJump(b)) || a.track.localeCompare(b.track));
   // A race that has jumped is frozen as last published, so a call on the record
   // that had left the card before the jump goes back on it here.
   for (const m of meetings) for (const r of m.races) if (!r.abandoned) for (const x of r.runners) {
@@ -391,9 +392,16 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
  * has watched since the market opened. A scratching BetWatch knows first
  * counts too.
  */
+/** Most of a meeting's races called off: Cranbourne on 2 Oct 2026, seven of eight. */
+const calledOffMeeting = (m: { races: { abandoned?: boolean }[] }) => m.races.length > 0 && m.races.filter((r) => r.abandoned).length * 2 > m.races.length;
+
 function withLivePrices(race: RaceSummary, book: PriceBook): RaceSummary {
   const live = book.races[race.raceId];
   if (!live) return race;
+  // A market linked to two of our races is in dispute, and neither takes it: Pakenham, on
+  // Cranbourne's closed markets after the move, read as abandoned (2 Oct 2026).
+  const id = book.ids[race.raceId];
+  if (id && Object.entries(book.ids).some(([other, v]) => v === id && other !== race.raceId)) return race;
   const at = Date.parse(live.at);
   // BetWatch's result, until Form King's official one (margins, dividends) replaces it: the placed
   // horses by position, everyone else unplaced, Betfair's starting price on each.
@@ -452,6 +460,9 @@ export function keepPrices(date: string, card: Card): void {
 
 /** One poll of BetWatch and, when it brought new prices, one rebuild on them. Without a card (the cron) every race left on the day is polled. */
 export async function refreshPrices(date: string, card?: { meetings: PublishedMeeting[] }): Promise<{ refreshed: number; rebuilt: boolean }> {
+  // A tab still open on an older deploy runs that deploy's code: it polled with the old matcher
+  // and kept writing Pakenham back onto Cranbourne's markets (2 Oct 2026). Only the newest polls.
+  if (process.env.OVERLAY_READONLY !== "1" && !(await newestDeploy())) return { refreshed: 0, rebuilt: false };
   let refreshed = 0;
   try {
     const meetings = card?.meetings ?? (await readStoredCard(date))?.card.meetings ?? [];
