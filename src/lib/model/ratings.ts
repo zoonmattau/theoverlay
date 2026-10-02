@@ -251,8 +251,12 @@ const CLASS_SHRINK = Number(process.env.OVERLAY_CLASS_SHRINK ?? 1);
  * run. The overall time in a slowly run staying race has every runner lengths
  * under class, the Oaks runner-up included, when the margin says she was
  * beaten four; this bounds the clock by the margin. Infinity trusts the clock.
+ * 8 since 2 Oct 2026, the slow side of FAST_CLOCK: Ember Royale's 9 Aug run at the
+ * Sunshine Coast read 15 lengths slow when beaten five and showed as -54.5. Clean
+ * days, 8 against Infinity: Saturday form 0.3148 v 0.3151, top picks 48 v 47;
+ * midweek rated 0.2742 v 0.2743, top picks 82 v 81. 0 (margin only) is worse.
  */
-const CLOCK_FLOOR = Number(process.env.OVERLAY_CLOCK_FLOOR ?? Infinity);
+const CLOCK_FLOOR = Number(process.env.OVERLAY_CLOCK_FLOOR ?? 8);
 /**
  * Lengths the clock may put a run above the full beaten-margin reading of
  * the same run. Every $10+ bet on 19 Sep 2026 rested on one run where the
