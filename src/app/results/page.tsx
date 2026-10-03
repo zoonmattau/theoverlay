@@ -40,7 +40,7 @@ export default function Page({ searchParams }: PageProps<"/results">) {
       <section className="pt-6 pb-4">
         <h1 className="font-display text-4xl font-extrabold tracking-tight">Results</h1>
         <p className="mt-2 text-ink-secondary max-w-2xl">
-          Every call we have made, won and lost, settled at level stakes. A call stays a call: nothing comes off the record after the race.
+          Every call we have made, won and lost, settled at level stakes.
         </p>
       </section>
       <Suspense fallback={<div className="skeleton h-96" />}>
