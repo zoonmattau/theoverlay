@@ -142,10 +142,6 @@ export default function Page() {
               <span className="font-bold text-ink">Edge</span> is the gap between the two, shown next to every
               runner in the market table.
             </p>
-            <p>
-              We lean on the market, because it is the best guide there is, and only move a price where our
-              read is strong. Most races the two agree and there is nothing to do.
-            </p>
           </div>
         </div>
       </section>
@@ -158,19 +154,19 @@ export default function Page() {
         </div>
         <div className="section-body grid grid-cols-1 gap-3 sm:grid-cols-2">
           <Call badge={<Badge tone="back">Bet</Badge>} title="Bet">
-            The market is at least two points of win chance longer than our price, at $26 or under.
+            The market is longer than our price by a clear margin.
           </Call>
           <Call badge={<Badge tone="prime">Prime Overlay</Badge>} title="Prime Overlay">
-            A bet five points or more clear on a horse with a 15% chance or better and at least two runs behind its rating.
+            Our strongest bet: a big gap on a horse with a real chance.
           </Call>
           <Call badge={<Badge tone="roughie">Way Overlay</Badge>} title="Way Overlay">
-            A bet at $21 or more, struck at small stakes because the few that win pay for the rest.
+            A bet at a big price, struck at small stakes because the few that win pay for the rest.
           </Call>
           <Call badge={<Badge tone="lay">Lay</Badge>} title="Lay">
             A horse the market has too short, usually a favourite, and one to bet against on Betfair.
           </Call>
           <p className="sm:col-span-2 text-sm text-ink-secondary">
-            Calls go up at 11am Sydney time, move with the market until 30 minutes before each jump, then lock and
+            Calls go up at 8am Sydney time, move with the market until 30 minutes before each jump, then lock and
             are settled as they stand.
           </p>
         </div>
