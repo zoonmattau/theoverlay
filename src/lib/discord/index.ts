@@ -319,20 +319,35 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
     const { data: posts } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).in("kind", raceIds.map((id) => `won:${id}`));
     const announced = new Set((posts ?? []).map((p) => String(p.kind)));
     const landed = resulted.filter((c) => !announced.has(`won:${c.r.raceId}`));
-    const won = landed.filter((c) => (c.x.signal === "back" ? c.x.finishPosition === 1 : c.x.finishPosition !== 1));
+    const wins = (signal: string | undefined, finish?: number) => (signal === "back" ? finish === 1 : finish !== 1);
+    const won = landed.filter((c) => wins(c.x.signal, c.x.finishPosition));
+    // A race already through the channel that settles again with a call now winning (a protest
+    // upheld, BetWatch's final result): posted once more for that call alone (Randwick R1, 3 Oct 2026).
+    const flippedAll = resulted.filter((c) => {
+      if (!announced.has(`won:${c.r.raceId}`) || !wins(c.x.signal, c.x.finishPosition)) return false;
+      const was = before.get(c.r.raceId);
+      const x = was?.runners.find((y) => y.tabNumber === c.x.tabNumber);
+      return Boolean(was?.result?.length) && x?.finishPosition !== undefined && !wins(c.x.signal, x.finishPosition);
+    });
+    let flipped: typeof flippedAll = [];
+    if (flippedAll.length) {
+      const { data: done } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).in("kind", flippedAll.map((c) => `flip:${c.r.raceId}:${c.x.tabNumber}`));
+      const seen = new Set((done ?? []).map((p) => String(p.kind)));
+      flipped = flippedAll.filter((c) => !seen.has(`flip:${c.r.raceId}:${c.x.tabNumber}`));
+    }
     // Every race in this batch is written down, winners in it or not, so a race of losers is not asked about again.
     const remember = async (messageId?: string) => {
       const rows = [...new Set(landed.map((c) => c.r.raceId))].map((id) => ({ date, kind: `won:${id}`, message_id: messageId ?? null }));
       if (rows.length) await supabaseAdmin().from("discord_posts").upsert(rows, { onConflict: "date,kind" });
     };
-    if (won.length === 0) {
+    if (won.length === 0 && flipped.length === 0) {
       await remember();
       return;
     }
     // Prices and units as the record settled them, the same as Today's tips.
     const ledger = await ledgerFor(date);
     const units = [...ledger.values()].reduce((a, r) => a + (r.units ?? 0), 0);
-    const lines = won.map((c) => {
+    const lineFor = (c: (typeof won)[number]) => {
       const prime = isPrime(c);
       const row = ledger.get(`${c.r.raceId}:${c.x.tabNumber}`);
       const at = row?.price ?? settledAt(c.x.signal!, callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
@@ -341,9 +356,11 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
         return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(at)}${prime ? ", a Prime" : isRoughie(c.x) ? ", a Way Overlay" : ""}. +${got.toFixed(2)}u`;
       }
       return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(at)}. +${got.toFixed(2)}u`;
-    });
+    };
+    const lines = [...won.map(lineFor), ...flipped.map((c) => `⚖️ Result amended, ${c.m.track} R${c.r.raceNumber}: ${lineFor(c)}`)];
     const messageId = await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
     await remember(messageId);
+    if (flipped.length) await supabaseAdmin().from("discord_posts").upsert(flipped.map((c) => ({ date, kind: `flip:${c.r.raceId}:${c.x.tabNumber}`, message_id: messageId ?? null })), { onConflict: "date,kind" });
   } catch (err) {
     console.error("[discord] winners", err);
   }
