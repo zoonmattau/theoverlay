@@ -3213,6 +3213,9 @@ body {
   /* A row with no rated price (a tipster's call) gives the price the whole right-hand side. */
   tr.tip-row:not(:has(> td[data-col="rated"])) > td[data-col="live"] { grid-area: 1 / 3 / 3 / 5; justify-self: end; }
   tr.tip-row > td[data-col="live"]::before { content: "Live"; }
+  /* A tipster's call heads its one coloured block with the call itself, and the line under the price keeps only the bookie. */
+  tr.tip-row > td[data-col="live"][data-call]::before { content: attr(data-call); }
+  tr.tip-row > td[data-col="live"][data-call] .call-label { display: none; }
   tr.tip-row > td[data-col="rated"]::before { content: "Rated"; }
   tr.tip-row > td[data-col="live"]::before,
   tr.tip-row > td[data-col="rated"]::before {
