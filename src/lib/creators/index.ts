@@ -137,7 +137,11 @@ export const stakeLabel = (t: { stake?: number | null }): string => {
 
 /** More than a fifth above the best price we could see when posted. */
 export const OVER_MARKET = 0.2;
-export const priceFlagged = (t: { price: number; market_at_post: number | null }) => Boolean(t.market_at_post && Number(t.price) > Number(t.market_at_post) * (1 + OVER_MARKET));
+/** The site owner's own tipster account (Matt): his calls never carry the over-market flag. */
+const NEVER_FLAGGED = new Set(["dbca2780-fbd6-4df0-8411-8d42a5e26c2f"]);
+/** A back call posted at a price well over the best market we saw. Never a lay (a bigger lay price is no favour to anyone), never Matt's. */
+export const priceFlagged = (t: { price: number; market_at_post: number | null; side?: string; affiliate_id?: string }) =>
+  t.side !== "lay" && !NEVER_FLAGGED.has(t.affiliate_id ?? "") && Boolean(t.market_at_post && Number(t.price) > Number(t.market_at_post) * (1 + OVER_MARKET));
 
 export async function creatorTips(affiliateId: string, date: string): Promise<CreatorTip[]> {
   const { data } = await supabaseAdmin().from("creator_tips").select("*").eq("affiliate_id", affiliateId).eq("date", date).order("race_number");

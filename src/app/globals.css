@@ -4666,11 +4666,12 @@ td[data-col="phone"],
   /* Races still to run first, then the divider, then the races run. */
   .data-table:has(th[data-col="race"]) > tbody > tr.tip-divider { order: 1; }
   .data-table:has(th[data-col="race"]) > tbody > tr.tip-row.is-run { order: 2; }
-  tr.tip-row {
+  /* Only rows drawn with a phone cell (today's tips) swap to it; a table without one (the tipsters' calls) keeps the grid above. */
+  tr.tip-row:has(> td[data-col="phone"]) {
     display: block;
     padding: 10px var(--sp-3);
   }
-  tr.tip-row > td {
+  tr.tip-row:has(> td[data-col="phone"]) > td {
     display: none !important;
   }
   tr.tip-row > td[data-col="phone"],
