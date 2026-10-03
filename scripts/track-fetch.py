@@ -37,7 +37,8 @@ ALIASES = {
 }
 
 # Courses mapped in OSM with no name on them: the centre of the unnamed horse-racing way.
-COORDS = {"Murray Bridge": (-35.1163, 139.3021), "Kalgoorlie": (-30.7627, 121.4682)}
+COORDS = {"Murray Bridge": (-35.1163, 139.3021), "Kalgoorlie": (-30.7627, 121.4682),
+          "Echuca": (-36.1589, 144.7896), "Port Macquarie": (-31.4428, 152.8796), "Mt Magnet": (-28.0448, 117.8609), "Goulburn": (-34.7107, 149.7499), "Wellington": (-32.5560, 148.9312)}
 
 slug = lambda s: re.sub(r"[^a-z]", "", s.lower())
 
@@ -62,7 +63,7 @@ def score(e, names):
         s += 3
     if "racecourse" in n or "race course" in n or "turf club" in n or "racing club" in n or "jockey club" in n:
         s += 2
-    if any(w in n for w in ("harness", "greyhound", "trotting", "pacing", "dog", "off road", "motor", "speedway", "kart", "bmx", "cycle")):
+    if any(w in n for w in ("harness", "greyhound", "trotting", "pacing", "paceway", "dog", "off road", "motor", "speedway", "kart", "bmx", "cycle")):
         s -= 10
     return s
 

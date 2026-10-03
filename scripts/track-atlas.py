@@ -22,7 +22,10 @@ spec.loader.exec_module(tg)
 # Posts placed by hand, in rail metres round the loop, where the stand or straight finder gets it wrong.
 POST = {
     "doomben": 1675,  # on the straight just before the turn; the chute then comes out near the 1350
+    "carnarvon": 1955,  # foot of the home straight down the left side, before the turn the stand finder put it on
+    "gawler": 1485,  # on the straight just before the turn (the user)
     "goldcoast": 1870,
+    "grafton": 1893,  # a little further along the straight (the user)
     "murraybridge": 734,  # foot of the home straight down the left side, in front of the stands; chutes then 1200, 1800, 2000
     "rosehill": 1807,  # where the stand finder first put it, with the 1400 chute measuring 1400 on the back straight  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
     "murtoa": 380,  # near the end of the straight; the chutes then come out at 1200 and 1600
@@ -309,33 +312,39 @@ def build(slug, path, state, venue=None):
             line = [(j[0] - tx * (ln - k * ln / 30), j[1] - ty * (ln - k * ln / 30)) for k in range(31)]
         chutes.append({"line": line, "joinAlong": ja, "length": length(line), "depth": c["depth"], "clear": clear})
 
-    # The post: in front of the main stand, fine-tuned so the chutes land on standard starts.
+    # The post: near the end of the home straight, the straight beside the main stand (or the longest),
+    # 10m to 60m before it turns, as every post set by eye has been; the chutes may nudge it along that straight only.
     stand = grandstand(ways, loop, outer["pts"] if outer else loop)
-    straights = straights_of(run, along)
-    if stand:
-        base, _ = rail_along(stand)
-        how = "grandstand"
-    elif straights:
-        # The end of the longest straight, the way they run.
-        s = max(straights, key=lambda s: s[1] - s[0])
-        base = s[0] + (s[1] - s[0]) * 0.85
-        how = "longest straight"
+    straights = straights_of(run, along, 12)
+    if len(straights) > 1 and straights[0][0] <= 5 and straights[-1][1] >= total - 5:
+        straights = [(straights[-1][0], straights[0][1] + total)] + straights[1:-1]
+    sa = rail_along(stand)[0] if stand else None
+
+    def gap(st):
+        x = (sa - st[0]) % total
+        return 0 if x <= st[1] - st[0] else min(x - (st[1] - st[0]), total - x)
+
+    if straights:
+        near = [st for st in straights if sa is not None and gap(st) <= 120]
+        if near:
+            home, how = min(near, key=lambda st: (gap(st), -(st[1] - st[0]))), "grandstand"
+        else:
+            home, how = max(straights, key=lambda st: st[1] - st[0]), "longest straight"
+        L = home[1] - home[0]
+        base = home[1] - min(60, max(10, 0.1 * L))
+        lo, hi = home[0] + 0.5 * L - base, home[1] - 5 - base
     else:
-        base, how = 0.0, "guess"
-    post_along, fit = base, None
-    if len(chutes) >= 1:
+        base, how, lo, hi = (sa or 0.0), ("grandstand" if sa is not None else "guess"), -100, 100
+    post_along, fit = base % total, None
+    if chutes:
         best = None
-        window = 250 if how == "grandstand" else 600
-        for dlt in range(-window, window + 1, 2):
+        for dlt in range(int(lo), int(hi) + 1, 2):
             a = (base + dlt) % total
-            err = 0
-            for c in chutes:
-                sd = c["length"] + (a - c["joinAlong"]) % total
-                err += min(abs(sd - s) for s in STARTS)
-            err += abs(dlt) * 0.02
+            err = sum(min(abs(c["length"] + (a - c["joinAlong"]) % total - s) for s in STARTS) for c in chutes) + abs(dlt) * 0.05
             if best is None or err < best[0]:
                 best = (err, a)
-        post_along, fit = best[1], best[0]
+        if best:
+            post_along, fit = best[1], best[0]
     if slug in POST:
         post_along, how, fit = float(POST[slug]), "by hand", None
     post = tg.point_at(run, along, post_along)
@@ -349,6 +358,8 @@ def build(slug, path, state, venue=None):
     if os.environ.get("ATLAS_DEBUG") == slug:
         for c in chutes:
             print(f"  raw {slug} {c['measured']} clear {c['clear']:.0f} tip {[round(v) for v in c['line'][0]]}", file=sys.stderr)
+    # A chute never crosses the infield: a line through the middle of the course is a training strip or a road.
+    chutes = [c for c in chutes if not any(inside(p, loop) for p in tg.resample(c["line"], 40)[2:-6])]
     chutes = [c for c in chutes if c["clear"] >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
     # One chute to a start: the one that measures closest.
     chutes = [c for c in chutes if c is min((o for o in chutes if o["startDistance"] == c["startDistance"]), key=lambda o: abs(o["measured"] - o["startDistance"]))]
@@ -544,8 +555,8 @@ def grandstand(ways, loop, outer):
     return best[1] if best else None
 
 
-def straights_of(run, along):
-    """Stretches where the heading holds within 8 degrees for 150m or more: (from, to) in rail metres."""
+def straights_of(run, along, tol=8):
+    """Stretches where the heading holds within tol degrees for 150m or more: (from, to) in rail metres."""
     heads = []
     for i, (a, b) in enumerate(zip(run, run[1:])):
         heads.append((along[i], along[i + 1], math.atan2(b[1] - a[1], b[0] - a[0])))
@@ -555,7 +566,7 @@ def straights_of(run, along):
             s = [f, t, h]
             continue
         dh = abs((h - s[2] + math.pi) % (2 * math.pi) - math.pi)
-        if dh < math.radians(8):
+        if dh < math.radians(tol):
             s[1] = t
         else:
             if s[1] - s[0] >= 150:
