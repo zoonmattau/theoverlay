@@ -211,7 +211,27 @@ export function applyBookResults(meetings: PublishedMeeting[], book: PriceBook):
       const finishOf = (x: PublishedMeeting["races"][number]["runners"][number]) =>
         position.get(x.tabNumber) ?? (x.finishPosition && x.finishPosition > deepest ? x.finishPosition : 0);
       const same = (race.result ?? []).slice(0, 4).join(",") === order.slice(0, 4).join(",") && race.runners.every((x) => x.scratched || x.finishPosition === finishOf(x));
-      if (same) continue;
+      if (same) {
+        // The orders agree, but the feed's official result can come with no
+        // dividends at all, only the SP, and it replaces the placings BetWatch
+        // had priced: Bodmin Moor, Gold Coast R1, 3 Oct 2026, went from its
+        // $17.56 BSP to the $10 SP. BetWatch's prices fill what the feed left out.
+        let filled = false;
+        for (const p of race.placings ?? []) {
+          const bsp = live.result.bsp[String(p.tabNumber)];
+          const bspPlace = p.position <= 3 ? live.result.bspPlace?.[String(p.tabNumber)] : undefined;
+          if (bsp && !p.bsp) {
+            p.bsp = bsp;
+            filled = true;
+          }
+          if (bspPlace && !p.bspPlace) {
+            p.bspPlace = bspPlace;
+            filled = true;
+          }
+        }
+        if (filled) changed.push(race.raceId);
+        continue;
+      }
       const was = new Map((race.placings ?? []).map((p) => [p.tabNumber, p] as const));
       const sameOrder = (race.result ?? []).slice(0, 4).join(",") === order.slice(0, 4).join(",");
       race.result = order.slice(0, 4);

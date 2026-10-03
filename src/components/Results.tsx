@@ -42,7 +42,7 @@ export function Results({ race }: { race: PublishedRace }) {
                   {won && (
                     <div className="div-box is-win">
                       <div className="label">{winLabel(p)}</div>
-                      <div className="value nums">{price(p.win ?? p.sp ?? p.bsp ?? p.jump)}</div>
+                      <div className="value nums">{price(winPrice(p))}</div>
                     </div>
                   )}
                   {p.place || p.bspPlace ? (
@@ -68,7 +68,14 @@ export function Results({ race }: { race: PublishedRace }) {
   );
 }
 
-/** The win box says which price it is: the dividend or SP once official, Betfair SP or the jump price until then. */
+/** The winner's price: the dividend or SP, or Betfair's SP where it paid better, the jump price until either is in. */
+function winPrice(p: Placing): number | undefined {
+  const tote = p.win ?? p.sp;
+  return tote && p.bsp ? Math.max(tote, p.bsp) : (tote ?? p.bsp ?? p.jump);
+}
+
+/** The win box says which price it is. */
 function winLabel(p: Placing): string {
-  return p.win || p.sp ? "Win" : p.bsp ? "BSP" : "Jump";
+  const tote = p.win ?? p.sp;
+  return tote && (!p.bsp || tote >= p.bsp) ? "Win" : p.bsp ? "BSP" : "Jump";
 }
