@@ -1,34 +1,86 @@
 // Written by scripts/track-index.py: every track map with a usable post, keyed by name squashed to letters.
 import type { Track } from "@/components/TrackMap";
 
+import armidale from "./armidale.json";
+import balaklava from "./balaklava.json";
+import ballarat from "./ballarat.json";
+import bathurst from "./bathurst.json";
+import beaudesert from "./beaudesert.json";
 import caulfield from "./caulfield.json";
+import coleraine from "./coleraine.json";
+import corowa from "./corowa.json";
+import cranbourne from "./cranbourne.json";
 import darwin from "./darwin.json";
+import donald from "./donald.json";
+import doomben from "./doomben.json";
+import dubbo from "./dubbo.json";
 import eaglefarm from "./eaglefarm.json";
 import flemington from "./flemington.json";
+import gatton from "./gatton.json";
+import geelong from "./geelong.json";
 import goldcoast from "./goldcoast.json";
+import grafton from "./grafton.json";
 import gunbower from "./gunbower.json";
+import hamilton from "./hamilton.json";
 import kalgoorlie from "./kalgoorlie.json";
+import kilmore from "./kilmore.json";
+import launceston from "./launceston.json";
+import mackay from "./mackay.json";
+import moe from "./moe.json";
+import mornington from "./mornington.json";
+import moruya from "./moruya.json";
 import murraybridge from "./murraybridge.json";
 import murtoa from "./murtoa.json";
 import newcastle from "./newcastle.json";
 import northam from "./northam.json";
 import randwick from "./randwick.json";
+import rosehill from "./rosehill.json";
+import sunshinecoast from "./sunshinecoast.json";
+import tatura from "./tatura.json";
 import toowoomba from "./toowoomba.json";
+import townsville from "./townsville.json";
 import waggariverside from "./waggariverside.json";
+import warrnambool from "./warrnambool.json";
 
 export const TRACKS: Record<string, Track> = {
+  armidale: armidale as Track,
+  balaklava: balaklava as Track,
+  ballarat: ballarat as Track,
+  bathurst: bathurst as Track,
+  beaudesert: beaudesert as Track,
   caulfield: caulfield as Track,
+  coleraine: coleraine as Track,
+  corowa: corowa as Track,
+  cranbourne: cranbourne as Track,
   darwin: darwin as Track,
+  donald: donald as Track,
+  doomben: doomben as Track,
+  dubbo: dubbo as Track,
   eaglefarm: eaglefarm as Track,
   flemington: flemington as Track,
+  gatton: gatton as Track,
+  geelong: geelong as Track,
   goldcoast: goldcoast as Track,
+  grafton: grafton as Track,
   gunbower: gunbower as Track,
+  hamilton: hamilton as Track,
   kalgoorlie: kalgoorlie as Track,
+  kilmore: kilmore as Track,
+  launceston: launceston as Track,
+  mackay: mackay as Track,
+  moe: moe as Track,
+  mornington: mornington as Track,
+  moruya: moruya as Track,
   murraybridge: murraybridge as Track,
   murtoa: murtoa as Track,
   newcastle: newcastle as Track,
   northam: northam as Track,
   randwick: randwick as Track,
+  rosehill: rosehill as Track,
+  sunshinecoast: sunshinecoast as Track,
+  tatura: tatura as Track,
   toowoomba: toowoomba as Track,
+  townsville: townsville as Track,
   waggariverside: waggariverside as Track,
+  warrnambool: warrnambool as Track,
 };
