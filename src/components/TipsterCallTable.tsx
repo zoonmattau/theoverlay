@@ -12,9 +12,15 @@ const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "-" : ""}${Math.abs(n).toF
  * the price they took, the price they rate, the call, the result, the units
  * and the running sum. The reason opens off the runner.
  */
-export function TipsterCallTable({ tips, jumps }: { tips: (CreatorTip & { tipster?: Tipster })[]; /** Jump time by race id, for the calls still to run. */ jumps: Map<string, string | undefined> }) {
+export function TipsterCallTable({ tips, jumps, showWho }: {
+  tips: (CreatorTip & { tipster?: Tipster })[];
+  /** Jump time by race id, for the calls still to run. */
+  jumps: Map<string, string | undefined>;
+  /** Name the tipster on every call even when one tipster has posted them all: a page of everyone's calls, not one tipster's. */
+  showWho?: boolean;
+}) {
   const ordered = [...tips].sort((a, b) => (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
-  const many = new Set(tips.map((t) => t.affiliate_id)).size > 1;
+  const many = showWho || new Set(tips.map((t) => t.affiliate_id)).size > 1;
   const total = ordered.reduce((a, t) => a + (t.settled_at ? Number(t.units) : 0), 0);
   const staked = ordered.reduce((a, t) => a + Number(t.stake ?? 1), 0);
   return (

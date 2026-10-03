@@ -115,7 +115,7 @@ async function Marketplace({ searchParams }: { searchParams: PageProps<"/tipster
             <div className="section-body"><p className="text-sm text-ink-soft">No tipster has posted a call today. Calls land here as they are posted, and on your race pages for the tipsters you follow.</p></div>
           ) : (
             <>
-              <TipsterCallTable tips={today} jumps={new Map([...jumps].map(([k, v]) => [k, v || undefined]))} />
+              <TipsterCallTable tips={today} jumps={new Map([...jumps].map(([k, v]) => [k, v || undefined]))} showWho />
               <p className="px-4 py-2 text-xs text-ink-soft border-t border-line">Their own calls at their own prices, settled the same way as the model&apos;s. Follow a tipster and their calls sit on your race pages and the tips page.</p>
             </>
           )}
