@@ -18,7 +18,7 @@ import { postCallChanges, postResults, postWinners } from "@/lib/discord";
 import { rememberHorses } from "./horses";
 import { settleFromBook } from "./settle";
 import { betwatchConfigured } from "@/lib/betwatch/client";
-import { pollPrices, racesToPrice, readPriceBook, type PriceBook } from "@/lib/betwatch/prices";
+import { applyBookResults, pollPrices, racesToPrice, readPriceBook, type PriceBook } from "@/lib/betwatch/prices";
 import { callsOnRecord, holdBetRatedUnder, recordTips, type RecordedCall } from "@/lib/tips";
 import type { PublishedMeeting, PublishedRace, PublishedRun } from "./types";
 
@@ -321,6 +321,15 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
   for (const m of meetings) for (const r of m.races) if (!r.abandoned) for (const x of r.runners) {
     const call = known.get(`${r.raceId}:${x.tabNumber}`);
     if (call && !x.scratched && !x.signal) x.signal = call.side;
+  }
+  // BetWatch is the word on every placing after a race: its result goes over whatever the feed sent.
+  if (storeConfigured() && usingLiveData()) {
+    try {
+      const fixed = applyBookResults(meetings, await readPriceBook(date));
+      if (fixed.length) console.log("[card] placings from BetWatch", fixed.join(", "));
+    } catch (err) {
+      console.error("[card] BetWatch placings failed", err);
+    }
   }
   // Any race newly called off is written down for every build after this one.
   const nowOff = meetings.flatMap((m) => m.races.filter((r) => r.abandoned && !calledOff.has(r.raceId)).map((r) => r.raceId));

@@ -185,6 +185,58 @@ export function racesToPrice(meetings: PublishedMeeting[], now = Date.now(), far
   return out;
 }
 
+/** BetWatch's own word that a result is final: "Resulted", not "Interim results". */
+export const isFinal = (status?: string) => Boolean(status && /resulted/i.test(status) && !/interim/i.test(status));
+
+/**
+ * BetWatch's placings laid over the card: BetWatch is the word on every
+ * placing after a race. Where it has a result and the card disagrees (an
+ * interim result, then a protest upheld; or the feed's order), the card
+ * takes BetWatch's, and the Form King extras (margins, dividends) stay only
+ * where they agree with it. Each horse keeps its own starting price. Returns
+ * the races it changed.
+ */
+export function applyBookResults(meetings: PublishedMeeting[], book: PriceBook): string[] {
+  const changed: string[] = [];
+  for (const m of meetings) {
+    for (const race of m.races) {
+      const live = book.races[race.raceId];
+      if (race.abandoned || !live?.result?.placings?.length) continue;
+      const position = new Map<number, number>();
+      live.result.placings.forEach((tabs, i) => tabs.forEach((t) => position.set(t, i + 1)));
+      const order = [...position.entries()].sort((a, b) => a[1] - b[1]).map(([tab]) => tab);
+      if (order.length === 0) continue;
+      // BetWatch places the first few; a horse outside them keeps the feed's finishing spot, if it has one past them.
+      const deepest = Math.max(...position.values());
+      const finishOf = (x: PublishedMeeting["races"][number]["runners"][number]) =>
+        position.get(x.tabNumber) ?? (x.finishPosition && x.finishPosition > deepest ? x.finishPosition : 0);
+      const same = (race.result ?? []).slice(0, 4).join(",") === order.slice(0, 4).join(",") && race.runners.every((x) => x.scratched || x.finishPosition === finishOf(x));
+      if (same) continue;
+      const was = new Map((race.placings ?? []).map((p) => [p.tabNumber, p] as const));
+      const sameOrder = (race.result ?? []).slice(0, 4).join(",") === order.slice(0, 4).join(",");
+      race.result = order.slice(0, 4);
+      race.placings = order.slice(0, 4).map((tab) => {
+        const old = was.get(tab);
+        const pos = position.get(tab)!;
+        return {
+          ...(sameOrder ? old : { sp: old?.sp }),
+          position: pos,
+          tabNumber: tab,
+          jump: old?.jump ?? race.runners.find((x) => x.tabNumber === tab)?.marketPrice,
+          bsp: live.result!.bsp[String(tab)] || old?.bsp || undefined,
+          bspPlace: pos <= 3 ? live.result!.bspPlace?.[String(tab)] || old?.bspPlace || undefined : undefined,
+        };
+      });
+      for (const x of race.runners) {
+        if (live.runners?.[String(x.tabNumber)]?.scratched) x.scratched = true;
+        x.finishPosition = x.scratched ? undefined : finishOf(x);
+      }
+      changed.push(race.raceId);
+    }
+  }
+  return changed;
+}
+
 /**
  * The races on a card that have jumped and have no result yet, each with
  * how often its result is asked for: every minute while the result is
@@ -193,13 +245,16 @@ export function racesToPrice(meetings: PublishedMeeting[], now = Date.now(), far
  * minutes: Betfair's starting prices can post after the placings, and with
  * no Form King result they are the only ones it gets (1 Oct 2026).
  */
-export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] {
+export function racesToSettle(meetings: PublishedMeeting[], now = Date.now(), book?: PriceBook): { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] {
   const out: { meeting: PublishedMeeting; race: PublishedMeeting["races"][number]; every: number }[] = [];
   for (const meeting of meetings) {
     for (const race of meeting.races) {
       if (!race.jumpTime || race.abandoned) continue;
       const priced = Boolean(race.placings?.[0]?.win) && (race.placings ?? []).slice(0, 3).every((p) => p.place);
-      if (race.result?.length && priced) continue;
+      // BetWatch decides the placings: an interim result is asked after until BetWatch calls it final,
+      // so a protest upheld after the interim lands (Randwick R1, 3 Oct 2026). Without the book, as before.
+      const waiting = book ? !isFinal(book.races[race.raceId]?.status) : false;
+      if (race.result?.length && priced && !waiting) continue;
       const since = now - Date.parse(race.jumpTime);
       if (since < 60_000 || since > RESULT_WINDOW_MS) continue;
       out.push({ meeting, race, every: !race.result?.length && since <= RESULT_NEAR_MS ? RESULT_NEAR_EVERY_MS : PRICE_EVERY_MS });
@@ -218,9 +273,13 @@ export function racesToSettle(meetings: PublishedMeeting[], now = Date.now()): {
 export async function pollPrices(date: string, meetings: PublishedMeeting[], opts: { far?: boolean } = {}): Promise<number> {
   if (!betwatchConfigured()) return 0;
   const now = Date.now();
-  const due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now)];
-  if (due.length === 0) return 0;
+  let due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now)];
+  // A race resulted inside the window may still be waiting on BetWatch's final word.
+  const resulted = meetings.some((m) => m.races.some((r) => r.result?.length && r.jumpTime && now - Date.parse(r.jumpTime) <= RESULT_WINDOW_MS));
+  if (due.length === 0 && !resulted) return 0;
   const book = await readPriceBook(date);
+  due = [...racesToPrice(meetings, now, opts.far), ...racesToSettle(meetings, now, book)];
+  if (due.length === 0) return 0;
   // A result already in the book and not yet on the card is only waiting for the card to be rebuilt.
   // A race on the card with a result is still due when it waits on place prices, and counting it here
   // stopped every poll for the night (Pakenham R3, 2 Oct 2026).

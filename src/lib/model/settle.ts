@@ -4,7 +4,7 @@ import { revalidateTag } from "next/cache";
 
 import { supabaseAdmin } from "@/lib/billing/access";
 import { betwatchMarkets } from "@/lib/betwatch/client";
-import { readPriceBook, writePriceBook } from "@/lib/betwatch/prices";
+import { applyBookResults, readPriceBook, writePriceBook } from "@/lib/betwatch/prices";
 import { settleCreatorTips } from "@/lib/creators";
 import { postWinners } from "@/lib/discord";
 import { getRace } from "@/lib/formking/client";
@@ -81,31 +81,10 @@ export async function settleFromBook(date: string): Promise<number> {
   const [stored, book] = await Promise.all([readStoredCard(date), readPriceBook(date)]);
   if (!stored) return 0;
   const before = new Map<string, PublishedRace>(stored.card.meetings.flatMap((m) => m.races.map((r) => [r.raceId, structuredClone(r)] as const)));
-  let settled = 0;
-  for (const m of stored.card.meetings) {
-    for (const race of m.races) {
-      const live = book.races[race.raceId];
-      if (race.result?.length || race.abandoned || !live?.result) continue;
-      const position = new Map<number, number>();
-      live.result.placings.forEach((tabs, i) => tabs.forEach((t) => position.set(t, i + 1)));
-      const order = [...position.entries()].sort((a, b) => a[1] - b[1]).map(([tab]) => tab);
-      if (order.length === 0) continue;
-      race.result = order.slice(0, 4);
-      race.placings = order.slice(0, 4).map((tab) => ({
-        position: position.get(tab)!,
-        tabNumber: tab,
-        jump: race.runners.find((x) => x.tabNumber === tab)?.marketPrice,
-        bsp: live.result!.bsp[String(tab)] || undefined,
-        bspPlace: position.get(tab)! <= 3 ? live.result!.bspPlace?.[String(tab)] || undefined : undefined,
-      }));
-      race.handSettled = true;
-      for (const x of race.runners) {
-        if (live.runners[String(x.tabNumber)]?.scratched) x.scratched = true;
-        x.finishPosition = x.scratched ? undefined : (position.get(x.tabNumber) ?? 0);
-      }
-      settled++;
-    }
-  }
+  // BetWatch's placings on every race it has a result for, a race already resulted included (a protest upheld).
+  const fixed = applyBookResults(stored.card.meetings, book);
+  for (const m of stored.card.meetings) for (const r of m.races) if (fixed.includes(r.raceId) && !before.get(r.raceId)?.result?.length) r.handSettled = true;
+  const settled = fixed.length;
   if (settled === 0) return 0;
   await writeStoredCard(date, stored.card, 0);
   await recordTips(date, stored.card);
