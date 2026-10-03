@@ -253,7 +253,8 @@ export interface LivePerson {
 /** A path as a person would say it. */
 function pageLabel(path: string): string {
   if (path === "/") return "Home";
-  const race = path.match(/^\/racing\/\d{4}-\d{2}-\d{2}\/([a-z0-9-]+)-\d{8}\/[A-Z]+_\d+_(\d+)/);
+  // Any race id ending in its number: Eagle Farm's is "E FM_031026_1", a space in it ("E%20FM" in the path).
+  const race = path.match(/^\/racing\/\d{4}-\d{2}-\d{2}\/([a-z0-9-]+)-\d{8}\/[^/?]+_(\d+)(?:[/?]|$)/);
   if (race) return `${race[1].split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")} R${race[2]}`;
   const tipster = path.match(/^\/t\/(.+)$/);
   if (tipster) return `Tipster ${tipster[1]}`;
