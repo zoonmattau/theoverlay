@@ -26,8 +26,9 @@ const TABS = [
  */
 type Day = { date: string; units: number; bets: number; lays: number };
 
-export function Record({ stats, daily }: { stats: RecordStats[]; daily: Day[] }) {
-  const tabs = TABS.filter((p) => (stats.find((s) => s.period === p.id)?.net ?? 0) > 0);
+/** full: the results page, where every window shows, in the red or not, and there is no link through to itself. */
+export function Record({ stats, daily, full }: { stats: RecordStats[]; daily: Day[]; full?: boolean }) {
+  const tabs = TABS.filter((p) => (full ? stats.some((s) => s.period === p.id) : (stats.find((s) => s.period === p.id)?.net ?? 0) > 0));
   const [period, setPeriod] = useState(tabs[0]?.id);
   const r = stats.find((s) => s.period === (tabs.some((p) => p.id === period) ? period : tabs[0]?.id));
   if (!r) return null;
@@ -97,9 +98,11 @@ export function Record({ stats, daily }: { stats: RecordStats[]; daily: Day[] })
 
         <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-ink-soft">
           <span>Level stakes, one unit a call. Voids left out.</span>
-          <a href="/results" target="_blank" rel="noopener" className="btn btn-secondary btn-sm">
-            Every result in the sheet
-          </a>
+          {!full && (
+            <a href="/results" className="btn btn-secondary btn-sm">
+              Every result
+            </a>
+          )}
         </div>
       </div>
     </Section>

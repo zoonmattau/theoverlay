@@ -357,6 +357,53 @@ export async function bigWinners(n = 6): Promise<Winner[]> {
 }
 
 /** The live record the public sees, every published call, read at most every quarter hour. */
+/** One settled call as the results page lists it. */
+export interface ResultCall {
+  date: string;
+  meeting_id: string;
+  race_id: string;
+  race_number: number;
+  track: string;
+  tab_number: number;
+  horse_name: string;
+  side: Signal;
+  tag: string | null;
+  market_price: number;
+  finish_position: number;
+  units: number;
+  stake: number | null;
+}
+
+/**
+ * Every settled call the model has made, newest day first: the results page.
+ * Settled only, so a call still to run never leaves the members' pages, and
+ * voids are out, as on the sheet.
+ */
+export async function resultCalls(): Promise<ResultCall[]> {
+  "use cache";
+  cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
+  const rows: ResultCall[] = [];
+  for (let from = 0; from < 1_000_000; from += 1000) {
+    const { data, error } = await supabaseAdmin()
+      .from("tips")
+      .select("date, meeting_id, race_id, race_number, track, tab_number, horse_name, side, tag, market_price, finish_position, units, stake")
+      .eq("source", "model")
+      .not("settled_at", "is", null)
+      .not("finish_position", "is", null)
+      .order("date", { ascending: false })
+      .order("published_at")
+      .order("id")
+      .range(from, from + 999);
+    if (error) {
+      console.error("[tips] results", error.message);
+      break;
+    }
+    rows.push(...((data ?? []) as ResultCall[]));
+    if ((data ?? []).length < 1000) break;
+  }
+  return rows;
+}
+
 export async function publicRecord(today: string): Promise<RecordStats[]> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
