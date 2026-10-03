@@ -4757,3 +4757,64 @@ td[data-col="phone"],
     flex: none;
   }
 }
+
+/* --- Results as a spreadsheet: gridlines, a shaded header, zebra rows, a
+   subtotal row a day, and a tinted cell for each win and loss. --- */
+.sheet {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+}
+.sheet th,
+.sheet td {
+  border: 1px solid var(--color-line);
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+.sheet thead th {
+  background: var(--color-surface);
+  color: var(--color-ink-secondary);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  text-align: left;
+}
+.sheet .num {
+  text-align: right;
+  font-family: var(--font-plex), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+}
+.sheet tbody tr.sheet-row:nth-child(even of .sheet-row) td {
+  background: var(--color-panel-alt);
+}
+.sheet tbody tr.sheet-row:hover td {
+  background: var(--color-blue-soft);
+}
+.sheet tr.sheet-day td {
+  background: var(--color-bar);
+  color: var(--color-bar-ink);
+  font-weight: 800;
+  border-color: var(--color-bar);
+}
+.sheet tr.sheet-day td.pos { color: var(--color-lime); }
+.sheet tr.sheet-day td.neg { color: #ff8a8a; }
+.sheet td.win { background: var(--color-lime-soft) !important; color: var(--color-accent); font-weight: 800; }
+.sheet td.loss { background: var(--color-red-soft) !important; color: var(--color-red); font-weight: 800; }
+.sheet td.pos { color: var(--color-accent); font-weight: 700; }
+.sheet td.neg { color: var(--color-red); font-weight: 700; }
+.sheet .call-bet { color: var(--color-blue); font-weight: 800; }
+.sheet .call-lay { color: var(--color-red); font-weight: 800; }
+.sheet .call-prime { background: var(--color-lime); color: var(--color-ink); font-weight: 800; padding: 1px 6px; border-radius: 4px; }
+.sheet .sheet-horse { white-space: normal; min-width: 9rem; }
+@media (max-width: 640px) {
+  .sheet { font-size: 0.78rem; }
+  .sheet th, .sheet td { padding: 5px 6px; }
+  .sheet .sheet-horse { min-width: 0; }
+  .sheet .sheet-wide { display: none; }
+}
+.sheet tr.sheet-day { cursor: pointer; user-select: none; }
+.sheet tr.sheet-day:hover td { background: #262a30; }
+.sheet tr.sheet-day:focus-visible { outline: 2px solid var(--color-lime); outline-offset: -2px; }
+.sheet .caret::before { content: "▾"; display: inline-block; width: 0.9em; color: var(--color-lime); }
+.sheet tr.sheet-day.is-shut .caret::before { content: "▸"; }

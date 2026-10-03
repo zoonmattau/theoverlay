@@ -4,6 +4,7 @@ import { Suspense } from "react";
 
 import { Record } from "@/components/Record";
 import { Section } from "@/components/Section";
+import { SheetDay } from "@/components/SheetDay";
 import { RESULTS_SHEET } from "@/lib/social";
 import { dailyUnits, publicRecord, resultCalls, type ResultCall } from "@/lib/tips";
 import { racingToday } from "@/lib/model/source";
@@ -142,19 +143,59 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
         </div>
       </Section>
 
-      {listed.map((d) => {
-        const cs = byDay.get(d)!;
-        const u = cs.reduce((a, c) => a + Number(c.units), 0);
-        return (
-          <Section key={d} id={`day-${d}`} letter={dayName(d).slice(0, 1)} title={dayName(d)} aside={<span className={`nums font-semibold ${tone(u)}`}>{units(u)}</span>}>
-            <ul className="divide-y divide-line-soft">
-              {cs.map((c) => (
-                <CallLine key={`${c.race_id}:${c.tab_number}:${c.side}`} c={c} />
-              ))}
-            </ul>
-          </Section>
-        );
-      })}
+      <Section id="calls" letter="C" title="Every call" aside={older ? `${days.length} days` : `Last ${Math.min(DAYS_SHOWN, days.length)} days`}>
+        <div className="p-3 sm:p-4">
+          <table className="sheet">
+            <thead>
+              <tr>
+                <th className="sheet-wide">Race</th>
+                <th>Horse</th>
+                <th>Call</th>
+                <th className="num sheet-wide">Price</th>
+                <th className="num sheet-wide">Finish</th>
+                <th>Result</th>
+                <th className="num">Units</th>
+                <th className="num sheet-wide">Running</th>
+              </tr>
+            </thead>
+            {listed.map((d) => {
+              const cs = byDay.get(d)!;
+              const u = cs.reduce((a, c) => a + Number(c.units), 0);
+              // Running totals inside the day, counting up to each call from the day before's close.
+              let at = (totals.get(d) ?? 0) - u;
+              const runs = cs.map((c) => (at += Number(c.units)));
+              return (
+                <SheetDay
+                  key={d}
+                  id={`day-${d}`}
+                  cells={
+                    <>
+                      <td className="sheet-wide">
+                        <span className="caret" aria-hidden /> {dayName(d)}
+                      </td>
+                      <td>
+                        <span className="sm:hidden">
+                          <span className="caret" aria-hidden /> {dayName(d)}
+                        </span>
+                      </td>
+                      <td>{cs.length} {cs.length === 1 ? "call" : "calls"}</td>
+                      <td className="sheet-wide" />
+                      <td className="sheet-wide" />
+                      <td>{cs.filter((c) => Number(c.units) > 0).length} won</td>
+                      <td className={`num ${u > 0 ? "pos" : u < 0 ? "neg" : ""}`}>{units(u)}</td>
+                      <td className={`num sheet-wide ${totals.get(d)! > 0 ? "pos" : totals.get(d)! < 0 ? "neg" : ""}`}>{units(totals.get(d)!)}</td>
+                    </>
+                  }
+                >
+                  {cs.map((c, i) => (
+                    <SheetRow key={`${c.race_id}:${c.tab_number}:${c.side}`} c={c} running={runs[i]} />
+                  ))}
+                </SheetDay>
+              );
+            })}
+          </table>
+        </div>
+      </Section>
 
       {!older && days.length > DAYS_SHOWN && (
         <div className="text-center">
@@ -179,27 +220,34 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
   );
 }
 
-/** One call: the race and the horse, how we called it and where it ran, and what it returned. */
-function CallLine({ c }: { c: ResultCall }) {
+/** One call as a spreadsheet row: race, horse, how we called it, price, finish, the result tinted, units and the running total. */
+function SheetRow({ c, running }: { c: ResultCall; running: number }) {
   const lay = c.side === "lay";
   const prime = c.tag === "prime_overlay" || c.tag === "top_overlay";
   const stake = c.stake && Number(c.stake) !== 1 ? ` ${Number(c.stake)}u` : "";
-  const label = `${lay ? "Lay" : "Bet"}${stake}`;
   const u = Number(c.units);
   return (
-    <li className="flex items-center gap-3 px-4 py-2.5">
-      <div className="min-w-0 flex-1">
-        <div className="text-sm">
-          <Link href={`/racing/${c.date}/${encodeURIComponent(c.meeting_id)}/${encodeURIComponent(c.race_id)}`} className="text-ink-soft hover:text-blue whitespace-nowrap">
-            {c.track} R{c.race_number}
-          </Link>
-          <span className="font-semibold"> {c.tab_number}. {c.horse_name}</span>
-        </div>
-        <div className="text-xs text-ink-soft nums mt-0.5">
-          <span className={`font-bold ${prime ? "text-ink" : lay ? "text-red" : "text-blue"}`}>{prime ? `Prime ${label.toLowerCase()}` : label}</span> at {price(c.market_price)}, ran {ordinal(c.finish_position)}
-        </div>
-      </div>
-      <span className={`nums text-sm font-bold whitespace-nowrap ${tone(u)}`}>{units(u)}</span>
-    </li>
+    <tr className="sheet-row">
+      <td className="sheet-wide">
+        <Link href={`/racing/${c.date}/${encodeURIComponent(c.meeting_id)}/${encodeURIComponent(c.race_id)}`} className="hover:text-blue">
+          {c.track} R{c.race_number}
+        </Link>
+      </td>
+      <td className="sheet-horse">
+        {/* On a phone the race sits over the horse, the Race column gone. */}
+        <Link href={`/racing/${c.date}/${encodeURIComponent(c.meeting_id)}/${encodeURIComponent(c.race_id)}`} className="sm:hidden block text-[0.68rem] text-ink-soft hover:text-blue">
+          {c.track} R{c.race_number}
+        </Link>
+        <span className="text-ink-soft nums">{c.tab_number}.</span> {c.horse_name}
+      </td>
+      <td>
+        {prime ? <span className="call-prime">Prime{stake}</span> : <span className={lay ? "call-lay" : "call-bet"}>{lay ? "Lay" : "Bet"}{stake}</span>}
+      </td>
+      <td className="num sheet-wide">{price(c.market_price)}</td>
+      <td className="num sheet-wide">{c.finish_position === 0 ? "Unpl" : ordinal(c.finish_position)}</td>
+      <td className={u > 0 ? "win" : "loss"}>{u > 0 ? (lay ? "Held" : "Won") : lay ? "Lost" : "Lost"}</td>
+      <td className={`num ${u > 0 ? "pos" : u < 0 ? "neg" : ""}`}>{units(u)}</td>
+      <td className={`num sheet-wide ${running > 0 ? "pos" : running < 0 ? "neg" : ""}`}>{units(running)}</td>
+    </tr>
   );
 }
