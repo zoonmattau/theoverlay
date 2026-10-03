@@ -434,11 +434,16 @@ export async function postResults(date: string, card: StoredCard): Promise<void>
       const lays = rows.filter((r) => r.c.x.signal === "lay");
       const sum = (xs: typeof rows) => xs.reduce((a, r) => a + r.units, 0);
       const fmt = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
-      const finish = (c: Call) => (c.x.finishPosition === 1 ? "won" : c.x.finishPosition === 0 ? "did not finish" : ran(c));
-      const body = rows.map(({ c, units }) => `${units > 0 ? "✅" : "❌"} ${c.m.track} R${c.r.raceNumber} **${c.x.tabNumber}. ${c.x.horseName}** ${c.x.signal === "lay" ? "Lay" : isRoughie(c.x) ? "Way Overlay" : "Bet"} ${price(priceOf(c))}, ${finish(c)}, ${fmt(units)}`).join("\n");
+      // Short: the day, the split, the bets that won by price. Every call is on the results page (3 Oct 2026).
+      const winners = bets.filter((r) => r.units > 0).sort((a, b) => priceOf(b.c) - priceOf(a.c));
       return send(
         CHANNELS.results,
-        `**${longDate(date)}: ${fmt(total)}** level stakes, one unit a call and a tenth on a Way Overlay.\nBets ${bets.filter((r) => r.units > 0).length} of ${bets.length} won, ${fmt(sum(bets))}. Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length} landed, ${fmt(sum(lays))}.\n\n${body}\n\nThe record: ${SITE}/results`,
+        [
+          `**${longDate(date)}: ${fmt(total)}**`,
+          `Bets ${winners.length} of ${bets.length}, ${fmt(sum(bets))} · Lays ${lays.filter((r) => r.units > 0).length} of ${lays.length}, ${fmt(sum(lays))}`,
+          ...(winners.length ? [`🏆 ${winners.map((r) => `${r.c.x.horseName} ${price(priceOf(r.c))}`).join(" · ")}`] : []),
+          `${SITE}/results`,
+        ].join("\n"),
       );
     });
   } catch (err) {
