@@ -24,7 +24,7 @@ export default function Page({ searchParams }: PageProps<"/admin/activity">) {
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
 /** "caulfield-heath-20260916" and "CAUH_160926_6" read as "Caulfield Heath R6". */
 const raceName = (meetingId: string, raceId: string) => {
-  const track = meetingId.replace(/-\d{8}$/, "").split("-").map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
+  const track = meetingId.replace(/-\d{8}$/, "").replace(/-[a-z]{1,2}$/, "").split("-").map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
   const n = raceId.match(/_(\d+)$/)?.[1];
   return n ? `${track} R${n}` : `${track} ${raceId}`;
 };

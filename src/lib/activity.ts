@@ -255,7 +255,8 @@ function pageLabel(path: string): string {
   if (path === "/") return "Home";
   // Any race id ending in its number: Eagle Farm's is "E FM_031026_1", a space in it ("E%20FM" in the path).
   const race = path.match(/^\/racing\/\d{4}-\d{2}-\d{2}\/([a-z0-9-]+)-\d{8}\/[^/?]+_(\d+)(?:[/?]|$)/);
-  if (race) return `${race[1].split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")} R${race[2]}`;
+  // A meeting id can end in a short course code ("murray-bridge-gh", Gifford Hill): the name drops it.
+  if (race) return `${race[1].replace(/-[a-z]{1,2}$/, "").split("-").map((w) => w[0].toUpperCase() + w.slice(1)).join(" ")} R${race[2]}`;
   const tipster = path.match(/^\/t\/(.+)$/);
   if (tipster) return `Tipster ${tipster[1]}`;
   return AREA_LABEL[areaOf(path).area] === "Other" ? path : `${AREA_LABEL[areaOf(path).area]}${path.split("/").length > 2 ? ` · ${path.split("/").slice(2).join("/")}` : ""}`;

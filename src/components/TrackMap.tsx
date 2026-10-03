@@ -150,7 +150,8 @@ function homeStraightDown(t: Track): number {
   return (t.clockwise ? 180 : 0) - heading;
 }
 
-export function TrackMap({ track, distance, className = "" }: { track: Track; distance: number; className?: string }) {
+/** label: the course as people know it ("Wagga Riverside"), for screen readers; the map's own name is its file's key. */
+export function TrackMap({ track, distance, className = "", label }: { track: Track; distance: number; className?: string; label?: string }) {
   // Lines, dots and arrows sized to the map, so every track draws like Flemington's.
   const k = Math.max(track.width, track.height) / 1310;
   const pad = 60 * k;
@@ -166,7 +167,7 @@ export function TrackMap({ track, distance, className = "" }: { track: Track; di
   const minY = Math.min(...turned.map((p) => p[1])), maxY = Math.max(...turned.map((p) => p[1]));
   return (
     <figure className={`track-map ${className}`}>
-      <svg viewBox={`${(minX - pad).toFixed(0)} ${(minY - pad).toFixed(0)} ${(maxX - minX + pad * 2).toFixed(0)} ${(maxY - minY + pad * 2).toFixed(0)}`} role="img" aria-label={`${track.name} ${distance}m: the run from the start to the post`}>
+      <svg viewBox={`${(minX - pad).toFixed(0)} ${(minY - pad).toFixed(0)} ${(maxX - minX + pad * 2).toFixed(0)} ${(maxY - minY + pad * 2).toFixed(0)}`} role="img" aria-label={`${label ?? track.name} ${distance}m: the run from the start to the post`}>
         <g transform={`rotate(${turn.toFixed(2)})`}>
         {(track.outerParts ?? [track.outer]).map((p, i) => <path key={`o${i}`} d={line(p)} className="track-rail" style={rail} />)}
         {track.inner.length > 0 && <path d={line(track.inner)} className="track-rail" style={rail} />}
