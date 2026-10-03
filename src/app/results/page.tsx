@@ -121,7 +121,7 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
                   <th className="text-right">Running</th>
                 </tr>
               </thead>
-              <tbody>
+                <tbody>
                 {days.map((d) => {
                   const cs = byDay.get(d)!;
                   const u = cs.reduce((a, c) => a + Number(c.units), 0);
@@ -146,18 +146,6 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
       <Section id="calls" letter="C" title="Every call" aside={older ? `${days.length} days` : `Last ${Math.min(DAYS_SHOWN, days.length)} days`}>
         <div className="p-3 sm:p-4">
           <table className="sheet">
-            <thead>
-              <tr>
-                <th className="sheet-wide">Race</th>
-                <th>Horse</th>
-                <th>Call</th>
-                <th className="num sheet-wide">Price</th>
-                <th className="num sheet-wide">Finish</th>
-                <th>Result</th>
-                <th className="num">Units</th>
-                <th className="num sheet-wide">Running</th>
-              </tr>
-            </thead>
             {listed.map((d) => {
               const cs = byDay.get(d)!;
               const u = cs.reduce((a, c) => a + Number(c.units), 0);
@@ -168,6 +156,18 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
                 <SheetDay
                   key={d}
                   id={`day-${d}`}
+                  head={
+                    <>
+                      <th className="sheet-wide">Race</th>
+                      <th>Horse</th>
+                      <th>Call</th>
+                      <th className="num sheet-wide">Price</th>
+                      <th className="num sheet-wide">Finish</th>
+                      <th>Result</th>
+                      <th className="num">Units</th>
+                      <th className="num sheet-wide">Running</th>
+                    </>
+                  }
                   cells={
                     <>
                       <td className="sheet-wide">

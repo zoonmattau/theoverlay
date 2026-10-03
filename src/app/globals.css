@@ -4771,7 +4771,8 @@ td[data-col="phone"],
   padding: 6px 10px;
   white-space: nowrap;
 }
-.sheet thead th {
+.sheet thead th,
+.sheet tr.sheet-head th {
   background: var(--color-surface);
   color: var(--color-ink-secondary);
   font-size: 0.68rem;
@@ -4818,3 +4819,4 @@ td[data-col="phone"],
 .sheet tr.sheet-day:focus-visible { outline: 2px solid var(--color-lime); outline-offset: -2px; }
 .sheet .caret::before { content: "▾"; display: inline-block; width: 0.9em; color: var(--color-lime); }
 .sheet tr.sheet-day.is-shut .caret::before { content: "▸"; }
+.sheet th.num { text-align: right; }
