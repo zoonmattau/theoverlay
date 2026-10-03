@@ -4691,7 +4691,8 @@ td[data-col="phone"],
   tr.tip-row:has(> td[data-col="phone"]) > td {
     display: none !important;
   }
-  tr.tip-row > td[data-col="phone"],
+  /* As specific as the hiding rule above, so the phone cell and the block show. */
+  tr.tip-row:has(> td[data-col="phone"]) > td[data-col="phone"],
   tr.tip-row > td[data-col="block"] {
     display: block !important;
   }
