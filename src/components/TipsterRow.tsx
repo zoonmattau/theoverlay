@@ -39,7 +39,7 @@ export function TipsterRow({ p, rank, following, you, today, live, period }: { p
   const tone = (n: number, has: boolean) => (!has ? "text-ink-soft" : n > 0 ? "text-accent" : n < 0 ? "text-red" : "");
   return (
     <ClickRow href={`/t/${t.code}`} className={`tipster-row ${following ? "is-followed" : ""}`}>
-      <td data-col="rank" className="text-right nums text-ink-soft">{rank}</td>
+      <td data-col="rank" className="text-right nums text-ink-soft"><span className="rank-disc">{rank}</span></td>
       <td data-col="name">
         <Link href={`/t/${t.code}`} className="font-display font-extrabold hover:underline">{t.name}</Link>
         {you && <span className="badge badge-prime ml-2">You</span>}

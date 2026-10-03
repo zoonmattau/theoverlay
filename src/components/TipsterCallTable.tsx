@@ -32,12 +32,11 @@ export function TipsterCallTable({ tips, jumps, showWho }: {
             <th data-col="jump">Jump</th>
             {many && <th data-col="who">Tipster</th>}
             <th data-col="runner">Runner</th>
-            <th data-col="live" className="text-right">Price</th>
-            <th data-col="rated" className="text-right">Rated</th>
             <th data-col="edge" className="text-right">Call</th>
             <th data-col="result">Result</th>
             <th data-col="pl" className="text-right">P/L</th>
             <th data-col="sum" className="text-right">Sum</th>
+            <th data-col="live" className="text-right">Price</th>
           </tr>
         </thead>
         <tbody>
@@ -48,6 +47,8 @@ export function TipsterCallTable({ tips, jumps, showWho }: {
             const u = t.settled_at ? Number(t.units) : undefined;
             const jump = jumps.get(t.race_id);
             const href = `/racing/${t.date}/${encodeURIComponent(t.meeting_id)}/${encodeURIComponent(t.race_id)}`;
+            // The tipster's own rated price goes in the why, with their reason.
+            const why = [t.comment?.trim(), `Rated ${price(Number(t.price))}.`].filter(Boolean).join(" ");
             return (
               <tr key={t.id} className="tip-row">
                 <td data-col="race" className="whitespace-nowrap">
@@ -63,16 +64,11 @@ export function TipsterCallTable({ tips, jumps, showWho }: {
                   {/* On a phone the Tipster column is hidden, so the name sits over the runner. */}
                   {many && t.tipster && <span className="block sm:hidden text-[11px] text-ink-soft">{t.tipster.name}</span>}
                   <span className="flex items-center gap-2">
-                    <span className="font-semibold" data-tip={t.comment ?? undefined}>{t.tab_number}. {t.horse_name}</span>
-                    {t.comment && <span className="call-why sm:hidden" data-tip={t.comment}>why</span>}
+                    <span className="font-semibold" data-tip={why}>{t.tab_number}. {t.horse_name}</span>
+                    <span className="call-why sm:hidden" data-tip={why}>why</span>
                     {priceFlagged(t) && <span className="badge badge-warn" data-tip={`Best price we saw when posted was ${price(Number(t.market_at_post))}`}>over market</span>}
                   </span>
                 </td>
-                <td data-col="live" className="text-right">
-                  <span className={`price-chip ${t.side === "lay" ? "is-lay" : "is-back"}`}>{price(struckAt(t))}</span>
-                  {t.bookie && <span className="block text-[10px] mt-0.5 text-ink-soft">{t.bookie}</span>}
-                </td>
-                <td data-col="rated" className="text-right nums font-semibold whitespace-nowrap">{price(Number(t.price))}</td>
                 <td data-col="edge" className="text-right whitespace-nowrap">
                   <span className={`badge ${t.side === "lay" ? "badge-lay" : "badge-back"}`}>{t.side === "lay" ? "Lay" : "Bet"}{stakeLabel(t) ? ` ${stakeLabel(t)}` : ""}</span>
                 </td>
@@ -92,14 +88,19 @@ export function TipsterCallTable({ tips, jumps, showWho }: {
                   {u === undefined ? "—" : units(u)}
                 </td>
                 <td data-col="sum" className={`text-right nums ${running > 0 ? "text-accent" : running < 0 ? "text-red" : "text-ink-soft"}`}>{anySettled ? units(running) : "—"}</td>
+                <td data-col="live" className="text-right">
+                  <span className={`price-chip ${t.side === "lay" ? "is-lay" : "is-back"}`}>{price(struckAt(t))}</span>
+                  {t.bookie && <span className="block text-[10px] mt-0.5 text-ink-soft">{t.bookie}</span>}
+                </td>
               </tr>
             );
           })}
         </tbody>
         <tfoot>
           <tr className="tip-total">
-            <td colSpan={many ? 8 : 7} className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Total, {staked % 1 ? staked.toFixed(2) : staked} {staked === 1 ? "unit" : "units"} staked</td>
+            <td colSpan={many ? 6 : 5} className="text-right text-xs uppercase tracking-[0.06em] font-bold text-ink-soft">Total, {staked % 1 ? staked.toFixed(2) : staked} {staked === 1 ? "unit" : "units"} staked</td>
             <td className={`text-right nums font-extrabold ${total > 0 ? "text-accent" : total < 0 ? "text-red" : ""}`}>{units(total)}</td>
+            <td />
             <td />
           </tr>
         </tfoot>
