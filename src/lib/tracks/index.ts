@@ -6,6 +6,7 @@ import balaklava from "./balaklava.json";
 import ballarat from "./ballarat.json";
 import bathurst from "./bathurst.json";
 import beaudesert from "./beaudesert.json";
+import canterbury from "./canterbury.json";
 import caulfield from "./caulfield.json";
 import coleraine from "./coleraine.json";
 import corowa from "./corowa.json";
@@ -23,6 +24,7 @@ import grafton from "./grafton.json";
 import gunbower from "./gunbower.json";
 import hamilton from "./hamilton.json";
 import kalgoorlie from "./kalgoorlie.json";
+import kemblagrange from "./kemblagrange.json";
 import kilmore from "./kilmore.json";
 import launceston from "./launceston.json";
 import mackay from "./mackay.json";
@@ -35,6 +37,7 @@ import newcastle from "./newcastle.json";
 import northam from "./northam.json";
 import randwick from "./randwick.json";
 import rosehill from "./rosehill.json";
+import scone from "./scone.json";
 import sunshinecoast from "./sunshinecoast.json";
 import tatura from "./tatura.json";
 import toowoomba from "./toowoomba.json";
@@ -48,6 +51,7 @@ export const TRACKS: Record<string, Track> = {
   ballarat: ballarat as Track,
   bathurst: bathurst as Track,
   beaudesert: beaudesert as Track,
+  canterbury: canterbury as Track,
   caulfield: caulfield as Track,
   coleraine: coleraine as Track,
   corowa: corowa as Track,
@@ -65,6 +69,7 @@ export const TRACKS: Record<string, Track> = {
   gunbower: gunbower as Track,
   hamilton: hamilton as Track,
   kalgoorlie: kalgoorlie as Track,
+  kemblagrange: kemblagrange as Track,
   kilmore: kilmore as Track,
   launceston: launceston as Track,
   mackay: mackay as Track,
@@ -77,6 +82,7 @@ export const TRACKS: Record<string, Track> = {
   northam: northam as Track,
   randwick: randwick as Track,
   rosehill: rosehill as Track,
+  scone: scone as Track,
   sunshinecoast: sunshinecoast as Track,
   tatura: tatura as Track,
   toowoomba: toowoomba as Track,
