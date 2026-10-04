@@ -156,7 +156,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
         </p>
         <p className="mt-1 text-xs text-ink-soft">Tips are released at {RELEASE_HOUR}:00am Sydney time each race day, and prices refresh through the day.</p>
         <div className="tips-stats mt-5 grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
-          <StatCard n={primes.length} label={primes.length === 1 ? "prime" : "primes"} tone="prime" />
+          <StatCard n={primes.length} label={primes.length === 1 ? "prime overlay" : "prime overlays"} tone="prime" />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />
           <StatCard n={lays.length} label={lays.length === 1 ? "lay" : "lays"} tone="lay" />
           {open && (
@@ -216,7 +216,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
       ) : (
         <div className="space-y-4">
           <Locked id="tips-bets" title={`Bets (${bets.length})`} letter="B" lines={Math.max(4, bets.length)} heading="Unlock today's tips" />
-          <Locked id="tips-lays" title={`Lays (${lays.length})`} letter="L" lines={Math.max(4, lays.length)} heading="Unlock today's tips" />
+          <Locked id="tips-lays" title={`Lays (${lays.length})`} letter="L" lines={Math.max(4, lays.length)} heading="Unlock today's tips" brief />
         </div>
       )}
     </>

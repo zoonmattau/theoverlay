@@ -34,13 +34,13 @@ export async function NavUser({ links }: { links: { href: string; label: string 
     ));
 
   const passButton = open ? null : viewer.passCredits > 0 ? (
-    <Link href="/tips" className="btn btn-primary btn-sm ml-1 relative" aria-label={`Use a day pass, ${viewer.passCredits} left`}>
+    <Link href="/tips" className="btn btn-primary btn-sm ml-1 relative topbar-cta" aria-label={`Use a day pass, ${viewer.passCredits} left`}>
       Use a day pass
       {/* How many are left, on the corner of the button. */}
       <span className="pass-count" aria-hidden>{viewer.passCredits}</span>
     </Link>
   ) : (
-    <Link href="/pricing#passes" className={`btn btn-sm ml-1 ${signedOut ? "btn-secondary btn-onbar" : "btn-primary"}`}>
+    <Link href="/pricing#passes" className={`btn btn-sm ml-1 topbar-cta ${signedOut ? "btn-secondary btn-onbar" : "btn-primary"}`}>
       <span className="sm:hidden">Today ${PASS_PRICE}</span>
       <span className="hidden sm:inline">Today for ${PASS_PRICE}</span>
     </Link>
@@ -57,7 +57,7 @@ export async function NavUser({ links }: { links: { href: string; label: string 
           Log in
         </Link>
         {passButton}
-        <Link href="/pricing" className="btn btn-primary btn-sm ml-1">
+        <Link href="/pricing" className="btn btn-primary btn-sm ml-1 topbar-cta topbar-cta-first">
           <span className="sm:hidden">Try free</span>
           <span className="hidden sm:inline">Start free trial</span>
         </Link>

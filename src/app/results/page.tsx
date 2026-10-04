@@ -146,7 +146,7 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
       <Section id="calls" letter="C" title="Every call" aside={older ? `${days.length} days` : `Last ${Math.min(DAYS_SHOWN, days.length)} days`}>
         <div className="p-3 sm:p-4">
           <table className="sheet">
-            {listed.map((d) => {
+            {listed.map((d, i) => {
               const cs = byDay.get(d)!;
               const u = cs.reduce((a, c) => a + Number(c.units), 0);
               // Running totals inside the day, counting up to each call from the day before's close.
@@ -156,6 +156,7 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
                 <SheetDay
                   key={d}
                   id={`day-${d}`}
+                  foldOnPhone={i >= 2}
                   head={
                     <>
                       <th className="sheet-wide">Race</th>

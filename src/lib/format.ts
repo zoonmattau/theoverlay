@@ -26,7 +26,7 @@ export function decodeEntities(text: string | undefined): string | undefined {
 export function price(n: number | undefined): string {
   if (n === undefined || !Number.isFinite(n) || n <= 0) return "—";
   if (n >= 100) return `$${Math.round(n)}`;
-  if (n >= 10) return `$${n.toFixed(1)}`;
+  // Two decimals to $100, as the bookies show them: one decimal from $10 read "$18.0" beside "$5.00".
   return `$${n.toFixed(2)}`;
 }
 

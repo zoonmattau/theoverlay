@@ -301,13 +301,13 @@ async function Race({ params }: { params: Props["params"] }) {
         </Section>
       ) : null}
 
-      {open ? <Rankings race={race} /> : <Locked id="rankings" title="Rankings" letter="R" lines={10} raceId={raceId} />}
+      {open ? <Rankings race={race} /> : <Locked id="rankings" title="Rankings" letter="R" lines={10} raceId={raceId} brief />}
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
       <RunnerTable race={race} locked={!open} people={people} tipping={tipping} calls={calls} />
 
-      {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} />}
+      {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} brief />}
     </div>
   );
 }

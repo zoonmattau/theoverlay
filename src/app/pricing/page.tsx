@@ -117,7 +117,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
                   <span className="font-display text-4xl font-extrabold tracking-tight nums">${p.price}</span>
                   <span className="text-sm text-ink-soft">a month</span>
                 </div>
-                <div className="text-sm text-ink-secondary nums">About {weeklyLabel(p.price)} a week, cancel any time.</div>
+                <div className="text-sm text-ink-secondary tabular-nums">About {weeklyLabel(p.price)} a week, cancel any time.</div>
               </div>
               <ul className="space-y-1.5 text-sm text-ink-secondary flex-1">
                 {p.features.map((f) => (
@@ -138,7 +138,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
                     label={viewer.pro ? "Switch to this plan" : `Try free for ${TRIAL_DAYS} days`}
                     className={`btn w-full ${p.highlight ? "btn-primary" : "btn-secondary"}`}
                   />
-                  {!viewer.pro && <p className="-mt-1 text-xs text-ink-soft text-center nums">Then ${p.price} a month. Cancel before and pay nothing.</p>}
+                  {!viewer.pro && <p className="-mt-1 text-xs text-ink-soft text-center tabular-nums">Then ${p.price} a month. Cancel before and pay nothing.</p>}
                   {/* The longer terms, on the card and plainly priced: the bill, then the saving. */}
                   {!viewer.pro && termPriceId(p, year) && (
                     <div className="rounded-md border border-line px-3 py-2 text-sm">
@@ -146,10 +146,10 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
                         <span className="font-semibold">Or pay yearly</span>
                         <span className="badge badge-prime">Save ${p.price * 12 - yearly}</span>
                       </div>
-                      <div className="text-ink-secondary nums">${yearly} once a year, {weeklyLabel(termMonthly(p, year))} a week.</div>
+                      <div className="text-ink-secondary tabular-nums">${yearly} once a year, {weeklyLabel(termMonthly(p, year))} a week.</div>
                       <CheckoutButton plan={p.id} term="year" signedIn={signedIn} label={`Try free, then $${yearly} a year`} className="btn btn-secondary btn-sm w-full mt-2" />
                       {termPriceId(p, quarter) && (
-                        <div className="mt-1.5 text-xs text-ink-soft text-center nums">
+                        <div className="mt-1.5 text-xs text-ink-soft text-center tabular-nums">
                           Or <CheckoutButton plan={p.id} term="quarter" signedIn={signedIn} label={`$${quarterly} every 3 months`} className="underline" />
                         </div>
                       )}
@@ -177,7 +177,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
                   <h3 className="font-display text-xl font-extrabold">
                     {b.qty} {b.qty === 1 ? "pass" : "passes"}
                   </h3>
-                  <p className="text-sm text-ink-soft nums">${each.toFixed(2)} a day</p>
+                  <p className="text-sm text-ink-soft tabular-nums">${each.toFixed(2)} a day</p>
                 </div>
                 {saving > 0 && <span className="badge badge-back">Save {saving}%</span>}
               </div>

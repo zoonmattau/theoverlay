@@ -78,11 +78,15 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
         </p>
       )}
 
+      {/* Most people have no code, and a full field read like a step they were missing: tucked behind a link unless one came with the visit. */}
       {mode === "signup" && !refCode && (
-        <label className="field">
-          <span>Affiliate link</span>
-          <input name="aff" type="text" autoComplete="off" defaultValue={affCode ?? ""} placeholder="The link or code someone sent you, if any" />
-        </label>
+        <details className="text-sm" open={Boolean(affCode)}>
+          <summary className="cursor-pointer select-none text-ink-soft hover:text-ink">Have a code?</summary>
+          <label className="field mt-2">
+            <span>Code or link</span>
+            <input name="aff" type="text" autoComplete="off" defaultValue={affCode ?? ""} placeholder="The link or code someone sent you" />
+          </label>
+        </details>
       )}
 
       {mode === "signup" && (

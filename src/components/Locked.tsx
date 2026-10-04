@@ -4,7 +4,9 @@ import { Section } from "./Section";
 
 /**
  * A teaser in place of a paid section. Nothing real is rendered behind it,
- * so there is nothing to un-blur in the DOM.
+ * so there is nothing to un-blur in the DOM. The first locked section on a
+ * page carries the way in; the rest are `brief`, one line, so a page does not
+ * repeat the same box three times.
  */
 export function Locked({
   id,
@@ -13,6 +15,7 @@ export function Locked({
   lines = 8,
   raceId,
   heading = "Unlock this race",
+  brief = false,
 }: {
   id: string;
   title: string;
@@ -20,9 +23,22 @@ export function Locked({
   lines?: number;
   raceId?: string;
   heading?: string;
+  brief?: boolean;
 }) {
+  if (brief) {
+    return (
+      <Section id={id} letter={letter} title={title} aside="Members only">
+        <div className="section-body text-sm text-ink-secondary">
+          Opens with a plan or a day pass.{" "}
+          <Link href={`/pricing${raceId ? `?from=${encodeURIComponent(raceId)}` : ""}`} className="font-semibold text-blue">
+            Try free for 7 days
+          </Link>
+        </div>
+      </Section>
+    );
+  }
   return (
-    <Section id={id} letter={letter} title={title} aside="Pass holders only">
+    <Section id={id} letter={letter} title={title} aside="Members only">
       <div className="section-body relative min-h-[280px]">
         <div className="space-y-2.5" aria-hidden="true">
           {Array.from({ length: lines }, (_, i) => (

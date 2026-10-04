@@ -45,10 +45,11 @@ export const PLANS: Plan[] = [
     days: [3, 6],
     priceId: process.env.STRIPE_PRICE_MIDWEEK,
     termPriceIds: { quarter: process.env.STRIPE_PRICE_MIDWEEK_QUARTER, year: process.env.STRIPE_PRICE_MIDWEEK_YEAR },
-    highlight: true,
   },
   {
     id: "everyday",
+    // The plan most people take (33 of 37 plan checkouts by 4 Oct 2026); the badge has to be true.
+    highlight: true,
     name: "Every day",
     price: 49,
     blurb: "The full board, seven days a week.",

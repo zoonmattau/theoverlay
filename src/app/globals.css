@@ -258,6 +258,16 @@ h1, h2, h3 {
     font-size: 0.85rem;
     flex-shrink: 0;
   }
+  /* The trial and day pass buttons lead the strip: at its end they sat off the right edge of a phone. */
+  .topbar-cta {
+    order: -1;
+    flex-shrink: 0;
+    margin-left: 0;
+    margin-right: var(--sp-1);
+  }
+  .topbar-cta-first {
+    order: -2;
+  }
 }
 
 /* --- Next to go: one card per race, filled by what we have on --- */
