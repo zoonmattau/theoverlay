@@ -380,7 +380,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
         <Mini n={t.backPerDollar !== undefined ? `$${t.backPerDollar.toFixed(2)}` : "–"} label="back per $1" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
       </div>
       {r.byAd.length > 0 && (
-        <details className="mt-4 group" open>
+        <details className="mt-4 group">
           <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
             <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
             By ad
