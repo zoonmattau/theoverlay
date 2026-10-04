@@ -5,6 +5,12 @@ import { supabaseAdmin } from "@/lib/billing/access";
 
 /** The cookie that remembers which affiliate sent someone, 90 days. */
 export const AFF_COOKIE = "overlay_aff";
+/**
+ * A tipster a visitor followed before they had an account. A follow, not a
+ * referral: only a tipster's link (AFF_COOKIE) credits the sign-up to them
+ * (the user, 4 Oct 2026).
+ */
+export const FOLLOW_COOKIE = "overlay_follow";
 export const AFF_DAYS = 90;
 
 export interface Affiliate {
@@ -54,6 +60,14 @@ export async function attributeSignup(userId: string, code: string | undefined):
     .is("affiliate_id", null);
   // A tipster affiliate is followed from the start.
   if ((aff as { user_id?: string | null }).user_id) await supabaseAdmin().from("follows").upsert({ user_id: userId, tipster_id: aff.id }, { onConflict: "user_id,tipster_id" });
+}
+
+/** The tipster followed before sign-up, followed on the new account, with no credit for the sign-up. */
+export async function followFromCookie(userId: string, code: string | undefined): Promise<void> {
+  if (!code) return;
+  const aff = await affiliateByCode(code);
+  if (!aff || !(aff as { user_id?: string | null }).user_id) return;
+  await supabaseAdmin().from("follows").upsert({ user_id: userId, tipster_id: aff.id }, { onConflict: "user_id,tipster_id" });
 }
 
 export interface AffiliateClick {

@@ -2,7 +2,7 @@ import "server-only";
 
 import { after } from "next/server";
 
-import { attributeSignup } from "@/lib/affiliates";
+import { attributeSignup, followFromCookie } from "@/lib/affiliates";
 import type { Arrival } from "@/lib/arrival";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { sendTodaysTipsTo } from "@/lib/email/tips";
@@ -13,6 +13,8 @@ export interface ProviderStash {
   terms?: boolean;
   marketing?: boolean;
   aff?: string;
+  /** A tipster followed before sign-up: followed, not credited. */
+  follow?: string;
   ref?: string;
   provider?: string;
   arrival?: Arrival;
@@ -52,6 +54,7 @@ export async function finishProviderSignup(userId: string, meta: Record<string, 
     })
     .eq("id", userId);
   if (stash.aff) await attributeSignup(userId, stash.aff);
+  if (stash.follow) await followFromCookie(userId, stash.follow);
   if (stash.ref) await applyReferral(userId, stash.ref);
   if (email) after(() => sendTodaysTipsTo(userId, email, Boolean(stash.marketing)));
 }

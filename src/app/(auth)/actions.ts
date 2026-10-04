@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
-import { AFF_COOKIE, attributeSignup, codeFromInput } from "@/lib/affiliates";
+import { AFF_COOKIE, FOLLOW_COOKIE, attributeSignup, codeFromInput, followFromCookie } from "@/lib/affiliates";
 import { ARRIVAL_COOKIE, parseArrival } from "@/lib/arrival";
 import { OAUTH_COOKIE, PROVIDERS, type Provider } from "@/lib/social";
 
@@ -55,7 +55,7 @@ export async function signInWithProvider(provider: Provider, _prev: AuthState, f
   const wanted = safeNext(form.get("next"));
   const next = wanted === "/" && aff ? "/pricing" : wanted;
   if (signup) {
-    const stash = { terms: true, marketing: form.get("marketing") === "on", aff, ref, provider, arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) };
+    const stash = { terms: true, marketing: form.get("marketing") === "on", aff, follow: jar.get(FOLLOW_COOKIE)?.value, ref, provider, arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) };
     jar.set(OAUTH_COOKIE, JSON.stringify(stash), { maxAge: 600, path: "/", sameSite: "lax", httpOnly: true, secure: process.env.NODE_ENV === "production" });
   }
   const supabase = await supabaseServer();
@@ -101,7 +101,7 @@ export async function signInWithGoogleToken(input: {
     await finishProviderSignup(
       data.user.id,
       data.user.user_metadata ?? {},
-      { terms: true, marketing: input.marketing, aff, ref, provider: "google", arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) },
+      { terms: true, marketing: input.marketing, aff, follow: jar.get(FOLLOW_COOKIE)?.value, ref, provider: "google", arrival: parseArrival(jar.get(ARRIVAL_COOKIE)?.value) },
       data.user.email,
     );
   } else {
@@ -160,6 +160,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
       return { error: /already|exists|registered/i.test(error.message) ? "That email already has an account, log in instead." : error.message };
     }
     if (data.user) await attributeSignup(data.user.id, aff);
+    if (data.user) await followFromCookie(data.user.id, (await cookies()).get(FOLLOW_COOKIE)?.value);
     const ok = await sendEmail(email, EMAILS.confirmSignup(confirmLink(site, data.properties.hashed_token, "signup", next)));
     if (ok && data.user) after(() => sendTodaysTipsTo(data.user!.id, email, marketing));
     return ok ? { notice: "Check your email for a link to confirm your account." } : { error: "We could not send the confirmation email, try again in a minute." };
@@ -177,6 +178,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   });
   if (error) return { error: error.message };
   if (data.user) await attributeSignup(data.user.id, aff);
+  if (data.user) await followFromCookie(data.user.id, (await cookies()).get(FOLLOW_COOKIE)?.value);
   if (data.user) after(() => sendTodaysTipsTo(data.user!.id, email, marketing));
   // Email confirmation off: signed in already. On: they need the link.
   if (data.session) {

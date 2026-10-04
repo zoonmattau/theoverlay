@@ -1,7 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 
-import { AFF_COOKIE, affiliateByCode, type Affiliate } from "@/lib/affiliates";
+import { AFF_COOKIE, FOLLOW_COOKIE, affiliateByCode, type Affiliate } from "@/lib/affiliates";
 import type { Viewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
@@ -94,7 +94,9 @@ export async function followedTipsters(viewer: Viewer): Promise<Tipster[]> {
     const byId = new Map(((rows ?? []) as Tipster[]).map((t) => [t.id, t]));
     return ids.map((id) => byId.get(id)).filter((t): t is Tipster => Boolean(t));
   }
-  const code = (await cookies()).get(AFF_COOKIE)?.value;
+  // A visitor follows the tipster they chose, or the one whose link they came in on.
+  const jar = await cookies();
+  const code = jar.get(FOLLOW_COOKIE)?.value ?? jar.get(AFF_COOKIE)?.value;
   const t = code ? await tipsterByCode(code) : undefined;
   return t ? [t] : [];
 }
