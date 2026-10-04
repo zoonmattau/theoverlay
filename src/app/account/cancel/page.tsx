@@ -56,13 +56,13 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
   const plan = planById(viewer.plan ?? undefined) ?? planById("everyday")!;
   const chargeOn = half?.chargeOn ?? monthly?.chargeOn;
   const when = chargeOn ? shortDate(chargeOn) : undefined;
-  // A failed bill has nothing to switch: the open invoice is still the term's. One way to stay, then out.
-  const options = failed ? [] : (cheaper?.options ?? []);
+  // A yearly or 3-month plan gets one way to stay, the month at $49: the cheaper plans only split it (the user, 5 Oct 2026).
+  const options = monthly ? [] : (cheaper?.options ?? []);
   const cards = options.length + (half || monthly ? 1 : 0);
 
   // What it costs to stay, never when money comes out: the page sells the saving (the user, 5 Oct 2026).
-  const heading = failed ? `Keep the board for $${monthly!.monthly}.` : "Stay for less.";
-  const sub = failed ? `Pay monthly instead and the $${monthly!.termPrice} is gone.` : "Same board, smaller price. Pick what suits you.";
+  const heading = monthly ? `Keep the board for $${monthly.monthly}.` : "Stay for less.";
+  const sub = monthly ? `Pay monthly instead and the $${monthly.termPrice} is gone.` : "Same board, smaller price. Pick what suits you.";
 
   return (
     <div className="pb-10">
