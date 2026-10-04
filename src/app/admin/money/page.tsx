@@ -211,10 +211,11 @@ function Bars({ title, values, labels }: { title: string; values: number[]; labe
       <figcaption className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft mb-2">{title}</figcaption>
       <div className="flex items-end gap-1 h-28">
         {values.map((v, i) => (
-          <div key={i} className="flex-1 flex flex-col items-center justify-end h-full" title={`${labels[i] || i}: ${v}`}>
-            {v > 0 && <span className="nums text-[10px] text-ink-secondary">{v}</span>}
+          // min-w-0 and nowrap: a label ("12pm") wider than its column would otherwise widen that column and its bar.
+          <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full" title={`${labels[i] || i}: ${v}`}>
+            {v > 0 && <span className="nums text-[10px] text-ink-secondary whitespace-nowrap">{v}</span>}
             <div className="w-full rounded-sm bg-ink" style={{ height: `${Math.max(v ? 4 : 1, (v / max) * 80)}%`, opacity: v ? 1 : 0.15 }} />
-            <span className="mt-1 text-[10px] text-ink-soft nums h-3">{labels[i]}</span>
+            <span className="mt-1 text-[10px] text-ink-soft nums h-3 whitespace-nowrap">{labels[i]}</span>
           </div>
         ))}
       </div>
