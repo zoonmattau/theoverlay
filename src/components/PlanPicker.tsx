@@ -87,7 +87,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
           return (
             <article
               key={p.id}
-              className={`relative flex flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${p.highlight ? "border-ink border-2 order-first md:order-none mt-2 md:mt-0" : "border-line"}`}
+              className={`relative flex flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${p.highlight ? "border-ink border-2 mt-2 md:mt-0" : "border-line"}`}
             >
               {p.highlight && (
                 <span className="absolute -top-3 left-5 rounded-full bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Most popular</span>

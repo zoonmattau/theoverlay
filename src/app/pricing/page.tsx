@@ -81,7 +81,8 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
   // A choice made before signing up: passes_N, a plan id, or a plan id and term (everyday_year).
   const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year))?)$/.test(sp.buy) ? sp.buy : undefined;
   // The plans and the three ways to pay, on one switch that starts on Monthly (components/PlanPicker).
-  const plans: PickerPlan[] = PLANS.map((p) => ({
+  // Biggest first: Every day, then Saturday + Wednesday, then Saturday.
+  const plans: PickerPlan[] = [...PLANS].reverse().map((p) => ({
     id: p.id,
     name: p.name,
     blurb: p.blurb,
