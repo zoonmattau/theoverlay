@@ -412,8 +412,14 @@ export async function postWinnerLine(text: string): Promise<string | undefined> 
 
 export async function postResults(date: string, card: StoredCard): Promise<void> {
   if (!discordConfigured()) return;
-  const races = card.meetings.flatMap((m) => m.races);
-  if (races.length === 0 || !races.every((r) => r.result?.length)) return;
+  // Every race done: resulted, abandoned, or four hours past its jump with no result, as a meeting that moved
+  // venue or was called off leaves its races (Cranbourne 2 Oct, Murtoa and Gunbower 3 Oct held the post back for days).
+  const done = (m: StoredCard["meetings"][number], r: StoredCard["meetings"][number]["races"][number]) =>
+    Boolean(r.result?.length) ||
+    /abandon/i.test(`${r.feedStatus ?? ""} ${(m as { abandoned?: boolean }).abandoned ? "abandoned" : ""}`) ||
+    Boolean(r.jumpTime && Date.now() - new Date(r.jumpTime).getTime() > 4 * 3600_000);
+  const races = card.meetings.flatMap((m) => m.races.map((r) => ({ m, r })));
+  if (races.length === 0 || !races.every(({ m, r }) => done(m, r))) return;
   const calls = callsOn(card);
   if (calls.length === 0) return;
   try {
