@@ -387,7 +387,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
           </summary>
           <p className="mt-1 text-xs text-ink-soft">Visitors who landed from each ad&apos;s link in the window, the accounts they made, how many started a plan and paid since, and the cost of each. Matched on the ad&apos;s own link tags.</p>
           <table className="data-table stack-sm text-xs mt-2">
-            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per trial</th><th className="text-right">Per paid</th></tr></thead>
+            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Per visit</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per trial</th><th className="text-right">Per paid</th></tr></thead>
             <tbody>
               {r.byAd.map((a) => {
                 const off = a.status && a.status !== "ACTIVE";
@@ -401,6 +401,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
                     </td>
                     <td data-label="Spend" className="text-right nums">{a.spend ? `$${a.spend.toFixed(2)}` : "–"}</td>
                     <td data-label="Visits" className="text-right nums">{a.visits || ""}</td>
+                    <td data-label="Per visit" className="text-right nums">{a.visits && a.spend ? `$${(a.spend / a.visits).toFixed(2)}` : ""}</td>
                     <td data-label="Accounts" className="text-right nums">{a.accounts || ""}</td>
                     <td data-label="Trials" className="text-right nums">{a.trials || ""}</td>
                     <td data-label="Paid" className="text-right nums font-semibold">{a.paid || ""}</td>
