@@ -47,10 +47,6 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">
           Know the price <span className="bg-lime px-2 box-decoration-clone">before you bet.</span>
         </h1>
-        <p className="mt-3 text-ink-secondary">
-          Every runner rated, every horse priced, and the bets and lays called before the jump. Pick the
-          days you bet and try it free for seven days, or buy passes and use them when you like.
-        </p>
       </section>
 
       <Suspense fallback={<div className="skeleton h-96" />}>
