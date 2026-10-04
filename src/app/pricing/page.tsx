@@ -8,7 +8,7 @@ import { FaqList, JsonLd, SITE_URL, faqSchema } from "@/components/JsonLd";
 import { PLANS_FAQ } from "@/lib/faq";
 import { getViewer } from "@/lib/auth";
 import { firstMonthOfferUntil } from "@/lib/billing/first-month";
-import { PASS_BUNDLES, PASS_PRICE, PLANS, TERMS, TRIAL_DAYS, termById, termMonthly, termPrice, weeklyLabel } from "@/lib/billing/plans";
+import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS, termById, termMonthly, termPrice, termPriceId, weeklyLabel } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -83,8 +83,10 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
   const offerUntil = viewer.id ? await firstMonthOfferUntil(viewer.id) : undefined;
   // A choice made before signing up: passes_N, a plan id, or a plan id and term (everyday_year).
   const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year))?)$/.test(sp.buy) ? sp.buy : undefined;
-  // Yearly shows first: the lowest weekly figure is the one to lead with.
-  const term = termById(typeof sp.term === "string" ? sp.term : "year");
+  // Monthly leads on every card, with yearly and 3 months beside it on the same card. Behind a
+  // Yearly tab that opened first, most sign-ups took yearly without seeing monthly was there (4 Oct 2026).
+  const year = termById("year");
+  const quarter = termById("quarter");
 
   return (
     <>
@@ -98,53 +100,66 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
         <h2 className="font-display text-lg font-extrabold">Subscriptions</h2>
         <span className="badge badge-prime">{TRIAL_DAYS}-day free trial</span>
       </div>
-      <div className="tabs tabs-fit mb-4" role="tablist">
-        {TERMS.map((t) => (
-          <Link key={t.id} href={t.id === "year" ? "/pricing" : `/pricing?term=${t.id}`} scroll={false} replace role="tab" aria-selected={t.id === term.id} className="tab">
-            {t.name}
-            {t.off > 0 && <span className="badge badge-prime">{Math.round(t.off * 100)}% off</span>}
-          </Link>
-        ))}
-      </div>
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 items-stretch">
-        {PLANS.map((p) => (
-          <article key={p.id} className={`pick-card ${p.highlight ? "is-top" : ""}`}>
-            {p.highlight && <span className="badge badge-prime self-start">Most popular</span>}
-            <div>
-              <h3 className="font-display text-xl font-extrabold">{p.name}</h3>
-              <p className="text-sm text-ink-soft">{p.blurb}</p>
-            </div>
-            <div>
-              <div className="flex items-baseline gap-1">
-                <span className="font-display text-4xl font-extrabold tracking-tight nums">{weeklyLabel(termMonthly(p, term))}</span>
-                <span className="text-sm text-ink-soft">a week</span>
+        {PLANS.map((p) => {
+          const yearly = termPrice(p, year);
+          const quarterly = termPrice(p, quarter);
+          const yours = viewer.pro && viewer.plan === p.id;
+          return (
+            <article key={p.id} className={`pick-card ${p.highlight ? "is-top" : ""}`}>
+              {p.highlight && <span className="badge badge-prime self-start">Most popular</span>}
+              <div>
+                <h3 className="font-display text-xl font-extrabold">{p.name}</h3>
+                <p className="text-sm text-ink-soft">{p.blurb}</p>
               </div>
-              <div className="text-sm text-ink-secondary nums">
-                Billed ${termPrice(p, term)} {term.every}
-                {term.off > 0 ? `, save $${p.price * term.months - termPrice(p, term)}.` : ", cancel any time."}
+              <div>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-display text-4xl font-extrabold tracking-tight nums">${p.price}</span>
+                  <span className="text-sm text-ink-soft">a month</span>
+                </div>
+                <div className="text-sm text-ink-secondary nums">About {weeklyLabel(p.price)} a week, cancel any time.</div>
               </div>
-            </div>
-            <ul className="space-y-1.5 text-sm text-ink-secondary flex-1">
-              {p.features.map((f) => (
-                <li key={f} className="flex gap-2">
-                  <span className="text-accent font-bold">✓</span>
-                  {f}
-                </li>
-              ))}
-            </ul>
-            {viewer.pro && viewer.plan === p.id ? (
-              <Link href="/account" className="btn btn-secondary w-full">Your plan</Link>
-            ) : (
-              <CheckoutButton
-                plan={p.id}
-                term={term.id}
-                signedIn={signedIn}
-                label={viewer.pro ? "Switch to this plan" : `Try free for ${TRIAL_DAYS} days`}
-                className={`btn w-full ${p.highlight ? "btn-primary" : "btn-secondary"}`}
-              />
-            )}
-          </article>
-        ))}
+              <ul className="space-y-1.5 text-sm text-ink-secondary flex-1">
+                {p.features.map((f) => (
+                  <li key={f} className="flex gap-2">
+                    <span className="text-accent font-bold">✓</span>
+                    {f}
+                  </li>
+                ))}
+              </ul>
+              {yours ? (
+                <Link href="/account" className="btn btn-secondary w-full">Your plan</Link>
+              ) : (
+                <>
+                  <CheckoutButton
+                    plan={p.id}
+                    term="month"
+                    signedIn={signedIn}
+                    label={viewer.pro ? "Switch to this plan" : `Try free for ${TRIAL_DAYS} days`}
+                    className={`btn w-full ${p.highlight ? "btn-primary" : "btn-secondary"}`}
+                  />
+                  {!viewer.pro && <p className="-mt-1 text-xs text-ink-soft text-center nums">Then ${p.price} a month. Cancel before and pay nothing.</p>}
+                  {/* The longer terms, on the card and plainly priced: the bill, then the saving. */}
+                  {!viewer.pro && termPriceId(p, year) && (
+                    <div className="rounded-md border border-line px-3 py-2 text-sm">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="font-semibold">Or pay yearly</span>
+                        <span className="badge badge-prime">Save ${p.price * 12 - yearly}</span>
+                      </div>
+                      <div className="text-ink-secondary nums">${yearly} once a year, {weeklyLabel(termMonthly(p, year))} a week.</div>
+                      <CheckoutButton plan={p.id} term="year" signedIn={signedIn} label={`Try free, then $${yearly} a year`} className="btn btn-secondary btn-sm w-full mt-2" />
+                      {termPriceId(p, quarter) && (
+                        <div className="mt-1.5 text-xs text-ink-soft text-center nums">
+                          Or <CheckoutButton plan={p.id} term="quarter" signedIn={signedIn} label={`$${quarterly} every 3 months`} className="underline" />
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </article>
+          );
+        })}
       </div>
 
       <div id="passes" className="mt-10 flex items-center gap-3 mb-3 scroll-mt-24">
