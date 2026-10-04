@@ -195,7 +195,8 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
         </div>
       ) : (
       <div className="overflow-x-auto">
-        <table className="data-table stack-sm text-sm min-w-[1180px]">
+        {/* One line a member: second details sit beside the first, small, and rows are tight. */}
+        <table className="data-table stack-sm text-xs min-w-[1180px] [&_td]:py-1 [&_th]:py-1.5">
           <thead>
             <tr>
               {COLS.map((c) => (
@@ -214,19 +215,19 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
             )}
             {shown.map((m) => (
               <tr key={m.id}>
-                <td>
+                <td className="max-w-[18rem] truncate" title={m.email}>
                   <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.name}</Link>
-                  {m.name !== m.email && <span className="block text-xs text-ink-soft">{m.email}</span>}
+                  {m.name !== m.email && <span className="text-ink-soft"> · {m.email}</span>}
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
                 </td>
                 <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="text-xs font-semibold text-amber" title="Booked to cancel; access runs to the end of what they paid for">Cancelling</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
                 <td data-label="Plan">
                   {m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}
-                  {m.term && <span className="block text-xs text-ink-soft">{m.term}</span>}
+                  {m.term && <span className="text-ink-soft"> · {m.term}</span>}
                 </td>
-                <td data-label="Found us">
-                  <span className="text-sm">{m.found}</span>
-                  {m.foundDetail && <span className="block text-xs text-ink-soft">{m.foundDetail}</span>}
+                <td data-label="Found us" className="max-w-[14rem] truncate" title={m.foundDetail ? `${m.found}: ${m.foundDetail}` : m.found}>
+                  {m.found}
+                  {m.foundDetail && <span className="text-ink-soft"> · {m.foundDetail}</span>}
                 </td>
                 <td data-label="Status">{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? <span className="badge badge-prime">{m.statusLabel}</span> : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
                 <td data-label="Access until" className="nums">{day(m.accessUntil)}</td>

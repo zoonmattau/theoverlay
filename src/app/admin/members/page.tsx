@@ -125,7 +125,9 @@ async function Members() {
         <div className="mt-3"><AccessChart days={access.map(({ date, counts, total }) => ({ date, counts, total }))} /></div>
       </details>
 
-      <div className="card mb-6">
+      <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} found={FOUND_US.filter((g) => rows.some((r) => r.found === g))} remove={removeFromList} self={viewer.id} />
+
+      <div className="card mt-6 mb-6">
         <h2 className="font-display font-extrabold">Invite someone</h2>
         <p className="mt-1 text-sm text-ink-secondary">Creates the account and emails them a one-time link to set a password.</p>
         <form action={inviteMember} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
@@ -135,8 +137,6 @@ async function Members() {
           <button className="btn btn-primary btn-sm" type="submit">Send invite</button>
         </form>
       </div>
-
-      <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} found={FOUND_US.filter((g) => rows.some((r) => r.found === g))} remove={removeFromList} self={viewer.id} />
     </>
   );
 }
