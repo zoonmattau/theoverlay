@@ -65,39 +65,44 @@ export async function PlanTab({ viewer, plan, preview }: { viewer: Viewer; plan:
         </PlanCard>
       </div>
 
-      {settled && options.length > 0 && (
-        <details className="group mt-6">
-          <summary className="flex cursor-pointer list-none items-center gap-2 font-display text-lg font-extrabold tracking-tight [&::-webkit-details-marker]:hidden">
-            <span className="inline-block text-sm transition-transform group-open:rotate-90" aria-hidden>▸</span>
-            Change plan
-          </summary>
-          <p className="mt-1 text-sm text-ink-soft">More days or fewer, switched straight away.{status === "trialing" ? " Your trial carries on." : ""}</p>
-          <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-            {options.map(({ plan: p, price }) => {
-              const diff = price - mine;
-              return (
-                <PlanCard strip={false} key={p.id} plan={p}>
-                  <PlanPrice n={`$${price}`} per={per} />
-                  <PlanLine>
-                    {diff < 0 ? <span className="font-semibold text-accent">Save ${-diff} {every}.</span> : <>{p.days.length ? "More days." : "Every day, the full board."}</>}
-                  </PlanLine>
-                  <form action={moveToPlan} className="mt-auto">
-                    <input type="hidden" name="plan" value={p.id} />
-                    <input type="hidden" name="from" value="change" />
-                    <button type="submit" className="btn btn-secondary w-full">Switch to {p.name}</button>
-                  </form>
-                </PlanCard>
-              );
-            })}
-          </div>
-        </details>
-      )}
-
-      {viewer.stripeCustomerId && status !== "cancelling" && (
-        <div className="mt-8 border-t border-line-soft pt-4">
-          <Link href="/account/cancel" className="text-sm font-semibold text-ink-soft underline underline-offset-2 hover:text-ink">Cancel plan</Link>
-        </div>
-      )}
+      {/* Change and cancel as one list of rows, the same weight: one opens in place, one goes to the cancel page. */}
+      <div className="mt-6 max-w-md divide-y divide-line-soft border-y border-line-soft">
+        {settled && options.length > 0 && (
+          <details className="group">
+            <summary className="flex w-full cursor-pointer list-none items-center justify-between gap-3 py-3.5 text-sm font-semibold hover:text-blue [&::-webkit-details-marker]:hidden">
+              Change plan
+              <span className="inline-block text-ink-soft transition-transform group-open:rotate-90" aria-hidden>›</span>
+            </summary>
+            <div className="pb-4">
+              <p className="mt-1 text-sm text-ink-soft">More days or fewer, switched straight away.{status === "trialing" ? " Your trial carries on." : ""}</p>
+              <ul className="mt-3 space-y-2">
+                {options.map(({ plan: p, price }) => {
+                  const diff = price - mine;
+                  return (
+                    <li key={p.id} className="flex items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-line bg-panel p-3">
+                      <div className="min-w-0">
+                        <div className="font-semibold">{p.name} <span className="font-normal text-ink-soft tabular-nums">${price}{per}</span></div>
+                        <div className="text-xs">{diff < 0 ? <span className="font-semibold text-accent">Save ${-diff} {every}</span> : <span className="text-ink-soft">{p.blurb}</span>}</div>
+                      </div>
+                      <form action={moveToPlan} className="shrink-0">
+                        <input type="hidden" name="plan" value={p.id} />
+                        <input type="hidden" name="from" value="change" />
+                        <button type="submit" className="btn btn-secondary btn-sm">Switch</button>
+                      </form>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </details>
+        )}
+        {viewer.stripeCustomerId && status !== "cancelling" && (
+          <Link href="/account/cancel" className="flex w-full items-center justify-between gap-3 py-3.5 text-sm font-semibold hover:text-blue">
+            Cancel plan
+            <span className="text-ink-soft" aria-hidden>›</span>
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
