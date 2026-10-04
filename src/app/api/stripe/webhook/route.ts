@@ -93,6 +93,15 @@ export async function POST(request: NextRequest) {
           break;
         }
       }
+      // A member whose bill failed and who then cancels is done now: no grace week, no retries on
+      // a year they turned down. The deletion this fires ends access (a yearly trialist, 5 Oct 2026).
+      if (sub.status === "past_due" && (sub.cancel_at || sub.cancel_at_period_end)) {
+        await stripe().subscriptions.cancel(sub.id, { invoice_now: false, prorate: false });
+        const open = await stripe().invoices.list({ subscription: sub.id, status: "open", limit: 10 });
+        for (const inv of open.data) if (inv.id) await stripe().invoices.voidInvoice(inv.id);
+        await logEvent({ user_id: userId, kind: "past_due_cancelled", plan: sub.metadata?.plan ?? null, amount_cents: null, meta: { subscription: sub.id, voided: open.data.map((i) => i.id) } });
+        break;
+      }
       const active = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
       const periodEnd = sub.items.data[0]?.current_period_end;
       const planId = sub.metadata?.plan ?? "subscription";
