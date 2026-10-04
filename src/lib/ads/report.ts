@@ -34,6 +34,8 @@ export interface AdRow {
   tag: string;
   spend: number;
   clicks: number;
+  /** Distinct visitors who landed from the ad's link in the window. */
+  visits: number;
   accounts: number;
   trials: number;
   paid: number;
@@ -88,6 +90,25 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   else if ("error" in spend) missing = `Meta did not answer: ${spend.error}`;
   else for (const s of spend) { const d = by.get(s.date); if (d) d.spend = s.spend; }
 
+  // Visitors by ad: distinct visitor ids whose page views carry a paid Meta tag, paged past Supabase's 1,000-row cap.
+  const visitors = new Map<string, Set<string>>();
+  for (let at = 0; ; at += 1000) {
+    const { data: views } = await db
+      .from("events")
+      .select("meta")
+      .eq("kind", "page_view")
+      .gte("created_at", new Date(`${from}T00:00:00+10:00`).toISOString())
+      .filter("meta->utm->>source", "in", "(meta,facebook,fb,instagram,ig)")
+      .filter("meta->utm->>medium", "eq", "paid")
+      .range(at, at + 999);
+    for (const v of (views ?? []) as { meta: { vid?: string; utm?: { campaign?: string; content?: string } } | null }[]) {
+      if (!v.meta?.vid) continue;
+      const tag = `${v.meta.utm?.campaign ?? ""}/${v.meta.utm?.content ?? ""}`.toLowerCase();
+      visitors.set(tag, (visitors.get(tag) ?? new Set()).add(v.meta.vid));
+    }
+    if ((views ?? []).length < 1000) break;
+  }
+
   // By ad: accounts made in the window from each ad's link, and how far they got.
   const fromStart = new Date(`${from}T00:00:00+10:00`).getTime();
   const started = new Set(((subs ?? []) as { user_id: string }[]).map((s) => s.user_id));
@@ -107,11 +128,12 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
     // Two ads can share a tag (a copy of an ad); the sign-ups go on the one that spent more.
     for (const a of [...ads].sort((x, y) => y.spend - x.spend)) {
       const c = !seen.has(a.tag) ? cohort.get(a.tag) : undefined;
+      const first = !seen.has(a.tag);
+      byAd.push({ ad: a.ad, campaign: a.campaign, status: a.status, tag: a.tag, spend: a.spend, clicks: a.clicks, visits: first ? (visitors.get(a.tag)?.size ?? 0) : 0, accounts: c?.accounts ?? 0, trials: c?.trials ?? 0, paid: c?.paid ?? 0 });
       seen.add(a.tag);
-      byAd.push({ ad: a.ad, campaign: a.campaign, status: a.status, tag: a.tag, spend: a.spend, clicks: a.clicks, accounts: c?.accounts ?? 0, trials: c?.trials ?? 0, paid: c?.paid ?? 0 });
     }
   }
-  for (const [tag, c] of cohort) if (!seen.has(tag)) byAd.push({ ad: tag, campaign: "No spend in window", status: "", tag, spend: 0, clicks: 0, ...c });
+  for (const [tag, c] of cohort) if (!seen.has(tag)) byAd.push({ ad: tag, campaign: "No spend in window", status: "", tag, spend: 0, clicks: 0, visits: visitors.get(tag)?.size ?? 0, ...c });
 
   const days = [...by.values()];
   const sum = (k: keyof Omit<AdsDay, "date">) => Math.round(days.reduce((a, d) => a + d[k], 0) * 100) / 100;

@@ -385,13 +385,14 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
             By ad
           </summary>
-          <p className="mt-1 text-xs text-ink-soft">Accounts made from each ad&apos;s link in the window, and how many started a plan and paid since. Matched on the ad&apos;s own link tags.</p>
+          <p className="mt-1 text-xs text-ink-soft">Visitors who landed from each ad&apos;s link in the window, the accounts they made, how many started a plan and paid since, and the cost of each. Matched on the ad&apos;s own link tags.</p>
           <table className="data-table stack-sm text-xs mt-2">
-            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per trial</th></tr></thead>
+            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per trial</th><th className="text-right">Per paid</th></tr></thead>
             <tbody>
               {r.byAd.map((a) => {
                 const off = a.status && a.status !== "ACTIVE";
                 const per = a.trials && a.spend ? a.spend / a.trials : undefined;
+                const perPaid = a.paid && a.spend ? a.spend / a.paid : undefined;
                 return (
                   <tr key={`${a.campaign}-${a.ad}`} className={off ? "text-ink-soft" : ""}>
                     <td>
@@ -399,10 +400,12 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
                       <span className="block text-[10px] text-ink-soft">{a.campaign}{off ? ` · ${a.status.toLowerCase().replace(/_/g, " ")}` : ""}</span>
                     </td>
                     <td data-label="Spend" className="text-right nums">{a.spend ? `$${a.spend.toFixed(2)}` : "–"}</td>
+                    <td data-label="Visits" className="text-right nums">{a.visits || ""}</td>
                     <td data-label="Accounts" className="text-right nums">{a.accounts || ""}</td>
                     <td data-label="Trials" className="text-right nums">{a.trials || ""}</td>
                     <td data-label="Paid" className="text-right nums font-semibold">{a.paid || ""}</td>
                     <td data-label="Per trial" className="text-right nums">{per !== undefined ? `$${per.toFixed(2)}` : a.spend ? "none yet" : ""}</td>
+                    <td data-label="Per paid" className="text-right nums font-semibold">{perPaid !== undefined ? `$${perPaid.toFixed(2)}` : ""}</td>
                   </tr>
                 );
               })}
