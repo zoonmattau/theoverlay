@@ -46,7 +46,10 @@ type Tab = (typeof TABS)[number];
  * doing. ?tab= picks the page.
  */
 async function Account({ searchParams }: { searchParams: PageProps<"/account">["searchParams"] }) {
-  const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
+  const [real, sp] = await Promise.all([getViewer(), searchParams]);
+  // Admin, ?as=everyday|saturday|midweek: the account as a member on that plan sees it, renewing in six days.
+  const as = real.admin && typeof sp.as === "string" ? planById(sp.as) : undefined;
+  const viewer = as ? { ...real, admin: false, pro: true, paused: false, plan: as.id, accessUntil: new Date(Date.now() + 6 * DAY).toISOString(), stripeCustomerId: real.stripeCustomerId ?? "preview" } : real;
   if (!viewer.id && viewer.plan !== "open") redirect("/login?next=/account");
   const [card, code, invited] = await Promise.all([
     getTodayCard(viewer.admin),
