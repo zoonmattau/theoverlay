@@ -20,8 +20,9 @@ export async function keepAtHalfPrice(): Promise<void> {
 export async function moveToPlan(form: FormData): Promise<void> {
   const viewer = await getViewer();
   if (!viewer.id || !stripeConfigured()) redirect("/account");
-  const ok = await switchPlan(viewer.id, String(form.get("plan") ?? ""));
-  redirect(ok ? `/account?switched=${form.get("plan")}` : "/account");
+  const change = form.get("from") === "change";
+  const ok = await switchPlan(viewer.id, String(form.get("plan") ?? ""), change ? "change" : "cancel");
+  redirect(ok ? `/account?${change ? "tab=plan&" : ""}switched=${form.get("plan")}` : change ? "/account?tab=plan" : "/account");
 }
 
 /** Pay the first month today and get five weeks for it, then back to the account page. */

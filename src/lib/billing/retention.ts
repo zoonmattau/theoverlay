@@ -104,21 +104,29 @@ export interface Downgrades {
 
 /** The cheaper plans a member can move to now, or nothing when there are none. */
 export async function downgradesFor(userId: string): Promise<Downgrades | null> {
+  return switchesFor(userId, "cancel");
+}
+
+/**
+ * The plans a member can move to now. From the cancel page ("cancel"): only cheaper
+ * ones, a trialist at monthly prices. From the account ("change"): every other plan,
+ * on the term they pay on.
+ */
+export async function switchesFor(userId: string, from: "cancel" | "change"): Promise<Downgrades | null> {
   const { data: p } = await supabaseAdmin().from("profiles").select("plan, stripe_subscription_id, subscription_status").eq("id", userId).maybeSingle();
   if (!p?.stripe_subscription_id || !["trialing", "active", "past_due"].includes(p.subscription_status ?? "")) return null;
   const plan = planById(p.plan ?? undefined);
   if (!plan) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
-  // A trialist moves to the cheaper plan's monthly price: a big bill up front is what puts them off.
-  const term = sub.status === "trialing" ? termById("month") : termById(sub.metadata?.term);
-  const options = PLANS.filter((o) => o.price < plan.price && termPriceId(o, term)).map((o) => ({ plan: o, price: termPrice(o, term) }));
+  // A trialist on the way out moves to the cheaper plan's monthly price: a big bill up front is what puts them off.
+  const term = from === "cancel" && sub.status === "trialing" ? termById("month") : termById(sub.metadata?.term);
+  const options = PLANS.filter((o) => o.id !== plan.id && (from === "change" || o.price < plan.price) && termPriceId(o, term)).map((o) => ({ plan: o, price: termPrice(o, term) }));
   if (options.length === 0) return null;
   return { subscriptionId: sub.id, current: plan.name, trialing: sub.status === "trialing", term, options };
 }
 
-/** Moves the subscription to a cheaper plan. The webhook carries the new plan onto the profile. */
-export async function switchPlan(userId: string, planId: string): Promise<boolean> {
-  const offer = await downgradesFor(userId);
+export async function switchPlan(userId: string, planId: string, from: "cancel" | "change" = "cancel"): Promise<boolean> {
+  const offer = await switchesFor(userId, from);
   const to = offer?.options.find((o) => o.plan.id === planId)?.plan;
   const price = offer && to ? termPriceId(to, offer.term) : undefined;
   if (!offer || !to || !price) return false;
@@ -135,7 +143,7 @@ export async function switchPlan(userId: string, planId: string): Promise<boolea
   });
   // The webhook says the same a moment later; this is so the account page is right on the redirect.
   await supabaseAdmin().from("profiles").update({ plan: to.id }).eq("id", userId);
-  await logEvent({ user_id: userId, kind: "downgrade", plan: to.id, amount_cents: termPrice(to, offer.term) * 100, meta: { from: offer.current, trialing: offer.trialing, term: offer.term.id } });
+  await logEvent({ user_id: userId, kind: to.price > (PLANS.find((x) => x.name === offer.current)?.price ?? 0) ? "upgrade" : "downgrade", plan: to.id, amount_cents: termPrice(to, offer.term) * 100, meta: { from: offer.current, trialing: offer.trialing, term: offer.term.id } });
   return true;
 }
 

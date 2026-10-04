@@ -3,9 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { DayStrip } from "@/components/PlanPicker";
+import { PlanCard as Card, PlanLine as Line, PlanPrice as Price } from "@/components/PlanCard";
 import { getViewer } from "@/lib/auth";
-import { PLANS, planById, termById, termPrice, type Plan } from "@/lib/billing/plans";
+import { PLANS, planById, termById, termPrice } from "@/lib/billing/plans";
 import { downgradesFor, monthlyFor, offerFor, type Downgrades, type MonthlySwitch, type Offer } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
 import { bigDaysAhead } from "@/lib/carnival";
@@ -139,35 +139,6 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
       </div>
     </div>
   );
-}
-
-/** A plan card in the pricing page's shape: name, the days it opens, the price, one line, one button. */
-function Card({ plan, tag, highlight, children }: { plan: Plan; tag?: string; highlight?: boolean; children: React.ReactNode }) {
-  return (
-    <article className={`relative flex h-full flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${highlight ? "border-ink border-2 mt-2 md:mt-0" : "border-line"}`}>
-      {tag && <span className="absolute -top-3 left-5 rounded-full bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">{tag}</span>}
-      <div>
-        <h2 className="font-display text-xl font-extrabold tracking-tight">{plan.name}</h2>
-        <p className="text-sm text-ink-soft">{plan.blurb}</p>
-      </div>
-      <DayStrip days={plan.days} />
-      {children}
-    </article>
-  );
-}
-
-function Price({ was, n, per }: { was?: string; n: string; per: string }) {
-  return (
-    <div className="flex items-baseline gap-1.5">
-      {was && <span className="font-display text-xl font-bold text-ink-soft line-through decoration-2 tabular-nums">{was}</span>}
-      <span className="font-display text-4xl font-extrabold tracking-tight tabular-nums">{n}</span>
-      <span className="text-sm text-ink-soft">{per}</span>
-    </div>
-  );
-}
-
-function Line({ children }: { children: React.ReactNode }) {
-  return <p className="-mt-2 text-sm text-ink-secondary tabular-nums">{children}</p>;
 }
 
 /** "Sat 17 Oct". */

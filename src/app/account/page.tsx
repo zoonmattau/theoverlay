@@ -7,7 +7,7 @@ import { signOut } from "@/app/(auth)/actions";
 import { claimInstagram, makeApiKey, revokeApiKey, saveDetails, setTipsEmails, unlinkDiscord } from "@/app/account/actions";
 import { ApiKeyButton } from "@/components/ApiKeyButton";
 import { CopyLink } from "@/components/CopyLink";
-import { PortalButton } from "@/components/PortalButton";
+import { PlanTab, previewOf } from "./PlanTab";
 import { UsePassButton } from "@/components/UsePassButton";
 import { FollowButton } from "@/components/FollowButton";
 import { allTipsters, followedTipsters, tipsterForUser } from "@/lib/creators";
@@ -33,8 +33,6 @@ export default function Page({ searchParams }: PageProps<"/account">) {
   );
 }
 
-const DAY = 86400_000;
-const daysUntil = (iso: string | undefined, now: number) => (iso ? Math.max(0, Math.ceil((new Date(iso).getTime() - now) / DAY)) : 0);
 
 /** The pages of the account, in menu order. */
 const TABS = ["overview", "plan", "passes", "discord", "tipsters", "invite", "details", "settings", "api", "admin"] as const;
@@ -47,9 +45,9 @@ type Tab = (typeof TABS)[number];
  */
 async function Account({ searchParams }: { searchParams: PageProps<"/account">["searchParams"] }) {
   const [real, sp] = await Promise.all([getViewer(), searchParams]);
-  // Admin, ?as=everyday|saturday|midweek: the account as a member on that plan sees it, renewing in six days.
+  // Admin, ?as=everyday|saturday|midweek: the account as a member on that plan sees it.
   const as = real.admin && typeof sp.as === "string" ? planById(sp.as) : undefined;
-  const viewer = as ? { ...real, admin: false, pro: true, paused: false, plan: as.id, accessUntil: new Date(Date.now() + 6 * DAY).toISOString(), stripeCustomerId: real.stripeCustomerId ?? "preview" } : real;
+  const viewer = as ? { ...real, admin: false, pro: true, paused: false, plan: as.id, stripeCustomerId: real.stripeCustomerId ?? "preview" } : real;
   if (!viewer.id && viewer.plan !== "open") redirect("/login?next=/account");
   const [card, code, invited] = await Promise.all([
     getTodayCard(viewer.admin),
@@ -65,10 +63,8 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     viewer.id ? claimedInstagramDay(viewer.id) : Promise.resolve(true),
   ]);
   const followingIds = new Set(following.map((t) => t.id));
-  const now = new Date(card.builtAt).getTime() || 0;
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
   const tab: Tab = TABS.includes(sp.tab as Tab) && (sp.tab !== "admin" || viewer.admin) ? (sp.tab as Tab) : "overview";
-  const renews = viewer.pro && viewer.accessUntil ? longDate(viewer.accessUntil.slice(0, 10)) : undefined;
 
   const status = viewer.admin
     ? { label: "Admin", cls: "badge-prime" }
@@ -83,7 +79,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
   // What the menu says under each name: where that thing stands right now.
   const hint: Record<Tab, string> = {
     overview: "Where everything is",
-    plan: viewer.admin ? "Every day open" : viewer.paused ? "Paused" : viewer.pro ? `${plan?.name ?? "Member"}${renews ? `, renews ${renews}` : ""}` : viewer.bonusLive ? `Gift until ${longDate(viewer.bonusUntil!.slice(0, 10))}` : "No plan yet",
+    plan: viewer.admin ? "Every day open" : viewer.paused ? "Paused" : viewer.pro ? (plan?.name ?? "Member") : viewer.bonusLive ? `Gift until ${longDate(viewer.bonusUntil!.slice(0, 10))}` : "No plan yet",
     passes: viewer.passCredits ? `${viewer.passCredits} unused` : "None unused",
     discord: viewer.discordName ? `Linked as ${viewer.discordName}` : "Not linked",
     tipsters: following.length ? `Following ${following.length}` : "Following nobody",
@@ -102,10 +98,10 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
       {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
       {sp.paid === "1" && <Notice>Paid, thank you. Your board is open again.</Notice>}
       {sp.ig === "added" && <Notice>Thanks for the follow. The full board is yours{viewer.bonusUntil ? ` until ${new Date(viewer.bonusUntil).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "long", hour: "numeric", minute: "2-digit" })}` : ""}.</Notice>}
-      {sp.ig === "bill" && <Notice>Thanks for the follow. Your next bill has moved a day later{typeof sp.until === "string" && sp.until ? `, to ${longDate(sp.until.slice(0, 10))}` : ""}: a free day on us.</Notice>}
+      {sp.ig === "bill" && <Notice>Thanks for the follow. A free day has been added to your plan.</Notice>}
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
-      {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}. Glad you stayed.</Notice>}
-      {sp.switched === "paid-now" && <Notice>Paid, thank you. Your first month runs 5 weeks, so the next bill is 5 weeks from today.</Notice>}
+      {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}.</Notice>}
+      {sp.switched === "paid-now" && <Notice>Paid, thank you. Your first month runs 5 weeks.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
       {sp.discord === "failed" && <Notice>Discord did not link. Try again.</Notice>}
@@ -141,26 +137,17 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
 
         <div className="account-body">
           {tab === "overview" && !viewer.admin && !igClaimed && <InstagramDay member={viewer.pro} />}
-          {tab === "overview" && <Overview viewer={viewer} plan={plan} renews={renews} following={following.length} invited={invited} runs={Boolean(runs)} now={now} />}
+          {tab === "overview" && <Overview viewer={viewer} following={following.length} invited={invited} runs={Boolean(runs)} />}
 
           {tab === "plan" && (
-            <Panel title="Plan and billing" blurb="Your plan opens the full board on its race days: every runner rated, every bet and lay.">
+            <Panel title="Plan and billing" blurb="Your plan, your card and invoices, and switching or cancelling.">
               {viewer.admin ? (
                 <>
                   <p className="text-sm text-ink-secondary">Every race day is open, nothing to pay.</p>
                   <Link href="/admin" className="btn btn-secondary btn-sm mt-3">Open admin</Link>
                 </>
               ) : viewer.pro ? (
-                <>
-                  <div className="grid grid-cols-2 gap-3 max-w-md">
-                    <Tile n={plan?.name ?? viewer.plan ?? "Member"} label="plan" tone="prime" />
-                    <Tile n={viewer.accessUntil ? `${daysUntil(viewer.accessUntil, now)}d` : "—"} label={renews ? `renews ${renews}` : "no renewal"} />
-                  </div>
-                  <p className="mt-3 text-sm text-ink-secondary">{plan?.days.length ? `Opens ${plan.name} race days.` : "Opens every race day."}{viewer.paused ? " Paused: nothing is charged and the board is closed until it resumes." : ""}</p>
-                  <Row label="Payment, invoices and card" what="Stripe holds your card and every invoice.">{viewer.stripeCustomerId && <PortalButton />}</Row>
-                  <Row label="Change plan" what="Move to more days or fewer. The change starts at your next renewal."><Link href="/pricing" className="btn btn-secondary btn-sm">See plans</Link></Row>
-                  {viewer.stripeCustomerId && <Row label="Cancel" what="Your plan runs to the end of the period you paid for, then stops."><Link href="/account/cancel" className="btn btn-secondary btn-sm">Cancel plan</Link></Row>}
-                </>
+                <PlanTab viewer={viewer} plan={plan ?? planById("everyday")!} preview={as ? previewOf(sp) : undefined} />
               ) : (
                 <>
                   <p className="text-sm text-ink-secondary">No plan yet. Pick the days you bet and try it free for seven days.{viewer.bonusLive ? ` Your gift access runs until ${longDate(viewer.bonusUntil!.slice(0, 10))}.` : ""}</p>
@@ -242,7 +229,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
                 <label className="field"><span>Suburb</span><input name="suburb" defaultValue={viewer.details.suburb} autoComplete="address-level2" className="field-input" /></label>
                 <div className="grid grid-cols-2 gap-3">
                   <label className="field"><span>State</span>
-                    <select name="state" defaultValue={viewer.details.state} className="field-input">
+                    <select name="state" defaultValue={viewer.details.state} className="field-input w-full">
                       <option value="">—</option>
                       {["NSW", "VIC", "QLD", "SA", "WA", "TAS", "NT", "ACT"].map((st) => <option key={st} value={st}>{st}</option>)}
                     </select>
@@ -316,7 +303,7 @@ function InstagramDay({ member }: { member: boolean }) {
       <h2 className="font-display text-lg font-extrabold">Follow us on Instagram, get a free day</h2>
       <p className="mt-1 text-sm text-ink-secondary">
         {member
-          ? `Follow @${BRAND_SOCIAL.instagram} and your next bill moves a day later: a free day on us. Once per account.`
+          ? `Follow @${BRAND_SOCIAL.instagram} and we add a free day to your plan. Once per account.`
           : `Follow @${BRAND_SOCIAL.instagram} and the full board is yours for the day: every runner rated, every bet and lay. Once per account.`}
       </p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
@@ -331,7 +318,7 @@ function InstagramDay({ member }: { member: boolean }) {
 }
 
 /** The first page: what you have, and the one thing to do next if there is one. */
-function Overview({ viewer, plan, renews, following, invited, runs, now }: { viewer: Viewer; plan: ReturnType<typeof planById>; renews?: string; following: number; invited: number; runs: boolean; now: number }) {
+function Overview({ viewer, following, invited, runs }: { viewer: Viewer; following: number; invited: number; runs: boolean }) {
   // The nudge: the thing most worth doing from here, if anything.
   const nudge = !viewer.pro && !viewer.admin && !viewer.bonusLive
     ? { text: "No plan yet. Seven days free to start.", href: "/pricing", cta: "Start free trial" }
@@ -350,12 +337,6 @@ function Overview({ viewer, plan, renews, following, invited, runs, now }: { vie
           <Link href={nudge.href} className="btn btn-primary btn-sm ml-auto">{nudge.cta}</Link>
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <Tile n={plan ? plan.name : viewer.admin ? "All days" : "None"} label="plan" tone={viewer.pro || viewer.admin ? "prime" : undefined} />
-        <Tile n={viewer.pro && viewer.accessUntil ? `${daysUntil(viewer.accessUntil, now)}d` : "—"} label={renews ? `renews ${renews}` : "no renewal"} />
-        <Tile n={viewer.passCredits} label={viewer.passCredits === 1 ? "day pass" : "day passes"} tone={viewer.passCredits ? "bet" : undefined} />
-        <Tile n={viewer.bonusLive ? `${daysUntil(viewer.bonusUntil, now)}d` : "0d"} label="gifted access" />
-      </div>
       <div className="card">
         <h2 className="font-display font-extrabold">Where things are</h2>
         <ul className="divide-y divide-line-soft text-sm mt-2">
@@ -376,8 +357,10 @@ function Where({ href, name, what }: { href: string; name: string; what: string 
   return (
     <li>
       <Link href={href} className="flex items-center gap-3 py-2.5 hover:text-blue" scroll={false}>
-        <span className="font-semibold w-40 shrink-0">{name}</span>
-        <span className="text-ink-secondary min-w-0">{what}</span>
+        <span className="flex min-w-0 flex-col sm:flex-row sm:gap-3">
+          <span className="font-semibold sm:w-40 sm:shrink-0">{name}</span>
+          <span className="text-ink-secondary">{what}</span>
+        </span>
         <span className="ml-auto text-ink-soft">→</span>
       </Link>
     </li>
@@ -421,7 +404,7 @@ function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "p
   const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : "";
   return (
     <div className={`stat text-center ${cls}`}>
-      <div className="font-display text-2xl font-extrabold tracking-tight nums truncate">{n}</div>
+      <div className="font-display text-2xl font-extrabold tracking-tight tabular-nums truncate">{n}</div>
       <div className="stat-label mt-1">{label}</div>
     </div>
   );

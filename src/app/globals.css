@@ -4162,14 +4162,21 @@ body {
     align-items: start;
   }
 }
+/* On a phone the menu wraps into a grid of names, never a strip that scrolls sideways. */
 .account-menu {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--sp-1);
-  overflow-x: auto;
-  padding-bottom: 2px;
+}
+@media (max-width: 767px) {
+  .account-menu .account-item { padding: 8px 6px; text-align: center; white-space: normal; border-color: var(--color-line); background: var(--color-panel); }
+  .account-menu .account-item.is-current { background: var(--color-ink); border-color: var(--color-ink); }
+  .account-menu .account-item-name { font-size: 0.78rem; line-height: 1.2; }
+  .account-menu .account-item-hint { display: none; }
 }
 @media (min-width: 768px) {
   .account-menu {
+    display: flex;
     flex-direction: column;
     overflow: visible;
     position: sticky;
