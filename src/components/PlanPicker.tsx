@@ -33,6 +33,13 @@ const TERMS: { id: TermId; label: string; short: string; months: number; per: st
   { id: "year", label: "Yearly", short: "Yearly", months: 12, per: "/year", billed: "billed yearly" },
 ];
 
+/**
+ * On a phone the cards run the other way, the full board first: Every day,
+ * Saturday + Wednesday, Saturday. A computer shows them in plan order,
+ * Saturday to Every day, left to right (the user, 4 Oct 2026).
+ */
+const PHONE_ORDER = ["order-1 md:order-none", "order-2 md:order-none", "order-3 md:order-none"];
+
 /** Monday first, the way a punter reads a week; the index is the JS day. */
 const WEEK = [
   { d: 1, l: "M" },
@@ -77,14 +84,14 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 items-stretch">
-        {plans.map((p) => {
+        {plans.map((p, i) => {
           const bill = p.prices[term];
           const saved = bill !== undefined && term !== "month" ? p.prices.month * t.months - bill : 0;
           const yours = pro && currentPlan === p.id;
           return (
             <article
               key={p.id}
-              className={`relative flex flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${p.highlight ? "border-ink border-2 mt-2 md:mt-0" : "border-line"}`}
+              className={`relative flex flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${PHONE_ORDER[plans.length - 1 - i] ?? ""} ${p.highlight ? "border-ink border-2 mt-2 md:mt-0" : "border-line"}`}
             >
               {p.highlight && (
                 <span className="absolute -top-3 left-5 rounded-full bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">Most popular</span>
