@@ -22,6 +22,31 @@ export async function SignupPitch({ dark }: { dark?: boolean }) {
   const lays = calls.length - bets;
   const soft = dark ? "text-bar-soft" : "text-ink-soft";
   const strong = dark ? "text-bar-ink" : "text-ink";
+  // On the dark panel, one live line under the record rather than a second box like it.
+  if (dark) {
+    return (
+      <p className="flex items-center gap-2 text-sm text-bar-soft">
+        <span className="relative flex h-2 w-2 shrink-0" aria-hidden>
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-lime opacity-60" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-lime" />
+        </span>
+        {!released ? (
+          <span>Today&apos;s calls release at {RELEASE_HOUR}am.</span>
+        ) : calls.length === 0 ? (
+          <span>Tomorrow&apos;s card goes up at {RELEASE_HOUR}am.</span>
+        ) : (
+          <span>
+            <strong className="text-bar-ink tabular-nums">{calls.length} tips</strong> today
+            {next ? (
+              <>
+                {" "}· next jumps in <strong className="text-bar-ink"><NextTipTicker iso={next.jump!} /></strong>
+              </>
+            ) : null}
+          </span>
+        )}
+      </p>
+    );
+  }
   return (
     <div className={`rounded-md border ${dark ? "border-white/15" : "border-line bg-panel-alt"} px-4 py-3 text-sm ${soft}`}>
       {!released ? (

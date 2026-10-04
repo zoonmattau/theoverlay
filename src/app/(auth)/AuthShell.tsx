@@ -35,7 +35,7 @@ export function AuthShell({
             <br />
             <span className="text-lime">We have the data.</span>
           </p>
-          <ul className="space-y-3 text-sm text-bar-soft">
+          <ul className="space-y-3.5 text-[15px] leading-snug text-bar-soft">
             {POINTS.map(([lead, rest]) => (
               <li key={lead} className="flex gap-3">
                 <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-lime text-[11px] font-black text-ink" aria-hidden>
@@ -51,8 +51,12 @@ export function AuthShell({
             <AuthRecord />
           </Suspense>
           {pitch && <div>{pitch.aside}</div>}
-          <div className="mt-auto space-y-2 pt-2">
-            <p className="text-xs font-semibold text-bar-ink">7-day free trial · Cancel any time</p>
+          <div className="mt-auto space-y-3 pt-2">
+            <div className="flex flex-wrap gap-2">
+              {["7-day free trial", "Cancel any time"].map((t) => (
+                <span key={t} className="rounded-full border border-lime/40 px-2.5 py-1 text-xs font-semibold text-lime">{t}</span>
+              ))}
+            </div>
             <p className="text-xs text-bar-soft">18+ only. Gamble responsibly. Gambling Help Online 1800 858 858.</p>
           </div>
         </aside>
