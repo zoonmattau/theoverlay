@@ -5,7 +5,7 @@ import type { Plan } from "@/lib/billing/plans";
  * A plan as a card in the pricing page's shape: name, the days it opens, the
  * price, a line, a button. The cancel page and the account's plan tab use it.
  */
-export function PlanCard({ plan, tag, highlight, children }: { plan: Plan; tag?: string; highlight?: boolean; children: React.ReactNode }) {
+export function PlanCard({ plan, tag, highlight, strip = true, children }: { plan: Plan; tag?: string; highlight?: boolean; strip?: boolean; children: React.ReactNode }) {
   return (
     <article className={`relative flex h-full flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${highlight ? "border-ink border-2 mt-2 md:mt-0" : "border-line"}`}>
       {tag && <span className="absolute -top-3 left-5 rounded-full bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">{tag}</span>}
@@ -13,7 +13,7 @@ export function PlanCard({ plan, tag, highlight, children }: { plan: Plan; tag?:
         <h2 className="font-display text-xl font-extrabold tracking-tight">{plan.name}</h2>
         <p className="text-sm text-ink-soft">{plan.blurb}</p>
       </div>
-      <DayStrip days={plan.days} />
+      {strip && <DayStrip days={plan.days} />}
       {children}
     </article>
   );

@@ -53,7 +53,7 @@ export async function PlanTab({ viewer, plan, preview }: { viewer: Viewer; plan:
       )}
 
       <div className="max-w-md">
-        <PlanCard plan={plan} tag={status === "trialing" ? "Free trial" : "Your plan"} highlight>
+        <PlanCard strip={false} plan={plan} tag={status === "trialing" ? "Free trial" : "Your plan"} highlight>
           <PlanPrice n={`$${mine}`} per={per} />
           {status !== "cancelling" && <PlanLine>{status === "trialing" ? "On your free trial. Cancel any time." : "Cancel any time."}</PlanLine>}
           {viewer.stripeCustomerId && (
@@ -73,7 +73,7 @@ export async function PlanTab({ viewer, plan, preview }: { viewer: Viewer; plan:
             {options.map(({ plan: p, price }) => {
               const diff = price - mine;
               return (
-                <PlanCard key={p.id} plan={p}>
+                <PlanCard strip={false} key={p.id} plan={p}>
                   <PlanPrice n={`$${price}`} per={per} />
                   <PlanLine>
                     {diff < 0 ? <span className="font-semibold text-accent">Save ${-diff} {every}.</span> : <>{p.days.length ? "More days." : "Every day, the full board."}</>}
