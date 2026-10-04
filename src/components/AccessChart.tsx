@@ -20,7 +20,9 @@ const GROUPS: { key: AccessGroup; label: string; colour: string }[] = [
 const W = 640, H = 220, PAD = { t: 12, r: 8, b: 26, l: 32 };
 const GAP = 2;
 
-const short = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** "4 Oct": en-AU writes September as "Sept", which sits unevenly in a column. */
+const short = (d: string) => `${Number(d.slice(8, 10))} ${MONTHS[Number(d.slice(5, 7)) - 1]}`;
 const weekday = (d: string) => new Date(`${d}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", timeZone: "Australia/Sydney" });
 
 function ticks(max: number): number[] {
@@ -99,8 +101,9 @@ export function AccessChart({ days }: { days: AccessDay[] }) {
       <p className="mt-1 text-xs text-ink-soft">Dots under the axis mark Saturdays. Saturday-only plans count only on Saturdays.</p>
       <details className="mt-3">
         <summary className="cursor-pointer text-xs font-semibold text-ink-soft">The numbers</summary>
+        {/* The site's table style: "table" is not a class here, which left it as raw text. */}
         <div className="mt-2 overflow-x-auto">
-          <table className="table text-sm nums">
+          <table className="data-table text-xs w-full">
             <thead>
               <tr>
                 <th>Day</th>
@@ -111,9 +114,9 @@ export function AccessChart({ days }: { days: AccessDay[] }) {
             <tbody>
               {[...days].reverse().map((d) => (
                 <tr key={d.date}>
-                  <td>{weekday(d.date)} {short(d.date)}</td>
-                  {GROUPS.map((g) => <td key={g.key} className="text-right">{d.counts[g.key] || ""}</td>)}
-                  <td className="text-right font-semibold">{d.total}</td>
+                  <td className="whitespace-nowrap">{weekday(d.date)} {short(d.date)}</td>
+                  {GROUPS.map((g) => <td key={g.key} className={`text-right nums ${d.counts[g.key] ? "" : "text-ink-soft"}`}>{d.counts[g.key] || "–"}</td>)}
+                  <td className="text-right nums font-semibold">{d.total}</td>
                 </tr>
               ))}
             </tbody>
