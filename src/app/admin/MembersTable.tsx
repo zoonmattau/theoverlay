@@ -219,7 +219,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                   {m.name !== m.email && <span className="block text-xs text-ink-soft">{m.email}</span>}
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
                 </td>
-                <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="badge badge-lay">Cancelled</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
+                <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="text-xs font-semibold text-amber" title="Booked to cancel; access runs to the end of what they paid for">Cancelling</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
                 <td data-label="Plan">
                   {m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}
                   {m.term && <span className="block text-xs text-ink-soft">{m.term}</span>}
