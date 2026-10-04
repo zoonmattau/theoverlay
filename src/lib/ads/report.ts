@@ -38,7 +38,10 @@ export interface AdRow {
   visits: number;
   accounts: number;
   trials: number;
+  /** Paying members: paid for a plan, not a day pass. */
   paid: number;
+  /** Everything those accounts have paid, plans and passes, dollars. */
+  revenue: number;
 }
 
 export interface AdsReport {
@@ -46,7 +49,7 @@ export interface AdsReport {
   byAd: AdRow[];
   /** Why there is no spend: no token yet, or Meta's error. */
   missing?: string;
-  totals: AdsDay & { perSignup?: number; perTrial?: number; perPaid?: number };
+  totals: AdsDay & { perSignup?: number; perTrial?: number; perPaid?: number; revenue: number; backPerDollar?: number };
 }
 
 const DAY = 86400_000;
@@ -62,7 +65,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
     metaAds(from, today),
     db.from("profiles").select("id, email, is_admin, created_at, source, landing, referrer, utm"),
     db.from("events").select("user_id, created_at, meta").eq("kind", "subscription").eq("meta->>event", "customer.subscription.created"),
-    db.from("events").select("user_id, created_at").eq("kind", "payment").order("created_at"),
+    db.from("events").select("user_id, created_at, plan, amount_cents").eq("kind", "payment").order("created_at"),
   ]);
   const fromMeta = new Set(
     ((profs ?? []) as { id: string; email: string | null; is_admin: boolean | null; utm: Record<string, string> | null; source: string | null; landing: string | null; referrer: string | null }[])
@@ -81,8 +84,14 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
     if (fromMeta.has(s.user_id) && s.meta?.status === "trialing") bump(s.created_at, "trials");
   }
   // A paying member is counted once, on their first payment: renewals are not new members.
+  // A paying member is someone who paid for a plan; a day pass is money but not a member (two of the
+  // first four Meta "paid" were $10 passes, 4 Oct 2026). Every payment counts towards an ad's revenue.
   const firstPay = new Map<string, string>();
-  for (const p of (pays ?? []) as { user_id: string; created_at: string }[]) if (!firstPay.has(p.user_id)) firstPay.set(p.user_id, p.created_at);
+  const revenueOf = new Map<string, number>();
+  for (const p of (pays ?? []) as { user_id: string; created_at: string; plan: string | null; amount_cents: number | null }[]) {
+    revenueOf.set(p.user_id, (revenueOf.get(p.user_id) ?? 0) + (p.amount_cents ?? 0) / 100);
+    if (!String(p.plan ?? "").startsWith("passes") && !firstPay.has(p.user_id)) firstPay.set(p.user_id, p.created_at);
+  }
   for (const [userId, at] of firstPay) if (fromMeta.has(userId)) bump(at, "paid");
 
   let missing: string | undefined;
@@ -112,11 +121,12 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   // By ad: accounts made in the window from each ad's link, and how far they got.
   const fromStart = new Date(`${from}T00:00:00+10:00`).getTime();
   const started = new Set(((subs ?? []) as { user_id: string }[]).map((s) => s.user_id));
-  const cohort = new Map<string, { accounts: number; trials: number; paid: number }>();
+  const cohort = new Map<string, { accounts: number; trials: number; paid: number; revenue: number }>();
   for (const p of (profs ?? []) as { id: string; created_at: string; utm: Record<string, string> | null }[]) {
     if (!fromMeta.has(p.id) || new Date(p.created_at).getTime() < fromStart) continue;
     const tag = `${p.utm?.campaign ?? ""}/${p.utm?.content ?? ""}`.toLowerCase();
-    const c = cohort.get(tag) ?? { accounts: 0, trials: 0, paid: 0 };
+    const c = cohort.get(tag) ?? { accounts: 0, trials: 0, paid: 0, revenue: 0 };
+    c.revenue += revenueOf.get(p.id) ?? 0;
     c.accounts++;
     if (started.has(p.id)) c.trials++;
     if (firstPay.has(p.id)) c.paid++;
@@ -129,7 +139,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
     for (const a of [...ads].sort((x, y) => y.spend - x.spend)) {
       const c = !seen.has(a.tag) ? cohort.get(a.tag) : undefined;
       const first = !seen.has(a.tag);
-      byAd.push({ ad: a.ad, campaign: a.campaign, status: a.status, tag: a.tag, spend: a.spend, clicks: a.clicks, visits: first ? (visitors.get(a.tag)?.size ?? 0) : 0, accounts: c?.accounts ?? 0, trials: c?.trials ?? 0, paid: c?.paid ?? 0 });
+      byAd.push({ ad: a.ad, campaign: a.campaign, status: a.status, tag: a.tag, spend: a.spend, clicks: a.clicks, visits: first ? (visitors.get(a.tag)?.size ?? 0) : 0, accounts: c?.accounts ?? 0, trials: c?.trials ?? 0, paid: c?.paid ?? 0, revenue: c?.revenue ?? 0 });
       seen.add(a.tag);
     }
   }
@@ -139,5 +149,8 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   const sum = (k: keyof Omit<AdsDay, "date">) => Math.round(days.reduce((a, d) => a + d[k], 0) * 100) / 100;
   const t = { date: "", spend: sum("spend"), signups: sum("signups"), trials: sum("trials"), paid: sum("paid") };
   const per = (n: number) => (n > 0 && t.spend > 0 ? Math.round((t.spend / n) * 100) / 100 : undefined);
-  return { days, byAd, missing, totals: { ...t, perSignup: per(t.signups), perTrial: per(t.trials), perPaid: per(t.paid) } };
+  // Dollars back for each dollar spent: everything the window's Meta accounts have paid, plans and passes, over the spend.
+  const revenue = Math.round([...cohort.values()].reduce((a, c) => a + c.revenue, 0) * 100) / 100;
+  const backPerDollar = t.spend > 0 ? Math.round((revenue / t.spend) * 100) / 100 : undefined;
+  return { days, byAd, missing, totals: { ...t, perSignup: per(t.signups), perTrial: per(t.trials), perPaid: per(t.paid), revenue, backPerDollar } };
 }

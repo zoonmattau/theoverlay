@@ -377,7 +377,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
         <Mini n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label="spent" />
         <Mini n={cost(t.perSignup)} label="per account" sub={`${t.signups} accounts`} />
         <Mini n={cost(t.perTrial)} label="per trial" sub={`${t.trials} trials`} tone="prime" />
-        <Mini n={cost(t.perPaid)} label="per paying" sub={`${t.paid} paying`} tone="bet" />
+        <Mini n={t.backPerDollar !== undefined ? `$${t.backPerDollar.toFixed(2)}` : "–"} label="back per $1" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
       </div>
       {r.byAd.length > 0 && (
         <details className="mt-4 group" open>
@@ -385,14 +385,14 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
             By ad
           </summary>
-          <p className="mt-1 text-xs text-ink-soft">Visitors who landed from each ad&apos;s link in the window, the accounts they made, how many started a plan and paid since, and the cost of each. Matched on the ad&apos;s own link tags.</p>
+          <p className="mt-1 text-xs text-ink-soft">Visitors who landed from each ad&apos;s link in the window, the accounts they made, how many started a plan and became paying members, what they have paid (plans and passes), and dollars back for each dollar spent. Matched on the ad&apos;s own link tags.</p>
           <table className="data-table stack-sm text-xs mt-2">
-            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per visit</th><th className="text-right">Per trial</th><th className="text-right">Per paid</th></tr></thead>
+            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Members</th><th className="text-right">Revenue</th><th className="text-right">Per visit</th><th className="text-right">Per trial</th><th className="text-right">Back per $1</th></tr></thead>
             <tbody>
               {r.byAd.map((a) => {
                 const off = a.status && a.status !== "ACTIVE";
                 const per = a.trials && a.spend ? a.spend / a.trials : undefined;
-                const perPaid = a.paid && a.spend ? a.spend / a.paid : undefined;
+                const back = a.spend ? a.revenue / a.spend : undefined;
                 return (
                   <tr key={`${a.campaign}-${a.ad}`} className={off ? "text-ink-soft" : ""}>
                     <td>
@@ -403,10 +403,11 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
                     <td data-label="Visits" className="text-right nums">{a.visits || ""}</td>
                     <td data-label="Accounts" className="text-right nums">{a.accounts || ""}</td>
                     <td data-label="Trials" className="text-right nums">{a.trials || ""}</td>
-                    <td data-label="Paid" className="text-right nums font-semibold">{a.paid || ""}</td>
+                    <td data-label="Members" className="text-right nums font-semibold">{a.paid || ""}</td>
+                    <td data-label="Revenue" className="text-right nums">{a.revenue ? `$${Math.round(a.revenue)}` : ""}</td>
                     <td data-label="Per visit" className="text-right nums">{a.visits && a.spend ? `$${(a.spend / a.visits).toFixed(2)}` : ""}</td>
                     <td data-label="Per trial" className="text-right nums">{per !== undefined ? `$${per.toFixed(2)}` : a.spend ? "none yet" : ""}</td>
-                    <td data-label="Per paid" className="text-right nums font-semibold">{perPaid !== undefined ? `$${perPaid.toFixed(2)}` : ""}</td>
+                                        <td data-label="Back per $1" className={`text-right nums font-semibold ${back !== undefined && back >= 1 ? "text-accent" : ""}`}>{back !== undefined ? `$${back.toFixed(2)}` : ""}</td>
                   </tr>
                 );
               })}
