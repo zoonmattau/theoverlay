@@ -312,7 +312,13 @@ function Totals({ t }: { t: Invested }) {
         <Tile n={whole(t.revenue.net)} label={`revenue · ${whole(t.revenue.gross)} less ${whole(t.revenue.fees)} fees`} tone="bet" />
         <Tile n={gap >= 0 ? `+${whole(gap)}` : `−${whole(-gap)}`} label={gap >= 0 ? "ahead" : "behind"} tone={gap >= 0 ? "prime" : undefined} />
       </div>
-      <div className="mt-5"><RunningTotals days={t.days} /></div>
+      <details className="mt-4 group">
+        <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+          <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
+          Running totals
+        </summary>
+        <div className="mt-3"><RunningTotals days={t.days} /></div>
+      </details>
 
       <details className="mt-4 group">
         <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">

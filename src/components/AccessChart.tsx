@@ -65,7 +65,7 @@ export function AccessChart({ days }: { days: AccessDay[] }) {
           </span>
         ))}
       </div>
-      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-labelledby={`${id}-t`} onMouseLeave={() => setHover(null)}>
+      <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto max-h-60 block" role="img" aria-labelledby={`${id}-t`} onMouseLeave={() => setHover(null)}>
         <title id={`${id}-t`}>{`People with the board by day, peak ${peak?.total ?? 0} on ${peak ? short(peak.date) : ""}`}</title>
         {tk.map((v) => (
           <g key={v}>

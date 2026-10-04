@@ -116,9 +116,14 @@ async function Members() {
         </p>
       </section>
 
-      <div className="card mb-6">
-        <AccessChart days={access.map(({ date, counts, total }) => ({ date, counts, total }))} />
-      </div>
+      <details className="card mb-6 group">
+        <summary className="cursor-pointer select-none font-display font-extrabold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+          <span className="inline-block transition-transform group-open:rotate-90 text-sm" aria-hidden>▸</span>
+          People with the board, by day
+          <span className="ml-auto text-sm font-sans font-semibold nums text-ink-secondary">{access.at(-1)?.total ?? 0} today</span>
+        </summary>
+        <div className="mt-3"><AccessChart days={access.map(({ date, counts, total }) => ({ date, counts, total }))} /></div>
+      </details>
 
       <div className="card mb-6">
         <h2 className="font-display font-extrabold">Invite someone</h2>

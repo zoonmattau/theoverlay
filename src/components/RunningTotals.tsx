@@ -58,7 +58,7 @@ export function RunningTotals({ days }: { days: { date: string; invested: number
       </div>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        className="w-full h-auto block"
+        className="w-full h-auto max-h-60 block"
         role="img"
         aria-labelledby={`${id}-t`}
         onMouseLeave={() => setHover(null)}
