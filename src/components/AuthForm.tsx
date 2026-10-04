@@ -134,7 +134,6 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
               </button>
             )
           )}
-          {mode === "signup" && <p className="text-xs text-ink-soft text-center -mt-1">Tick the boxes above first, they apply either way.</p>}
         </>
       )}
 
