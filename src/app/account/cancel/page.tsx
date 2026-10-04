@@ -5,8 +5,8 @@ import { Suspense } from "react";
 
 import { PortalButton } from "@/components/PortalButton";
 import { getViewer } from "@/lib/auth";
-import { weeklyLabel } from "@/lib/billing/plans";
-import { downgradesFor, monthlyFor, offerFor, type Downgrades } from "@/lib/billing/retention";
+import { PLANS, planById, termById, termPrice, weeklyLabel } from "@/lib/billing/plans";
+import { downgradesFor, monthlyFor, offerFor, type Downgrades, type MonthlySwitch, type Offer } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
 import { longDate } from "@/lib/format";
 import { MonthlyOffer as Monthly } from "@/components/MonthlyOffer";
@@ -28,8 +28,9 @@ export default function Page({ searchParams }: PageProps<"/account/cancel">) {
 async function Cancel({ searchParams }: { searchParams: PageProps<"/account/cancel">["searchParams"] }) {
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   if (!viewer.id) redirect("/login?next=%2Faccount%2Fcancel");
-  if (!stripeConfigured() || !viewer.stripeCustomerId) redirect("/account");
-  const [offer, cheaper, monthly] = await Promise.all([offerFor(viewer.id), downgradesFor(viewer.id), monthlyFor(viewer.id)]);
+  const sample = viewer.admin && typeof sp.preview === "string" ? preview(sp.preview) : undefined;
+  if (!sample && (!stripeConfigured() || !viewer.stripeCustomerId)) redirect("/account");
+  const [offer, cheaper, monthly] = sample ?? (await Promise.all([offerFor(viewer.id), downgradesFor(viewer.id), monthlyFor(viewer.id)]));
 
   if ("reason" in offer) {
     return (
@@ -71,6 +72,20 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
       </form>
     </section>
   );
+}
+
+/**
+ * Admin only, ?preview=year|quarter|failed|month: the page as an Every day
+ * trialist on that term sees it, with sample numbers and no Stripe calls.
+ */
+function preview(kind: string): [Offer | { reason: "not-eligible" }, Downgrades | null, MonthlySwitch | null] {
+  const plan = planById("everyday")!;
+  const term = termById(kind === "quarter" ? "quarter" : kind === "month" ? "month" : "year");
+  const chargeOn = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
+  const cheaper: Downgrades = { subscriptionId: "preview", current: plan.name, trialing: kind !== "failed", term, options: PLANS.filter((o) => o.price < plan.price).map((o) => ({ plan: o, price: termPrice(o, term) })) };
+  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null];
+  const monthly: MonthlySwitch = { subscriptionId: "preview", planName: plan.name, term, termPrice: termPrice(plan, term), monthly: plan.price, chargeOn, failedInvoice: kind === "failed" ? "preview" : undefined };
+  return [{ reason: "not-eligible" }, cheaper, monthly];
 }
 
 /** The plans under theirs, for someone who wants the board on fewer days for less. */
