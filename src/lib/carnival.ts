@@ -12,7 +12,7 @@ const DAYS: BigDay[] = [
   { date: "2026-10-10", races: "Caulfield Guineas" },
   { date: "2026-10-17", races: "The Everest and the Caulfield Cup" },
   { date: "2026-10-24", races: "Cox Plate" },
-  { date: "2026-10-31", races: "Victoria Derby and the Golden Eagle" },
+  { date: "2026-10-31", races: "Derby Day" },
   { date: "2026-11-03", races: "Melbourne Cup" },
   { date: "2026-11-07", races: "Champions Stakes" },
 ];

@@ -73,9 +73,9 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
         {ahead.length > 0 && (
           <div className="mt-6">
             <p className="text-xs uppercase tracking-[0.1em] font-bold text-ink-soft">Still to come this spring</p>
-            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+            <ul className="mt-2 flex flex-wrap justify-center gap-2">
               {ahead.map((d) => (
-                <li key={d.date} className="rounded-[var(--radius-lg)] border border-line bg-panel px-3 py-2.5 shadow-card last:odd:col-span-2 sm:last:odd:col-span-1">
+                <li key={d.date} className="w-[calc(50%-0.25rem)] rounded-[var(--radius-lg)] border border-line bg-panel px-3 py-2.5 shadow-card sm:w-36">
                   <div className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-accent">{dayLabel(d.date)}</div>
                   <div className="mt-0.5 text-sm font-semibold leading-snug">{d.races}</div>
                 </li>
