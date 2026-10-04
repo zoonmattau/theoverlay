@@ -125,7 +125,14 @@ async function pageViewsSince(since: string): Promise<ViewRow[]> {
 
 export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}): Promise<ActivityReport> {
   const db = supabaseAdmin();
-  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  // Whole Sydney days: from midnight `days - 1` days ago, so the oldest row is a full day (it started at
+  // this time of day, and 27 Sep read 365 views of its 475, 4 Oct 2026).
+  // Midnight is found on the first day itself: across daylight saving the offset differs from today's.
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const first = new Date(new Date(`${today}T12:00:00Z`).getTime() - (days - 1) * 86400_000).toISOString().slice(0, 10);
+  const noon = new Date(`${first}T12:00:00Z`);
+  const hour = Number(noon.toLocaleString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hour12: false }));
+  const since = new Date(noon.getTime() - hour * 3600_000).toISOString();
   const [views, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
     pageViewsSince(since),
     db.from("profiles").select("id, email"),
@@ -160,13 +167,20 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     const f = firstView.get(id);
     if (!f || v.created_at < f.created_at) firstView.set(id, v);
   }
-  const adsByDay = new Map<string, number>();
   const bySource = new Map<string, number>();
   for (const v of firstView.values()) {
     const src = sourceOf(v.meta);
     bySource.set(src, (bySource.get(src) ?? 0) + 1);
-    if (src.endsWith(" ads")) adsByDay.set(dayOf(v), (adsByDay.get(dayOf(v)) ?? 0) + 1);
   }
+  // From ads: everyone who landed from an ad that day, returning visitors too, the way the
+  // Money tab counts an ad's visits (first-visit-of-the-week only read 14 against 24, 4 Oct 2026).
+  const adPeople = new Map<string, Set<string>>();
+  for (const v of views) {
+    if (!sourceOf(v.meta).endsWith(" ads")) continue;
+    const d = dayOf(v);
+    adPeople.set(d, (adPeople.get(d) ?? new Set()).add(who(v, owners)));
+  }
+  const adsByDay = new Map([...adPeople].map(([d, s]) => [d, s.size]));
   const sources = [...bySource.entries()].map(([source, people]) => ({ source, people })).sort((a, b) => b.people - a.people).slice(0, 12);
   const byDay = tally(dayOf)
     .map((x) => ({ day: x.key, views: x.views, people: x.people, ads: adsByDay.get(x.key) ?? 0 }))

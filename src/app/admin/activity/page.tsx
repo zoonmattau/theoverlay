@@ -89,7 +89,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             <div className="card">
               <h2 className="font-display font-extrabold mb-3">By day</h2>
               <table className="data-table w-full text-sm">
-                <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People whose first visit that day came from an ad">From ads</th><th></th></tr></thead>
+                <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People who landed from an ad that day, returning visitors too, as the Money tab counts them">From ads</th><th></th></tr></thead>
                 <tbody>
                   {r.byDay.map((d) => (
                     <tr key={d.day} className={cut.day === d.day ? "bg-lime-soft" : ""}>
