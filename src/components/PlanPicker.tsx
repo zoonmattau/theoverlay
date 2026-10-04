@@ -125,7 +125,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                         <>About {weekly(p.prices.month)} a week</>
                       ) : (
                         <>
-                          Works out ${Math.round(monthly)} a month, <span className="font-semibold text-accent">save ${saved}</span>
+                          ${Math.round(monthly)} a month, <span className="font-semibold text-accent">save ${saved}</span>
                         </>
                       )}
                     </div>
