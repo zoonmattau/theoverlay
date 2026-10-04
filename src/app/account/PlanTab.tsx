@@ -66,9 +66,12 @@ export async function PlanTab({ viewer, plan, preview }: { viewer: Viewer; plan:
       </div>
 
       {settled && options.length > 0 && (
-        <div className="mt-8">
-          <h3 className="font-display text-lg font-extrabold tracking-tight">Change plan</h3>
-          <p className="text-sm text-ink-soft">More days or fewer, switched straight away.{status === "trialing" ? " Your trial carries on." : ""}</p>
+        <details className="group mt-6">
+          <summary className="flex cursor-pointer list-none items-center gap-2 font-display text-lg font-extrabold tracking-tight [&::-webkit-details-marker]:hidden">
+            <span className="inline-block text-sm transition-transform group-open:rotate-90" aria-hidden>▸</span>
+            Change plan
+          </summary>
+          <p className="mt-1 text-sm text-ink-soft">More days or fewer, switched straight away.{status === "trialing" ? " Your trial carries on." : ""}</p>
           <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
             {options.map(({ plan: p, price }) => {
               const diff = price - mine;
@@ -87,7 +90,7 @@ export async function PlanTab({ viewer, plan, preview }: { viewer: Viewer; plan:
               );
             })}
           </div>
-        </div>
+        </details>
       )}
 
       {viewer.stripeCustomerId && status !== "cancelling" && (
