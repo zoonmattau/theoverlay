@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin, now } from "@/lib/admin";
+import { adsReport, type AdsReport } from "@/lib/ads/report";
 import { planById, TERMS, weekly } from "@/lib/billing/plans";
 import { priceBook, type PriceCell } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
@@ -32,7 +33,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const [r, prices, upcoming] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(14)]);
+  const [r, prices, upcoming, ads] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(14), adsReport(n)]);
   const t = r.totals;
 
   return (
@@ -59,6 +60,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.paid} label="paid" tone="prime" />
         <Tile n={t.cancelled} label="cancelled" />
       </div>
+
+      <Ads r={ads} n={n} />
 
       {/* Side by side on a wide screen, stacked on a phone: Coming up on the left, prices and new accounts down the right, both ending level. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6">
@@ -285,6 +288,55 @@ function Row({ p, total }: { p: PlanFunnel; total?: boolean }) {
   );
 }
 
+/**
+ * Meta's spend against what it brought over the window: cost per account,
+ * per trial and per paying member, then the days. Paying lags a trial by its
+ * length, so read cost per paying member over the window, not a day.
+ */
+function Ads({ r, n }: { r: AdsReport; n: number }) {
+  const t = r.totals;
+  const cost = (v?: number) => (v === undefined ? "–" : `$${v.toFixed(v >= 100 ? 0 : 2)}`);
+  const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.trials || d.paid);
+  return (
+    <div className="card mb-6">
+      <h2 className="font-display font-extrabold">Meta ads</h2>
+      <p className="mt-1 text-xs text-ink-soft">
+        Spend from Meta against accounts from Meta ad links (our own tags, not Meta&apos;s count), their trials and first payments, last {n} days. A boosted post with no ad link shows as Instagram, not here.
+      </p>
+      {r.missing && <p className="mt-2 text-sm text-red">{r.missing}</p>}
+      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Tile n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label={`spent, ${n} days`} />
+        <Tile n={cost(t.perSignup)} label={`per account (${t.signups})`} />
+        <Tile n={cost(t.perTrial)} label={`per trial (${t.trials})`} tone="prime" />
+        <Tile n={cost(t.perPaid)} label={`per paying member (${t.paid})`} tone="bet" />
+      </div>
+      {days.length > 0 && (
+        <details className="mt-4 group">
+          <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+            <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
+            By day
+          </summary>
+          <table className="data-table stack-sm text-xs mt-3">
+            <thead><tr><th>Day</th><th className="text-right">Spend</th><th className="text-right">Accounts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per trial</th></tr></thead>
+            <tbody>
+              {days.map((d) => (
+                <tr key={d.date}>
+                  <td className="nums whitespace-nowrap">{dayLabel(d.date, { weekday: "short", day: "numeric", month: "short" })}</td>
+                  <td data-label="Spend" className="text-right nums">{d.spend ? `$${d.spend.toFixed(2)}` : ""}</td>
+                  <td data-label="Accounts" className="text-right nums">{d.signups || ""}</td>
+                  <td data-label="Trials" className="text-right nums">{d.trials || ""}</td>
+                  <td data-label="Paid" className="text-right nums">{d.paid || ""}</td>
+                  <td data-label="Per trial" className="text-right nums">{d.trials && d.spend ? `$${(d.spend / d.trials).toFixed(2)}` : ""}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </details>
+      )}
+    </div>
+  );
+}
+
 function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "prime" | "bet" }) {
   const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : "";
   return (
@@ -373,7 +425,15 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
                 const total = d.trial + d.paying + d.retry;
                 return (
                   <div key={d.iso} className={`flex flex-col items-center h-full ${d.tip ? "cursor-help" : ""}`} data-tip={d.tip ? `${dayLabel(d.iso, { weekday: "long", day: "numeric", month: "short" })}, ${dollars(total)}\n${d.tip}` : undefined}>
-                    <div className="nums text-[10px] font-bold h-4">{total ? dollars(total) : ""}</div>
+                    {/* On a phone a day of $1,000 or more reads $1.2k: fourteen full figures crowd the row. */}
+                    <div className="nums text-[10px] font-bold h-4 whitespace-nowrap">
+                      {total >= 100_000 ? (
+                        <>
+                          <span className="sm:hidden">${(total / 100_000).toFixed(1)}k</span>
+                          <span className="hidden sm:inline">{dollars(total)}</span>
+                        </>
+                      ) : total ? dollars(total) : ""}
+                    </div>
                     <div className="w-full flex-1 min-h-24 flex flex-col justify-end rounded-sm bg-panel-alt">
                       {d.trial > 0 && <div className="w-full bg-lime rounded-t-sm" style={{ height: `${(d.trial / top) * 100}%` }} />}
                       {d.retry > 0 && <div className={`w-full bg-amber ${d.trial ? "" : "rounded-t-sm"}`} style={{ height: `${(d.retry / top) * 100}%` }} />}
