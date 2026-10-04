@@ -23,7 +23,13 @@ const GROUPS: { title: string; items: { href: string; label: string; hint?: stri
       { href: "/admin/affiliates", label: "Tipsters and affiliates", hint: "who sends people, who posts calls" },
     ],
   },
-  { title: "Money", items: [{ href: "/admin/money", label: "Money", hint: "funnel, plans, revenue" }] },
+  {
+    title: "Money",
+    items: [
+      { href: "/admin/money", label: "Money", hint: "funnel, plans, revenue" },
+      { href: "/admin/bets", label: "My bets", hint: "your own bets, settled from the results" },
+    ],
+  },
 ];
 
 export function AdminNav() {
