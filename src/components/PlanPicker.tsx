@@ -44,8 +44,6 @@ const WEEK = [
   { d: 0, l: "S" },
 ];
 
-const weekly = (monthly: number) => `$${(Math.round(((monthly * 12) / 52) * 10) / 10).toFixed(2)}`;
-
 export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savings }: { plans: PickerPlan[]; signedIn: boolean; pro: boolean; currentPlan?: string; trialDays: number; savings: Partial<Record<TermId, number>> }) {
   const [term, setTerm] = useState<TermId>("month");
   const t = TERMS.find((x) => x.id === term)!;
@@ -81,7 +79,6 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 items-stretch">
         {plans.map((p) => {
           const bill = p.prices[term];
-          const monthly = bill !== undefined ? bill / t.months : p.prices.month;
           const saved = bill !== undefined && term !== "month" ? p.prices.month * t.months - bill : 0;
           const yours = pro && currentPlan === p.id;
           return (
@@ -121,13 +118,9 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                       <span className="text-sm text-ink-soft">{t.per}</span>
                     </div>
                     <div className="mt-0.5 text-sm text-ink-secondary tabular-nums">
-                      {term === "month" ? (
-                        <>About {weekly(p.prices.month)} a week</>
-                      ) : (
-                        <>
-                          ${Math.round(monthly)} a month, <span className="font-semibold text-accent">save ${saved}</span>
-                        </>
-                      )}
+                      {/* The bill spread over the weeks it covers, to the cent, then what the term saves. */}
+                      ${(bill / ((t.months * 52) / 12)).toFixed(2)} a week
+                      {saved > 0 && <>, <span className="font-semibold text-accent">save ${saved}</span></>}
                     </div>
                   </>
                 ) : (
