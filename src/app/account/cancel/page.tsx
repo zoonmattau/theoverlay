@@ -62,7 +62,7 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
 
   // What it costs to stay, never when money comes out: the page sells the saving (the user, 5 Oct 2026).
   const heading = monthly ? `Keep the board for $${monthly.monthly}.` : "Stay for less.";
-  const sub = monthly ? `Pay monthly instead and the $${monthly.termPrice} is gone.` : "Same board, smaller price. Pick what suits you.";
+  const sub = monthly ? "The full board through the spring, a month at a time." : "Same board, smaller price. Pick what suits you.";
 
   return (
     <div className="pb-10">
