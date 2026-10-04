@@ -26,7 +26,7 @@ export function MonthlyOffer({ offer, declined, back = "/account/cancel" }: { of
       <div className="card border-lime bg-lime-soft mt-5 flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="font-display text-xl font-extrabold tracking-tight nums">${offer.monthly} for 5 weeks</div>
-          <div className="text-sm text-ink-secondary nums">instead of ${offer.termPrice} up front. Your next bill is 5 weeks away.</div>
+          <div className="text-sm text-ink-secondary nums">instead of ${offer.termPrice} up front.</div>
           {declined && <div className="mt-1 text-sm text-red font-semibold">Your card was declined, so nothing changed. Update it from your account and try again.</div>}
         </div>
         <form action={payMonthlyToday}>
