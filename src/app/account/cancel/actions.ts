@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { getViewer } from "@/lib/auth";
-import { declineOffer, offerFor, payMonthlyNow, switchPlan, takeOffer } from "@/lib/billing/retention";
+import { cancelFlow, offerFor, payMonthlyNow, switchPlan, takeOffer } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
 
 /** Half price on the first month, then back to the account page. */
@@ -33,12 +33,10 @@ export async function payMonthlyToday(form: FormData): Promise<void> {
   redirect(result === "paid" ? "/account?switched=paid-now" : result === "failed" ? `${back}?card=declined` : "/account");
 }
 
-/** No thanks: straight into Stripe's cancellation for the subscription. */
+/** No thanks: straight into Stripe's cancellation for the subscription, on any term. */
 export async function cancelAnyway(): Promise<void> {
   const viewer = await getViewer();
   if (!viewer.id || !viewer.stripeCustomerId || !stripeConfigured()) redirect("/account");
-  const offer = await offerFor(viewer.id);
-  const subscriptionId = "reason" in offer ? undefined : offer.subscriptionId;
-  if (!subscriptionId) redirect("/account");
-  redirect(await declineOffer(viewer.id, viewer.stripeCustomerId, subscriptionId));
+  const url = await cancelFlow(viewer.id, viewer.stripeCustomerId);
+  redirect(url ?? "/account");
 }

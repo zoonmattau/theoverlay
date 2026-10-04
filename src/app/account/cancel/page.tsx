@@ -3,113 +3,192 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
 
-import { PortalButton } from "@/components/PortalButton";
+import { DayStrip } from "@/components/PlanPicker";
 import { getViewer } from "@/lib/auth";
-import { PLANS, planById, termById, termPrice, weeklyLabel } from "@/lib/billing/plans";
+import { PLANS, planById, termById, termPrice, type Plan } from "@/lib/billing/plans";
 import { downgradesFor, monthlyFor, offerFor, type Downgrades, type MonthlySwitch, type Offer } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
+import { bigDaysAhead } from "@/lib/carnival";
 import { longDate } from "@/lib/format";
-import { MonthlyOffer as Monthly } from "@/components/MonthlyOffer";
-import { cancelAnyway, keepAtHalfPrice, moveToPlan } from "./actions";
+import { cancelAnyway, keepAtHalfPrice, moveToPlan, payMonthlyToday } from "./actions";
 
 export const metadata: Metadata = { title: "Before you go", robots: { index: false } };
 
 export default function Page({ searchParams }: PageProps<"/account/cancel">) {
   return (
-    <div className="page max-w-2xl">
-      <Suspense fallback={<div className="skeleton h-64 mt-6" />}>
+    <div className="page max-w-5xl">
+      <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
         <Cancel searchParams={searchParams} />
       </Suspense>
     </div>
   );
 }
 
-/** The step before Stripe's cancellation: half price on the first month, once, for anyone not yet charged. */
+type Data = [Offer | { reason: "no-subscription" | "already-offered" | "not-eligible" }, Downgrades | null, MonthlySwitch | null];
+
+/**
+ * The step before Stripe's cancellation, laid out like the pricing page: their
+ * own plan with the one offer they can take (half the first month on monthly,
+ * or the first month today on a longer term), the cheaper plans at monthly
+ * prices beside it, and the way out underneath, saying what happens.
+ */
 async function Cancel({ searchParams }: { searchParams: PageProps<"/account/cancel">["searchParams"] }) {
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
-  if (!viewer.id) redirect("/login?next=%2Faccount%2Fcancel");
-  const sample = viewer.admin && typeof sp.preview === "string" ? preview(sp.preview) : undefined;
+  // The preview needs no account on the dev server, so the page can be shot without logging in.
+  const sample = (viewer.admin || process.env.NODE_ENV === "development") && typeof sp.preview === "string" ? preview(sp.preview) : undefined;
+  if (!viewer.id && !sample) redirect("/login?next=%2Faccount%2Fcancel");
   if (!sample && (!stripeConfigured() || !viewer.stripeCustomerId)) redirect("/account");
-  const [offer, cheaper, monthly] = sample ?? (await Promise.all([offerFor(viewer.id), downgradesFor(viewer.id), monthlyFor(viewer.id)]));
+  const [offer, cheaper, monthly]: Data = sample ?? (await Promise.all([offerFor(viewer.id!), downgradesFor(viewer.id!), monthlyFor(viewer.id!)]));
+  const ahead = bigDaysAhead(5);
 
-  if ("reason" in offer) {
+  const half = "reason" in offer ? undefined : offer;
+  if ("reason" in offer && offer.reason === "no-subscription" && !monthly) {
     return (
-      <section className="py-10">
-        {monthly && <Monthly offer={monthly} declined={sp.card === "declined"} />}
-        <h1 className={`font-display tracking-tight font-extrabold ${monthly ? "mt-10 text-xl" : "text-3xl"}`}>{monthly ? "Or cancel your plan" : "Cancel your plan"}</h1>
-        <p className="mt-2 text-sm text-ink-secondary">
-          {offer.reason === "no-subscription" ? "There is no plan on this account to cancel." : "Cancelling stops the next charge; the board stays open until the end of what you have paid for."}
-        </p>
-        {cheaper && <Cheaper offer={cheaper} />}
-        <div className="mt-4 flex flex-wrap gap-2">
-          {offer.reason !== "no-subscription" && <PortalButton />}
-          <Link href="/account" className="btn btn-secondary btn-sm">Back to your account</Link>
-        </div>
+      <section className="py-16 text-center">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">No plan to cancel.</h1>
+        <p className="mt-2 text-sm text-ink-secondary">There is no plan on this account.</p>
+        <Link href="/account" className="btn btn-secondary mt-6">Back to your account</Link>
       </section>
     );
   }
 
-  return (
-    <section className="py-10">
-      <p className="text-xs uppercase tracking-[0.1em] text-ink-soft font-bold">Before you go</p>
-      <h1 className="mt-1 font-display text-3xl font-extrabold tracking-tight">Stay for half price.</h1>
-      <p className="mt-2 text-sm text-ink-secondary">
-        Keep {offer.planName} and your first month is <strong className="nums">${offer.offered.toFixed(2)}</strong> instead of ${offer.full}
-        {offer.chargeOn ? `, charged on ${longDate(offer.chargeOn)}` : ""}. Every month after that is the normal price, and you can still cancel any time.
-      </p>
-      <div className="card border-lime bg-lime-soft mt-5 flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="font-display text-xl font-extrabold tracking-tight">First month ${offer.offered.toFixed(2)}</div>
-          <div className="text-sm text-ink-secondary">Then ${offer.full} a month. One-time offer.</div>
-        </div>
-        <form action={keepAtHalfPrice}>
-          <button type="submit" className="btn btn-primary">Keep my plan at half price</button>
-        </form>
-      </div>
-      {cheaper && <Cheaper offer={cheaper} />}
-      <form action={cancelAnyway} className="mt-4">
-        <button type="submit" className="text-sm text-ink-soft underline">No thanks, cancel my plan</button>
-      </form>
-    </section>
-  );
-}
+  const failed = Boolean(monthly?.failedInvoice);
+  const plan = planById(viewer.plan ?? undefined) ?? planById("everyday")!;
+  const chargeOn = half?.chargeOn ?? monthly?.chargeOn;
+  const when = chargeOn ? shortDate(chargeOn) : undefined;
+  // A failed bill has nothing to switch: the open invoice is still the term's. One way to stay, then out.
+  const options = failed ? [] : (cheaper?.options ?? []);
+  const cards = options.length + (half || monthly ? 1 : 0);
 
-/**
- * Admin only, ?preview=year|quarter|failed|month: the page as an Every day
- * trialist on that term sees it, with sample numbers and no Stripe calls.
- */
-function preview(kind: string): [Offer | { reason: "not-eligible" }, Downgrades | null, MonthlySwitch | null] {
-  const plan = planById("everyday")!;
-  const term = termById(kind === "quarter" ? "quarter" : kind === "month" ? "month" : "year");
-  const chargeOn = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
-  const cheaper: Downgrades = { subscriptionId: "preview", current: plan.name, trialing: kind !== "failed", term, options: PLANS.filter((o) => o.price < plan.price).map((o) => ({ plan: o, price: termPrice(o, term) })) };
-  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null];
-  const monthly: MonthlySwitch = { subscriptionId: "preview", planName: plan.name, term, termPrice: termPrice(plan, term), monthly: plan.price, chargeOn, failedInvoice: kind === "failed" ? "preview" : undefined };
-  return [{ reason: "not-eligible" }, cheaper, monthly];
-}
+  // What it costs to stay, never when money comes out: the page sells the saving (the user, 5 Oct 2026).
+  const heading = failed ? `Keep the board for $${monthly!.monthly}.` : "Stay for less.";
+  const sub = failed ? `Pay monthly instead and the $${monthly!.termPrice} is gone.` : "Same board, smaller price. Pick what suits you.";
 
-/** The plans under theirs, for someone who wants the board on fewer days for less. */
-function Cheaper({ offer }: { offer: Downgrades }) {
   return (
-    <div className="mt-6">
-      <h2 className="font-display text-xl font-extrabold tracking-tight">Or pay less for fewer days.</h2>
-      <p className="mt-1 text-sm text-ink-secondary">
-        {offer.trialing ? "Your free trial carries over and the new price starts when it ends." : "The rest of this month is credited to your next bill."}
-      </p>
-      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
-        {offer.options.map(({ plan: p, price }) => (
-          <form key={p.id} action={moveToPlan} className="card flex flex-col gap-3">
-            <input type="hidden" name="plan" value={p.id} />
-            <div>
-              <div className="font-display text-lg font-extrabold tracking-tight">{p.name}</div>
-              <div className="text-sm text-ink-secondary">
-                <span className="nums">${price}</span> {offer.term.every}, <span className="nums">{weeklyLabel(price / offer.term.months)}</span> a week. {p.blurb}
-              </div>
-            </div>
-            <button type="submit" className="btn btn-secondary btn-sm mt-auto self-start">Switch to {p.name}</button>
-          </form>
+    <div className="pb-10">
+      <section className="text-center max-w-3xl mx-auto pt-6 pb-6">
+        <p className="text-xs uppercase tracking-[0.1em] font-bold text-ink-soft">Before you go</p>
+        <h1 className="mt-2 font-display text-3xl sm:text-4xl font-extrabold tracking-tight leading-[1.15]">{heading}</h1>
+        <p className="mt-3 text-ink-secondary">{sub}</p>
+        {ahead.length > 0 && (
+          <div className="mt-6">
+            <p className="text-xs uppercase tracking-[0.1em] font-bold text-ink-soft">Still to come this spring</p>
+            <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {ahead.map((d) => (
+                <li key={d.date} className="rounded-[var(--radius-lg)] border border-line bg-panel px-3 py-2.5 shadow-card last:odd:col-span-2 sm:last:odd:col-span-1">
+                  <div className="text-[11px] font-extrabold uppercase tracking-[0.06em] text-accent">{dayLabel(d.date)}</div>
+                  <div className="mt-0.5 text-sm font-semibold leading-snug">{d.races}</div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </section>
+
+      {sp.card === "declined" && (
+        <p className="mx-auto mb-4 max-w-md rounded-[var(--radius-lg)] border border-red bg-panel p-3 text-center text-sm font-semibold text-red">
+          Your card was declined, so nothing changed. Update it from your account and try again.
+        </p>
+      )}
+
+      <div className={`grid grid-cols-1 gap-4 items-stretch ${cards === 3 ? "md:grid-cols-3" : cards === 2 ? "md:grid-cols-2 max-w-3xl mx-auto" : "max-w-md mx-auto"}`}>
+        {/* Their own plan with its offer, first on a phone and last on a computer, like the pricing page. */}
+        {(half || monthly) && <div className="md:order-last">
+          {half ? (
+            <Card plan={plan} tag="Half price" highlight>
+              <Price was={`$${half.full}`} n={`$${fmt(half.offered)}`} per="first month" />
+              <Line>Half off your first month. Cancel any time.</Line>
+              <form action={keepAtHalfPrice} className="mt-auto">
+                <button type="submit" className="btn btn-primary w-full">Keep it at half price</button>
+              </form>
+            </Card>
+          ) : monthly ? (
+            <Card plan={plan} tag="5 weeks for the price of 4" highlight>
+              <Price was={`$${monthly.termPrice}`} n={`$${monthly.monthly}`} per="for 5 weeks" />
+              <Line>A week free, then month to month. Cancel any time.</Line>
+              <form action={payMonthlyToday} className="mt-auto">
+                <input type="hidden" name="back" value="/account/cancel" />
+                <button type="submit" className="btn btn-primary w-full">Pay ${monthly.monthly}, get 5 weeks</button>
+              </form>
+            </Card>
+          ) : null}
+        </div>}
+
+        {options.map(({ plan: p, price }) => (
+          <Card key={p.id} plan={p}>
+            <Price was={`$${termPrice(plan, cheaper!.term)}`} n={`$${price}`} per={cheaper!.term.id === "month" ? "/month" : `/${cheaper!.term.name.toLowerCase()}`} />
+            <Line>
+              <span className="font-semibold text-accent">Save ${termPrice(plan, cheaper!.term) - price} {cheaper!.term.id === "month" ? "a month" : cheaper!.term.id === "year" ? "a year" : "every 3 months"}.</span> {cheaper!.trialing ? "Your trial carries on." : ""}
+            </Line>
+            <form action={moveToPlan} className="mt-auto">
+              <input type="hidden" name="plan" value={p.id} />
+              <button type="submit" className="btn btn-secondary w-full">Switch to {p.name}</button>
+            </form>
+          </Card>
         ))}
+      </div>
+
+      <div className="mt-10 text-center">
+        <p className="text-sm text-ink-secondary">
+          {failed ? "Cancelling ends your access today." : when ? `Cancel and the board stays open until ${when}.` : "Cancel and the board stays open until the end of your plan."}
+        </p>
+        <form action={cancelAnyway} className="mt-2">
+          <button type="submit" className="text-sm font-semibold text-ink-soft underline underline-offset-2 hover:text-ink">Cancel my plan</button>
+        </form>
+        <Link href="/account" className="mt-4 inline-block text-sm text-ink-soft hover:text-ink">← Back to your account</Link>
       </div>
     </div>
   );
+}
+
+/** A plan card in the pricing page's shape: name, the days it opens, the price, one line, one button. */
+function Card({ plan, tag, highlight, children }: { plan: Plan; tag?: string; highlight?: boolean; children: React.ReactNode }) {
+  return (
+    <article className={`relative flex h-full flex-col gap-4 rounded-[var(--radius-lg)] border bg-panel p-5 shadow-card ${highlight ? "border-ink border-2 mt-2 md:mt-0" : "border-line"}`}>
+      {tag && <span className="absolute -top-3 left-5 rounded-full bg-lime px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-[0.06em] text-ink">{tag}</span>}
+      <div>
+        <h2 className="font-display text-xl font-extrabold tracking-tight">{plan.name}</h2>
+        <p className="text-sm text-ink-soft">{plan.blurb}</p>
+      </div>
+      <DayStrip days={plan.days} />
+      {children}
+    </article>
+  );
+}
+
+function Price({ was, n, per }: { was?: string; n: string; per: string }) {
+  return (
+    <div className="flex items-baseline gap-1.5">
+      {was && <span className="font-display text-xl font-bold text-ink-soft line-through decoration-2 tabular-nums">{was}</span>}
+      <span className="font-display text-4xl font-extrabold tracking-tight tabular-nums">{n}</span>
+      <span className="text-sm text-ink-soft">{per}</span>
+    </div>
+  );
+}
+
+function Line({ children }: { children: React.ReactNode }) {
+  return <p className="-mt-2 text-sm text-ink-secondary tabular-nums">{children}</p>;
+}
+
+/** "Sat 17 Oct". */
+const dayLabel = (iso: string) => new Date(`${iso}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" }).replace(",", "");
+
+const fmt = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2));
+
+/** "Wednesday 7 October", without the year a trial never needs. */
+const shortDate = (iso: string) => longDate(iso).replace(/\s\d{4}$/, "");
+
+/**
+ * Admin only (or anyone on the dev server), ?preview=year|quarter|failed|month:
+ * the page as an Every day trialist on that term sees it, with sample numbers and no Stripe calls.
+ */
+function preview(kind: string): Data {
+  const plan = planById("everyday")!;
+  const term = termById(kind === "quarter" ? "quarter" : kind === "month" ? "month" : "year");
+  const month = termById("month");
+  const chargeOn = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
+  const cheaper: Downgrades = { subscriptionId: "preview", current: plan.name, trialing: true, term: month, options: PLANS.filter((o) => o.price < plan.price).map((o) => ({ plan: o, price: termPrice(o, month) })) };
+  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null];
+  const monthly: MonthlySwitch = { subscriptionId: "preview", planName: plan.name, term, termPrice: termPrice(plan, term), monthly: plan.price, chargeOn: kind === "failed" ? undefined : chargeOn, failedInvoice: kind === "failed" ? "preview" : undefined };
+  return [{ reason: "not-eligible" }, cheaper, monthly];
 }

@@ -51,6 +51,22 @@ const WEEK = [
   { d: 0, l: "S" },
 ];
 
+/** The days of the week a plan opens, lit lime; empty days is every day. Shared with the cancel page. */
+export function DayStrip({ days }: { days: number[] }) {
+  return (
+    <div className="flex gap-1" aria-label={days.length ? `Opens ${days.length === 1 ? "Saturdays" : "Wednesdays and Saturdays"}` : "Opens every day"}>
+      {WEEK.map((w, i) => {
+        const lit = days.length === 0 || days.includes(w.d);
+        return (
+          <span key={i} aria-hidden className={`flex h-7 flex-1 items-center justify-center rounded-md text-xs font-bold ${lit ? "bg-lime text-ink" : "bg-surface-alt text-ink-soft"}`}>
+            {w.l}
+          </span>
+        );
+      })}
+    </div>
+  );
+}
+
 export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savings }: { plans: PickerPlan[]; signedIn: boolean; pro: boolean; currentPlan?: string; trialDays: number; savings: Partial<Record<TermId, number>> }) {
   const [term, setTerm] = useState<TermId>("month");
   const t = TERMS.find((x) => x.id === term)!;
@@ -102,20 +118,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
               </div>
 
               {/* The days it opens, lit: the whole difference between the three plans. */}
-              <div className="flex gap-1" aria-label={p.days.length ? `Opens ${p.days.length === 1 ? "Saturdays" : "Wednesdays and Saturdays"}` : "Opens every day"}>
-                {WEEK.map((w, i) => {
-                  const lit = p.days.length === 0 || p.days.includes(w.d);
-                  return (
-                    <span
-                      key={i}
-                      aria-hidden
-                      className={`flex h-7 flex-1 items-center justify-center rounded-md text-xs font-bold ${lit ? "bg-lime text-ink" : "bg-surface-alt text-ink-soft"}`}
-                    >
-                      {w.l}
-                    </span>
-                  );
-                })}
-              </div>
+              <DayStrip days={p.days} />
 
               <div>
                 {bill !== undefined ? (

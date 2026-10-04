@@ -72,6 +72,21 @@ export async function declineOffer(userId: string, customerId: string, subscript
   return session.url;
 }
 
+/** Stripe's own cancellation page for the subscription on the account, whatever its term. */
+export async function cancelFlow(userId: string, customerId: string): Promise<string | null> {
+  const { data: p } = await supabaseAdmin().from("profiles").select("stripe_subscription_id").eq("id", userId).maybeSingle();
+  if (!p?.stripe_subscription_id) return null;
+  const offer = await offerFor(userId);
+  // A monthly trialist was shown the half-price month: saying no is remembered, so it is never made twice.
+  if (!("reason" in offer)) return declineOffer(userId, customerId, offer.subscriptionId);
+  const session = await stripe().billingPortal.sessions.create({
+    customer: customerId,
+    return_url: `${siteUrl()}/account`,
+    flow_data: { type: "subscription_cancel", subscription_cancel: { subscription: p.stripe_subscription_id } },
+  });
+  return session.url;
+}
+
 /**
  * The other way to stay: a cheaper plan. Every sign-up so far has taken Every
  * day on the free trial, and the price is what loses them when it ends, so the
@@ -94,7 +109,8 @@ export async function downgradesFor(userId: string): Promise<Downgrades | null> 
   const plan = planById(p.plan ?? undefined);
   if (!plan) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
-  const term = termById(sub.metadata?.term);
+  // A trialist moves to the cheaper plan's monthly price: a big bill up front is what puts them off.
+  const term = sub.status === "trialing" ? termById("month") : termById(sub.metadata?.term);
   const options = PLANS.filter((o) => o.price < plan.price && termPriceId(o, term)).map((o) => ({ plan: o, price: termPrice(o, term) }));
   if (options.length === 0) return null;
   return { subscriptionId: sub.id, current: plan.name, trialing: sub.status === "trialing", term, options };
@@ -112,7 +128,7 @@ export async function switchPlan(userId: string, planId: string): Promise<boolea
   if (!item) return false;
   await s.subscriptions.update(sub.id, {
     items: [{ id: item.id, price }],
-    metadata: { ...sub.metadata, plan: to.id },
+    metadata: { ...sub.metadata, plan: to.id, term: offer.term.id },
     proration_behavior: "create_prorations",
     // Stripe takes one or the other, never both.
     ...(sub.cancel_at_period_end ? { cancel_at_period_end: false } : sub.cancel_at ? { cancel_at: "" as const } : {}),
