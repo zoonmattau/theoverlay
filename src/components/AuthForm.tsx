@@ -29,7 +29,7 @@ function GoogleMark() {
 /** Google's own button needs the OAuth client id in the browser; without it the redirect flow stands. */
 const googleClientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
-export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mode: Mode; next?: string; refCode?: string; affCode?: string; providers?: Provider[] }) {
+export function AuthForm({ mode, next, refCode, providers = [] }: { mode: Mode; next?: string; refCode?: string; providers?: Provider[] }) {
   const [state, formAction, pending] = useActionState(ACTIONS[mode], EMPTY);
   // The provider is bound into the action: a submit button's own name is spoken for by the action plumbing.
   const [pstate, googleAction, gpending] = useActionState(signInWithProvider.bind(null, "google"), EMPTY);
@@ -78,13 +78,13 @@ export function AuthForm({ mode, next, refCode, affCode, providers = [] }: { mod
         </p>
       )}
 
-      {/* Most people have no code, and a full field read like a step they were missing: tucked behind a link unless one came with the visit. */}
+      {/* Most people have no code: tucked behind a link and never filled in for them (the user, 4 Oct 2026). A tipster's link still credits the tipster, from its cookie, at sign-up. */}
       {mode === "signup" && !refCode && (
-        <details className="text-sm" open={Boolean(affCode)}>
+        <details className="text-sm">
           <summary className="cursor-pointer select-none text-ink-soft hover:text-ink">Have a code?</summary>
           <label className="field mt-2">
             <span>Code or link</span>
-            <input name="aff" type="text" autoComplete="off" defaultValue={affCode ?? ""} placeholder="The link or code someone sent you" />
+            <input name="aff" type="text" autoComplete="off" placeholder="The link or code someone sent you" />
           </label>
         </details>
       )}
