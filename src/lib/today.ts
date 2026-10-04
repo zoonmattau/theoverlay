@@ -34,6 +34,19 @@ function lastSaturday(today: string): string {
   return d.toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
 }
 
+/** Today's page views, paged: the server hands back a thousand rows a request, and the panel sat at 1,000 (5 Oct 2026). */
+async function viewsSince(since: string): Promise<{ data: { user_id: string | null; meta: unknown }[] }> {
+  const db = supabaseAdmin();
+  const out: { user_id: string | null; meta: unknown }[] = [];
+  for (let from = 0; from < 100_000; from += 1000) {
+    const { data, error } = await db.from("events").select("user_id, meta").eq("kind", "page_view").gte("created_at", since).order("id").range(from, from + 999);
+    if (error) { console.error("[today]", error.message); break; }
+    out.push(...(data ?? []));
+    if (!data || data.length < 1000) break;
+  }
+  return { data: out };
+}
+
 export async function todayFacts(): Promise<TodayFacts> {
   const db = supabaseAdmin();
   const date = racingToday();
@@ -41,7 +54,7 @@ export async function todayFacts(): Promise<TodayFacts> {
   const sat = lastSaturday(date);
   const [{ data: tips }, { data: views }, { count: tipsterCalls }, { count: follows }, reviewed, published] = await Promise.all([
     db.from("tips").select("race_id, tab_number, side, units, finish_position, settled_at").eq("date", date).eq("source", "model"),
-    db.from("events").select("user_id, meta").eq("kind", "page_view").gte("created_at", since).limit(20000),
+    viewsSince(since),
     db.from("creator_tips").select("id", { count: "exact", head: true }).eq("date", date),
     db.from("follows").select("user_id", { count: "exact", head: true }),
     reviewedDates(),
