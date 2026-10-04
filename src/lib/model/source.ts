@@ -610,6 +610,9 @@ async function loadLive(date: string, opts: { cacheOnly?: boolean } = {}): Promi
       const forms = await Promise.all(
         (lite.races ?? [])
           .filter((r) => !r.raceType || r.raceType === "Flat")
+          // Still at nominations or weights with no start time: no field, no barriers, no jump. Form King
+          // listed Sale for 5 Oct 2026 this way and it never ran; acceptances bring it in on a later build.
+          .filter((r) => r.startTime || !/^(nominations|weights)$/i.test(r.status ?? ""))
           .map((r) => getRace(lite.id, r.raceId, { ttlMs: RACE_FORM_TTL_MS, cacheOnly })),
       );
       if (forms.length === 0) return forms;
