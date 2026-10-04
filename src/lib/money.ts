@@ -52,6 +52,8 @@ export interface MoneyReport {
   byHour: number[];
   /** Plan clicks by day of the week, Monday first. */
   byWeekday: number[];
+  /** New accounts and trial sign-ups by day, and this week against last, to see if it is growing. */
+  growth: { accounts: Series; trials: Series; week: { accounts: [number, number]; trials: [number, number] } };
   /** The last 50 plan clicks and checkouts, newest first. */
   recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean; userId?: string }[];
 }
@@ -190,7 +192,28 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     .slice(0, 50)
     .map((e) => ({ at: e.created_at, kind: e.kind, plan: e.plan, who: e.user_id ? (names.get(e.user_id) ?? "a member") : "a visitor", anonymous: !e.user_id, userId: e.user_id ?? undefined }));
 
-  return { days, plans, totals, mrr_cents, signups, sources, bookies, trials, byDay, byHour, byWeekday, recent };
+  // Growth: accounts by the day they were made, trials by the day the subscription began (admins left out).
+  const people = members.filter((m) => !m.is_admin);
+  const count = (key: string, title: string, dates: string[]) => {
+    const by = new Map<string, number>();
+    for (const d of dates) by.set(d, (by.get(d) ?? 0) + 1);
+    const points = window.map((date) => ({ date, value: by.get(date) ?? 0 }));
+    return { key, title, format: "count" as const, points, total: points.reduce((a, p) => a + p.value, 0) };
+  };
+  const accountDays = people.map((m) => sydneyDay(m.created_at));
+  const trialDays = people.filter((m) => m.subscribed_since).map((m) => sydneyDay(m.subscribed_since!));
+  // The last 7 whole-or-part days against the 7 before them.
+  const weekOf = (dates: string[]): [number, number] => {
+    const edge = (k: number) => sydneyDay(new Date(now - k * 86400_000).toISOString());
+    return [dates.filter((d) => d > edge(7)).length, dates.filter((d) => d > edge(14) && d <= edge(7)).length];
+  };
+  const growth = {
+    accounts: count("accounts", "New accounts", accountDays),
+    trials: count("trials", "Trial sign-ups", trialDays),
+    week: { accounts: weekOf(accountDays), trials: weekOf(trialDays) },
+  };
+
+  return { days, plans, totals, mrr_cents, signups, sources, bookies, trials, byDay, byHour, byWeekday, growth, recent };
 }
 
 /** A charge Stripe will try on a live subscription: a trial turning into its first bill, or a renewal. */

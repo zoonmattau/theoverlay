@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { DayChart, DayTable } from "@/components/DayChart";
+import type { MoneyReport } from "@/lib/money";
 import { isAdmin, now } from "@/lib/admin";
 import { adsReport, type AdsReport } from "@/lib/ads/report";
 import { invested, SINCE, type Invested } from "@/lib/invested";
@@ -63,6 +64,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.paid} label="paid" tone="prime" />
         <Tile n={t.cancelled} label="cancelled" />
       </div>
+
+      <Growth g={r.growth} />
 
       {/* Side by side on a wide screen, stacked on a phone. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
@@ -212,6 +215,40 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 }
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
+
+/** This week against last for one count, with the change. */
+function Week({ label, w }: { label: string; w: [number, number] }) {
+  const [now, before] = w;
+  const pct = before ? Math.round(((now - before) / before) * 100) : undefined;
+  const up = now > before, down = now < before;
+  return (
+    <div className="flex items-baseline gap-2 text-sm">
+      <span className="text-ink-soft">{label}, last 7 days</span>
+      <strong className="font-display text-xl tabular-nums">{now}</strong>
+      <span className="text-ink-soft tabular-nums">vs {before} the week before</span>
+      <span className={`font-semibold tabular-nums ${up ? "text-accent" : down ? "text-red" : "text-ink-soft"}`}>
+        {up ? "▲" : down ? "▼" : "="} {pct === undefined ? (now ? "new" : "") : `${Math.abs(pct)}%`}
+      </span>
+    </div>
+  );
+}
+
+/** Are we growing: new accounts and trial sign-ups a day, each with this week against last. */
+function Growth({ g }: { g: MoneyReport["growth"] }) {
+  return (
+    <div className="card mb-6">
+      <h2 className="font-display font-extrabold">Growth</h2>
+      <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
+        <Week label="Accounts" w={g.week.accounts} />
+        <Week label="Trials" w={g.week.trials} />
+      </div>
+      <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <DayChart s={g.accounts} />
+        <DayChart s={g.trials} />
+      </div>
+    </div>
+  );
+}
 
 /** A row of bars for hours or weekdays, the count above any bar that has one. */
 function Bars({ title, values, labels }: { title: string; values: number[]; labels: string[] }) {
