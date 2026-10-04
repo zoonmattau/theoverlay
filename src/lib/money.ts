@@ -82,10 +82,8 @@ function funnel(id: string, name: string, price: number, events: Ev[], members: 
   const people = (kind: string) => new Set(mine.filter((e) => e.kind === kind).map((e) => e.user_id ?? `anon:${sydneyDay(e.created_at)}:${e.plan}`)).size;
   const clicks = people("plan_click");
   const checkouts = people("checkout_started");
-  const starts =
-    id === "passes"
-      ? mine.filter((e) => e.kind === "checkout_completed").length
-      : new Set(mine.filter(trialStart).map((e) => e.user_id)).size;
+  // Passes have no trial: a purchase is a payment, counted under paid.
+  const starts = id === "passes" ? 0 : new Set(mine.filter(trialStart).map((e) => e.user_id)).size;
   const payments = mine.filter((e) => e.kind === "payment");
   const paid = new Set(payments.map((e) => e.user_id)).size;
   const revenue_cents = payments.reduce((a, e) => a + (e.amount_cents ?? 0), 0);
@@ -129,8 +127,9 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     clicks: sum("clicks"), checkouts: sum("checkouts"), starts: sum("starts"), paid: sum("paid"), revenue_cents: sum("revenue_cents"),
     active: sum("active"), trialling: sum("trialling"), cancelled: sum("cancelled"),
     clickToCheckout: pct(sum("checkouts"), sum("clicks")),
-    checkoutToStart: pct(sum("starts"), sum("checkouts")),
-    startToPaid: pct(sum("paid"), sum("starts")),
+    // Trials only come from plans, so only plan checkouts count against them.
+    checkoutToStart: pct(sum("starts"), plans.reduce((a, p) => a + (p.id === "passes" ? 0 : p.checkouts), 0)),
+    startToPaid: pct(plans.reduce((a, p) => a + (p.id === "passes" ? 0 : p.paid), 0), sum("starts")),
   };
 
   const live = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at && m.subscription_status === "active");

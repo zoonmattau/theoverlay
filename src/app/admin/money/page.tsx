@@ -283,10 +283,10 @@ function Row({ p, total }: { p: PlanFunnel; total?: boolean }) {
       <td data-label="Clicks" className="text-right nums">{p.clicks}</td>
       <td data-label="Checkouts" className="text-right nums">{p.checkouts}</td>
       <td data-label="Click to checkout" className="text-right nums text-ink-secondary">{rate(p.clickToCheckout)}</td>
-      <td data-label="Trials" className="text-right nums">{p.starts}</td>
-      <td data-label="Checkout to trial" className="text-right nums text-ink-secondary">{rate(p.checkoutToStart)}</td>
+      <td data-label="Trials" className="text-right nums">{p.id === "passes" ? "—" : p.starts}</td>
+      <td data-label="Checkout to trial" className="text-right nums text-ink-secondary">{p.id === "passes" ? "—" : rate(p.checkoutToStart)}</td>
       <td data-label="Paid" className="text-right nums">{p.paid}</td>
-      <td data-label="Trial to paid" className="text-right nums text-ink-secondary">{rate(p.startToPaid)}</td>
+      <td data-label="Trial to paid" className="text-right nums text-ink-secondary">{p.id === "passes" ? "—" : rate(p.startToPaid)}</td>
       <td data-label="Revenue" className="text-right nums">{money(p.revenue_cents)}</td>
       <td data-label="Active now" className="text-right nums">{p.id === "passes" ? "—" : p.active}</td>
       <td data-label="On trial" className="text-right nums">{p.id === "passes" ? "—" : p.trialling}</td>
