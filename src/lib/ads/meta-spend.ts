@@ -18,6 +18,12 @@ export interface SpendDay {
 }
 
 const VERSION = process.env.META_GRAPH_VERSION ?? "v23.0";
+/**
+ * Campaigns in the same ad account that belong to another project, left out of
+ * every Overlay figure: "Free Websites Sep 2026" (10 to 11 Sep, $18) was the
+ * user's other business, not The Overlay.
+ */
+const OTHER_PROJECTS = /free websites/i;
 
 export async function metaSpend(since: string, until: string): Promise<SpendDay[] | { error: string } | undefined> {
   "use cache";
@@ -42,6 +48,7 @@ export async function metaSpend(since: string, until: string): Promise<SpendDay[
       const body = (await res.json()) as { data?: { date_start: string; campaign_name: string; spend: string }[]; paging?: { next?: string }; error?: { message: string } };
       if (!res.ok || body.error) return { error: body.error?.message ?? `HTTP ${res.status}` };
       for (const row of body.data ?? []) {
+        if (OTHER_PROJECTS.test(row.campaign_name)) continue;
         const d = days.get(row.date_start) ?? { date: row.date_start, spend: 0, byCampaign: {} };
         const spend = Number(row.spend) || 0;
         d.spend = Math.round((d.spend + spend) * 100) / 100;
@@ -113,7 +120,7 @@ export async function metaAds(since: string, until: string): Promise<AdRow[] | {
       const campaign = q?.get("utm_campaign"), content = q?.get("utm_content");
       info.set(a.id, { status: a.effective_status, tag: campaign ? `${campaign}/${content ?? ""}`.toLowerCase() : undefined });
     }
-    return (insights as { ad_id: string; ad_name: string; campaign_name: string; spend: string; impressions: string; inline_link_clicks?: string }[]).map((r) => ({
+    return (insights as { ad_id: string; ad_name: string; campaign_name: string; spend: string; impressions: string; inline_link_clicks?: string }[]).filter((r) => !OTHER_PROJECTS.test(r.campaign_name)).map((r) => ({
       id: r.ad_id,
       ad: r.ad_name,
       campaign: r.campaign_name,
