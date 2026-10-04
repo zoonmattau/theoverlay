@@ -8,6 +8,8 @@ import { SheetDay } from "@/components/SheetDay";
 import { RESULTS_SHEET } from "@/lib/social";
 import { dailyUnits, publicRecord, resultCalls, type ResultCall } from "@/lib/tips";
 import { racingToday } from "@/lib/model/source";
+import { filterParams, passes, readFilter } from "@/lib/results-filter";
+import { ResultsFilters } from "@/components/ResultsFilters";
 
 export const metadata: Metadata = {
   title: "Results",
@@ -53,13 +55,15 @@ export default function Page({ searchParams }: PageProps<"/results">) {
 
 async function Results({ searchParams }: { searchParams: PageProps<"/results">["searchParams"] }) {
   const sp = await searchParams;
-  const period = PERIODS.find((p) => p.id === one(sp.period))?.id ?? "all";
-  const side = SIDES.find((s) => s.id === one(sp.side))?.id ?? "all";
+  const filter = readFilter((k) => sp[k]);
+  const { period, side } = filter;
   const older = one(sp.older) === "1";
-  const [stats, daily, all] = await Promise.all([publicRecord(racingToday()), dailyUnits(), resultCalls()]);
+  const today = racingToday();
+  const [stats, daily, all] = await Promise.all([publicRecord(today), dailyUnits(), resultCalls()]);
 
-  const from = period === "all" ? "" : new Date(Date.now() - Number(period) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
-  const calls = all.filter((c) => c.date >= from && (side === "all" || (side === "bets" ? c.side === "back" : c.side === "lay")));
+  // The tabs, then Every call's result, track and price band: the same rules as the CSV download.
+  const calls = all.filter((c) => passes(c, filter, today));
+  const tracks = [...new Set(all.map((c) => c.track))].sort((a, b) => a.localeCompare(b));
   const byDay = new Map<string, ResultCall[]>();
   for (const c of calls) byDay.set(c.date, [...(byDay.get(c.date) ?? []), c]);
   const days = [...byDay.keys()].sort((a, b) => b.localeCompare(a));
@@ -73,8 +77,9 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
   const net = calls.reduce((a, c) => a + Number(c.units), 0);
   const won = calls.filter((c) => Number(c.units) > 0).length;
   const href = (p: string, s: string, more = false) => {
-    const q = new URLSearchParams({ ...(p !== "all" ? { period: p } : {}), ...(s !== "all" ? { side: s } : {}), ...(more ? { older: "1" } : {}) }).toString();
-    return q ? `/results?${q}` : "/results";
+    const q = filterParams({ ...filter, period: p, side: s });
+    if (more) q.set("older", "1");
+    return q.size ? `/results?${q}` : "/results";
   };
   const listed = older ? days : days.slice(0, DAYS_SHOWN);
 
@@ -145,6 +150,8 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
 
       <Section id="calls" letter="C" title="Every call" aside={older ? `${days.length} days` : `Last ${Math.min(DAYS_SHOWN, days.length)} days`}>
         <div className="p-3 sm:p-4">
+          <ResultsFilters filter={filter} tracks={tracks} count={calls.length} />
+          {calls.length === 0 && <p className="text-sm text-ink-soft">No calls match. Clear a filter to see more.</p>}
           <table className="sheet">
             {listed.map((d, i) => {
               const cs = byDay.get(d)!;

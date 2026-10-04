@@ -1,6 +1,7 @@
-import { connection } from "next/server";
+import { connection, type NextRequest } from "next/server";
 
 import { supabaseAdmin } from "@/lib/billing/access";
+import { passes, readFilter } from "@/lib/results-filter";
 
 /**
  * Every resulted call as CSV, for the public results sheet: its Data tab reads
@@ -47,8 +48,17 @@ function line(t: Row): string {
   ].map(cell).join(",");
 }
 
-export async function GET() {
+/**
+ * With no query, every resulted call, as the results sheet reads it. With the
+ * Results page's filters (period, side, result, track, price) it is what the
+ * page shows, and ?download=1 saves it as a file.
+ */
+export async function GET(request: NextRequest) {
   await connection();
+  const sp = request.nextUrl.searchParams;
+  const filter = readFilter((k) => sp.get(k));
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const download = sp.get("download") === "1";
   const db = supabaseAdmin();
   const rows: Row[] = [];
   for (let from = 0; ; from += 1000) {
@@ -66,10 +76,13 @@ export async function GET() {
     rows.push(...(data as Row[]));
     if (data.length < 1000) break;
   }
-  return new Response([HEAD.join(","), ...rows.map(line)].join("\n") + "\n", {
+  const kept = rows.filter((r) => passes(r, filter, today));
+  const name = ["overlay-results", filter.period !== "all" ? `${filter.period}d` : "", filter.side !== "all" ? filter.side : "", filter.result ?? "", filter.track?.toLowerCase().replace(/[^a-z0-9]+/g, "-") ?? "", filter.price ?? "", today].filter(Boolean).join("-");
+  return new Response([HEAD.join(","), ...kept.map(line)].join("\n") + "\n", {
     headers: {
       "content-type": "text/csv; charset=utf-8",
       "cache-control": "public, s-maxage=300, stale-while-revalidate=600",
+      ...(download ? { "content-disposition": `attachment; filename="${name}.csv"` } : {}),
     },
   });
 }
