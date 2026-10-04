@@ -3,7 +3,7 @@ import "server-only";
 import { foundUs } from "@/lib/arrival";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { metaSpend } from "./meta-spend";
+import { metaAds, metaSpend } from "./meta-spend";
 
 /**
  * Meta's spend against what it brought, by Sydney day: accounts made from a
@@ -21,8 +21,27 @@ export interface AdsDay {
   paid: number;
 }
 
+/**
+ * One ad over the window: Meta's spend and clicks, and the accounts made from
+ * its link in the window, how many of those started a plan and how many have
+ * paid. A cohort, so a trial from this window that pays next week counts here
+ * then. An account whose tag matches no ad with spend is listed with $0.
+ */
+export interface AdRow {
+  ad: string;
+  campaign: string;
+  status: string;
+  tag: string;
+  spend: number;
+  clicks: number;
+  accounts: number;
+  trials: number;
+  paid: number;
+}
+
 export interface AdsReport {
   days: AdsDay[];
+  byAd: AdRow[];
   /** Why there is no spend: no token yet, or Meta's error. */
   missing?: string;
   totals: AdsDay & { perSignup?: number; perTrial?: number; perPaid?: number };
@@ -36,8 +55,9 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   const dates = Array.from({ length: windowDays }, (_, i) => sydneyDay(new Date(`${today}T12:00:00Z`).getTime() - (windowDays - 1 - i) * DAY));
   const from = dates[0];
   const db = supabaseAdmin();
-  const [spend, { data: profs }, { data: subs }, { data: pays }] = await Promise.all([
+  const [spend, ads, { data: profs }, { data: subs }, { data: pays }] = await Promise.all([
     metaSpend(from, today),
+    metaAds(from, today),
     db.from("profiles").select("id, email, is_admin, created_at, source, landing, referrer, utm"),
     db.from("events").select("user_id, created_at, meta").eq("kind", "subscription").eq("meta->>event", "customer.subscription.created"),
     db.from("events").select("user_id, created_at").eq("kind", "payment").order("created_at"),
@@ -68,9 +88,34 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   else if ("error" in spend) missing = `Meta did not answer: ${spend.error}`;
   else for (const s of spend) { const d = by.get(s.date); if (d) d.spend = s.spend; }
 
+  // By ad: accounts made in the window from each ad's link, and how far they got.
+  const fromStart = new Date(`${from}T00:00:00+10:00`).getTime();
+  const started = new Set(((subs ?? []) as { user_id: string }[]).map((s) => s.user_id));
+  const cohort = new Map<string, { accounts: number; trials: number; paid: number }>();
+  for (const p of (profs ?? []) as { id: string; created_at: string; utm: Record<string, string> | null }[]) {
+    if (!fromMeta.has(p.id) || new Date(p.created_at).getTime() < fromStart) continue;
+    const tag = `${p.utm?.campaign ?? ""}/${p.utm?.content ?? ""}`.toLowerCase();
+    const c = cohort.get(tag) ?? { accounts: 0, trials: 0, paid: 0 };
+    c.accounts++;
+    if (started.has(p.id)) c.trials++;
+    if (firstPay.has(p.id)) c.paid++;
+    cohort.set(tag, c);
+  }
+  const byAd: AdRow[] = [];
+  const seen = new Set<string>();
+  if (ads && !("error" in ads)) {
+    // Two ads can share a tag (a copy of an ad); the sign-ups go on the one that spent more.
+    for (const a of [...ads].sort((x, y) => y.spend - x.spend)) {
+      const c = !seen.has(a.tag) ? cohort.get(a.tag) : undefined;
+      seen.add(a.tag);
+      byAd.push({ ad: a.ad, campaign: a.campaign, status: a.status, tag: a.tag, spend: a.spend, clicks: a.clicks, accounts: c?.accounts ?? 0, trials: c?.trials ?? 0, paid: c?.paid ?? 0 });
+    }
+  }
+  for (const [tag, c] of cohort) if (!seen.has(tag)) byAd.push({ ad: tag, campaign: "No spend in window", status: "", tag, spend: 0, clicks: 0, ...c });
+
   const days = [...by.values()];
   const sum = (k: keyof Omit<AdsDay, "date">) => Math.round(days.reduce((a, d) => a + d[k], 0) * 100) / 100;
   const t = { date: "", spend: sum("spend"), signups: sum("signups"), trials: sum("trials"), paid: sum("paid") };
   const per = (n: number) => (n > 0 && t.spend > 0 ? Math.round((t.spend / n) * 100) / 100 : undefined);
-  return { days, missing, totals: { ...t, perSignup: per(t.signups), perTrial: per(t.trials), perPaid: per(t.paid) } };
+  return { days, byAd, missing, totals: { ...t, perSignup: per(t.signups), perTrial: per(t.trials), perPaid: per(t.paid) } };
 }
