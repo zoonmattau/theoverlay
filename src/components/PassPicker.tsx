@@ -17,15 +17,17 @@ export function PassPicker({ bundles, single, signedIn }: { bundles: { qty: numb
 
   return (
     <div className="mt-10 rounded-[var(--radius-lg)] border border-line bg-panel p-5 shadow-card scroll-mt-24" id="passes">
-      <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
+      {/* Three columns on a wide screen, words, tiles, price, so nothing leaves a gap; stacked on a phone. */}
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto_auto] lg:items-center lg:gap-6">
         <div>
           <h2 className="font-display text-lg font-extrabold tracking-tight">Just a day here and there?</h2>
           <p className="mt-0.5 text-sm text-ink-secondary text-balance">
             A day pass opens every race on one race day, any day you choose. No subscription, and they never expire.
           </p>
+        </div>
 
           {/* One size of type in every tile: the count, its price, the saving. */}
-          <div role="radiogroup" aria-label="How many passes" className="mt-4 grid max-w-xl grid-cols-4 gap-2">
+          <div role="radiogroup" aria-label="How many passes" className="grid grid-cols-4 gap-2 lg:w-[26rem]">
             {bundles.map((x) => {
               const on = x.qty === qty;
               const off = Math.round((1 - x.price / x.qty / single) * 100);
@@ -48,9 +50,8 @@ export function PassPicker({ bundles, single, signedIn }: { bundles: { qty: numb
               );
             })}
           </div>
-        </div>
 
-        <div className="md:w-60 md:border-l md:border-line md:pl-5">
+        <div className="lg:w-56 lg:border-l lg:border-line lg:pl-6">
           <div className="flex items-baseline gap-1">
             <span className="font-display text-3xl font-extrabold tracking-tight tabular-nums">${b.price}</span>
             <span className="text-sm text-ink-soft">one-off</span>
