@@ -19,12 +19,13 @@ export function PassPicker({ bundles, single, signedIn }: { bundles: { qty: numb
     <div className="mt-10 rounded-[var(--radius-lg)] border border-line bg-panel p-5 shadow-card scroll-mt-24" id="passes">
       <div className="grid gap-5 md:grid-cols-[1fr_auto] md:items-center">
         <div>
-          <h2 className="font-display text-xl font-extrabold tracking-tight">Just a day here and there?</h2>
-          <p className="mt-1 text-sm text-ink-secondary text-balance">
+          <h2 className="font-display text-lg font-extrabold tracking-tight">Just a day here and there?</h2>
+          <p className="mt-0.5 text-sm text-ink-secondary text-balance">
             A day pass opens every race on one race day, any day you choose. No subscription, and they never expire.
           </p>
 
-          <div role="radiogroup" aria-label="How many passes" className="mt-4 grid grid-cols-4 gap-2">
+          {/* One size of type in every tile: the count, its price, the saving. */}
+          <div role="radiogroup" aria-label="How many passes" className="mt-4 grid max-w-xl grid-cols-4 gap-2">
             {bundles.map((x) => {
               const on = x.qty === qty;
               const off = Math.round((1 - x.price / x.qty / single) * 100);
@@ -35,20 +36,23 @@ export function PassPicker({ bundles, single, signedIn }: { bundles: { qty: numb
                   role="radio"
                   aria-checked={on}
                   onClick={() => setQty(x.qty)}
-                  className={`rounded-md border px-1 py-2 text-center transition-colors ${on ? "border-ink bg-ink text-white" : "border-line bg-panel hover:border-ink-soft"}`}
+                  className={`rounded-md border px-1 py-2 text-center text-xs leading-snug transition-colors ${on ? "border-ink bg-ink text-white" : "border-line bg-panel hover:border-ink-soft"}`}
                 >
-                  <span className="block font-display text-lg font-extrabold leading-none tabular-nums">{x.qty}</span>
-                  <span className={`block text-[11px] ${on ? "text-white/70" : "text-ink-soft"}`}>{x.qty === 1 ? "pass" : "passes"}</span>
-                  <span className={`mt-1 block text-[11px] font-bold ${off > 0 ? (on ? "text-lime" : "text-accent") : "invisible"}`}>Save {off}%</span>
+                  {/* In days, what a pass is: "10 passes" wrapped onto two lines in a phone's quarter width. */}
+                  <span className="block whitespace-nowrap text-sm font-bold tabular-nums">
+                    {x.qty} {x.qty === 1 ? "day" : "days"}
+                  </span>
+                  <span className={`block tabular-nums ${on ? "text-white/75" : "text-ink-soft"}`}>${x.price}</span>
+                  <span className={`block ${off > 0 ? `font-bold ${on ? "text-lime" : "text-accent"}` : on ? "text-white/75" : "text-ink-soft"}`}>{off > 0 ? `Save ${off}%` : "Full price"}</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        <div className="md:w-64 md:border-l md:border-line md:pl-5">
+        <div className="md:w-60 md:border-l md:border-line md:pl-5">
           <div className="flex items-baseline gap-1">
-            <span className="font-display text-4xl font-extrabold tracking-tight tabular-nums">${b.price}</span>
+            <span className="font-display text-3xl font-extrabold tracking-tight tabular-nums">${b.price}</span>
             <span className="text-sm text-ink-soft">one-off</span>
           </div>
           <div className="mt-0.5 text-sm text-ink-secondary tabular-nums">
