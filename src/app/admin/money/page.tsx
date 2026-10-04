@@ -385,10 +385,11 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
             By ad
           </summary>
-          <p className="mt-1 text-xs text-ink-soft">Visitors who landed from each ad&apos;s link in the window, the accounts they made, how many started a plan and became paying members, what they have paid (plans and passes), and dollars back for each dollar spent. Matched on the ad&apos;s own link tags.</p>
+          <p className="mt-1 text-xs text-ink-soft">Visits, accounts, trials and members (Mbr) from each ad&apos;s own link, what they paid (Rev, plans and passes), and dollars back per $1 spent.</p>
           <div className="overflow-x-auto -mx-1 px-1">
-          <table className="data-table stack-sm text-xs mt-2">
-            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Members</th><th className="text-right">Revenue</th><th className="text-right">Per visit</th><th className="text-right">Per trial</th><th className="text-right">Back per $1</th></tr></thead>
+          {/* Tight: ten columns in half a page. Short headings, little padding, whole dollars where cents add nothing. */}
+          <table className="data-table stack-sm text-[11px] mt-2 [&_th]:px-1 [&_td]:px-1 [&_th]:whitespace-nowrap">
+            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Mbr</th><th className="text-right">Rev</th><th className="text-right">/visit</th><th className="text-right">/trial</th><th className="text-right">$ back</th></tr></thead>
             <tbody>
               {r.byAd.map((a) => {
                 const off = a.status && a.status !== "ACTIVE";
@@ -396,19 +397,19 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
                 const back = a.spend ? a.revenue / a.spend : undefined;
                 return (
                   <tr key={`${a.campaign}-${a.ad}`} className={off ? "text-ink-soft" : ""}>
-                    <td>
-                      <span className="font-semibold">{a.ad}</span>
-                      <span className="block text-[10px] text-ink-soft">{a.campaign}{off ? ` · ${a.status.toLowerCase().replace(/_/g, " ")}` : ""}</span>
+                    <td className="max-w-[9rem]">
+                      <span className="font-semibold block truncate" title={a.ad}>{a.ad}</span>
+                      <span className="block truncate text-[10px] text-ink-soft" title={a.campaign}>{a.campaign.replace(/^The Overlay - /, "")}{off ? ` · ${a.status.toLowerCase().replace(/_/g, " ")}` : ""}</span>
                     </td>
-                    <td data-label="Spend" className="text-right nums">{a.spend ? `$${a.spend.toFixed(2)}` : "–"}</td>
+                    <td data-label="Spend" className="text-right nums">{a.spend ? `$${Math.round(a.spend)}` : "–"}</td>
                     <td data-label="Visits" className="text-right nums">{a.visits || ""}</td>
                     <td data-label="Accounts" className="text-right nums">{a.accounts || ""}</td>
                     <td data-label="Trials" className="text-right nums">{a.trials || ""}</td>
                     <td data-label="Members" className="text-right nums font-semibold">{a.paid || ""}</td>
                     <td data-label="Revenue" className="text-right nums">{a.revenue ? `$${Math.round(a.revenue)}` : ""}</td>
                     <td data-label="Per visit" className="text-right nums">{a.visits && a.spend ? `$${(a.spend / a.visits).toFixed(2)}` : ""}</td>
-                    <td data-label="Per trial" className="text-right nums">{per !== undefined ? `$${per.toFixed(2)}` : a.spend ? "none yet" : ""}</td>
-                                        <td data-label="Back per $1" className={`text-right nums font-semibold ${back !== undefined && back >= 1 ? "text-accent" : ""}`}>{back !== undefined ? `$${back.toFixed(2)}` : ""}</td>
+                    <td data-label="Per trial" className="text-right nums">{per !== undefined ? `$${Math.round(per)}` : a.spend ? "–" : ""}</td>
+                    <td data-label="Back per $1" className={`text-right nums font-semibold ${back !== undefined && back >= 1 ? "text-accent" : ""}`}>{back !== undefined ? `$${back.toFixed(2)}` : ""}</td>
                   </tr>
                 );
               })}
