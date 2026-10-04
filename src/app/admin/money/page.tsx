@@ -70,6 +70,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Ads r={ads} n={n} />
       </div>
 
+      <AdsByAd r={ads} n={n} />
+
       {/* Side by side on a wide screen, stacked on a phone: Coming up on the left, prices and new accounts down the right, both ending level. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6">
         <ComingUp {...upcoming} />
@@ -359,33 +361,17 @@ function Totals({ t }: { t: Invested }) {
   );
 }
 
-/**
- * Meta's spend against what it brought over the window: cost per account,
- * per trial and per paying member, then the days. Paying lags a trial by its
- * length, so read cost per paying member over the window, not a day.
- */
-function Ads({ r, n }: { r: AdsReport; n: number }) {
-  const t = r.totals;
-  const cost = (v?: number) => (v === undefined ? "–" : `$${v.toFixed(v >= 100 ? 0 : 2)}`);
-  const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.trials || d.paid);
+/** Every Meta ad over the window, full width: its ten columns do not fit beside the totals. */
+function AdsByAd({ r, n }: { r: AdsReport; n: number }) {
+  if (r.byAd.length === 0) return null;
   return (
-    <div className="card min-w-0">
-      <h2 className="font-display font-extrabold">Meta ads</h2>
-      <p className="mt-1 text-xs text-ink-soft">Last {n} days, against accounts from our own ad-link tags. A boost with no link counts as Instagram.</p>
-      {r.missing && <p className="mt-1 text-xs text-amber">{r.missing}</p>}
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        <Mini n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label="spent" />
-        <Mini n={cost(t.perSignup)} label="per account" sub={`${t.signups} accounts`} />
-        <Mini n={cost(t.perTrial)} label="per trial" sub={`${t.trials} trials`} tone="prime" />
-        <Mini n={t.backPerDollar !== undefined ? `$${t.backPerDollar.toFixed(2)}` : "–"} label="back per $1" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
-      </div>
-      {r.byAd.length > 0 && (
-        <details className="mt-4 group" open>
-          <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
-            <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
-            By ad
+    <details className="card mb-6 group" open>
+          <summary className="cursor-pointer select-none font-display font-extrabold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+            <span className="inline-block transition-transform group-open:rotate-90 text-sm" aria-hidden>▸</span>
+            Meta ads by ad, last {n} days
           </summary>
           <p className="mt-1 text-xs text-ink-soft">Visitors who landed from each ad&apos;s link in the window, the accounts they made, how many started a plan and became paying members, what they have paid (plans and passes), and dollars back for each dollar spent. Matched on the ad&apos;s own link tags.</p>
+          <div className="overflow-x-auto">
           <table className="data-table stack-sm text-xs mt-2">
             <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Members</th><th className="text-right">Revenue</th><th className="text-right">Per visit</th><th className="text-right">Per trial</th><th className="text-right">Back per $1</th></tr></thead>
             <tbody>
@@ -413,8 +399,31 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
               })}
             </tbody>
           </table>
-        </details>
-      )}
+          </div>
+    </details>
+  );
+}
+
+/**
+ * Meta's spend against what it brought over the window: cost per account,
+ * per trial and per paying member, then the days. Paying lags a trial by its
+ * length, so read cost per paying member over the window, not a day.
+ */
+function Ads({ r, n }: { r: AdsReport; n: number }) {
+  const t = r.totals;
+  const cost = (v?: number) => (v === undefined ? "–" : `$${v.toFixed(v >= 100 ? 0 : 2)}`);
+  const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.trials || d.paid);
+  return (
+    <div className="card min-w-0">
+      <h2 className="font-display font-extrabold">Meta ads</h2>
+      <p className="mt-1 text-xs text-ink-soft">Last {n} days, against accounts from our own ad-link tags. A boost with no link counts as Instagram.</p>
+      {r.missing && <p className="mt-1 text-xs text-amber">{r.missing}</p>}
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        <Mini n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label="spent" />
+        <Mini n={cost(t.perSignup)} label="per account" sub={`${t.signups} accounts`} />
+        <Mini n={cost(t.perTrial)} label="per trial" sub={`${t.trials} trials`} tone="prime" />
+        <Mini n={t.backPerDollar !== undefined ? `$${t.backPerDollar.toFixed(2)}` : "–"} label="back per $1" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
+      </div>
       {days.length > 0 && (
         <details className="mt-4 group">
           <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
