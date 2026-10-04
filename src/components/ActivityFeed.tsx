@@ -1,9 +1,10 @@
 import Link from "next/link";
 
-import { now, type Event, type Member, type PassDay } from "@/lib/admin";
+import { accountState, now, type Event, type Member, type PassDay } from "@/lib/admin";
 import { planById } from "@/lib/billing/plans";
 
-type Tone = "prime" | "bet" | "lay";
+/** prime joined or paid, bet money in, lay money at risk or broken, wait signed up and not confirmed. */
+type Tone = "prime" | "bet" | "lay" | "wait";
 
 interface Line {
   tone: Tone;
@@ -28,7 +29,8 @@ function describe(e: Event, member?: Member): Line | null {
   const m = e.meta ?? {};
   switch (e.kind) {
     case "joined":
-      return { tone: "prime", text: "signed up" };
+      // Amber until they press the link in the confirmation email: an account that cannot log in yet.
+      return member && accountState(member) === "unconfirmed" ? { tone: "wait", text: "signed up, email not confirmed yet" } : { tone: "prime", text: "signed up" };
     case "payment":
       // A pass is logged twice, as the payment and the checkout, a moment apart; both share a key so one line shows.
       return { tone: "bet", text: `paid ${money(e.amount_cents ?? 0)} for ${plan(e.plan)}`, key: e.plan?.startsWith("passes_") ? `pass|${e.plan}|${e.created_at.slice(0, 16)}` : undefined };
@@ -73,7 +75,7 @@ function describe(e: Event, member?: Member): Line | null {
   }
 }
 
-const DOT: Record<Tone, string> = { prime: "bg-lime", bet: "bg-blue", lay: "bg-red" };
+const DOT: Record<Tone, string> = { prime: "bg-lime", bet: "bg-blue", lay: "bg-red", wait: "bg-amber" };
 
 function dayLabel(iso: string, today: string, yesterday: string): string {
   const d = new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
