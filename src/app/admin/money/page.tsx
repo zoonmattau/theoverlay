@@ -6,6 +6,9 @@ import { Suspense } from "react";
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin, now } from "@/lib/admin";
 import { adsReport, type AdsReport } from "@/lib/ads/report";
+import { invested, SINCE, type Invested } from "@/lib/invested";
+import { RunningTotals } from "@/components/RunningTotals";
+import { addCost, removeCost, stopCost } from "./actions";
 import { planById, TERMS, weekly } from "@/lib/billing/plans";
 import { priceBook, type PriceCell } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
@@ -33,7 +36,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const [r, prices, upcoming, ads] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(14), adsReport(n)]);
+  const [r, prices, upcoming, ads, totals] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(14), adsReport(n), invested()]);
   const t = r.totals;
 
   return (
@@ -60,6 +63,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.paid} label="paid" tone="prime" />
         <Tile n={t.cancelled} label="cancelled" />
       </div>
+
+      <Totals t={totals} />
 
       <Ads r={ads} n={n} />
 
@@ -285,6 +290,64 @@ function Row({ p, total }: { p: PlanFunnel; total?: boolean }) {
       <td data-label="On trial" className="text-right nums">{p.id === "passes" ? "—" : p.trialling}</td>
       <td data-label="Cancelled" className="text-right nums">{p.id === "passes" ? "—" : p.cancelled}</td>
     </tr>
+  );
+}
+
+/**
+ * Everything in against everything out since the first day: revenue after
+ * Stripe's fees, against Meta's spend and the costs typed in here. The cost
+ * list sits under the chart, with a line to add one.
+ */
+function Totals({ t }: { t: Invested }) {
+  const gap = t.revenue.net - t.invested.total;
+  const whole = (v: number) => `$${Math.round(v).toLocaleString("en-AU")}`;
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  return (
+    <div className="card mb-6">
+      <h2 className="font-display font-extrabold">Invested and revenue</h2>
+      <p className="mt-1 text-xs text-ink-soft">Since {dayLabel(SINCE, { day: "numeric", month: "long" })}. Revenue is what Stripe took, less refunds and its fees. Invested is Meta&apos;s ad spend plus the costs below.</p>
+      {t.adsMissing && <p className="mt-2 text-sm text-amber">{t.adsMissing}</p>}
+      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <Tile n={whole(t.invested.total)} label={`invested · ads ${whole(t.invested.ads)}, other ${whole(t.invested.other)}`} />
+        <Tile n={whole(t.revenue.net)} label={`revenue · ${whole(t.revenue.gross)} less ${whole(t.revenue.fees)} fees`} tone="bet" />
+        <Tile n={gap >= 0 ? `+${whole(gap)}` : `−${whole(-gap)}`} label={gap >= 0 ? "ahead" : "behind"} tone={gap >= 0 ? "prime" : undefined} />
+      </div>
+      <div className="mt-5"><RunningTotals days={t.days} /></div>
+
+      <details className="mt-4 group">
+        <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+          <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
+          Costs other than Meta ({t.costs.length})
+        </summary>
+        <form action={addCost} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
+          <label className="field"><span>Date</span><input type="date" name="date" defaultValue={today} required className="field-input" /></label>
+          <label className="field"><span>Amount, $</span><input name="amount" inputMode="decimal" required placeholder="99.00" className="field-input w-28" /></label>
+          <label className="field flex-1 min-w-40"><span>What</span><input name="what" required placeholder="Form King credits" className="field-input w-full" /></label>
+          <label className="flex items-center gap-1.5 pb-2"><input type="checkbox" name="monthly" /> Monthly</label>
+          <button type="submit" className="btn btn-primary btn-sm">Add</button>
+        </form>
+        {t.costs.length > 0 && (
+          <table className="data-table stack-sm text-xs mt-3">
+            <thead><tr><th>Date</th><th>What</th><th className="text-right">Amount</th><th></th></tr></thead>
+            <tbody>
+              {t.costs.map((c) => (
+                <tr key={c.id}>
+                  <td className="nums whitespace-nowrap">{dayLabel(c.date, { day: "numeric", month: "short" })}</td>
+                  <td data-label="What">{c.what}{c.monthly ? <span className="text-ink-soft">{c.stopped ? `, monthly until ${dayLabel(c.stopped, { month: "short" })}` : ", monthly"}</span> : null}</td>
+                  <td data-label="Amount" className="text-right nums">${(c.amount_cents / 100).toFixed(2)}</td>
+                  <td className="text-right whitespace-nowrap">
+                    {c.monthly && !c.stopped && (
+                      <form action={stopCost} className="inline"><input type="hidden" name="id" value={c.id} /><button type="submit" className="text-ink-soft underline mr-3">Stop</button></form>
+                    )}
+                    <form action={removeCost} className="inline"><input type="hidden" name="id" value={c.id} /><button type="submit" className="text-ink-soft underline">Remove</button></form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </details>
+    </div>
   );
 }
 
