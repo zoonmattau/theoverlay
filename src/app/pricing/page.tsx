@@ -96,6 +96,11 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
       <PlanPicker plans={plans} signedIn={signedIn} pro={Boolean(viewer.pro)} currentPlan={viewer.plan ?? undefined} trialDays={TRIAL_DAYS} savings={{ quarter: Math.round(termById("quarter").off * 100), year: Math.round(termById("year").off * 100) }} />
 
       <PassPicker bundles={PASS_BUNDLES.map(({ qty, price }) => ({ qty, price }))} single={PASS_PRICE} signedIn={signedIn} />
+      <p className="mt-6 text-center text-sm text-ink-secondary">
+        Questions, or trouble signing up or paying?{" "}
+        <a href="mailto:hello@theoverlay.com.au" className="font-semibold text-blue underline underline-offset-2">hello@theoverlay.com.au</a>{" "}
+        and we will sort it out.
+      </p>
     </>
   );
 }
