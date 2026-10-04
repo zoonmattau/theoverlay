@@ -12,6 +12,8 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { allTipsters } from "@/lib/creators";
 import { discordRoster } from "@/lib/discord";
 import { MembersTable, type Category, type MemberRow } from "../MembersTable";
+import { AccessChart } from "@/components/AccessChart";
+import { accessHistory } from "@/lib/access-history";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
 
@@ -35,7 +37,7 @@ async function removeFromList(id: string) {
 async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [members, tipsters, { data: affiliates }, keys] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser()]);
+  const [members, tipsters, { data: affiliates }, keys, access] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser(), accessHistory()]);
   // Discord asked one linked account at a time, so the page knows who is really in the server.
   const { presence, serverMembers } = await discordRoster(members.map((m) => m.discord_id).filter((id): id is string => Boolean(id)));
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
@@ -113,6 +115,10 @@ async function Members() {
           {serverMembers !== undefined && serverMembers - inServer > 0 ? ` ${serverMembers - inServer} in the server with no account linked, the bot among them.` : ""}
         </p>
       </section>
+
+      <div className="card mb-6">
+        <AccessChart days={access.map(({ date, counts, total }) => ({ date, counts, total }))} />
+      </div>
 
       <div className="card mb-6">
         <h2 className="font-display font-extrabold">Invite someone</h2>

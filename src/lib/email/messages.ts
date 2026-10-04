@@ -65,26 +65,69 @@ export const EMAILS = {
   }),
 
   paymentFailed: (plan: string): EmailSpec => ({
-    subject: "Your payment did not go through",
-    preheader: "Update your card to keep the board open.",
-    heading: "We could not take your payment.",
+    subject: "Your Overlay payment did not go through",
+    preheader: "Pay now and your board stays open.",
+    heading: "Keep your board open.",
     paragraphs: [
-      `The renewal for your <strong>${plan}</strong> plan failed, and Stripe will retry over the next few days.`,
-      "Updating your card from your account fixes it straight away.",
+      `Your payment for <strong>${plan}</strong> did not go through, so we need it to keep your board open.`,
+      "Pay from your account, on your card or a new one, and you keep every runner rated, the bets and lays at 11am, and the Data Hub.",
     ],
-    cta: { label: "Update payment details", url: `${SITE}/account` },
+    cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
   }),
 
-  /** Sent three times in the week after a failed payment; never says when access ends. */
-  paymentReminder: (plan: string, last: boolean): EmailSpec => ({
-    subject: last ? "A last reminder about your payment" : "A reminder about your payment",
-    preheader: "Update your card to keep the board open.",
-    heading: last ? "Your payment is still outstanding." : "We still need your payment.",
+  /**
+   * A yearly or 3-month first bill that failed, in place of paymentFailed and
+   * its reminders: the payment first, then the cheaper way, the first month
+   * on the monthly price running 5 weeks. The first yearly bill (3 Oct 2026,
+   * $470) failed on insufficient funds.
+   */
+  termFailedMonthly: (plan: string, term: string, months: number, last = false): EmailSpec => ({
+    subject: last ? "A last reminder about your Overlay payment" : "Your Overlay payment did not go through",
+    preheader: "Keep your board open and get a month on us.",
+    heading: last ? "Your board is still waiting." : "Keep your board open.",
     paragraphs: [
-      `We have not been able to take payment for your <strong>${plan}</strong> plan, and you may lose access soon.`,
-      "Updating your card from your account fixes it straight away.",
+      `Your ${term} payment for <strong>${plan}</strong> did not go through, so we need it to keep your board open.`,
+      `Pay today and we add a month on us: <strong>${months + 1} months</strong> of every runner rated, the bets and lays at 11am, and the Data Hub.`,
+      `Rather go month to month? <a href="${SITE}/account/monthly" style="color:#1f6fd6">Switch to monthly</a> and your first month runs 5 weeks.`,
     ],
-    cta: { label: "Update payment details", url: `${SITE}/account` },
+    cta: { label: "Pay and get a month free", url: `${SITE}/account/pay` },
+  }),
+
+  /** Reminders two and three in the week after a failed payment; never says when access ends. */
+  paymentReminder: (plan: string, last: boolean): EmailSpec => ({
+    subject: last ? "A last reminder about your Overlay payment" : "A reminder about your Overlay payment",
+    preheader: "Pay now and your board stays open.",
+    heading: last ? "Your board is still waiting." : "We still need your payment.",
+    paragraphs: [
+      `Your payment for <strong>${plan}</strong> is still outstanding, and your board may close soon.`,
+      "Pay from your account, on your card or a new one, and everything stays as it is: every runner rated, the bets and lays at 11am, and the Data Hub.",
+    ],
+    cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
+  }),
+
+  /** The day the grace week runs out with the payment still owed: the board is closed, and how to open it. */
+  paymentClosed: (plan: string): EmailSpec => ({
+    subject: "Your Overlay board is closed",
+    preheader: "Pay now and it opens again straight away.",
+    heading: "Your board is closed for now.",
+    paragraphs: [
+      `We still could not take your payment for <strong>${plan}</strong>, so your board has closed.`,
+      "Pay from your account, on your card or a new one, and it opens again straight away: every runner rated, the bets and lays at 11am, and the Data Hub.",
+    ],
+    cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
+  }),
+
+  /** paymentClosed for a failed yearly or 3-month first bill: the month on us and the monthly way still stand. */
+  termClosed: (plan: string, months: number): EmailSpec => ({
+    subject: "Your Overlay board is closed",
+    preheader: "Pay today and it opens again, with a month on us.",
+    heading: "Your board is closed for now.",
+    paragraphs: [
+      `We still could not take your payment for <strong>${plan}</strong>, so your board has closed.`,
+      `Pay today and it opens again straight away, with a month on us: <strong>${months + 1} months</strong> of every runner rated, the bets and lays at 11am, and the Data Hub.`,
+      `Rather go month to month? <a href="${SITE}/account/monthly" style="color:#1f6fd6">Switch to monthly</a> and your first month runs 5 weeks.`,
+    ],
+    cta: { label: "Pay and get a month free", url: `${SITE}/account/pay` },
   }),
 
   friendJoined: (until: string): EmailSpec => ({
@@ -136,6 +179,22 @@ export const EMAILS = {
     note: "The link works once and expires in 24 hours. If you did not sign up to The Overlay, ignore this and nothing happens.",
   }),
 
+  /** A day after an unfinished checkout: finish today and the first month is 25% off. `trial` when they would still get one. */
+  checkoutNudge: (plan: string, trial: boolean): EmailSpec => ({
+    subject: "25% off your first month, today only",
+    preheader: "Finish signing up today and your first month is 25% off.",
+    heading: "Still thinking it over?",
+    paragraphs: [
+      `You started signing up for <strong>${plan}</strong> and did not finish. Finish today and your first month is <strong>25% off</strong>.`,
+      trial
+        ? "Your free trial still comes first: every runner rated, the bets and lays at 11am, and the Data Hub. Nothing is charged until it ends."
+        : "Every runner rated, the bets and lays at 11am, and the Data Hub, from the moment you finish.",
+      "The offer runs until midnight tonight.",
+    ],
+    cta: { label: "Finish signing up", url: `${SITE}/pricing` },
+    note: "No promise of winning: the numbers are a guide and every bet is your own call.",
+  }),
+
   /** Win-back, on the last day of their access: it ends today, and this is what they would miss. */
   winbackEnding: (gift: boolean, week: WeekRecord): EmailSpec => ({
     subject: gift ? "Your free days run out today" : "Your Overlay plan ends today",
@@ -149,16 +208,16 @@ export const EMAILS = {
     cta: { label: "Keep my access", url: `${SITE}/pricing` },
   }),
 
-  /** Two days before a cancelled yearly or 3-month trial ends: pay the first month today and it runs 5 weeks. */
-  trialMonthly: (plan: string, term: string, termPrice: number, monthly: number, ends: string): EmailSpec => ({
-    subject: `Pay today, get a week of ${plan} free`,
-    preheader: `$${monthly} for 5 weeks, no $${termPrice} bill.`,
-    heading: "Pay today, get a week free.",
+  /** Two days before a cancelled yearly or 3-month trial ends: go month to month instead, first month 5 weeks. */
+  trialMonthly: (plan: string, term: string, ends: string): EmailSpec => ({
+    subject: `Keep ${plan} month to month`,
+    preheader: "Your trial ends soon. Stay on and your first month runs 5 weeks.",
+    heading: "Stay on, month to month.",
     paragraphs: [
-      `Your <strong>${plan}</strong> trial runs to the end of <strong>${fmt(new Date(new Date(ends).getTime() - 60_000).toISOString())}</strong>, and you have cancelled it. If the ${term} bill of $${termPrice} in one go was the problem, there is another way.`,
-      `Pay <strong>$${monthly}</strong> for your first month today and it runs <strong>5 weeks</strong>. After that it is $${monthly} a month, same board, same calls, and you can cancel any month.`,
+      `Your <strong>${plan}</strong> trial runs to the end of <strong>${fmt(new Date(new Date(ends).getTime() - 60_000).toISOString())}</strong>, and you have cancelled the ${term} plan.`,
+      "If you would rather not commit for that long, go month to month instead. Start today and your first month runs <strong>5 weeks</strong>: every runner rated, the bets and lays at 11am, and the Data Hub, cancel any month.",
     ],
-    cta: { label: `Pay $${monthly} for 5 weeks`, url: `${SITE}/account/cancel` },
+    cta: { label: "Go month to month", url: `${SITE}/account/monthly` },
   }),
 
   /** Win-back, three days after access ends: pay for a month, get five weeks. */

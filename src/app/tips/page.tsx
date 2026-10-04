@@ -154,7 +154,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
         <p className="mt-2 text-ink-secondary">
           {longDate(date)}. Every bet and lay on the card, with the result once the race has run.
         </p>
-        <p className="mt-1 text-xs text-ink-soft">Tips are released at {RELEASE_HOUR}:00am AEST each race day, and prices refresh through the day.</p>
+        <p className="mt-1 text-xs text-ink-soft">Tips are released at {RELEASE_HOUR}:00am Sydney time each race day, and prices refresh through the day.</p>
         <div className="tips-stats mt-5 grid grid-cols-3 md:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3">
           <StatCard n={primes.length} label={primes.length === 1 ? "prime" : "primes"} tone="prime" />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />

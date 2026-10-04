@@ -319,7 +319,9 @@ const dollars = (cents: number) => `$${Math.round(cents / 100).toLocaleString("e
  */
 function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; conversion?: { ended: number; paid: number; rate: number }; error?: string }) {
   const trial = charges.filter((c) => c.kind === "first bill");
-  const paying = charges.filter((c) => c.kind !== "first bill");
+  // A failed card retrying is not a paying member: its own group, amber, everywhere it shows.
+  const paying = charges.filter((c) => c.kind === "renewal");
+  const retrying = charges.filter((c) => c.kind === "retry");
   const sum = (xs: UpcomingCharge[]) => xs.reduce((a, c) => a + c.amount_cents, 0);
   const today = sydney(Math.floor(now() / 1000));
   // Today on: a trial ends at 11pm, so a charge later today is still to come; one already tried is no longer due in Stripe.
@@ -329,9 +331,9 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
     const on = charges.filter((c) => sydney(c.at) === iso);
     // Hover or tap a day for who is billed: "Gabriel Carr, Every day, yearly: $470 (trial ends)".
     const tip = on.map((c) => `${c.who}, ${c.plan}: ${dollars(c.amount_cents)}${c.kind === "first bill" ? " (trial ends)" : c.kind === "retry" ? " (retrying)" : ""}`).join("\n");
-    return { iso, tip, trial: sum(on.filter((c) => c.kind === "first bill")), paying: sum(on.filter((c) => c.kind !== "first bill")) };
+    return { iso, tip, trial: sum(on.filter((c) => c.kind === "first bill")), paying: sum(on.filter((c) => c.kind === "renewal")), retry: sum(on.filter((c) => c.kind === "retry")) };
   });
-  const top = Math.max(1, ...days.map((d) => d.trial + d.paying));
+  const top = Math.max(1, ...days.map((d) => d.trial + d.paying + d.retry));
 
   return (
     <div className="card min-w-0 flex flex-col">
@@ -345,7 +347,8 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
             <div className="stat">
               <div className="stat-label">From paying members</div>
               <div className="font-display text-2xl font-extrabold nums mt-1">{dollars(sum(paying))}</div>
-              <div className="text-xs text-ink-soft">{paying.length ? `${paying.length} ${paying.length === 1 ? "charge" : "charges"} due${paying.some((c) => c.kind === "retry") ? ", incl. a failed card retrying" : ""}` : "Nothing due"}</div>
+              <div className="text-xs text-ink-soft">{paying.length ? `${paying.length} ${paying.length === 1 ? "renewal" : "renewals"} due` : "Nothing due"}</div>
+              {retrying.length > 0 && <div className="text-xs text-amber font-semibold">Plus {dollars(sum(retrying))} on {retrying.length} failed {retrying.length === 1 ? "card" : "cards"} retrying</div>}
             </div>
             {/* What the trials should bring at the rate trials have paid so far, not the most they could. */}
             <div className="stat border-lime bg-lime-soft">
@@ -362,16 +365,17 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
             </div>
           </div>
 
-          {/* When it lands: a bar a day, renewals in blue under trials in lime. */}
+          {/* When it lands: a bar a day, renewals in blue, failed cards retrying in amber, trials in lime on top. */}
           <div className="mt-5 overflow-x-auto flex-1 flex flex-col">
             <div className="grid gap-1 min-w-[26rem] flex-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
               {days.map((d) => {
-                const total = d.trial + d.paying;
+                const total = d.trial + d.paying + d.retry;
                 return (
                   <div key={d.iso} className={`flex flex-col items-center h-full ${d.tip ? "cursor-help" : ""}`} data-tip={d.tip ? `${dayLabel(d.iso, { weekday: "long", day: "numeric", month: "short" })}, ${dollars(total)}\n${d.tip}` : undefined}>
                     <div className="nums text-[10px] font-bold h-4">{total ? dollars(total) : ""}</div>
                     <div className="w-full flex-1 min-h-24 flex flex-col justify-end rounded-sm bg-panel-alt">
                       {d.trial > 0 && <div className="w-full bg-lime rounded-t-sm" style={{ height: `${(d.trial / top) * 100}%` }} />}
+                      {d.retry > 0 && <div className={`w-full bg-amber ${d.trial ? "" : "rounded-t-sm"}`} style={{ height: `${(d.retry / top) * 100}%` }} />}
                       {d.paying > 0 && <div className="w-full bg-blue" style={{ height: `${(d.paying / top) * 100}%` }} />}
                     </div>
                     <div className="text-[10px] text-ink-soft mt-1 leading-tight text-center">
@@ -386,6 +390,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
             <div className="mt-2 flex gap-4 text-xs text-ink-soft">
               <span><i className="legend-dot bg-lime" /> Trial ending</span>
               <span><i className="legend-dot bg-blue" /> Paying member</span>
+              <span><i className="legend-dot bg-amber" /> Failed card, retrying</span>
             </div>
           </div>
 
@@ -403,7 +408,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
                     <td className="nums whitespace-nowrap">{dayLabel(sydney(c.at), { weekday: "short", day: "numeric", month: "short" })}</td>
                     <td data-label="Member">{c.userId ? <Link href={`/admin/${c.userId}`} className="hover:text-blue">{c.who}</Link> : c.who}</td>
                     <td data-label="Plan" className="text-ink-secondary">{c.plan}</td>
-                    <td data-label="Bill" className={"whitespace-nowrap " + (c.kind === "first bill" ? "text-accent font-semibold" : c.kind === "retry" ? "text-red font-semibold" : "")}>{c.kind === "first bill" ? "Trial ends" : c.kind === "retry" ? "Retrying" : "Renewal"}</td>
+                    <td data-label="Bill" className={"whitespace-nowrap " + (c.kind === "first bill" ? "text-accent font-semibold" : c.kind === "retry" ? "text-amber font-semibold" : "")}>{c.kind === "first bill" ? "Trial ends" : c.kind === "retry" ? "Retrying" : "Renewal"}</td>
                     <td data-label="Amount" className="text-right nums font-bold">{dollars(c.amount_cents)}</td>
                   </tr>
                 ))}

@@ -7,6 +7,7 @@ import { CheckoutButton } from "@/components/CheckoutButton";
 import { FaqList, JsonLd, SITE_URL, faqSchema } from "@/components/JsonLd";
 import { PLANS_FAQ } from "@/lib/faq";
 import { getViewer } from "@/lib/auth";
+import { firstMonthOfferUntil } from "@/lib/billing/first-month";
 import { PASS_BUNDLES, PASS_PRICE, PLANS, TERMS, TRIAL_DAYS, termById, termMonthly, termPrice, weeklyLabel } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
@@ -79,6 +80,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
 async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["searchParams"] }) {
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   const signedIn = Boolean(viewer.id);
+  const offerUntil = viewer.id ? await firstMonthOfferUntil(viewer.id) : undefined;
   // A choice made before signing up: passes_N, a plan id, or a plan id and term (everyday_year).
   const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year))?)$/.test(sp.buy) ? sp.buy : undefined;
   // Yearly shows first: the lowest weekly figure is the one to lead with.
@@ -87,6 +89,11 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
   return (
     <>
       {buy && signedIn && !viewer.admin && <AutoCheckout buy={buy} />}
+      {offerUntil && (
+        <div className="card border-lime bg-lime-soft mb-4 text-sm">
+          <strong>25% off your first month</strong> on any plan, applied at checkout. Today only, until midnight.
+        </div>
+      )}
       <div className="flex items-center gap-3 mb-3">
         <h2 className="font-display text-lg font-extrabold">Subscriptions</h2>
         <span className="badge badge-prime">{TRIAL_DAYS}-day free trial</span>

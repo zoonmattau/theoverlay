@@ -6,6 +6,7 @@ import { passBundle, planById, termById, termPrice, termPriceId, TRIAL_DAYS } fr
 import { integrationId, siteUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { comebackDays } from "@/lib/billing/comeback";
+import { firstMonthCoupon, firstMonthOfferUntil } from "@/lib/billing/first-month";
 
 /**
  * POST { plan, term? } or { passes } from a signed-in user: sends them to Stripe
@@ -77,16 +78,20 @@ export async function POST(request: NextRequest) {
   // A returning member offered the extra week pays now; the webhook pushes the next bill out once this one is paid.
   const comeback = trialled ? await comebackDays(viewer.id) : 0;
 
+  // 25% off the first month, offered by email a day after an unfinished checkout. Stripe takes a
+  // discount or promotion codes, not both, so the offer replaces the code box while it runs.
+  const firstMonth = (await firstMonthOfferUntil(viewer.id)) ? await firstMonthCoupon(plan!) : undefined;
+
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     customer,
     line_items: [{ price: priceId!, quantity: 1 }],
     success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${termPrice(plan!, term)}&trial=${trialled ? 0 : 1}`,
     cancel_url: `${siteUrl()}/pricing`,
-    allow_promotion_codes: true,
+    ...(firstMonth ? { discounts: [{ coupon: firstMonth }] } : { allow_promotion_codes: true }),
     metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
     subscription_data: {
-      metadata: { userId: viewer.id, plan: plan!.id, term: term.id, ...(comeback ? { comeback_days: String(comeback) } : {}) },
+      metadata: { userId: viewer.id, plan: plan!.id, term: term.id, ...(comeback ? { comeback_days: String(comeback) } : {}), ...(firstMonth ? { first_month_off: firstMonth } : {}) },
       ...(trialled ? {} : { trial_end: trialEnd }),
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),

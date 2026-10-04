@@ -97,6 +97,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
     <>
       {sp.password === "updated" && <Notice>Password updated.</Notice>}
       {sp.offer === "taken" && <Notice>Done, your first month is half price. Glad you stayed.</Notice>}
+      {sp.paid === "1" && <Notice>Paid, thank you. Your board is open again.</Notice>}
       {sp.ig === "added" && <Notice>Thanks for the follow. The full board is yours{viewer.bonusUntil ? ` until ${new Date(viewer.bonusUntil).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "long", hour: "numeric", minute: "2-digit" })}` : ""}.</Notice>}
       {sp.ig === "bill" && <Notice>Thanks for the follow. Your next bill has moved a day later{typeof sp.until === "string" && sp.until ? `, to ${longDate(sp.until.slice(0, 10))}` : ""}: a free day on us.</Notice>}
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}

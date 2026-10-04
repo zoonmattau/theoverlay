@@ -521,7 +521,8 @@ function jumpIso(meetingDate?: number, startTime?: string, raceDate?: number, st
     if (m[3].toLowerCase() === "pm") h += 12;
     const zone = zoneFor(state);
     const day = new Date(meetingDate).toLocaleDateString("en-CA", { timeZone: zone });
-    return `${day}T${String(h).padStart(2, "0")}:${m[2]}:00${zoneOffset(new Date(meetingDate), zone)}`;
+    // The offset at midday, not at the meeting's midnight: on the morning daylight saving starts or ends they differ.
+    return `${day}T${String(h).padStart(2, "0")}:${m[2]}:00${zoneOffset(new Date(`${day}T12:00:00Z`), zone)}`;
   }
   return undefined;
 }

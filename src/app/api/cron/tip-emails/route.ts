@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/billing/access";
 import { remindUnpaid } from "@/lib/billing/grace";
 import { chaseSignups } from "@/lib/email/chase";
 import { nudgeLongTermTrials } from "@/lib/email/term-nudge";
+import { nudgeCheckouts } from "@/lib/email/checkout-nudge";
 import { winBack } from "@/lib/email/winback";
 import { notifyFollowers, TIP_EMAIL_HOUR } from "@/lib/email/tipster";
 import { sydneyHour } from "@/lib/model/source";
@@ -47,6 +48,8 @@ export async function GET(request: NextRequest) {
   const wonBack = await winBack();
   // And a cancelled yearly or 3-month trial, two days before it ends: pay by the month instead.
   const nudged = await nudgeLongTermTrials();
+  // And a plan checkout opened yesterday and never finished: 25% off the first month, today only.
+  const checkouts = await nudgeCheckouts();
   const tipsters = [...new Set((data ?? []).map((r) => r.affiliate_id as string))];
   const sent: Record<string, number> = {};
   for (const id of tipsters) sent[id] = await notifyFollowers(id, { force });
@@ -60,5 +63,6 @@ export async function GET(request: NextRequest) {
     chased,
     wonBack,
     nudged,
+    checkouts,
   });
 }

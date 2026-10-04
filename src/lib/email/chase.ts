@@ -26,13 +26,16 @@ type Step = "confirm" | "offer" | "last";
 export async function chaseSignups(opts: { dry?: boolean; now?: number } = {}): Promise<Record<Step, number>> {
   const now = opts.now ?? Date.now();
   const db = supabaseAdmin();
-  const [{ data: users }, { data: profs }, { data: affs }, { data: chased }] = await Promise.all([
+  const [{ data: users }, { data: profs }, { data: affs }, { data: chased }, { data: nudged }] = await Promise.all([
     db.auth.admin.listUsers({ perPage: 1000 }),
     db.from("profiles").select("id, email, plan, access_until, bonus_until, is_admin, marketing_opt_in, created_at"),
     db.from("affiliates").select("user_id").not("user_id", "is", null),
     // The hand-run nudge of 18 Sep 2026 logged as admin actions; those count as sent.
     db.from("events").select("user_id, created_at, meta").or("kind.eq.signup_chase,meta->>action.eq.nudge_confirm,meta->>action.eq.nudge_trial"),
+    db.from("events").select("user_id").eq("kind", "checkout_nudge").gte("created_at", new Date(now - 5 * DAY).toISOString()),
   ]);
+  // Someone sent the 25%-off checkout email in the last five days is not offered a longer trial on top.
+  const checkoutNudged = new Set((nudged ?? []).map((e) => e.user_id as string));
   const auth = new Map((users?.users ?? []).map((u) => [u.id, u]));
   const tipsters = new Set((affs ?? []).map((a) => a.user_id));
   const done = new Map<string, Map<Step, number>>();
@@ -48,7 +51,7 @@ export async function chaseSignups(opts: { dry?: boolean; now?: number } = {}): 
   for (const p of profs ?? []) {
     const u = auth.get(p.id);
     if (!u || !p.email || p.is_admin || isAdminEmail(p.email) || tipsters.has(p.id) || /@theoverlay\.com\.au$/i.test(p.email)) continue;
-    if (u.invited_at || p.plan || p.access_until || p.bonus_until) continue;
+    if (u.invited_at || p.plan || p.access_until || p.bonus_until || checkoutNudged.has(p.id)) continue;
     const age = now - new Date(p.created_at).getTime();
     const had = done.get(p.id) ?? new Map<Step, number>();
 

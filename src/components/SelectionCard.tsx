@@ -124,7 +124,7 @@ function Stat({
 export function ReleaseNotice({ hour = 8 }: { hour?: number }) {
   return (
     <div className="card border-lime bg-lime-soft">
-      <h3 className="font-display text-lg font-bold">Today&apos;s calls release at {hour}:00am AEST</h3>
+      <h3 className="font-display text-lg font-bold">Today&apos;s calls release at {hour}:00am Sydney time</h3>
       <p className="mt-2 text-sm text-ink-secondary max-w-prose">
         The board, fields and ratings are up now, and the bets and lays land at {hour}am with fresh prices.
       </p>

@@ -3,7 +3,7 @@ import "server-only";
 import { logEvent } from "@/lib/admin";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { planById, termById, termPrice } from "@/lib/billing/plans";
+import { planById, termById } from "@/lib/billing/plans";
 import { EMAILS } from "./messages";
 import { sendEmail } from "./send";
 import { unsubscribeUrl } from "./unsubscribe";
@@ -47,7 +47,7 @@ export async function nudgeLongTermTrials(opts: { dry?: boolean; now?: number } 
     const plan = planById(p.plan ?? undefined);
     if (!plan) continue;
     const term = termById(p.billing_term);
-    const spec = EMAILS.trialMonthly(plan.name, term.name.toLowerCase(), termPrice(plan, term), termPrice(plan, termById("month")), p.cancel_at);
+    const spec = EMAILS.trialMonthly(plan.name, term.name.toLowerCase(), p.cancel_at);
     if (opts.dry) {
       console.log("[term-nudge]", p.email, plan.name, term.id, "ends", p.cancel_at.slice(0, 16));
       count++;

@@ -140,24 +140,35 @@ export interface MonthlySwitch {
   monthly: number;
   /** When the first bill falls, yyyy-mm-dd. */
   chargeOn?: string;
+  /** The term's first bill has already failed (past due): the open invoice to void once the month is paid. */
+  failedInvoice?: string;
 }
 
-/** The switch to monthly a member can make now, or nothing when they are already monthly or have paid. */
+/**
+ * The switch to monthly a member can make now, or nothing when they are
+ * already monthly or have paid. A long-term trial whose first bill failed
+ * (the first yearly bill, 3 Oct 2026, insufficient funds) gets it too.
+ */
 export async function monthlyFor(userId: string): Promise<MonthlySwitch | null> {
   const { data: p } = await supabaseAdmin().from("profiles").select("plan, stripe_subscription_id, subscription_status").eq("id", userId).maybeSingle();
-  if (!p?.stripe_subscription_id || !["trialing", "active"].includes(p.subscription_status ?? "")) return null;
+  if (!p?.stripe_subscription_id || !["trialing", "active", "past_due"].includes(p.subscription_status ?? "")) return null;
   const plan = planById(p.plan ?? undefined);
   const month = termById("month");
   if (!plan || !termPriceId(plan, month)) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
   const term = termById(sub.metadata?.term);
   if (term.id === "month") return null;
+  let failedInvoice: string | undefined;
   if (sub.status !== "trialing") {
     const paid = await stripe().invoices.list({ subscription: sub.id, status: "paid", limit: 3 });
     if (paid.data.some((i) => i.amount_paid > 0)) return null;
+    // A first bill that has been tried and failed; the failure can arrive before the subscription reads past due.
+    const open = await stripe().invoices.list({ subscription: sub.id, status: "open", limit: 3 });
+    failedInvoice = open.data.find((i) => i.attempt_count > 0)?.id;
+    if (sub.status === "past_due" && !failedInvoice) return null;
   }
   const chargeOn = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString().slice(0, 10) : undefined;
-  return { subscriptionId: sub.id, planName: plan.name, term, termPrice: termPrice(plan, term), monthly: termPrice(plan, month), chargeOn };
+  return { subscriptionId: sub.id, planName: plan.name, term, termPrice: termPrice(plan, term), monthly: termPrice(plan, month), chargeOn, failedInvoice };
 }
 
 /** The extra time for paying now instead of when the trial ends: the first month runs this many days longer. */
@@ -184,7 +195,8 @@ export async function payMonthlyNow(userId: string): Promise<"paid" | "failed" |
     await s.subscriptions.update(sub.id, {
       items: [{ id: item.id, price }],
       metadata: { ...sub.metadata, term: "month" },
-      trial_end: "now",
+      // Past due there is no trial to end: a new period from now bills the month instead.
+      ...(offer.failedInvoice ? { billing_cycle_anchor: "now" as const } : { trial_end: "now" as const }),
       proration_behavior: "none",
       // Charged here and now: a declined card throws and the subscription is left untouched.
       payment_behavior: "error_if_incomplete",
@@ -195,10 +207,50 @@ export async function payMonthlyNow(userId: string): Promise<"paid" | "failed" |
     await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: null, meta: { from: offer.term.id, to: "month", paidNow: false, error: err instanceof Error ? err.message : String(err) } });
     return "failed";
   }
+  // The month is paid, so the failed term bill goes, and Stripe stops retrying it.
+  if (offer.failedInvoice) {
+    try {
+      await s.invoices.voidInvoice(offer.failedInvoice);
+    } catch (err) {
+      console.error("[retention] void failed bill", offer.failedInvoice, err);
+    }
+  }
   const paid = await s.subscriptions.retrieve(sub.id);
   const periodEnd = paid.items.data[0]?.current_period_end;
   if (periodEnd) await s.subscriptions.update(sub.id, { trial_end: periodEnd + PAY_NOW_DAYS * 86400, proration_behavior: "none" });
   await supabaseAdmin().from("profiles").update({ billing_term: "month", cancel_at: null, cancel_reason: null }).eq("id", userId);
-  await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: offer.monthly * 100, meta: { from: offer.term.id, to: "month", paidNow: true, extraDays: PAY_NOW_DAYS } });
+  await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: offer.monthly * 100, meta: { from: offer.term.id, to: "month", paidNow: true, extraDays: PAY_NOW_DAYS, ...(offer.failedInvoice ? { voided: offer.failedInvoice } : {}) } });
   return "paid";
+}
+
+/** The bonus for paying a failed yearly or 3-month first bill instead of dropping to monthly: a month on the house. */
+export const LATE_PAY_BONUS_MONTHS = 1;
+
+/**
+ * A failed first bill on a long term that has now been paid: the next bill
+ * moves a month later, the same way as the week on payMonthlyNow (trial_end
+ * past the period's end, nothing prorated). Once per subscription. Called
+ * from the webhook on invoice.paid.
+ */
+export async function rewardLatePay(userId: string, invoice: { id: string; attempt_count: number; amount_paid: number; billing_reason: string | null; parent?: { subscription_details?: { subscription?: string | { id: string } | null } | null } | null }): Promise<boolean> {
+  if (invoice.attempt_count < 2 || invoice.amount_paid <= 0 || invoice.billing_reason !== "subscription_cycle") return false;
+  const ref = invoice.parent?.subscription_details?.subscription;
+  const subId = typeof ref === "string" ? ref : ref?.id;
+  if (!subId) return false;
+  const s = stripe();
+  const sub = await s.subscriptions.retrieve(subId);
+  if (termById(sub.metadata?.term).id === "month" || sub.metadata?.latePayBonus) return false;
+  const paid = await s.invoices.list({ subscription: subId, status: "paid", limit: 5 });
+  if (paid.data.some((i) => i.id !== invoice.id && i.amount_paid > 0)) return false;
+  const periodEnd = sub.items.data[0]?.current_period_end;
+  if (!periodEnd) return false;
+  const end = new Date(periodEnd * 1000);
+  end.setUTCMonth(end.getUTCMonth() + LATE_PAY_BONUS_MONTHS);
+  await s.subscriptions.update(subId, {
+    trial_end: Math.floor(end.getTime() / 1000),
+    proration_behavior: "none",
+    metadata: { ...sub.metadata, latePayBonus: invoice.id },
+  });
+  await logEvent({ user_id: userId, kind: "late_pay_bonus", plan: null, amount_cents: null, meta: { invoice: invoice.id, months: LATE_PAY_BONUS_MONTHS, nextBill: end.toISOString() } });
+  return true;
 }

@@ -25,11 +25,12 @@ export async function moveToPlan(form: FormData): Promise<void> {
 }
 
 /** Pay the first month today and get five weeks for it, then back to the account page. */
-export async function payMonthlyToday(): Promise<void> {
+export async function payMonthlyToday(form: FormData): Promise<void> {
   const viewer = await getViewer();
   if (!viewer.id || !stripeConfigured()) redirect("/account");
   const result = await payMonthlyNow(viewer.id);
-  redirect(result === "paid" ? "/account?switched=paid-now" : result === "failed" ? "/account/cancel?card=declined" : "/account");
+  const back = form.get("back") === "/account/monthly" ? "/account/monthly" : "/account/cancel";
+  redirect(result === "paid" ? "/account?switched=paid-now" : result === "failed" ? `${back}?card=declined` : "/account");
 }
 
 /** No thanks: straight into Stripe's cancellation for the subscription. */

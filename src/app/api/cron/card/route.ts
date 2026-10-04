@@ -6,6 +6,7 @@ import { sendMorningTips } from "@/lib/email/tips";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { postCalls, postResults, syncDiscordMembers } from "@/lib/discord";
 import { buildCard, racingToday } from "@/lib/model/source";
+import { heldUntil } from "@/lib/cron";
 import { readStoredCard } from "@/lib/model/store";
 import { pollPrices } from "@/lib/betwatch/prices";
 import { writeHubSnapshots } from "@/lib/data/hub";
@@ -14,8 +15,9 @@ export const maxDuration = 300;
 
 /**
  * The morning run, 11am Sydney so the prices have settled and the card has been looked at. Vercel calls
- * this on the schedule in vercel.json (UTC, so it drifts an hour with
- * daylight saving); it builds today's card (every Form King call for the
+ * this in both UTC hours that can be 11am Sydney with ?at=11, and only the
+ * call that lands in that Sydney hour runs, so daylight saving moves nothing.
+ * It builds today's card (every Form King call for the
  * day) and emails the calls to members who asked for them. Protected by
  * CRON_SECRET, which Vercel sends as a bearer token. ?date=yyyy-mm-dd builds
  * another day, ?email=0 skips the send, ?email=force sends again,
@@ -27,6 +29,8 @@ export async function GET(request: NextRequest) {
   if (process.env.CRON_SECRET && auth !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorised." }, { status: 401 });
   }
+  const held = heldUntil(request);
+  if (held) return held;
   const today = racingToday();
   const tomorrow = request.nextUrl.searchParams.get("tomorrow") === "1";
   const date = request.nextUrl.searchParams.get("date") ?? (tomorrow ? nextDay(today) : today);

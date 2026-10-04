@@ -10,8 +10,10 @@ import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { longDate } from "@/lib/format";
 import { rewardReferral } from "@/lib/referrals";
-import { graceUntil } from "@/lib/billing/grace";
+import { failedPaymentEmail, graceUntil } from "@/lib/billing/grace";
 import { spendComeback } from "@/lib/billing/comeback";
+import { rewardLatePay } from "@/lib/billing/retention";
+import { spendFirstMonth } from "@/lib/billing/first-month";
 
 /**
  * Stripe is the source of truth for who has paid. Every event that changes
@@ -82,6 +84,15 @@ export async function POST(request: NextRequest) {
       const customerId = typeof sub.customer === "string" ? sub.customer : sub.customer.id;
       const userId = sub.metadata?.userId ?? (await userIdForCustomer(customerId));
       if (!userId) break;
+      // A subscription that ends while the customer has another live one says nothing about their
+      // access: a cancelled Saturday trial's deletion wrote "cancelled" over a paid Every day plan (4 Oct 2026).
+      if (!["active", "trialing", "past_due"].includes(sub.status)) {
+        const others = await stripe().subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+        if (others.data.some((o) => o.id !== sub.id && ["active", "trialing", "past_due"].includes(o.status))) {
+          await logEvent({ user_id: userId, kind: "subscription_superseded", plan: sub.metadata?.plan ?? null, amount_cents: null, meta: { subscription: sub.id, status: sub.status, event: event.type } });
+          break;
+        }
+      }
       const active = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
       const periodEnd = sub.items.data[0]?.current_period_end;
       const planId = sub.metadata?.plan ?? "subscription";
@@ -142,6 +153,7 @@ export async function POST(request: NextRequest) {
           await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when, await firstBill(sub)) : EMAILS.planActive(planName, when));
           // An invited friend starting a plan earns both sides their fortnight.
           await rewardReferral(userId);
+          if (sub.metadata?.first_month_off) await spendFirstMonth(userId);
         } else if (event.type === "customer.subscription.updated" && cancelAt && !previousCancel(event)) {
           await sendEmail(to, EMAILS.planCancelled(planName, longDate(cancelAt.toISOString().slice(0, 10))));
         }
@@ -154,7 +166,12 @@ export async function POST(request: NextRequest) {
       const customerId = typeof invoice.customer === "string" ? invoice.customer : invoice.customer?.id;
       const userId = customerId ? await userIdForCustomer(customerId) : undefined;
       const to = userId ? await emailForUser(userId) : undefined;
-      if (to) await sendEmail(to, EMAILS.paymentFailed("Overlay"));
+      // Stripe's first failed attempt only: each retry fires this event again, and the
+      // reminders on days three and six do the rest (one member had five of these, Sep 2026).
+      if (to && userId && invoice.attempt_count === 1) {
+        const ok = await sendEmail(to, await failedPaymentEmail(userId, 1));
+        if (ok) await supabaseAdmin().from("events").insert({ user_id: userId, kind: "payment_reminder", plan: null, amount_cents: null, meta: { n: 1 } });
+      }
       break;
     }
 
@@ -166,6 +183,8 @@ export async function POST(request: NextRequest) {
       if (userId && invoice.amount_paid > 0) {
         const { data } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
         await recordPayment(userId, invoice.amount_paid, data?.plan ?? null, { invoice: invoice.id });
+        // A failed yearly or 3-month first bill paid after all: a month on the house, as the payment emails promise.
+        try { await rewardLatePay(userId, invoice); } catch (err) { console.error("[webhook] late pay bonus", err); }
       }
       break;
     }

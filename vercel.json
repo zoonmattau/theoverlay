@@ -1,8 +1,8 @@
 {
   "regions": ["syd1"],
   "crons": [
-    { "path": "/api/cron/card", "schedule": "0 1 * * *" },
-    { "path": "/api/cron/tomorrow", "schedule": "0 11 * * *" },
+    { "path": "/api/cron/card?at=11", "schedule": "0 0,1 * * *" },
+    { "path": "/api/cron/tomorrow?at=21", "schedule": "0 10,11 * * *" },
     { "path": "/api/cron/prices", "schedule": "* * * * *" },
     { "path": "/api/cron/tip-emails", "schedule": "0 0-4 * * *" }
   ]

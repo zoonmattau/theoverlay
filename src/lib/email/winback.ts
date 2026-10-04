@@ -52,13 +52,17 @@ async function lastWeek(now: number): Promise<WeekRecord> {
 export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promise<Record<Step, number>> {
   const now = opts.now ?? Date.now();
   const db = supabaseAdmin();
-  const [{ data: profs }, { data: affs }, { data: sent }, { data: cancels }] = await Promise.all([
+  const [{ data: profs }, { data: affs }, { data: sent }, { data: cancels }, { data: graces }] = await Promise.all([
     db.from("profiles").select("id, email, plan, access_until, bonus_until, subscription_status, cancel_at, paused_at, is_admin").eq("marketing_opt_in", true).not("email", "is", null),
     db.from("affiliates").select("user_id").not("user_id", "is", null),
     db.from("events").select("user_id, meta").eq("kind", "winback"),
     // A subscription cancelled outright leaves access_until at 1970, so when it ended is when it was cancelled.
     db.from("events").select("user_id, created_at").eq("kind", "subscription").eq("meta->>status", "canceled"),
+    db.from("events").select("user_id, created_at").eq("kind", "payment_grace"),
   ]);
+  // A lapse that follows a failed payment: their board closed when the grace week ran out, days before Stripe gives up.
+  const unpaid = new Map<string, number[]>();
+  for (const g of (graces ?? []) as { user_id: string; created_at: string }[]) unpaid.set(g.user_id, [...(unpaid.get(g.user_id) ?? []), new Date(g.created_at).getTime()]);
   const cancelledAt = new Map<string, number>();
   for (const c of (cancels ?? []) as { user_id: string; created_at: string }[]) cancelledAt.set(c.user_id, Math.max(cancelledAt.get(c.user_id) ?? 0, new Date(c.created_at).getTime()));
   const tipsters = new Set((affs ?? []).map((a) => a.user_id));
@@ -86,11 +90,15 @@ export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promi
     const sent = (s: Step) => had.has(`${p.id}|${ended}|${s}`);
     const since = now - endsAt;
 
+    // "Your plan ends today" is wrong for a failed payment, whose board closed with the grace
+    // week; they have had three reminders. The come-back offer and the last look still go.
+    const lapsedUnpaid = (unpaid.get(p.id) ?? []).some((t) => t <= endsAt && endsAt - t < 21 * DAY);
+
     let step: Step | undefined;
     // The last day, then days 3 to 7 after, then day 7 on, each only once; the
     // third only after the second, so a late start never sends two in a row.
     // The midday run can land just after an 11:58 end: the same Sydney day still counts as the last day.
-    if (sydneyDay(endsAt) === sydneyDay(now)) step = !sent(1) ? 1 : undefined;
+    if (sydneyDay(endsAt) === sydneyDay(now)) step = !sent(1) && !lapsedUnpaid ? 1 : undefined;
     else if (since < 0) step = undefined;
     else if (since >= 3 * DAY && since < 7 * DAY && !sent(2)) step = 2;
     else if (since >= 7 * DAY && since <= FRESH_DAYS * DAY && sent(2) && !sent(3)) step = 3;
