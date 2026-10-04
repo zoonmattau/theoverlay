@@ -64,9 +64,11 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
-      <Totals t={totals} />
-
-      <Ads r={ads} n={n} />
+      {/* Side by side on a wide screen, stacked on a phone. */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
+        <Totals t={totals} />
+        <Ads r={ads} n={n} />
+      </div>
 
       {/* Side by side on a wide screen, stacked on a phone: Coming up on the left, prices and new accounts down the right, both ending level. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6">
@@ -303,14 +305,14 @@ function Totals({ t }: { t: Invested }) {
   const whole = (v: number) => `$${Math.round(v).toLocaleString("en-AU")}`;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
   return (
-    <div className="card mb-6">
+    <div className="card min-w-0">
       <h2 className="font-display font-extrabold">Invested and revenue</h2>
-      <p className="mt-1 text-xs text-ink-soft">Since {dayLabel(SINCE, { day: "numeric", month: "long" })}. Revenue is what Stripe took, less refunds and its fees. Invested is Meta&apos;s ad spend plus the costs below.</p>
-      {t.adsMissing && <p className="mt-2 text-sm text-amber">{t.adsMissing}</p>}
-      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <Tile n={whole(t.invested.total)} label={`invested · ads ${whole(t.invested.ads)}, other ${whole(t.invested.other)}`} />
-        <Tile n={whole(t.revenue.net)} label={`revenue · ${whole(t.revenue.gross)} less ${whole(t.revenue.fees)} fees`} tone="bet" />
-        <Tile n={gap >= 0 ? `+${whole(gap)}` : `−${whole(-gap)}`} label={gap >= 0 ? "ahead" : "behind"} tone={gap >= 0 ? "prime" : undefined} />
+      <p className="mt-1 text-xs text-ink-soft">Since {dayLabel(SINCE, { day: "numeric", month: "short" })}. Revenue after Stripe&apos;s fees; invested is Meta plus the costs below.</p>
+      {t.adsMissing && <p className="mt-1 text-xs text-amber">{t.adsMissing}</p>}
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Mini n={whole(t.invested.total)} label="invested" sub={`ads ${whole(t.invested.ads)} · other ${whole(t.invested.other)}`} />
+        <Mini n={whole(t.revenue.net)} label="revenue" sub={`${whole(t.revenue.fees)} fees`} tone="bet" />
+        <Mini n={gap >= 0 ? `+${whole(gap)}` : `−${whole(-gap)}`} label={gap >= 0 ? "ahead" : "behind"} tone={gap >= 0 ? "prime" : undefined} />
       </div>
       <details className="mt-4 group">
         <summary className="cursor-pointer select-none text-sm font-semibold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
@@ -367,17 +369,15 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
   const cost = (v?: number) => (v === undefined ? "–" : `$${v.toFixed(v >= 100 ? 0 : 2)}`);
   const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.trials || d.paid);
   return (
-    <div className="card mb-6">
+    <div className="card min-w-0">
       <h2 className="font-display font-extrabold">Meta ads</h2>
-      <p className="mt-1 text-xs text-ink-soft">
-        Spend from Meta against accounts from Meta ad links (our own tags, not Meta&apos;s count), their trials and first payments, last {n} days. A boosted post with no ad link shows as Instagram, not here.
-      </p>
-      {r.missing && <p className="mt-2 text-sm text-red">{r.missing}</p>}
-      <div className="mt-3 grid grid-cols-2 md:grid-cols-4 gap-3">
-        <Tile n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label={`spent, ${n} days`} />
-        <Tile n={cost(t.perSignup)} label={`per account (${t.signups})`} />
-        <Tile n={cost(t.perTrial)} label={`per trial (${t.trials})`} tone="prime" />
-        <Tile n={cost(t.perPaid)} label={`per paying member (${t.paid})`} tone="bet" />
+      <p className="mt-1 text-xs text-ink-soft">Last {n} days, against accounts from our own ad-link tags. A boost with no link counts as Instagram.</p>
+      {r.missing && <p className="mt-1 text-xs text-amber">{r.missing}</p>}
+      <div className="mt-3 grid grid-cols-4 gap-2">
+        <Mini n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label="spent" />
+        <Mini n={cost(t.perSignup)} label="per account" sub={`${t.signups} accounts`} />
+        <Mini n={cost(t.perTrial)} label="per trial" sub={`${t.trials} trials`} tone="prime" />
+        <Mini n={cost(t.perPaid)} label="per paying" sub={`${t.paid} paying`} tone="bet" />
       </div>
       {days.length > 0 && (
         <details className="mt-4 group">
@@ -402,6 +402,18 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
           </table>
         </details>
       )}
+    </div>
+  );
+}
+
+/** A small stat for the half-width cards: the figure, a label, and an optional line under it. */
+function Mini({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: "prime" | "bet" }) {
+  const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : "border-line";
+  return (
+    <div className={`rounded-md border px-2 py-1.5 text-center min-w-0 ${cls}`}>
+      <div className="font-display text-lg font-extrabold tracking-tight nums leading-tight">{n}</div>
+      <div className="text-[10px] uppercase tracking-[0.06em] font-bold text-ink-soft">{label}</div>
+      {sub && <div className="text-[10px] text-ink-soft nums truncate">{sub}</div>}
     </div>
   );
 }
