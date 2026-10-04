@@ -157,7 +157,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                   />
                   {!pro && (
                     <p className="mt-2 text-center text-xs text-ink-soft tabular-nums">
-                      Nothing today. Then ${bill} {t.billed}, cancel before and pay nothing.
+                      Nothing today. Then ${bill} {t.billed}.
                     </p>
                   )}
                 </div>
