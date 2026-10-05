@@ -61,7 +61,9 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
   }, [open]);
   if (!r.marketPrice) return <>{children}</>;
   const holders = holdersLine(r.bookies);
-  const limit = r.ratedProbability ? callLimit({ signal: r.signal, ratedProbability: r.ratedProbability }) : undefined;
+  // The shortest price worth backing it at, on every runner; on a lay, the longest worth laying it at too.
+  const backAt = r.ratedProbability ? callLimit({ signal: "back", ratedProbability: r.ratedProbability }) : undefined;
+  const layMax = r.signal === "lay" && r.ratedProbability ? callLimit({ signal: "lay", ratedProbability: r.ratedProbability }) : undefined;
   const move = r.marketMove;
   const moveText = move === undefined ? "" : Math.abs(move) < 0.5 ? "holding" : move > 0 ? `firmed ${move.toFixed(1)} pts` : `drifted ${Math.abs(move).toFixed(1)} pts`;
   return (
@@ -97,16 +99,22 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
           </span>
 
           {holders && <span className="market-holders">{holders}</span>}
+          {backAt ? (
+            <span className="market-row">
+              <span className="market-k">Back at</span>
+              <span className="market-v nums">{price(backAt)}+</span>
+            </span>
+          ) : null}
           {r.layPrice ? (
             <span className="market-row">
               <span className="market-k">Lay at</span>
               <span className="market-v nums">{price(r.layPrice)}</span>
             </span>
           ) : null}
-          {limit ? (
+          {layMax ? (
             <span className="market-row">
-              <span className="market-k">{r.signal === "lay" ? "Max" : "Min"}</span>
-              <span className="market-v nums">{price(limit)}</span>
+              <span className="market-k">Lay max</span>
+              <span className="market-v nums">{price(layMax)}</span>
             </span>
           ) : null}
           {r.marketAvg ? (

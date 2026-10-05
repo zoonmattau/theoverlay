@@ -1752,13 +1752,15 @@ body {
   .pick-head > .pick-marks {
     justify-self: start;
   }
+  /* Every card's two boxes the same width and height, so the prices line up down the four. */
   .pick-prices {
-    align-items: center;
+    align-items: stretch;
     gap: 5px;
   }
   .pick-price {
-    flex: 0 0 auto;
-    padding: 2px 6px;
+    flex: 0 0 72px;
+    justify-content: center;
+    padding: 2px 4px;
   }
   .pick-price .label {
     font-size: 0.5rem;
@@ -3312,7 +3314,7 @@ body {
   }
   tr.runner-row {
     display: grid;
-    grid-template-columns: 30px minmax(0, 1fr) auto auto;
+    grid-template-columns: 30px minmax(0, 1fr) 62px 62px;
     grid-template-areas:
       "tab  name  live  rated"
       "tab  name  edge  edge";
@@ -3350,9 +3352,8 @@ body {
     flex-direction: column;
     align-items: center;
     align-self: end;
-    justify-self: end;
-    min-width: 56px;
-    padding: 2px 6px;
+    justify-self: stretch;
+    padding: 2px 4px;
     border-radius: var(--radius-md);
     border: 1px solid var(--color-line);
     background: var(--color-panel-alt);
@@ -3406,13 +3407,78 @@ body {
   tr.runner-row > td[data-col="live"] .bookie-link {
     display: none;
   }
-  tr.runner-row > td[data-col="edge"] {
-    grid-area: edge;
-    justify-self: end;
-    align-self: start;
-    padding-top: 3px;
-    font-size: 0.72rem;
+  /* On a phone a call carries one limit, its own side's, as a strip under
+     both prices; a runner with no call shows its two prices and nothing more.
+     The strip is coloured only when the price on offer acts. */
+  tr.runner-row > td[data-col="edge"],
+  tr.runner-row > td[data-col="lay"] {
+    display: none;
   }
+  tr.runner-row[data-signal="back"] > td[data-col="edge"],
+  tr.runner-row[data-signal="lay"] > td[data-col="lay"] {
+    grid-area: edge;
+    display: flex;
+    justify-content: center;
+    align-items: baseline;
+    gap: 4px;
+    align-self: start;
+    justify-self: stretch;
+    padding: 1px 4px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--color-line);
+    font-size: 0.72rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+  tr.runner-row > td[data-col="edge"]::before { content: "Back at"; }
+  tr.runner-row > td[data-col="lay"]::before { content: "Lay at"; }
+  tr.runner-row > td[data-col="edge"]::before,
+  tr.runner-row > td[data-col="lay"]::before {
+    font-family: var(--font-sans);
+    font-size: 0.5rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--color-ink-soft);
+  }
+  tr.runner-row > td[data-col="edge"] .price-chip,
+  tr.runner-row > td[data-col="lay"] .price-chip {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: inherit;
+    font-size: inherit;
+    min-width: 0;
+    width: auto;
+  }
+  tr.runner-row > td[data-col="edge"]:has(.price-chip.is-prime) {
+    background: var(--color-lime);
+    border-color: var(--color-lime);
+  }
+  tr.runner-row > td[data-col="edge"]:has(.price-chip.is-back) {
+    background: var(--color-blue);
+    border-color: var(--color-blue);
+    color: #fff;
+  }
+  tr.runner-row > td[data-col="lay"]:has(.price-chip.is-lay) {
+    background: var(--color-red);
+    border-color: var(--color-red);
+    color: #fff;
+  }
+  tr.runner-row > td[data-col="edge"]:has(.price-chip.is-back)::before,
+  tr.runner-row > td[data-col="lay"]:has(.price-chip.is-lay)::before {
+    color: rgba(255, 255, 255, 0.8);
+  }
+  /* The table's last row drops its cell borders; the price boxes keep theirs. */
+  .data-table tbody tr.runner-row:last-child > td:is([data-col="live"], [data-col="rated"], [data-col="edge"], [data-col="lay"]) {
+    border-bottom: 1px solid var(--color-line);
+  }
+  .data-table tbody tr.runner-row:last-child > td[data-col="live"]:has(.is-prime),
+  .data-table tbody tr.runner-row:last-child > td[data-col="edge"]:has(.is-prime) { border-bottom-color: var(--color-lime); }
+  .data-table tbody tr.runner-row:last-child > td[data-col="live"]:has(.is-back),
+  .data-table tbody tr.runner-row:last-child > td[data-col="edge"]:has(.is-back) { border-bottom-color: var(--color-blue); }
+  .data-table tbody tr.runner-row:last-child > td[data-col="live"]:has(.is-lay),
+  .data-table tbody tr.runner-row:last-child > td[data-col="lay"]:has(.is-lay) { border-bottom-color: var(--color-red); }
   tr.runner-row > td[data-col="tip"] {
     grid-column: 1 / -1;
     justify-self: end;

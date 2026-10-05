@@ -8,9 +8,9 @@ import { SignalBadge } from "./Ratings";
 import { RunnerDetail } from "./RunnerDetail";
 import type { PersonPower } from "@/lib/data/race-facts";
 import { Section } from "./Section";
-import { jumpTime, percent, price, signedPercent } from "@/lib/format";
+import { jumpTime, price } from "@/lib/format";
 import { callLimit } from "@/lib/model/publish";
-import type { PublishedRace, Signal } from "@/lib/model/types";
+import type { PublishedRace, PublishedRunner, Signal } from "@/lib/model/types";
 
 /**
  * Admin only: the calls already taken off today's card, as "raceId:tab", and
@@ -47,7 +47,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
   const scratched = race.runners.filter((r) => r.scratched);
   const [open, setOpen] = useState<number | null>(null);
   const [tipping_, setTipping] = useState<number | null>(null);
-  const cols = (locked ? 8 : 12) + (tipping ? 1 : 0);
+  const cols = (locked ? 8 : 11) + (tipping ? 1 : 0);
   const path = typeof window === "undefined" ? undefined : window.location.pathname;
 
   // A shared link like #runner-7 opens that runner on arrival.
@@ -84,15 +84,14 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
               <th data-col="tab" className="w-8">#</th>
               <th data-col="runner">Runner</th>
               <th data-col="bar" className="hide-sm text-right">Bar</th>
-              {!locked && <th data-col="signal">Signal</th>}
               <th data-col="wgt" className="hide-sm text-right">Wgt</th>
               <th data-col="jockey" className="hide-sm">Jockey</th>
               <th data-col="form" className="hide-sm">Form</th>
               <th data-col="live" className="text-right">Live</th>
               {!locked && <th data-col="rated" className="text-right">Rated</th>}
-              {!locked && <th data-col="win" className="hide-sm text-right">Win</th>}
-              {!locked && <th data-col="edge" className="text-right tip tip-right cursor-help" data-tip="Our chance less the chance the best bookmaker price implies, in points. A bet needs +2 or more.">Back edge</th>}
-              {!locked && <th data-col="lay" className="hide-sm text-right tip tip-right cursor-help" data-tip="Betfair's best lay on offer now, and our chance less the chance it implies. A lay needs −6 or more, at $12 or under.">Lay at</th>}
+              {!locked && <th data-col="edge" className="text-right tip tip-right cursor-help" data-tip="The shortest price worth backing at. Coloured when the price on offer is a bet.">Back at</th>}
+              {!locked && <th data-col="lay" className="text-right tip tip-right cursor-help" data-tip="The longest price worth laying at. Coloured when Betfair's lay is a lay.">Lay at</th>}
+              {!locked && <th data-col="signal">Signal</th>}
               {tipping && <th data-col="tip" className="text-right">Tip</th>}
             </tr>
           </thead>
@@ -103,6 +102,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
                 <Fragment key={r.tabNumber}>
                   <tr
                     className={`runner-row ${isOpen ? "is-open" : ""}`}
+                    data-signal={locked ? undefined : r.signal}
                     id={`runner-${r.tabNumber}`}
                     onClick={() => !locked && toggle(r.tabNumber)}
                     aria-expanded={locked ? undefined : isOpen}
@@ -124,7 +124,6 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
                       </div>
                     </td>
                     <td data-col="bar" className="hide-sm text-right nums text-ink-secondary">{r.barrier}</td>
-                    {!locked && <td data-col="signal"><SignalBadge signal={r.signal} prime={r.prime} /></td>}
                     <td data-col="wgt" className="hide-sm text-right nums text-ink-secondary">{r.weight ?? "—"}</td>
                     <td data-col="jockey" className="hide-sm text-ink-secondary truncate">{r.jockey ?? "—"}</td>
                     <td data-col="form" className="hide-sm nums text-ink-secondary">{r.form ?? "—"}</td>
@@ -137,26 +136,17 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
                       {!locked && r.marketPrice ? <BookieLink codes={r.bookies} raceId={race.raceId} className="block text-[10px] mt-0.5" /> : null}
                     </td>
                     {!locked && <td data-col="rated" className="text-right nums font-semibold">{price(r.ratedPrice)}</td>}
-                    {!locked && <td data-col="win" className="hide-sm text-right nums text-ink-secondary">{percent(r.ratedProbability)}</td>}
                     {!locked && (
-                      <td data-col="edge" className="text-right nums">
-                        <span className={r.prime ? "text-accent font-semibold" : r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
-                          {signedPercent(r.edge)}
-                        </span>
-                        {/* The shortest a bet is still worth taking, the longest a lay is still worth laying. */}
-                        {callLimit(r) ? <span className="block text-[10px] font-semibold text-ink-soft whitespace-nowrap">{r.signal === "lay" ? "max" : "min"} {price(callLimit(r))}</span> : null}
+                      <td data-col="edge" className="text-right nums whitespace-nowrap">
+                        {backAt(r) ? <span className={backLive(r) ? (r.prime ? "price-chip is-prime" : "price-chip is-back") : "text-ink-secondary"}>{price(backAt(r))}</span> : <span className="text-muted">—</span>}
                       </td>
                     )}
                     {!locked && (
-                      <td data-col="lay" className="hide-sm text-right nums whitespace-nowrap">
-                        {r.layPrice ? (
-                          <>
-                            <span className="text-ink-secondary">{price(r.layPrice)}</span>{" "}
-                            <span className={r.signal === "lay" ? "text-red font-semibold" : (r.layEdge ?? 0) <= -0.06 ? "text-red" : "text-muted"}>{signedPercent(r.layEdge)}</span>
-                          </>
-                        ) : "—"}
+                      <td data-col="lay" className="text-right nums whitespace-nowrap">
+                        {layAt(r) ? <span className={layLive(r) ? "price-chip is-lay" : "text-ink-secondary"}>{price(layAt(r))}</span> : <span className="text-muted">—</span>}
                       </td>
                     )}
+                    {!locked && <td data-col="signal"><SignalBadge signal={r.signal} prime={r.prime} /></td>}
                     {tipping && (
                       <td data-col="tip" className="text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
                         {tipping.posted[r.tabNumber] ? (
@@ -209,7 +199,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
         {locked ? (
           <p>Rated prices, edges and our bet or lay calls open with a pass.</p>
         ) : (
-          <p>Click a runner for the horse, its last runs, what to expect and our call.</p>
+          <p>Open any runner for the horse, its last runs, what to expect and our call.</p>
         )}
       </div>
     </Section>
@@ -242,3 +232,15 @@ function TipForm({ tipping, race, tab, name, market, onDone }: { tipping: Tippin
     </form>
   );
 }
+
+/** The shortest price worth backing a runner at, whatever its call. */
+const backAt = (r: PublishedRunner) => (r.ratedProbability ? callLimit({ signal: "back", ratedProbability: r.ratedProbability }) : undefined);
+/** The longest price worth laying a runner at, whatever its call. */
+const layAt = (r: PublishedRunner) => (r.ratedProbability ? callLimit({ signal: "lay", ratedProbability: r.ratedProbability }) : undefined);
+/** A bet the best price still clears. */
+const backLive = (r: PublishedRunner) => r.signal === "back" && Boolean(r.marketPrice && backAt(r) && r.marketPrice >= backAt(r)!);
+/** A lay Betfair's price still clears. */
+const layLive = (r: PublishedRunner) => {
+  const at = r.layPrice ?? r.marketPrice;
+  return r.signal === "lay" && Boolean(at && layAt(r) && at <= layAt(r)!);
+};
