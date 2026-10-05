@@ -53,7 +53,7 @@ export async function nudgeCheckouts(opts: { dry?: boolean; now?: number } = {})
     const { data: p } = await db.from("profiles").select("email, is_admin, marketing_opt_in, subscription_status").eq("id", userId).maybeSingle();
     if (!p?.email || p.is_admin || isAdminEmail(p.email) || /@theoverlay\.com\.au$/i.test(p.email) || !p.marketing_opt_in) continue;
     if (["active", "trialing", "past_due"].includes(p.subscription_status ?? "")) continue;
-    const plan = planById(start.plan.replace(/_(quarter|year)$/, ""));
+    const plan = planById(start.plan.replace(/_(quarter|year|week)$/, ""));
     if (!plan) continue;
     // Anyone who has had a subscription before pays from day one; the email should not promise a trial.
     const trial = !p.subscription_status;

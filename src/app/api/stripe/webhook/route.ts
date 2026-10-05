@@ -24,7 +24,7 @@ import { spendFirstMonth } from "@/lib/billing/first-month";
  * customer.subscription.updated, customer.subscription.deleted, invoice.paid,
  * invoice.payment_failed.
  */
-const TERM_WORDS: Record<string, string> = { month: "a month", quarter: "every 3 months", year: "a year" };
+const TERM_WORDS: Record<string, string> = { week: "a week", month: "a month", quarter: "every 3 months", year: "a year" };
 
 /**
  * The first charge after a trial as the welcome email states it, "$470 a year":

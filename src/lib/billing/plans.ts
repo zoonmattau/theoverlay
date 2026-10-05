@@ -18,7 +18,7 @@ export interface Plan {
   days: number[];
   /** Stripe Price id from the environment. */
   priceId?: string;
-  /** Stripe Price ids for paying three months or a year up front. */
+  /** Stripe Price ids for paying weekly, or three months or a year up front. */
   termPriceIds: Partial<Record<Exclude<TermId, "month">, string>>;
   highlight?: boolean;
 }
@@ -34,7 +34,7 @@ export const PLANS: Plan[] = [
     features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls", "7-day free trial"],
     days: [6],
     priceId: process.env.STRIPE_PRICE_SATURDAY,
-    termPriceIds: { quarter: process.env.STRIPE_PRICE_SATURDAY_QUARTER, year: process.env.STRIPE_PRICE_SATURDAY_YEAR },
+    termPriceIds: { week: process.env.STRIPE_PRICE_SATURDAY_WEEK, quarter: process.env.STRIPE_PRICE_SATURDAY_QUARTER, year: process.env.STRIPE_PRICE_SATURDAY_YEAR },
   },
   {
     id: "midweek",
@@ -44,7 +44,7 @@ export const PLANS: Plan[] = [
     features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls", "7-day free trial"],
     days: [3, 6],
     priceId: process.env.STRIPE_PRICE_MIDWEEK,
-    termPriceIds: { quarter: process.env.STRIPE_PRICE_MIDWEEK_QUARTER, year: process.env.STRIPE_PRICE_MIDWEEK_YEAR },
+    termPriceIds: { week: process.env.STRIPE_PRICE_MIDWEEK_WEEK, quarter: process.env.STRIPE_PRICE_MIDWEEK_QUARTER, year: process.env.STRIPE_PRICE_MIDWEEK_YEAR },
   },
   {
     id: "everyday",
@@ -56,7 +56,7 @@ export const PLANS: Plan[] = [
     features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls", "7-day free trial"],
     days: [],
     priceId: process.env.STRIPE_PRICE_EVERYDAY,
-    termPriceIds: { quarter: process.env.STRIPE_PRICE_EVERYDAY_QUARTER, year: process.env.STRIPE_PRICE_EVERYDAY_YEAR },
+    termPriceIds: { week: process.env.STRIPE_PRICE_EVERYDAY_WEEK, quarter: process.env.STRIPE_PRICE_EVERYDAY_QUARTER, year: process.env.STRIPE_PRICE_EVERYDAY_YEAR },
   },
 ];
 
@@ -67,7 +67,7 @@ export const planById = (id: string | undefined) => PLANS.find((p) => p.id === i
  * months, 20% off a year. Same plan, same days, same trial; the term only
  * changes the Stripe Price, and it rides on the subscription's metadata.
  */
-export type TermId = "month" | "quarter" | "year";
+export type TermId = "week" | "month" | "quarter" | "year";
 
 export interface Term {
   id: TermId;
@@ -77,18 +77,22 @@ export interface Term {
   off: number;
   /** "a month", "every 3 months", "a year". */
   every: string;
+  /** Paid from today, no free trial: weekly is for trying it without one (5 Oct 2026). */
+  noTrial?: boolean;
 }
 
 export const TERMS: Term[] = [
   { id: "month", name: "Monthly", months: 1, off: 0, every: "a month" },
   { id: "quarter", name: "3 months", months: 3, off: 0.1, every: "every 3 months" },
   { id: "year", name: "Yearly", months: 12, off: 0.2, every: "a year" },
+  // A quarter of the monthly price rounded up, so it costs more than monthly over a year.
+  { id: "week", name: "Weekly", months: 12 / 52, off: 0, every: "a week", noTrial: true },
 ];
 
 export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS[0];
 
 /** What a plan costs per bill on a term, whole AUD, matching the Stripe Price. */
-export const termPrice = (plan: Plan, term: Term) => Math.round(plan.price * term.months * (1 - term.off));
+export const termPrice = (plan: Plan, term: Term) => (term.id === "week" ? Math.ceil(plan.price / 4) : Math.round(plan.price * term.months * (1 - term.off)));
 
 /** The Stripe Price for a plan on a term. */
 export const termPriceId = (plan: Plan, term: Term) => (term.id === "month" ? plan.priceId : plan.termPriceIds[term.id]);
@@ -141,6 +145,7 @@ export const passBundle = (qty: number) => PASS_BUNDLES.find((b) => b.qty === qt
 export function billingTerm(recurring?: { interval: string; interval_count: number } | null): TermId | null {
   if (!recurring) return null;
   if (recurring.interval === "year") return "year";
+  if (recurring.interval === "week") return "week";
   if (recurring.interval === "month") return recurring.interval_count === 3 ? "quarter" : recurring.interval_count === 12 ? "year" : "month";
   return null;
 }

@@ -17,7 +17,7 @@ import { accessHistory } from "@/lib/access-history";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
 
-const TERM_LABEL: Record<string, string> = { month: "Monthly", quarter: "Quarterly", year: "Yearly" };
+const TERM_LABEL: Record<string, string> = { week: "Weekly", month: "Monthly", quarter: "Quarterly", year: "Yearly" };
 
 export default function Page() {
   return (

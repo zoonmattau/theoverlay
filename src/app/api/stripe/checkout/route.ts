@@ -80,23 +80,25 @@ export async function POST(request: NextRequest) {
 
   // 25% off the first month, offered by email a day after an unfinished checkout. Stripe takes a
   // discount or promotion codes, not both, so the offer replaces the code box while it runs.
-  const firstMonth = (await firstMonthOfferUntil(viewer.id)) ? await firstMonthCoupon(plan!) : undefined;
+  // Weekly is paid from today: no trial, and no first-month discount sized for a monthly bill.
+  const noTrial = Boolean(term.noTrial);
+  const firstMonth = !noTrial && (await firstMonthOfferUntil(viewer.id)) ? await firstMonthCoupon(plan!) : undefined;
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     customer,
     line_items: [{ price: priceId!, quantity: 1 }],
-    success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${termPrice(plan!, term)}&trial=${trialled ? 0 : 1}`,
+    success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${termPrice(plan!, term)}&trial=${trialled || noTrial ? 0 : 1}`,
     cancel_url: `${siteUrl()}/pricing`,
     ...(firstMonth ? { discounts: [{ coupon: firstMonth }] } : { allow_promotion_codes: true }),
     metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
     subscription_data: {
       metadata: { userId: viewer.id, plan: plan!.id, term: term.id, ...(comeback ? { comeback_days: String(comeback) } : {}), ...(firstMonth ? { first_month_off: firstMonth } : {}) },
-      ...(trialled ? {} : { trial_end: trialEnd }),
+      ...(trialled || noTrial ? {} : { trial_end: trialEnd }),
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),
   });
-  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled, term: term.id } });
+  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled && !noTrial, term: term.id } });
 
   return NextResponse.json({ url: session.url });
 }

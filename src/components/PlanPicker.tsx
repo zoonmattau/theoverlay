@@ -22,15 +22,17 @@ export interface PickerPlan {
   days: number[];
   highlight?: boolean;
   /** Whole AUD per bill on each term, where the term is on sale. */
-  prices: { month: number; quarter?: number; year?: number };
+  prices: { month: number; quarter?: number; year?: number; week?: number };
 }
 
-type TermId = "month" | "quarter" | "year";
+type TermId = "month" | "quarter" | "year" | "week";
 
-const TERMS: { id: TermId; label: string; short: string; months: number; per: string; billed: string }[] = [
+const TERMS: { id: TermId; label: string; short: string; months: number; per: string; billed: string; noTrial?: boolean }[] = [
   { id: "month", label: "Monthly", short: "Monthly", months: 1, per: "/month", billed: "billed monthly" },
   { id: "quarter", label: "Every 3 months", short: "3 months", months: 3, per: "/3 months", billed: "billed every 3 months" },
   { id: "year", label: "Yearly", short: "Yearly", months: 12, per: "/year", billed: "billed yearly" },
+  // No free trial: paid from today, for anyone who wants in without one (5 Oct 2026).
+  { id: "week", label: "Weekly", short: "Weekly", months: 12 / 52, per: "/week", billed: "billed weekly", noTrial: true },
 ];
 
 /**
@@ -78,7 +80,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
       <div className="flex flex-col items-center gap-2 mb-5">
         <div className="text-xs uppercase tracking-[0.1em] font-bold text-ink-soft">How do you want to pay?</div>
         <div role="radiogroup" aria-label="Billing" className="inline-flex w-full max-w-md rounded-full border border-line bg-panel p-1 shadow-card">
-          {TERMS.map((x) => {
+          {TERMS.filter((x) => plans.some((p) => p.prices[x.id] !== undefined)).map((x) => {
             const on = x.id === term;
             const off = saving(x.id);
             return (
@@ -129,7 +131,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                     </div>
                     <div className="mt-0.5 text-sm text-ink-secondary tabular-nums">
                       {/* The bill spread over the weeks it covers, to the cent, then what the term saves. */}
-                      ${(bill / ((t.months * 52) / 12)).toFixed(2)} a week
+                      {t.id === "week" ? "No free trial. Starts today." : <>${(bill / ((t.months * 52) / 12)).toFixed(2)} a week</>}
                       {saved > 0 && <>, <span className="font-semibold text-accent">save ${saved}</span></>}
                     </div>
                   </>
@@ -155,12 +157,12 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                     plan={p.id}
                     term={term}
                     signedIn={signedIn}
-                    label={pro ? "Switch to this plan" : `Try free for ${trialDays} days`}
+                    label={pro ? "Switch to this plan" : t.noTrial ? `Start for $${bill}` : `Try free for ${trialDays} days`}
                     className={`btn w-full ${p.highlight ? "btn-primary" : "btn-secondary"}`}
                   />
                   {!pro && (
                     <p className="mt-2 text-center text-xs text-ink-soft tabular-nums">
-                      Nothing today. Then ${bill} {t.billed}.
+                      {t.noTrial ? <>${bill} today, then {t.billed}. Cancel any week.</> : <>Nothing today. Then ${bill} {t.billed}.</>}
                     </p>
                   )}
                 </div>

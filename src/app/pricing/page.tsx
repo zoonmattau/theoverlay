@@ -55,7 +55,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
       </Suspense>
 
       <p className="mt-8 text-xs text-ink-soft text-center">
-        Prices in AUD. Subscriptions renew at the end of each month, three months or year until cancelled and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
+        Prices in AUD. Subscriptions renew at the end of each week, month, three months or year until cancelled. Weekly has no free trial and starts today and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
         <Link href="/terms" className="underline">Terms</Link>.
       </p>
     </div>
@@ -67,7 +67,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
   const signedIn = Boolean(viewer.id);
   const offerUntil = viewer.id ? await firstMonthOfferUntil(viewer.id) : undefined;
   // A choice made before signing up: passes_N, a plan id, or a plan id and term (everyday_year).
-  const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year))?)$/.test(sp.buy) ? sp.buy : undefined;
+  const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year|week))?)$/.test(sp.buy) ? sp.buy : undefined;
   // The plans and the three ways to pay, on one switch that starts on Monthly (components/PlanPicker).
   // Saturday, then Saturday + Wednesday, then Every day: smallest to the full board.
   const plans: PickerPlan[] = PLANS.map((p) => ({
@@ -82,6 +82,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
       month: p.price,
       ...(termPriceId(p, termById("quarter")) ? { quarter: termPrice(p, termById("quarter")) } : {}),
       ...(termPriceId(p, termById("year")) ? { year: termPrice(p, termById("year")) } : {}),
+      ...(termPriceId(p, termById("week")) ? { week: termPrice(p, termById("week")) } : {}),
     },
   }));
 

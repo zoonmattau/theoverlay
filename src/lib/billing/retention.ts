@@ -181,7 +181,8 @@ export async function monthlyFor(userId: string): Promise<MonthlySwitch | null> 
   if (!plan || !termPriceId(plan, month)) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
   const term = termById(sub.metadata?.term);
-  if (term.id === "month") return null;
+  // Pay-monthly-instead is for a big bill up front: 3 months or a year, never weekly.
+  if (term.id !== "quarter" && term.id !== "year") return null;
   let failedInvoice: string | undefined;
   if (sub.status !== "trialing") {
     const paid = await stripe().invoices.list({ subscription: sub.id, status: "paid", limit: 3 });

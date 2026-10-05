@@ -40,6 +40,17 @@ for (const p of [
   });
   out[`STRIPE_PRICE_${p.key}`] = pr.id;
   console.log(p.name, prod.id, pr.id);
+  // Weekly, no trial: a quarter of the monthly price rounded up (5 Oct 2026). termPrice in plans.ts says the same.
+  const week = await price(`overlay_${p.overlay}_weekly`, {
+    product: prod.id,
+    currency: "aud",
+    unit_amount: Math.ceil(p.amount / 400) * 100,
+    recurring: { interval: "week" },
+    nickname: "Weekly",
+    tax_behavior: "exclusive",
+  });
+  out[`STRIPE_PRICE_${p.key}_WEEK`] = week.id;
+  console.log(p.name, "weekly", week.id);
 }
 
 const pass = await product(
