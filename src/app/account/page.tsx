@@ -102,6 +102,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}.</Notice>}
       {sp.switched === "paid-now" && <Notice>Paid, thank you. Your first month runs 5 weeks.</Notice>}
+      {sp.switched === "weekly" && <Notice>Paid, thank you. You are on weekly now, and your board is open.</Notice>}
       {sp.discord === "linked" && <Notice>Discord linked. You are in the server and the Members area opens while your plan is live.</Notice>}
       {sp.discord === "taken" && <Notice>That Discord account is already linked to another member.</Notice>}
       {sp.discord === "failed" && <Notice>Discord did not link. Try again.</Notice>}

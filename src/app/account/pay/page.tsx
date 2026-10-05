@@ -7,6 +7,8 @@ import { getViewer } from "@/lib/auth";
 import { stripeConfigured } from "@/lib/billing/stripe";
 import { owedFor } from "@/lib/billing/unpaid";
 import { payNow, useNewCard } from "./actions";
+import { payWeeklyToday } from "@/app/account/cancel/actions";
+import { weeklyFor } from "@/lib/billing/retention";
 
 export const metadata: Metadata = { title: "Keep your board open", robots: { index: false } };
 
@@ -29,7 +31,7 @@ async function Pay({ searchParams }: { searchParams: PageProps<"/account/pay">["
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   if (!viewer.id) redirect("/login?next=%2Faccount%2Fpay");
   if (!stripeConfigured() || !viewer.stripeCustomerId) redirect("/account");
-  const owed = await owedFor(viewer.id);
+  const [owed, weekly] = await Promise.all([owedFor(viewer.id), weeklyFor(viewer.id).catch(() => null)]);
   if (!owed) redirect("/account");
   const amount = `$${owed.amount.toFixed(owed.amount % 1 ? 2 : 0)}`;
   const method = owed.method;
@@ -54,6 +56,21 @@ async function Pay({ searchParams }: { searchParams: PageProps<"/account/pay">["
           </form>
         )}
       </div>
+      {/* A failed monthly bill: the same plan by the week, and the monthly bill goes. */}
+      {weekly?.failedInvoice && (
+        <div className="card mt-3 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="font-display font-extrabold tracking-tight">Or pay by the week</div>
+            <div className="text-sm text-ink-secondary tabular-nums">{weekly.planName} for <strong>${weekly.weekly} a week</strong> instead, and the ${weekly.monthly} bill is cancelled.</div>
+          </div>
+          {method && (
+            <form action={payWeeklyToday}>
+              <input type="hidden" name="back" value="/account/pay" />
+              <button type="submit" className="btn btn-secondary btn-sm">Pay ${weekly.weekly} now</button>
+            </form>
+          )}
+        </div>
+      )}
       <div className="mt-4 flex flex-wrap gap-2">
         <form action={useNewCard}>
           <button type="submit" className="btn btn-secondary btn-sm">Use a different card</button>

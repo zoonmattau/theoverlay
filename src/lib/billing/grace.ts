@@ -4,7 +4,7 @@ import { supabaseAdmin } from "./access";
 import { planById } from "./plans";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
-import { monthlyFor } from "./retention";
+import { monthlyFor, weeklyFor } from "./retention";
 
 /**
  * A member whose payment fails keeps the board for a week while Stripe
@@ -104,7 +104,9 @@ export async function failedPaymentEmail(userId: string, n: number) {
   if (offer?.failedInvoice) return EMAILS.termFailedMonthly(offer.planName, offer.term.name.toLowerCase(), offer.term.months, last);
   const { data } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
   const plan = planById(data?.plan ?? "")?.name ?? "Overlay";
-  return n === 1 ? EMAILS.paymentFailed(plan) : EMAILS.paymentReminder(plan, last);
+  // A failed monthly bill also gets the weekly way to stay (5 Oct 2026).
+  const weekly = (await weeklyFor(userId).catch(() => null))?.failedInvoice ? planById(data?.plan ?? "")?.weekPrice : undefined;
+  return n === 1 ? EMAILS.paymentFailed(plan, weekly) : EMAILS.paymentReminder(plan, last, weekly);
 }
 
 /** The board-closed email, with the month-free and monthly offers for a failed long-term first bill. */

@@ -64,13 +64,14 @@ export const EMAILS = {
     cta: { label: "See plans and passes", url: `${SITE}/pricing` },
   }),
 
-  paymentFailed: (plan: string): EmailSpec => ({
+  paymentFailed: (plan: string, weekly?: number): EmailSpec => ({
     subject: "Your Overlay payment did not go through",
     preheader: "Pay now and your board stays open.",
     heading: "Keep your board open.",
     paragraphs: [
       `Your payment for <strong>${plan}</strong> did not go through, so we need it to keep your board open.`,
       "Pay from your account, on your card or a new one, and you keep every runner rated, the bets and lays at 11am, and the Data Hub.",
+      ...(weekly ? [`Rather pay by the week? <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>, and the monthly bill goes.`] : []),
     ],
     cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
   }),
@@ -94,13 +95,14 @@ export const EMAILS = {
   }),
 
   /** Reminders two and three in the week after a failed payment; never says when access ends. */
-  paymentReminder: (plan: string, last: boolean): EmailSpec => ({
+  paymentReminder: (plan: string, last: boolean, weekly?: number): EmailSpec => ({
     subject: last ? "A last reminder about your Overlay payment" : "A reminder about your Overlay payment",
     preheader: "Pay now and your board stays open.",
     heading: last ? "Your board is still waiting." : "We still need your payment.",
     paragraphs: [
       `Your payment for <strong>${plan}</strong> is still outstanding, and your board may close soon.`,
       "Pay from your account, on your card or a new one, and everything stays as it is: every runner rated, the bets and lays at 11am, and the Data Hub.",
+      ...(weekly ? [`Rather pay by the week? <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>, and the monthly bill goes.`] : []),
     ],
     cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
   }),

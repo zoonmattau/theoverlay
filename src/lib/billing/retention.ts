@@ -279,3 +279,80 @@ export async function rewardLatePay(userId: string, invoice: { id: string; attem
   await logEvent({ user_id: userId, kind: "late_pay_bonus", plan: null, amount_cents: null, meta: { invoice: invoice.id, months: LATE_PAY_BONUS_MONTHS, nextBill: end.toISOString() } });
   return true;
 }
+
+/**
+ * For a monthly member: pay by the week instead, the same plan at its weekly
+ * price, paid from today with no trial (the user, 5 Oct 2026). Offered on the
+ * way out and when a monthly bill fails, where $15 a week is an easier yes
+ * than $49.
+ */
+export interface WeeklySwitch {
+  subscriptionId: string;
+  planName: string;
+  /** The plan's weekly and monthly prices, dollars. */
+  weekly: number;
+  monthly: number;
+  /** The monthly bill that failed (past due): voided once the week is paid. */
+  failedInvoice?: string;
+}
+
+export async function weeklyFor(userId: string): Promise<WeeklySwitch | null> {
+  const { data: p } = await supabaseAdmin().from("profiles").select("plan, stripe_subscription_id, subscription_status").eq("id", userId).maybeSingle();
+  if (!p?.stripe_subscription_id || !["trialing", "active", "past_due"].includes(p.subscription_status ?? "")) return null;
+  const plan = planById(p.plan ?? undefined);
+  const week = termById("week");
+  if (!plan || !termPriceId(plan, week)) return null;
+  const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
+  if (termById(sub.metadata?.term).id !== "month") return null;
+  let failedInvoice: string | undefined;
+  if (sub.status !== "trialing") {
+    // The failure can land before the subscription reads past due, as with monthlyFor.
+    const open = await stripe().invoices.list({ subscription: sub.id, status: "open", limit: 3 });
+    failedInvoice = open.data.find((i) => i.attempt_count > 0)?.id;
+    if (sub.status === "past_due" && !failedInvoice) return null;
+  }
+  return { subscriptionId: sub.id, planName: plan.name, weekly: termPrice(plan, week), monthly: plan.price, failedInvoice };
+}
+
+/**
+ * Moves a monthly member to weekly and charges the first week now: a trial
+ * ends today, a failed monthly bill is voided once the week is paid. A
+ * declined card leaves the subscription as it was.
+ */
+export async function payWeeklyNow(userId: string): Promise<"paid" | "failed" | "not-eligible"> {
+  const offer = await weeklyFor(userId);
+  const { data: p } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
+  const plan = planById(p?.plan ?? undefined);
+  const price = plan ? termPriceId(plan, termById("week")) : undefined;
+  if (!offer || !plan || !price) return "not-eligible";
+  const s = stripe();
+  const sub = await s.subscriptions.retrieve(offer.subscriptionId);
+  const item = sub.items.data[0];
+  if (!item) return "not-eligible";
+  try {
+    await s.subscriptions.update(sub.id, {
+      items: [{ id: item.id, price }],
+      metadata: { ...sub.metadata, term: "week" },
+      // A trial ends now; past due there is no trial, so a new period from now bills the week.
+      ...(sub.status === "trialing" ? { trial_end: "now" as const } : { billing_cycle_anchor: "now" as const }),
+      // A paid month still running is credited against the weekly bills, never charged twice; a trial or a failed bill has nothing to credit.
+      proration_behavior: sub.status === "active" && !offer.failedInvoice ? "create_prorations" : "none",
+      payment_behavior: "error_if_incomplete",
+      ...(sub.cancel_at_period_end ? { cancel_at_period_end: false } : sub.cancel_at ? { cancel_at: "" as const } : {}),
+    });
+  } catch (err) {
+    console.error("[retention] pay weekly", userId, err);
+    await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: null, meta: { from: "month", to: "week", paidNow: false, error: err instanceof Error ? err.message : String(err) } });
+    return "failed";
+  }
+  if (offer.failedInvoice) {
+    try {
+      await s.invoices.voidInvoice(offer.failedInvoice);
+    } catch (err) {
+      console.error("[retention] void failed bill", offer.failedInvoice, err);
+    }
+  }
+  await supabaseAdmin().from("profiles").update({ billing_term: "week", cancel_at: null, cancel_reason: null }).eq("id", userId);
+  await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: offer.weekly * 100, meta: { from: "month", to: "week", paidNow: true, ...(offer.failedInvoice ? { voided: offer.failedInvoice } : {}) } });
+  return "paid";
+}

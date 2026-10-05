@@ -6,11 +6,11 @@ import { Suspense } from "react";
 import { PlanCard as Card, PlanLine as Line, PlanPrice as Price } from "@/components/PlanCard";
 import { getViewer } from "@/lib/auth";
 import { PLANS, planById, termById, termPrice } from "@/lib/billing/plans";
-import { downgradesFor, monthlyFor, offerFor, type Downgrades, type MonthlySwitch, type Offer } from "@/lib/billing/retention";
+import { downgradesFor, monthlyFor, offerFor, weeklyFor, type Downgrades, type MonthlySwitch, type Offer, type WeeklySwitch } from "@/lib/billing/retention";
 import { stripeConfigured } from "@/lib/billing/stripe";
 import { bigDaysAhead } from "@/lib/carnival";
 import { longDate } from "@/lib/format";
-import { cancelAnyway, keepAtHalfPrice, moveToPlan, payMonthlyToday } from "./actions";
+import { cancelAnyway, keepAtHalfPrice, moveToPlan, payMonthlyToday, payWeeklyToday } from "./actions";
 
 export const metadata: Metadata = { title: "Before you go", robots: { index: false } };
 
@@ -24,7 +24,7 @@ export default function Page({ searchParams }: PageProps<"/account/cancel">) {
   );
 }
 
-type Data = [Offer | { reason: "no-subscription" | "already-offered" | "not-eligible" }, Downgrades | null, MonthlySwitch | null];
+type Data = [Offer | { reason: "no-subscription" | "already-offered" | "not-eligible" }, Downgrades | null, MonthlySwitch | null, WeeklySwitch | null];
 
 /**
  * The step before Stripe's cancellation, laid out like the pricing page: their
@@ -38,7 +38,7 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
   const sample = (viewer.admin || process.env.NODE_ENV === "development") && typeof sp.preview === "string" ? preview(sp.preview) : undefined;
   if (!viewer.id && !sample) redirect("/login?next=%2Faccount%2Fcancel");
   if (!sample && (!stripeConfigured() || !viewer.stripeCustomerId)) redirect("/account");
-  const [offer, cheaper, monthly]: Data = sample ?? (await Promise.all([offerFor(viewer.id!), downgradesFor(viewer.id!), monthlyFor(viewer.id!)]));
+  const [offer, cheaper, monthly, weekly]: Data = sample ?? (await Promise.all([offerFor(viewer.id!), downgradesFor(viewer.id!), monthlyFor(viewer.id!), weeklyFor(viewer.id!)]));
   const ahead = bigDaysAhead(5);
 
   const half = "reason" in offer ? undefined : offer;
@@ -128,6 +128,20 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
         ))}
       </div>
 
+      {/* A monthly member can go weekly instead: the same plan, a smaller bill, paid from today. */}
+      {weekly && (
+        <div className="mx-auto mt-4 flex max-w-3xl flex-wrap items-center justify-between gap-3 rounded-[var(--radius-lg)] border border-line bg-panel p-4 shadow-card">
+          <div>
+            <div className="font-display font-extrabold tracking-tight">Rather pay by the week?</div>
+            <div className="text-sm text-ink-secondary tabular-nums">{weekly.planName} for <strong>${weekly.weekly} a week</strong>. Cancel any time.</div>
+          </div>
+          <form action={payWeeklyToday}>
+            <input type="hidden" name="back" value="/account/cancel" />
+            <button type="submit" className="btn btn-secondary btn-sm">Pay ${weekly.weekly} a week</button>
+          </form>
+        </div>
+      )}
+
       <div className="mt-10 text-center">
         <p className="text-sm text-ink-secondary">
           {failed ? "Cancelling ends your access today." : when ? `Cancel and the board stays open until ${when}.` : "Cancel and the board stays open until the end of your plan."}
@@ -159,7 +173,7 @@ function preview(kind: string): Data {
   const month = termById("month");
   const chargeOn = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
   const cheaper: Downgrades = { subscriptionId: "preview", current: plan.name, trialing: true, term: month, options: PLANS.filter((o) => o.price < plan.price).map((o) => ({ plan: o, price: termPrice(o, month) })) };
-  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null];
+  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null, { subscriptionId: "preview", planName: plan.name, weekly: plan.weekPrice, monthly: plan.price }];
   const monthly: MonthlySwitch = { subscriptionId: "preview", planName: plan.name, term, termPrice: termPrice(plan, term), monthly: plan.price, chargeOn: kind === "failed" ? undefined : chargeOn, failedInvoice: kind === "failed" ? "preview" : undefined };
-  return [{ reason: "not-eligible" }, cheaper, monthly];
+  return [{ reason: "not-eligible" }, cheaper, monthly, null];
 }
