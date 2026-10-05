@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 import { holdersLine } from "@/lib/bookies";
 import { price } from "@/lib/format";
@@ -38,13 +39,17 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
   // tips page lost it below the section's edge, 22 Sep 2026), and it opens
   // above a price in the lower half of the screen. A phone's sheet is CSS.
   const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | undefined>();
+  // The phone's sheet needs no placing; a desktop panel stays hidden until it is placed, so it never flashes at the corner.
+  const [sheet, setSheet] = useState(false);
   const host = useRef<HTMLSpanElement>(null);
   const pop = useRef<HTMLSpanElement>(null);
   const right = className.includes("market-right");
   useLayoutEffect(() => {
     const el = pop.current;
     const at = host.current?.getBoundingClientRect();
-    if (!open || !el || !at || window.matchMedia("(hover: none)").matches || window.innerWidth <= 640) {
+    const phone = window.matchMedia("(hover: none)").matches || window.innerWidth <= 640;
+    setSheet(phone);
+    if (!open || !el || !at || phone) {
       setPos(undefined);
       return;
     }
@@ -81,11 +86,14 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
       }}
     >
       {children}
-      {open && (
+      {/* The panel is drawn on the page body, not in the price's cell: a faded
+          row on the tips page faded it too (5 Oct 2026), and nothing a table
+          does to its cells can reach it there. */}
+      {open && createPortal(
         <span
           ref={pop}
           className="market-pop"
-          style={pos ? { position: "fixed", left: pos.left, right: pos.right, top: pos.top } : undefined}
+          style={pos ? { position: "fixed", left: pos.left, right: pos.right, top: pos.top } : sheet ? undefined : { position: "fixed", visibility: "hidden", top: 0, left: 0 }}
           role="tooltip"
           onClick={(e) => {
             // On a phone the panel is a sheet, and a tap on it is how it closes.
@@ -136,7 +144,8 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
             <span className="market-k">Updated</span>
             <span className="market-v nums">{updated(r.marketAt)}</span>
           </span>
-        </span>
+        </span>,
+        document.body,
       )}
     </span>
   );
