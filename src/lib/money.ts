@@ -134,7 +134,10 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     startToPaid: pct(plans.reduce((a, p) => a + (p.id === "passes" ? 0 : p.paid), 0), sum("starts")),
   };
 
-  const live = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at && m.subscription_status === "active");
+  // Paid, not just active: Stripe marks a trial active when it ends and charges about an hour later,
+  // so an active member with nothing taken yet is money not in (12:10am 6 Oct 2026 read as two phantom yearlies).
+  const paidUp = (m: Member) => m.subscription_status === "active" && (m.total_spent_cents ?? 0) > 0;
+  const live = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at && paidUp(m));
   // Each bill spread over the months it covers: a $470 yearly is $39.17 a month, not the $49 list price.
   const mrr_cents = live.reduce((a, m) => {
     const plan = planById(m.plan ?? undefined);
@@ -143,7 +146,7 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   }, 0);
 
   const joined = members.filter((m) => m.created_at >= since);
-  const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && m.subscription_status === "active");
+  const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && paidUp(m));
   const signups = {
     made: joined.length,
     confirmed: joined.filter((m) => m.confirmed_at).length,
@@ -170,8 +173,9 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
 
   // Trials: members whose subscription began in the window, and what became of them.
   const started = members.filter((m) => m.subscribed_since && m.subscribed_since >= since);
-  const converted = started.filter((m) => m.subscription_status === "active").length;
-  const open = started.filter((m) => m.subscription_status === "trialing").length;
+  const converted = started.filter(paidUp).length;
+  // A trial ended but not yet charged is still open: it may yet fail.
+  const open = started.filter((m) => m.subscription_status === "trialing" || (m.subscription_status === "active" && !paidUp(m))).length;
   const trials = { started: started.length, converted, ended: started.length - converted - open, open };
 
   const window: string[] = [];
