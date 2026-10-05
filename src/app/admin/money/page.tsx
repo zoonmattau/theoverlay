@@ -108,7 +108,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       </div>
       </div>
 
-      <details className="section group/fold mb-6">
+      <details open className="section group/fold mb-6">
         <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <span className="section-letter">F</span>
           <h2>Funnel by plan</h2>
@@ -211,10 +211,10 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
 
-/** A section that folds to its heading, closed until opened. The named group keeps its arrow apart from folds inside it. */
+/** A section that folds to its heading: open on load, a click on the heading closes it. The named group keeps its arrow apart from folds inside it. */
 function Fold({ title, className = "", summary, children }: { title: string; className?: string; summary?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <details className={`card group/fold min-w-0 ${className}`}>
+    <details open className={`card group/fold min-w-0 ${className}`}>
       <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
         <h2 className="flex items-center gap-2 font-display font-extrabold">
           <span className="inline-block text-sm transition-transform group-open/fold:rotate-90" aria-hidden>▸</span>
