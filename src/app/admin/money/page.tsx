@@ -20,6 +20,8 @@ import { moneyReport, upcomingCharges, type PlanFunnel, type UpcomingCharge } fr
 export const metadata: Metadata = { title: "Money", robots: { index: false } };
 
 const WINDOWS = [7, 14, 30, 90] as const;
+/** How far ahead Coming up looks, in days. */
+const AHEAD = 7;
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const rate = (n: number) => `${n}%`;
 
@@ -38,7 +40,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const [r, prices, upcoming, ads, totals] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(14), adsReport(n), invested()]);
+  const [r, prices, upcoming, ads, totals] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(AHEAD), adsReport(n), invested()]);
   const t = r.totals;
 
   return (
@@ -490,7 +492,7 @@ const dayLabel = (iso: string, opts: Intl.DateTimeFormatOptions) => new Date(`${
 const dollars = (cents: number) => `$${Math.round(cents / 100).toLocaleString("en-AU")}`;
 
 /**
- * The next fortnight's charges from Stripe: the sums first, then a day by
+ * The next week's charges from Stripe: the sums first, then a day by
  * day strip of when the money lands, then each charge. A trial's first bill
  * is money that may not come, so it is kept apart from a paying member's
  * renewal everywhere it shows.
@@ -504,7 +506,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const today = sydney(Math.floor(now() / 1000));
   // Today on: a trial ends at 11pm, so a charge later today is still to come; one already tried is no longer due in Stripe.
   // Starting tomorrow left a yearly bill due at 11pm Saturday 3 Oct 2026 off the bars on the day itself.
-  const days = Array.from({ length: 14 }, (_, i) => {
+  const days = Array.from({ length: AHEAD }, (_, i) => {
     const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + i * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
     const on = charges.filter((c) => sydney(c.at) === iso);
     // Hover or tap a day for who is billed: "Gabriel Carr, Every day, yearly: $470 (trial ends)".
@@ -514,7 +516,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const top = Math.max(1, ...days.map((d) => d.trial + d.paying + d.retry));
 
   return (
-    <Fold title="Coming up, next 14 days" className="min-w-0 flex flex-col">
+    <Fold title={`Coming up, next ${AHEAD} days`} className="min-w-0 flex flex-col">
       <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill. Plans booked to cancel are left out.</p>
       {error && <p className="mt-3 text-sm text-red">Stripe did not answer: {error}</p>}
 
@@ -544,12 +546,12 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
 
           {/* When it lands: a bar a day, renewals in blue, failed cards retrying in amber, trials in lime on top. */}
           <div className="mt-5 overflow-x-auto flex-1 flex flex-col">
-            <div className="grid gap-1 min-w-[26rem] flex-1" style={{ gridTemplateColumns: "repeat(14, minmax(0, 1fr))" }}>
+            <div className="grid gap-1 flex-1" style={{ gridTemplateColumns: `repeat(${AHEAD}, minmax(0, 1fr))` }}>
               {days.map((d) => {
                 const total = d.trial + d.paying + d.retry;
                 return (
                   <div key={d.iso} className={`flex flex-col items-center h-full ${d.tip ? "cursor-help" : ""}`} data-tip={d.tip ? `${dayLabel(d.iso, { weekday: "long", day: "numeric", month: "short" })}, ${dollars(total)}\n${d.tip}` : undefined}>
-                    {/* On a phone a day of $1,000 or more reads $1.2k: fourteen full figures crowd the row. */}
+                    {/* On a phone a day of $1,000 or more reads $1.2k: full figures crowd the row. */}
                     <div className="nums text-[10px] font-bold h-4 whitespace-nowrap">
                       {total >= 100_000 ? (
                         <>
