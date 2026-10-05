@@ -7,14 +7,14 @@ import { DayChart, DayTable } from "@/components/DayChart";
 import type { MoneyReport } from "@/lib/money";
 import { isAdmin, now } from "@/lib/admin";
 import { adsReport, type AdsReport } from "@/lib/ads/report";
+import { bank, type Bank as BankInfo } from "@/lib/bank";
 import { invested, SINCE, type Invested } from "@/lib/invested";
 import { RunningTotals } from "@/components/RunningTotals";
 import { addCost, removeCost, stopCost } from "./actions";
 import { Funnel, PeopleTile } from "./People";
-import { planById, TERMS, weekly } from "@/lib/billing/plans";
-import { priceBook, type PriceCell } from "@/lib/billing/prices";
+import { planById, TERMS } from "@/lib/billing/plans";
+import { priceBook, type PriceBook } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
-import { bookieName } from "@/lib/bookies";
 import { moneyReport, upcomingCharges, type PlanFunnel, type UpcomingCharge } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Money", robots: { index: false } };
@@ -40,15 +40,22 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
   const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
-  const [r, prices, upcoming, ads, totals] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(AHEAD), adsReport(n), invested()]);
+  // Stripe's charges are read once, far enough out for both Coming up and the rest of the month.
+  const today = sydney(Math.floor(now() / 1000));
+  const [y, m] = today.split("-").map(Number);
+  const leftInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate() - Number(today.slice(8));
+  const [r, prices, upcoming, ads, totals, cash] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(Math.max(AHEAD, leftInMonth + 1)), adsReport(n), invested(), bank()]);
   const t = r.totals;
+  const weekOut = Math.floor(now() / 1000) + AHEAD * 86400;
+  const soon = { ...upcoming, charges: upcoming.charges.filter((c) => c.at <= weekOut) };
+  const monthCharges = upcoming.charges.filter((c) => sydney(c.at).startsWith(today.slice(0, 7)));
 
   return (
     <>
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Money</h1>
-          <p className="mt-1 text-sm text-ink-soft">From a click on a plan to money in, by plan, over the last {n} days.</p>
+          <p className="mt-1 text-sm text-ink-soft">This month, where the money is, and the last {n} days from a click to money in.</p>
         </div>
         <div className="flex gap-1" role="group" aria-label="Window">
           {WINDOWS.map((d) => (
@@ -57,64 +64,39 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </div>
       </section>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
+      <PriceWarning prices={prices} />
+
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <PeopleTile n={money(r.mrr_cents)} label="monthly recurring" tone="bet" title={`Paying now, ${r.payingNow.length}`} people={r.payingNow} sum="A month's worth each: a yearly or quarterly bill spread over its months." />
-        <Tile n={money(t.revenue_cents)} label={`paid, ${n} days`} tone="bet" />
+        <PeopleTile n={money(t.revenue_cents)} label={`paid, ${n} days`} tone="prime" title={`Paid in the last ${n} days, ${r.paidPeople.length}`} people={r.paidPeople} sum={`${money(r.paidPeople.reduce((a, p) => a + (p.cents ?? 0), 0))} in all`} />
         <Tile n={r.signups.made} label="accounts made" />
-        <Tile n={r.signups.confirmed} label="confirmed email" />
-        <Tile n={t.clicks} label="plan clicks" />
         <Tile n={t.starts} label="trials and passes" />
-        <PeopleTile n={r.paidPeople.length} label="paid" tone="prime" title={`Paid in the last ${n} days`} people={r.paidPeople} sum={`${money(r.paidPeople.reduce((a, p) => a + (p.cents ?? 0), 0))} in all`} />
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
       {/* Side by side on a wide screen, stacked on a phone. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
+        <ThisMonth m={totals.month} costs={totals.costs} feeShare={totals.revenue.gross ? totals.revenue.fees / totals.revenue.gross : 0} charges={monthCharges} conversion={upcoming.conversion} mrr={r.mrr_cents / 100} paying={r.payingNow.length} today={today} />
+        <Bank b={cash} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <Totals t={totals} />
         <Ads r={ads} n={n} />
       </div>
 
-      {/* Side by side on a wide screen, stacked on a phone: Coming up on the left, prices and new accounts down the right, both ending level. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <ComingUp {...upcoming} />
-
-      <div className="flex flex-col gap-6 min-w-0">
-      <Fold title="Plan prices" className="min-w-0">
-        <p className="mt-1 text-xs text-ink-soft mb-3">What Stripe charges now, per bill. The week figure is the bill spread over the weeks it covers.</p>
-        {/* Half width on a wide screen: a column that does not fit scrolls inside the card. */}
-        <div className="overflow-x-auto">
-          <table className="data-table stack-sm text-xs">
-            <thead><tr><th>Plan</th>{TERMS.map((t) => <th key={t.id} className="text-right whitespace-nowrap">{t.name}{t.off ? <span className="block font-normal normal-case">{Math.round(t.off * 100)}% off</span> : null}</th>)}</tr></thead>
-            <tbody>
-              {prices.plans.map((p) => (
-                <tr key={p.id}>
-                  <td className="font-semibold text-sm">{p.name}</td>
-                  {TERMS.map((t) => <td key={t.id} data-label={t.name} className="text-right nums whitespace-nowrap"><Price c={p.terms[t.id]} months={t.months} /></td>)}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <p className="mt-3 text-xs nums">
-          <span className="font-semibold">Day passes</span> <span className="text-ink-soft">any one date:</span>{" "}
-          {prices.passes.map((b, i) => <span key={b.qty} className="whitespace-nowrap">{i ? " · " : ""}{b.qty} for <Price c={b.cell} /></span>)}
-        </p>
-      </Fold>
-
-      {/* How far the window's new accounts got, each step's share of the one before; it takes up the rest of the column. */}
-      <Fold title="New accounts" className="flex-1 flex flex-col">
-        <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got.</p>
-        <div className="flex-1 flex flex-col justify-center">
+        <ComingUp {...soon} />
+        <Fold title="New accounts" className="min-w-0">
+          <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
           <Funnel people={r.signups.people} />
-        </div>
-      </Fold>
-      </div>
+        </Fold>
       </div>
 
       <details open className="section group/fold mb-6">
         <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-          <span className="section-letter">F</span>
-          <h2>Funnel by plan</h2>
+          <span className="section-letter">P</span>
+          <h2>By plan</h2>
           <span className="ml-auto inline-block text-sm transition-transform group-open/fold:rotate-90" aria-hidden>▸</span>
         </summary>
         <div className="overflow-x-auto">
@@ -122,16 +104,10 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
             <thead>
               <tr>
                 <th>Plan</th>
-                <th className="text-right">Clicks</th>
-                <th className="text-right">Checkouts</th>
-                <th className="text-right">Click to checkout</th>
                 <th className="text-right">Trials</th>
-                <th className="text-right">Checkout to trial</th>
                 <th className="text-right">Paid</th>
-                <th className="text-right">Trial to paid</th>
                 <th className="text-right">Revenue</th>
                 <th className="text-right">Active now</th>
-                <th className="text-right">On trial</th>
                 <th className="text-right">Cancelled</th>
               </tr>
             </thead>
@@ -142,7 +118,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           </table>
         </div>
         <p className="px-4 py-3 text-xs text-ink-soft">
-          Clicks are presses on a plan button. Checkouts are Stripe sessions opened. Trials are subscriptions that started, or passes bought. Paid is members who made a payment in the window. Rates are between neighbouring steps.
+          Over the last {n} days: trials started, members who paid and what they paid. Active now is today.
         </p>
       </details>
 
@@ -154,10 +130,6 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           <summary className="cursor-pointer text-xs font-semibold text-ink-soft">The numbers</summary>
           <div className="mt-2"><DayTable series={r.byDay} /></div>
         </details>
-        <div className="mt-6 grid grid-cols-1 gap-6 md:grid-cols-2">
-          <Bars title="Plan clicks by hour, Sydney time" values={r.byHour} labels={r.byHour.map((_, h) => (h % 3 === 0 ? `${h % 12 || 12}${h < 12 ? "am" : "pm"}` : ""))} />
-          <Bars title="Plan clicks by weekday" values={r.byWeekday} labels={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]} />
-        </div>
         <details className="mt-4">
           <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Last {r.recent.length} clicks and checkouts</summary>
           <table className="data-table text-xs mt-2">
@@ -178,7 +150,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
       <Growth g={r.growth} />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-6 items-start">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6 items-start">
         <Fold title="Trials">
           <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
           <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
@@ -197,18 +169,113 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
             </div>
           ))}
         </Fold>
-        <Fold title="Bookie clicks">
-          <p className="text-xs text-ink-soft mb-3">Prices followed out to a bookie.</p>
-          {r.bookies.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
-          {r.bookies.map((b) => (
-            <div key={b.bookie} className="panel-row">
-              <span>{bookieName(b.bookie) || b.bookie}</span>
-              <span className="nums font-bold">{b.clicks}</span>
-            </div>
-          ))}
-        </Fold>
       </div>
     </>
+  );
+}
+
+/** Stripe and the code disagree on a price, or a price is missing or archived: a red line at the top, nothing when all is well. */
+function PriceWarning({ prices }: { prices: PriceBook }) {
+  const wrong = [
+    ...prices.plans.flatMap((p) => TERMS.map((t) => ({ name: `${p.name}, ${t.name.toLowerCase()}`, c: p.terms[t.id] }))),
+    ...prices.passes.map((b) => ({ name: `${b.qty} day ${b.qty === 1 ? "pass" : "passes"}`, c: b.cell })),
+  ].filter(({ c }) => c.dollars === undefined || !c.active || c.dollars !== c.expected);
+  if (!wrong.length) return null;
+  return (
+    <div className="card border-red mb-6 text-sm">
+      <strong className="text-red">Prices out of step with Stripe:</strong>{" "}
+      {wrong.map(({ name, c }) => `${name} ${c.dollars === undefined ? "not in Stripe" : !c.active ? "archived" : `$${c.dollars}, code says $${c.expected}`}`).join(" · ")}
+    </div>
+  );
+}
+
+/**
+ * The calendar month: what has come in after fees, what Stripe will still bill
+ * before it ends (trials at the rate trials have paid), against the month's
+ * costs with Meta carried out at this week's rate. Under it, the month as it
+ * runs when nothing is lumpy: monthly recurring against a month's costs.
+ */
+function ThisMonth({ m, costs, feeShare, charges, conversion, mrr, paying, today }: {
+  m: Invested["month"]; costs: Invested["costs"]; feeShare: number; charges: UpcomingCharge[];
+  conversion?: { rate: number }; mrr: number; paying: number; today: string;
+}) {
+  const whole = (v: number) => `$${Math.round(v).toLocaleString("en-AU")}`;
+  const sum = (xs: UpcomingCharge[]) => xs.reduce((a, c) => a + c.amount_cents, 0) / 100;
+  const renewals = sum(charges.filter((c) => c.kind === "renewal"));
+  const trials = sum(charges.filter((c) => c.kind === "first bill"));
+  const trialsExpected = trials * (conversion?.rate ?? 0);
+  const due = (renewals + trialsExpected) * (1 - feeShare);
+  const fixed = m.fixed.reduce((a, c) => a + c.amount, 0);
+  const ads = m.adsSoFar + m.adsPerDay * m.daysLeft;
+  const end = m.inSoFar + due - fixed - ads;
+  // A month when nothing is lumpy: running costs against monthly recurring.
+  const running = costs.filter((c) => c.monthly && !c.stopped).reduce((a, c) => a + c.amount_cents / 100, 0) + m.adsPerDay * 30.4;
+  const each = paying ? mrr / paying : 0;
+  const short = running - mrr;
+  const name = dayLabel(`${m.month}-15`, { month: "long" });
+  return (
+    <Fold title={`This month, ${name}`} className="min-w-0">
+      <p className="mt-1 text-xs text-ink-soft">After Stripe&apos;s fees. Trials count at the rate trials have paid so far; Meta runs to the month&apos;s end at this week&apos;s spend.</p>
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <Mini n={whole(m.inSoFar)} label="in so far" tone="bet" />
+        <Mini n={whole(due)} label="still due" sub={`renewals ${whole(renewals)} · trials ${whole(trialsExpected)} of ${whole(trials)}`} />
+        <Mini n={whole(fixed + ads)} label="costs" sub={`fixed ${whole(fixed)} · ads ${whole(ads)}`} />
+      </div>
+      <p className="mt-3 text-sm">
+        {name} ends about <strong className={`nums ${end >= 0 ? "text-accent" : "text-red"}`}>{end >= 0 ? `${whole(end)} ahead` : `${whole(-end)} behind`}</strong>
+        <span className="text-ink-soft">, {m.daysLeft} {m.daysLeft === 1 ? "day" : "days"} to go.</span>
+      </p>
+      <p className="mt-2 text-sm">
+        A month costs about <strong className="nums">{whole(running)}</strong> <span className="text-ink-soft">(ads at {whole(m.adsPerDay)} a day)</span>; monthly recurring <strong className="nums">{whole(mrr)}</strong> covers <strong className="nums">{running ? Math.round((mrr / running) * 100) : 100}%</strong>.
+        {short > 0 && each > 0 && <span className="text-ink-soft"> {Math.ceil(short / each)} more paying members at {whole(each)} a month covers it.</span>}
+      </p>
+      {m.fixed.length > 0 && (
+        <details className="mt-3 group">
+          <summary className="cursor-pointer select-none text-xs font-semibold text-ink-soft">Costs in {name}</summary>
+          {m.fixed.map((c, i) => (
+            <div key={i} className={`panel-row text-xs ${c.date > today ? "text-ink-soft" : ""}`}>
+              <span>{dayLabel(c.date, { day: "numeric", month: "short" })} · {c.what}{c.date > today ? " (to come)" : ""}</span>
+              <span className="nums">${c.amount.toFixed(2)}</span>
+            </div>
+          ))}
+          <div className="panel-row text-xs"><span>Meta so far, then {whole(m.adsPerDay)} a day</span><span className="nums">{whole(ads)}</span></div>
+        </details>
+      )}
+    </Fold>
+  );
+}
+
+/** Between a member paying and the bank: still clearing (and when), ready to pay out, and payouts on the way. */
+function Bank({ b }: { b: BankInfo }) {
+  const cents = (v: number) => `$${v.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  const day = (iso: string) => dayLabel(iso, { weekday: "short", day: "numeric", month: "short" });
+  const coming = b.onTheWay.reduce((a, p) => a + p.amount, 0);
+  return (
+    <Fold title="Where the money is" className="min-w-0">
+      <p className="mt-1 text-xs text-ink-soft">From Stripe, now. A payment takes {b.clearDays ?? "a few"} days to clear{b.schedule ? `, then goes out ${b.schedule}` : ""}.</p>
+      {b.error ? <p className="mt-3 text-sm text-red">Stripe did not answer: {b.error}</p> : (
+        <>
+          <div className="mt-3 grid grid-cols-3 gap-2">
+            <Mini n={cents(b.pending)} label="clearing" />
+            <Mini n={cents(b.available)} label="ready to pay out" tone="bet" />
+            <Mini n={cents(coming)} label="on the way" tone="prime" sub={b.onTheWay[0] ? `lands ${day(b.onTheWay[0].arrives)}` : b.nextPayout ? `next payout ${day(b.nextPayout)}` : "nothing sent"} />
+          </div>
+          {b.clearing.length > 0 && (
+            <div className="mt-3">
+              <div className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft mb-1">Clears</div>
+              {b.clearing.map((c) => <div key={c.date} className="panel-row text-xs"><span>{day(c.date)}</span><span className="nums">{cents(c.amount)}</span></div>)}
+            </div>
+          )}
+          {b.onTheWay.length > 1 && (
+            <div className="mt-3">
+              <div className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft mb-1">Payouts on the way</div>
+              {b.onTheWay.map((p, i) => <div key={i} className="panel-row text-xs"><span>Lands {day(p.arrives)}</span><span className="nums">{cents(p.amount)}</span></div>)}
+            </div>
+          )}
+          {b.lastPaid && <p className="mt-3 text-xs text-ink-soft">Last payout {cents(b.lastPaid.amount)}, landed {day(b.lastPaid.arrived)}.</p>}
+        </>
+      )}
+    </Fold>
   );
 }
 
@@ -264,42 +331,17 @@ function Growth({ g }: { g: MoneyReport["growth"] }) {
   );
 }
 
-/** A row of bars for hours or weekdays, the count above any bar that has one. */
-function Bars({ title, values, labels }: { title: string; values: number[]; labels: string[] }) {
-  const max = Math.max(1, ...values);
-  return (
-    <figure className="m-0">
-      <figcaption className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft mb-2">{title}</figcaption>
-      <div className="flex items-end gap-1 h-28">
-        {values.map((v, i) => (
-          // min-w-0 and nowrap: a label ("12pm") wider than its column would otherwise widen that column and its bar.
-          <div key={i} className="flex-1 min-w-0 flex flex-col items-center justify-end h-full" title={`${labels[i] || i}: ${v}`}>
-            {v > 0 && <span className="nums text-[10px] text-ink-secondary whitespace-nowrap">{v}</span>}
-            <div className="w-full rounded-sm bg-ink" style={{ height: `${Math.max(v ? 4 : 1, (v / max) * 80)}%`, opacity: v ? 1 : 0.15 }} />
-            <span className="mt-1 text-[10px] text-ink-soft nums h-3 whitespace-nowrap">{labels[i]}</span>
-          </div>
-        ))}
-      </div>
-    </figure>
-  );
-}
-
 function Row({ p, total }: { p: PlanFunnel; total?: boolean }) {
   const cls = total ? "font-bold bg-panel-alt" : "";
+  const none = p.id === "passes";
   return (
     <tr className={cls}>
       <td>{p.name}{p.price ? <span className="text-ink-soft font-normal"> ${p.price}/mo</span> : null}</td>
-      <td data-label="Clicks" className="text-right nums">{p.clicks}</td>
-      <td data-label="Checkouts" className="text-right nums">{p.checkouts}</td>
-      <td data-label="Click to checkout" className="text-right nums text-ink-secondary">{rate(p.clickToCheckout)}</td>
-      <td data-label="Trials" className="text-right nums">{p.id === "passes" ? "—" : p.starts}</td>
-      <td data-label="Checkout to trial" className="text-right nums text-ink-secondary">{p.id === "passes" ? "—" : rate(p.checkoutToStart)}</td>
+      <td data-label="Trials" className="text-right nums">{none ? "—" : p.starts}</td>
       <td data-label="Paid" className="text-right nums">{p.paid}</td>
-      <td data-label="Trial to paid" className="text-right nums text-ink-secondary">{p.id === "passes" ? "—" : rate(p.startToPaid)}</td>
       <td data-label="Revenue" className="text-right nums">{money(p.revenue_cents)}</td>
-      <td data-label="Active now" className="text-right nums">{p.id === "passes" ? "—" : p.active}</td>
-      <td data-label="On trial" className="text-right nums">{p.id === "passes" ? "—" : p.trialling}</td>
-      <td data-label="Cancelled" className="text-right nums">{p.id === "passes" ? "—" : p.cancelled}</td>
+      <td data-label="Active now" className="text-right nums">{none ? "—" : p.active}</td>
+      <td data-label="Cancelled" className="text-right nums">{none ? "—" : p.cancelled}</td>
     </tr>
   );
 }
@@ -471,19 +513,6 @@ function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "p
       <div className="font-display text-2xl font-extrabold tracking-tight nums">{n}</div>
       <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
     </div>
-  );
-}
-
-/** One Stripe price: the dollars, the week figure for a plan, and a flag when it is missing or not what the code expects. */
-function Price({ c, months }: { c: PriceCell; months?: number }) {
-  if (c.dollars === undefined) return <span className="text-red">not in Stripe</span>;
-  return (
-    <>
-      <strong>${c.dollars}</strong>
-      {months ? <span className="block text-xs text-ink-soft">${weekly(c.dollars / months).toFixed(2)} a week</span> : null}
-      {!c.active && <span className="block text-xs text-red">archived in Stripe</span>}
-      {c.dollars !== c.expected && <span className="block text-xs text-red">code says ${c.expected}</span>}
-    </>
   );
 }
 

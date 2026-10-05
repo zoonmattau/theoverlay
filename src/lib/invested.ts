@@ -30,6 +30,20 @@ export interface Invested {
   revenue: { gross: number; fees: number; net: number };
   invested: { ads: number; other: number; total: number };
   costs: Cost[];
+  /** The calendar month so far, Sydney time, dollars. */
+  month: {
+    /** "2026-10". */
+    month: string;
+    /** Every cost other than Meta that falls in the month, the whole month's, not just to today. */
+    fixed: { date: string; what: string; amount: number }[];
+    adsSoFar: number;
+    /** Meta's spend a day over the last 7 days, to carry the month out. */
+    adsPerDay: number;
+    /** Days after today left in the month. */
+    daysLeft: number;
+    /** Revenue after fees landed this month. */
+    inSoFar: number;
+  };
   /** Why the ad spend is missing, if it is. */
   adsMissing?: string;
 }
@@ -103,7 +117,17 @@ export async function invested(): Promise<Invested> {
     days.push({ date: d, invested: Math.round(inv * 100) / 100, revenue: Math.round(rev * 100) / 100 });
   }
   const r2 = (n: number) => Math.round(n * 100) / 100;
+  const month = today.slice(0, 7);
+  const [y, m] = month.split("-").map(Number);
+  const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
+  const fixed = costs.flatMap((c) => costDays(c, monthEnd).filter((d) => d.startsWith(month)).map((date) => ({ date, what: c.what, amount: c.amount_cents / 100 })));
+  const inMonth = (d: string) => d.startsWith(month) && d <= today;
+  const adsSoFar = [...spend].filter(([d]) => inMonth(d)).reduce((a, [, v]) => a + v, 0);
+  const lastWeek = days.slice(-7).map((d) => d.date);
+  const adsPerDay = lastWeek.reduce((a, d) => a + (spend.get(d) ?? 0), 0) / Math.max(1, lastWeek.length);
+  const inSoFar = Object.entries(byDay).filter(([d]) => inMonth(d)).reduce((a, [, v]) => a + v.gross - v.fees, 0);
   return {
+    month: { month, fixed: fixed.sort((a, b) => a.date.localeCompare(b.date)), adsSoFar: r2(adsSoFar), adsPerDay: r2(adsPerDay), daysLeft: Number(monthEnd.slice(8)) - Number(today.slice(8)), inSoFar: r2(inSoFar) },
     days,
     revenue: { gross: r2(gross), fees: r2(fees), net: r2(gross - fees) },
     invested: { ads: r2(adsTotal), other: r2(otherTotal), total: r2(adsTotal + otherTotal) },
