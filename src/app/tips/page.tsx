@@ -74,6 +74,9 @@ interface Call {
   price?: number;
   /** Units won or lost once the race has run. */
   profit?: number;
+  /** The rated price and edge the call was made on, from the ledger: once a race has run the card's own have melded into the jump price. */
+  calledRated?: number;
+  calledEdge?: number;
 }
 
 async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["searchParams"] }) {
@@ -113,6 +116,8 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               prime: prime.has(`${r.raceId}:${x.tabNumber}`),
               price: at,
               profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined, stakeOf(x)),
+              calledRated: row?.rated,
+              calledEdge: row?.edge,
             };
           }),
       ),
@@ -387,11 +392,12 @@ function CallTable({
                     {side === "lay" || c.resulted || !takeable(c.runner) ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
                   </td>
                   <td data-col="rated" className="text-right nums font-semibold whitespace-nowrap">
-                    {price(c.runner.ratedPrice)}
-                    {c.runner.ratedProbability ? <span className="chance"> · {percent(c.runner.ratedProbability)}</span> : null}
+                    {/* A run race shows what the call was made on; the card's numbers there are the jump's. */}
+                    {c.resulted && c.calledRated ? price(c.calledRated) : price(c.runner.ratedPrice)}
+                    {c.resulted && c.calledRated ? <span className="chance"> · {percent(1 / c.calledRated)}</span> : c.runner.ratedProbability ? <span className="chance"> · {percent(c.runner.ratedProbability)}</span> : null}
                   </td>
                   <td data-col="edge" className={`text-right nums font-bold ${c.prime ? "text-accent" : side === "back" ? "text-blue" : "text-red"}`}>
-                    {signedPercent(c.runner.edge)}
+                    {signedPercent(c.resulted && c.calledEdge !== undefined ? c.calledEdge : c.runner.edge)}
                     {/* A bet whose edge has dropped under the line a bet needs: the price it was bet at, the best seen while a bet. */}
                     {side === "back" && !c.resulted && (c.runner.edge ?? 0) < MIN_EDGE && c.price && c.price > (c.runner.marketPrice ?? 0) ? (
                       <span className="bet-at block text-[10px] font-semibold text-ink-soft whitespace-nowrap">bet at {price(c.price)}</span>

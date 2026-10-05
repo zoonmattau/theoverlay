@@ -252,14 +252,14 @@ export function holdBetRatedUnder(card: Pick<StoredCard, "meetings">, calls: Map
   }
 }
 
-/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen and the units once settled. */
-export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number }>> {
-  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, market_price, units, settled_at").eq("date", date).eq("source", "model");
+/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen, the units once settled, and the rated price and edge the call was made on. */
+export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number; rated?: number; edge?: number }>> {
+  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, market_price, units, settled_at, rated_price, edge").eq("date", date).eq("source", "model");
   if (error) console.error("[tips]", error.message);
   return new Map(
-    ((data ?? []) as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null }[]).map((r) => [
+    ((data ?? []) as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null; rated_price: number | null; edge: number | null }[]).map((r) => [
       `${r.race_id}:${r.tab_number}`,
-      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined },
+      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined, rated: r.rated_price === null ? undefined : Number(r.rated_price), edge: r.edge === null ? undefined : Number(r.edge) },
     ]),
   );
 }
