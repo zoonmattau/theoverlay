@@ -1,5 +1,3 @@
-import { bookieName } from "@/lib/bookies";
-import { BarList } from "../BarList";
 import { Fold } from "../Fold";
 import type { MoneyReport } from "@/lib/money";
 
@@ -11,16 +9,6 @@ export function PlanClicks({ r }: { r: MoneyReport }) {
         <Bars title="By hour, Sydney time" values={r.byHour} labels={r.byHour.map((_, h) => (h % 3 === 0 ? `${h % 12 || 12}${h < 12 ? "am" : "pm"}` : ""))} />
         <Bars title="By weekday" values={r.byWeekday} labels={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]} />
       </div>
-    </Fold>
-  );
-}
-
-/** Which bookies prices were followed out to. */
-export function BookieClicks({ r }: { r: MoneyReport }) {
-  return (
-    <Fold title="Bookie clicks">
-      <p className="text-xs text-ink-soft mb-2">Prices followed out to a bookie.</p>
-      <BarList items={r.bookies.map((b) => ({ key: b.bookie, label: bookieName(b.bookie) || b.bookie, value: b.clicks }))} />
     </Fold>
   );
 }

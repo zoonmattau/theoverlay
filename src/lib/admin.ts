@@ -133,6 +133,12 @@ export async function memberEvents(id: string, limit = 50): Promise<Event[]> {
   return (data ?? []) as Event[];
 }
 
+/** When the member's subscription last ended (Stripe's deletion), if it has: the access date is wiped then, so this is the end. */
+export async function subscriptionEnded(id: string): Promise<string | undefined> {
+  const { data } = await supabaseAdmin().from("events").select("created_at").eq("user_id", id).eq("kind", "subscription").eq("meta->>status", "canceled").order("created_at", { ascending: false }).limit(1).maybeSingle();
+  return (data as { created_at: string } | null)?.created_at;
+}
+
 export async function recentEvents(kind?: string, limit = 100): Promise<Event[]> {
   let q = supabaseAdmin().from("events").select("*").order("created_at", { ascending: false }).limit(limit);
   // Page views have their own page; they would drown everything else here.

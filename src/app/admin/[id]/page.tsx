@@ -7,7 +7,7 @@ import { Suspense } from "react";
 import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, unmakeTipster } from "@/app/admin/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { AREA_LABEL, memberViews } from "@/lib/activity";
-import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade } from "@/lib/admin";
+import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade, subscriptionEnded } from "@/lib/admin";
 import { keysByUser, revokeKeys } from "@/lib/api-keys";
 import { arrivalSource, foundUs } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
@@ -35,7 +35,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const { id } = await params;
-  const [m, allEvents, invites, tipster, views, keys] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id), memberViews(id), keysByUser(id)]);
+  const [m, allEvents, invites, tipster, views, keys, ended] = await Promise.all([getMember(id), memberEvents(id), referralsMade(id), tipsterForUser(id), memberViews(id), keysByUser(id), subscriptionEnded(id)]);
   const apiKeys = keys.get(id) ?? [];
   const apiIps = new Set(allEvents.filter((e) => e.kind === "api_ip").map((e) => String((e.meta as { ip?: string } | null)?.ip)));
   const events = allEvents.filter((e) => e.kind !== "page_view");
@@ -100,7 +100,8 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
         <Tile n={money(m.total_spent_cents ?? 0)} label="spent" />
-        <Tile n={m.subscribed_since ? `${daysBetween(m.subscribed_since, now)}d` : "—"} label="subscribed for" />
+        {/* Stops on the day access ended: a cancelled member's count kept climbing from their start (6 Oct 2026). */}
+        <Tile n={m.subscribed_since ? `${daysBetween(m.subscribed_since, live ? now : new Date(accessUntil ?? ended ?? now).getTime())}d` : "—"} label={live || !m.subscribed_since ? "subscribed for" : "was subscribed"} />
         <Tile n={accessUntil ? stamp(accessUntil).split(",")[0] : "—"} label={live ? "sub renews / ends" : "sub ended"} />
         <Tile n={m.pass_credits} label="passes unused" />
       </div>

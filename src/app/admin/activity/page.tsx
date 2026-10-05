@@ -13,7 +13,7 @@ import { DayChart } from "@/components/DayChart";
 import type { Series } from "@/lib/reports";
 import { BarList, BarRow } from "../BarList";
 import { Fold } from "../Fold";
-import { BookieClicks, PlanClicks } from "./Clicks";
+import { PlanClicks } from "./Clicks";
 
 /** The windows, in days, then every day since the first page view. */
 const WINDOWS = [1, 7, 14, 30, 90];
@@ -162,7 +162,6 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                   </details>
                 ))}
               </Fold>
-              <BookieClicks r={money} />
             </div>
           </div>
 
