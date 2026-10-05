@@ -103,17 +103,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 
         <footer className="border-t border-line mt-16 bg-panel">
           <div className="page py-8 text-xs text-ink-soft space-y-4">
-            {/* New members start here: what a call means and how to act on one, laying above all. */}
-            <div className="footer-start">
-              <div>
-                <div className="font-semibold text-ink text-sm">New here?</div>
-                <p className="mt-0.5">How to read a call, place a bet and lay a horse on Betfair.</p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Link href="/start" className="faq-link">How to use it <span aria-hidden>→</span></Link>
-                <Link href="/start#lay" className="faq-link">How to lay <span aria-hidden>→</span></Link>
-              </div>
-            </div>
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <a href="/results" className="hover:text-ink-secondary" target="_blank" rel="noopener">Results</a>
               <Link href="/start" className="hover:text-ink-secondary">How to use it</Link>
