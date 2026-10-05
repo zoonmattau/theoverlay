@@ -74,37 +74,22 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
-      {/*
-        The half-width cards packed into two columns by the browser, each at its own height, so
-        a short card beside a tall one leaves no hole (6 Oct 2026). On a phone, one column in this order.
-      */}
-      <div className="lg:columns-2 gap-6 mb-6 [&>*]:break-inside-avoid [&>*]:mb-6 [&>*]:w-full">
+      {/* Side by side on a wide screen, stacked on a phone. */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <ThisMonth m={totals.month} costs={totals.costs} feeShare={totals.revenue.gross ? totals.revenue.fees / totals.revenue.gross : 0} charges={monthCharges} conversion={upcoming.conversion} mrr={r.mrr_cents / 100} paying={r.payingNow.length} today={today} />
         <Bank b={cash} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <Totals t={totals} />
         <Ads r={ads} n={n} />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <ComingUp {...soon} />
         <Fold title="New accounts" className="min-w-0">
           <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
           <Funnel people={r.signups.people} />
-        </Fold>
-        <Fold title="Trials">
-          <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
-          <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
-          <div className="panel-row"><span>Converted to paid</span><span className="nums font-bold">{r.trials.converted}</span></div>
-          <div className="panel-row"><span>Still on trial</span><span className="nums font-bold">{r.trials.open}</span></div>
-          <div className="panel-row"><span>Ended without paying</span><span className="nums font-bold">{r.trials.ended}</span></div>
-          <div className="panel-row"><span>Conversion so far</span><span className="nums font-bold">{r.trials.started - r.trials.open ? rate(Math.round((r.trials.converted / (r.trials.started - r.trials.open)) * 1000) / 10) : "—"}</span></div>
-        </Fold>
-        <Fold title="Sign-ups by source">
-          <p className="text-xs text-ink-soft mb-3">Where the window&apos;s new accounts came from, and what they have paid.</p>
-          {r.sources.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
-          {r.sources.map((s) => (
-            <div key={s.source} className="panel-row">
-              <span>{s.source}</span>
-              <span className="nums text-ink-secondary">{s.signups} {s.signups === 1 ? "sign-up" : "sign-ups"}, {s.confirmed} confirmed, {s.paying} paying, {money(s.revenue_cents)}</span>
-            </div>
-          ))}
         </Fold>
       </div>
 
@@ -164,6 +149,27 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       </Fold>
 
       <Growth g={r.growth} />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6 items-start">
+        <Fold title="Trials">
+          <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
+          <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
+          <div className="panel-row"><span>Converted to paid</span><span className="nums font-bold">{r.trials.converted}</span></div>
+          <div className="panel-row"><span>Still on trial</span><span className="nums font-bold">{r.trials.open}</span></div>
+          <div className="panel-row"><span>Ended without paying</span><span className="nums font-bold">{r.trials.ended}</span></div>
+          <div className="panel-row"><span>Conversion so far</span><span className="nums font-bold">{r.trials.started - r.trials.open ? rate(Math.round((r.trials.converted / (r.trials.started - r.trials.open)) * 1000) / 10) : "—"}</span></div>
+        </Fold>
+        <Fold title="Sign-ups by source">
+          <p className="text-xs text-ink-soft mb-3">Where the window&apos;s new accounts came from, and what they have paid.</p>
+          {r.sources.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
+          {r.sources.map((s) => (
+            <div key={s.source} className="panel-row">
+              <span>{s.source}</span>
+              <span className="nums text-ink-secondary">{s.signups} {s.signups === 1 ? "sign-up" : "sign-ups"}, {s.confirmed} confirmed, {s.paying} paying, {money(s.revenue_cents)}</span>
+            </div>
+          ))}
+        </Fold>
+      </div>
     </>
   );
 }
@@ -544,7 +550,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const top = Math.max(1, ...days.map((d) => d.trial + d.paying + d.retry));
 
   return (
-    <Fold title={`Coming up, next ${AHEAD} days`} className="min-w-0">
+    <Fold title={`Coming up, next ${AHEAD} days`} className="min-w-0 flex flex-col">
       <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill. Plans booked to cancel are left out.</p>
       {error && <p className="mt-3 text-sm text-red">Stripe did not answer: {error}</p>}
 
