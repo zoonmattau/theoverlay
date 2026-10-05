@@ -20,7 +20,7 @@ export interface Plan {
   days: number[];
   /** Stripe Price id from the environment. */
   priceId?: string;
-  /** Stripe Price ids for paying weekly, or three months or a year up front. */
+  /** Stripe Price ids for paying weekly, or quarterly or yearly up front. */
   termPriceIds: Partial<Record<Exclude<TermId, "month">, string>>;
   highlight?: boolean;
 }
@@ -80,7 +80,7 @@ export interface Term {
   months: number;
   /** Fraction off the monthly price. */
   off: number;
-  /** "a month", "every 3 months", "a year". */
+  /** "a month", "a quarter", "a year". */
   every: string;
   /** Paid from today, no free trial: weekly is for trying it without one (5 Oct 2026). */
   noTrial?: boolean;
@@ -90,7 +90,7 @@ export const TERMS: Term[] = [
   // Each plan's own weekly price (weekPrice), more than monthly over a year.
   { id: "week", name: "Weekly", months: 12 / 52, off: 0, every: "a week", noTrial: true },
   { id: "month", name: "Monthly", months: 1, off: 0, every: "a month" },
-  { id: "quarter", name: "3 months", months: 3, off: 0.1, every: "every 3 months" },
+  { id: "quarter", name: "Quarterly", months: 3, off: 0.1, every: "a quarter" },
   { id: "year", name: "Yearly", months: 12, off: 0.2, every: "a year" },
 ];
 

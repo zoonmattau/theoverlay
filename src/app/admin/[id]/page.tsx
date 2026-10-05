@@ -158,7 +158,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
         <div className="card space-y-1.5 text-sm">
           <h2 className="font-display font-extrabold">Subscription</h2>
           <Row k="Plan" v={plan?.name ?? m.plan ?? "—"} />
-          <Row k="Billed" v={m.billing_term === "year" ? "Yearly" : m.billing_term === "quarter" ? "Every 3 months" : m.billing_term === "month" ? "Monthly" : m.billing_term === "week" ? "Weekly" : "—"} />
+          <Row k="Billed" v={m.billing_term === "year" ? "Yearly" : m.billing_term === "quarter" ? "Quarterly" : m.billing_term === "month" ? "Monthly" : m.billing_term === "week" ? "Weekly" : "—"} />
           <Row k="Status" v={m.subscription_status ?? "—"} />
           <Row k="Since" v={stamp(m.subscribed_since)} />
           <Row k="Access until" v={accessUntil ? stamp(accessUntil) : "—"} />

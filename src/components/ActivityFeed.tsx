@@ -18,7 +18,7 @@ const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const plan = (id: string | null) => (id ? (planById(id)?.name ?? id) : "a plan");
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 /** How often the plan bills: the event's own term, else the member's current one for events logged before it was. */
-const TERM: Record<string, string> = { week: "weekly", month: "monthly", quarter: "every 3 months", year: "yearly" };
+const TERM: Record<string, string> = { week: "weekly", month: "monthly", quarter: "quarterly", year: "yearly" };
 const short = (iso: string) => new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
 
 /**

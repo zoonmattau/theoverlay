@@ -181,7 +181,7 @@ export async function monthlyFor(userId: string): Promise<MonthlySwitch | null> 
   if (!plan || !termPriceId(plan, month)) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
   const term = termById(sub.metadata?.term);
-  // Pay-monthly-instead is for a big bill up front: 3 months or a year, never weekly.
+  // Pay-monthly-instead is for a big bill up front: quarterly or yearly, never weekly.
   if (term.id !== "quarter" && term.id !== "year") return null;
   let failedInvoice: string | undefined;
   if (sub.status !== "trialing") {
@@ -281,17 +281,18 @@ export async function rewardLatePay(userId: string, invoice: { id: string; attem
 }
 
 /**
- * For a monthly member: pay by the week instead, the same plan at its weekly
- * price, paid from today with no trial (the user, 5 Oct 2026). Offered on the
- * way out and when a monthly bill fails, where $15 a week is an easier yes
- * than $49.
+ * For a monthly, quarterly or yearly member: pay by the week instead, the same
+ * plan at its weekly price, paid from today with no trial (the user, 5 Oct
+ * 2026). Offered on the way out and when a bill fails, where $15 a week is an
+ * easier yes than $49 or $470. Quarterly and yearly see it beside pay-monthly.
  */
 export interface WeeklySwitch {
   subscriptionId: string;
   planName: string;
-  /** The plan's weekly and monthly prices, dollars. */
+  /** The plan's weekly and monthly prices, and the bill on the term they are on now, dollars. */
   weekly: number;
   monthly: number;
+  bill: number;
   /** The monthly bill that failed (past due): voided once the week is paid. */
   failedInvoice?: string;
 }
@@ -303,7 +304,8 @@ export async function weeklyFor(userId: string): Promise<WeeklySwitch | null> {
   const week = termById("week");
   if (!plan || !termPriceId(plan, week)) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
-  if (termById(sub.metadata?.term).id !== "month") return null;
+  const term = termById(sub.metadata?.term);
+  if (term.id === "week") return null;
   let failedInvoice: string | undefined;
   if (sub.status !== "trialing") {
     // The failure can land before the subscription reads past due, as with monthlyFor.
@@ -311,7 +313,7 @@ export async function weeklyFor(userId: string): Promise<WeeklySwitch | null> {
     failedInvoice = open.data.find((i) => i.attempt_count > 0)?.id;
     if (sub.status === "past_due" && !failedInvoice) return null;
   }
-  return { subscriptionId: sub.id, planName: plan.name, weekly: termPrice(plan, week), monthly: plan.price, failedInvoice };
+  return { subscriptionId: sub.id, planName: plan.name, weekly: termPrice(plan, week), monthly: plan.price, bill: termPrice(plan, term), failedInvoice };
 }
 
 /**
@@ -342,7 +344,7 @@ export async function payWeeklyNow(userId: string): Promise<"paid" | "failed" | 
     });
   } catch (err) {
     console.error("[retention] pay weekly", userId, err);
-    await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: null, meta: { from: "month", to: "week", paidNow: false, error: err instanceof Error ? err.message : String(err) } });
+    await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: null, meta: { from: sub.metadata?.term ?? "month", to: "week", paidNow: false, error: err instanceof Error ? err.message : String(err) } });
     return "failed";
   }
   if (offer.failedInvoice) {
@@ -353,6 +355,6 @@ export async function payWeeklyNow(userId: string): Promise<"paid" | "failed" | 
     }
   }
   await supabaseAdmin().from("profiles").update({ billing_term: "week", cancel_at: null, cancel_reason: null }).eq("id", userId);
-  await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: offer.weekly * 100, meta: { from: "month", to: "week", paidNow: true, ...(offer.failedInvoice ? { voided: offer.failedInvoice } : {}) } });
+  await logEvent({ user_id: userId, kind: "term_switch", plan: plan.id, amount_cents: offer.weekly * 100, meta: { from: sub.metadata?.term ?? "month", to: "week", paidNow: true, ...(offer.failedInvoice ? { voided: offer.failedInvoice } : {}) } });
   return "paid";
 }

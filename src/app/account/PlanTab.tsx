@@ -29,7 +29,7 @@ export async function PlanTab({ viewer, plan, preview }: { viewer: Viewer; plan:
     ? PLANS.filter((o) => o.id !== plan.id).map((o) => ({ plan: o, price: termPrice(o, preview.term) }))
     : ((await switchesFor(viewer.id!, "change"))?.options ?? []);
   const { status, term } = state;
-  const per = term.id === "week" ? "/week" : term.id === "month" ? "/month" : term.id === "year" ? "/year" : "/3 months";
+  const per = term.id === "week" ? "/week" : term.id === "month" ? "/month" : term.id === "year" ? "/year" : "/quarter";
   const every = term.every;
   const mine = termPrice(plan, term);
   const until = viewer.accessUntil ? longDate(viewer.accessUntil.slice(0, 10)).replace(/\s\d{4}$/, "") : undefined;

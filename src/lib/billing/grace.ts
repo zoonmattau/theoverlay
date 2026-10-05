@@ -101,18 +101,19 @@ export async function remindUnpaid(): Promise<number> {
 export async function failedPaymentEmail(userId: string, n: number) {
   const last = n === REMINDER_DAYS.length;
   const offer = await monthlyFor(userId).catch(() => null);
-  if (offer?.failedInvoice) return EMAILS.termFailedMonthly(offer.planName, offer.term.name.toLowerCase(), offer.term.months, last);
+  const week = await weeklyFor(userId).catch(() => null);
+  if (offer?.failedInvoice) return EMAILS.termFailedMonthly(offer.planName, offer.term.name.toLowerCase(), offer.term.months, last, week?.weekly);
   const { data } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
   const plan = planById(data?.plan ?? "")?.name ?? "Overlay";
   // A failed monthly bill also gets the weekly way to stay (5 Oct 2026).
-  const weekly = (await weeklyFor(userId).catch(() => null))?.failedInvoice ? planById(data?.plan ?? "")?.weekPrice : undefined;
+  const weekly = week?.failedInvoice ? week.weekly : undefined;
   return n === 1 ? EMAILS.paymentFailed(plan, weekly) : EMAILS.paymentReminder(plan, last, weekly);
 }
 
 /** The board-closed email, with the month-free and monthly offers for a failed long-term first bill. */
 async function closedEmail(userId: string) {
   const offer = await monthlyFor(userId).catch(() => null);
-  if (offer?.failedInvoice) return EMAILS.termClosed(offer.planName, offer.term.months);
+  if (offer?.failedInvoice) return EMAILS.termClosed(offer.planName, offer.term.months, (await weeklyFor(userId).catch(() => null))?.weekly);
   const { data } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
   return EMAILS.paymentClosed(planById(data?.plan ?? "")?.name ?? "Overlay");
 }

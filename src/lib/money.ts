@@ -275,10 +275,11 @@ async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
   return out.filter((c): c is UpcomingCharge => c !== null).sort((a, b) => a.at - b.at);
 }
 
-/** ", yearly" or ", every 3 months" after a plan's name; nothing for a monthly bill. */
+/** ", yearly" or ", quarterly" after a plan's name; nothing for a monthly bill. */
 function termOf(r?: { interval: string; interval_count: number } | null): string {
   if (!r) return "";
   if (r.interval === "year") return r.interval_count === 1 ? ", yearly" : `, every ${r.interval_count} years`;
+  if (r.interval === "month" && r.interval_count === 3) return ", quarterly";
   if (r.interval === "month" && r.interval_count > 1) return `, every ${r.interval_count} months`;
   if (r.interval === "week") return r.interval_count === 1 ? ", weekly" : `, every ${r.interval_count} weeks`;
   return "";

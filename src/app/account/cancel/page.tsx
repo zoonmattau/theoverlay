@@ -118,7 +118,7 @@ async function Cancel({ searchParams }: { searchParams: PageProps<"/account/canc
           <Card key={p.id} plan={p}>
             <Price was={`$${termPrice(plan, cheaper!.term)}`} n={`$${price}`} per={cheaper!.term.id === "month" ? "/month" : `/${cheaper!.term.name.toLowerCase()}`} />
             <Line>
-              <span className="font-semibold text-accent">Save ${termPrice(plan, cheaper!.term) - price} {cheaper!.term.id === "month" ? "a month" : cheaper!.term.id === "year" ? "a year" : "every 3 months"}.</span> {cheaper!.trialing ? "Your trial carries on." : ""}
+              <span className="font-semibold text-accent">Save ${termPrice(plan, cheaper!.term) - price} {cheaper!.term.id === "month" ? "a month" : cheaper!.term.id === "year" ? "a year" : "a quarter"}.</span> {cheaper!.trialing ? "Your trial carries on." : ""}
             </Line>
             <form action={moveToPlan} className="mt-auto">
               <input type="hidden" name="plan" value={p.id} />
@@ -173,7 +173,7 @@ function preview(kind: string): Data {
   const month = termById("month");
   const chargeOn = new Date(Date.now() + 3 * 86400_000).toISOString().slice(0, 10);
   const cheaper: Downgrades = { subscriptionId: "preview", current: plan.name, trialing: true, term: month, options: PLANS.filter((o) => o.price < plan.price).map((o) => ({ plan: o, price: termPrice(o, month) })) };
-  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null, { subscriptionId: "preview", planName: plan.name, weekly: plan.weekPrice, monthly: plan.price }];
+  if (kind === "month") return [{ subscriptionId: "preview", planName: plan.name, full: plan.price, offered: plan.price / 2, chargeOn }, cheaper, null, { subscriptionId: "preview", planName: plan.name, weekly: plan.weekPrice, monthly: plan.price, bill: plan.price }];
   const monthly: MonthlySwitch = { subscriptionId: "preview", planName: plan.name, term, termPrice: termPrice(plan, term), monthly: plan.price, chargeOn: kind === "failed" ? undefined : chargeOn, failedInvoice: kind === "failed" ? "preview" : undefined };
-  return [{ reason: "not-eligible" }, cheaper, monthly, null];
+  return [{ reason: "not-eligible" }, cheaper, monthly, { subscriptionId: "preview", planName: plan.name, weekly: plan.weekPrice, monthly: plan.price, bill: termPrice(plan, term) }];
 }

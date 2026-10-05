@@ -55,7 +55,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
       </Suspense>
 
       <p className="mt-8 text-xs text-ink-soft text-center">
-        Prices in AUD. Subscriptions renew at the end of each week, month, three months or year until cancelled. Weekly has no free trial and starts today and can be cancelled any time from your account. Day passes do not expire. 18+ only, gamble responsibly.{" "}
+        Prices in AUD. Subscriptions renew each week, month, quarter or year until cancelled, and can be cancelled any time from your account. Weekly has no free trial and starts today. Day passes do not expire. 18+ only, gamble responsibly.{" "}
         <Link href="/terms" className="underline">Terms</Link>.
       </p>
     </div>

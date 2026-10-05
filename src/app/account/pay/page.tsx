@@ -61,7 +61,7 @@ async function Pay({ searchParams }: { searchParams: PageProps<"/account/pay">["
         <div className="card mt-3 flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="font-display font-extrabold tracking-tight">Or pay by the week</div>
-            <div className="text-sm text-ink-secondary tabular-nums">{weekly.planName} for <strong>${weekly.weekly} a week</strong> instead, and the ${weekly.monthly} bill is cancelled.</div>
+            <div className="text-sm text-ink-secondary tabular-nums">{weekly.planName} for <strong>${weekly.weekly} a week</strong> instead, and the ${weekly.bill} bill is cancelled.</div>
           </div>
           {method && (
             <form action={payWeeklyToday}>

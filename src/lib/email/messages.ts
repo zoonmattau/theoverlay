@@ -71,7 +71,7 @@ export const EMAILS = {
     paragraphs: [
       `Your payment for <strong>${plan}</strong> did not go through, so we need it to keep your board open.`,
       "Pay from your account, on your card or a new one, and you keep every runner rated, the bets and lays at 11am, and the Data Hub.",
-      ...(weekly ? [`Rather pay by the week? <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>, and the monthly bill goes.`] : []),
+      ...(weekly ? [`Rather pay by the week? <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>, and the bill that failed is cancelled.`] : []),
     ],
     cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
   }),
@@ -82,7 +82,7 @@ export const EMAILS = {
    * on the monthly price running 5 weeks. The first yearly bill (3 Oct 2026,
    * $470) failed on insufficient funds.
    */
-  termFailedMonthly: (plan: string, term: string, months: number, last = false): EmailSpec => ({
+  termFailedMonthly: (plan: string, term: string, months: number, last = false, weekly?: number): EmailSpec => ({
     subject: last ? "A last reminder about your Overlay payment" : "Your Overlay payment did not go through",
     preheader: "Keep your board open and get a month on us.",
     heading: last ? "Your board is still waiting." : "Keep your board open.",
@@ -90,6 +90,7 @@ export const EMAILS = {
       `Your ${term} payment for <strong>${plan}</strong> did not go through, so we need it to keep your board open.`,
       `Pay today and we add a month on us: <strong>${months + 1} months</strong> of every runner rated, the bets and lays at 11am, and the Data Hub.`,
       `Rather go month to month? <a href="${SITE}/account/monthly" style="color:#1f6fd6">Switch to monthly</a> and your first month runs 5 weeks.`,
+      ...(weekly ? [`Or by the week: <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>.`] : []),
     ],
     cta: { label: "Pay and get a month free", url: `${SITE}/account/pay` },
   }),
@@ -102,7 +103,7 @@ export const EMAILS = {
     paragraphs: [
       `Your payment for <strong>${plan}</strong> is still outstanding, and your board may close soon.`,
       "Pay from your account, on your card or a new one, and everything stays as it is: every runner rated, the bets and lays at 11am, and the Data Hub.",
-      ...(weekly ? [`Rather pay by the week? <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>, and the monthly bill goes.`] : []),
+      ...(weekly ? [`Rather pay by the week? <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>, and the bill that failed is cancelled.`] : []),
     ],
     cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
   }),
@@ -120,7 +121,7 @@ export const EMAILS = {
   }),
 
   /** paymentClosed for a failed yearly or 3-month first bill: the month on us and the monthly way still stand. */
-  termClosed: (plan: string, months: number): EmailSpec => ({
+  termClosed: (plan: string, months: number, weekly?: number): EmailSpec => ({
     subject: "Your Overlay board is closed",
     preheader: "Pay today and it opens again, with a month on us.",
     heading: "Your board is closed for now.",
@@ -128,6 +129,7 @@ export const EMAILS = {
       `We still could not take your payment for <strong>${plan}</strong>, so your board has closed.`,
       `Pay today and it opens again straight away, with a month on us: <strong>${months + 1} months</strong> of every runner rated, the bets and lays at 11am, and the Data Hub.`,
       `Rather go month to month? <a href="${SITE}/account/monthly" style="color:#1f6fd6">Switch to monthly</a> and your first month runs 5 weeks.`,
+      ...(weekly ? [`Or by the week: <a href="${SITE}/account/pay" style="color:#1f6fd6">${plan} is $${weekly} a week</a>.`] : []),
     ],
     cta: { label: "Pay and get a month free", url: `${SITE}/account/pay` },
   }),

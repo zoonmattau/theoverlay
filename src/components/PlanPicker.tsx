@@ -31,7 +31,7 @@ const TERMS: { id: TermId; label: string; short: string; months: number; per: st
   // No free trial: paid from today, for anyone who wants in without one (5 Oct 2026). Shortest first, left of Monthly.
   { id: "week", label: "Weekly", short: "Weekly", months: 12 / 52, per: "/week", billed: "billed weekly", noTrial: true },
   { id: "month", label: "Monthly", short: "Monthly", months: 1, per: "/month", billed: "billed monthly" },
-  { id: "quarter", label: "Every 3 months", short: "3 months", months: 3, per: "/3 months", billed: "billed every 3 months" },
+  { id: "quarter", label: "Quarterly", short: "Quarterly", months: 3, per: "/quarter", billed: "billed quarterly" },
   { id: "year", label: "Yearly", short: "Yearly", months: 12, per: "/year", billed: "billed yearly" },
 ];
 

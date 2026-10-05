@@ -9,7 +9,7 @@ export const ABOUT_FAQ: Faq[] = [
   { q: "Which races are covered?", a: "Every TAB flat meeting in Australia, every state, with one race a day free and the rest open to members.", links: [{ label: "Today's board", href: "/" }] },
   { q: "Where can I see your results?", a: "Every settled call, won and lost, is on our results page, day by day, and it updates through the day.", links: [{ label: "Results", href: "/results" }] },
   { q: "Is there a Discord?", a: "Yes, members get every call and every lay in our Discord before the jump, and the free race, winners and Saturday review are open to everyone.", links: [{ label: "Join the Discord", href: `${BRAND_SOCIAL.discord}` }, { label: "Link it to your account", href: "/account" }] },
-  { q: "How much does it cost?", a: "Saturday tips are $4.40 a week, Saturday plus Wednesday $6.70, every day $11.30, billed monthly at $19, $29 and $49, all with a 7-day free trial. Pay three months up front for 10% off or a year for 20% off. Or buy day passes from $10 each.", links: [{ label: "See the plans", href: "/pricing" }] },
+  { q: "How much does it cost?", a: "Saturday tips are $4.40 a week, Saturday plus Wednesday $6.70, every day $11.30, billed monthly at $19, $29 and $49, all with a 7-day free trial. Pay quarterly for 10% off or yearly for 20% off, or weekly from $5 with no trial. Or buy day passes from $10 each.", links: [{ label: "See the plans", href: "/pricing" }] },
 ];
 
 export const RATINGS_FAQ: Faq[] = [
