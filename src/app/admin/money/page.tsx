@@ -236,17 +236,23 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
 /** Are we growing: new accounts and trial sign-ups a day, each with this week against last. */
 function Growth({ g }: { g: MoneyReport["growth"] }) {
   return (
-    <div className="card mb-6">
-      <h2 className="font-display font-extrabold">Growth</h2>
-      <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
-        <Week label="Accounts" w={g.week.accounts} />
-        <Week label="Trials" w={g.week.trials} />
-      </div>
+    <details className="card group mb-6">
+      {/* Folded, it is the heading and this week against last; the daily charts open underneath. */}
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <h2 className="flex items-center gap-2 font-display font-extrabold">
+          <span className="inline-block text-sm transition-transform group-open:rotate-90" aria-hidden>▸</span>
+          Growth
+        </h2>
+        <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
+          <Week label="Accounts" w={g.week.accounts} />
+          <Week label="Trials" w={g.week.trials} />
+        </div>
+      </summary>
       <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
         <DayChart s={g.accounts} />
         <DayChart s={g.trials} />
       </div>
-    </div>
+    </details>
   );
 }
 
