@@ -85,38 +85,40 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Ads r={ads} n={n} />
       </div>
 
+      {/*
+        Two stacks, each card at its own height: Trials and Sign-ups by source sit under New accounts,
+        in the room Coming up leaves beside it (6 Oct 2026).
+      */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <ComingUp {...soon} />
-        <Fold title="New accounts" className="min-w-0">
-          <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
-          <Funnel people={r.signups.people} />
-        </Fold>
-      </div>
-
-      {/* Plans beside the trials and where sign-ups came from: the same question, who joins and who pays. */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <Fold title="By plan" className="min-w-0">
-          <p className="text-xs text-ink-soft mb-3">Over the last {n} days: trials started, members who paid and what they paid. Active now is today.</p>
-          <div className="overflow-x-auto">
-            <table className="data-table stack-sm text-sm">
-              <thead>
-                <tr>
-                  <th>Plan</th>
-                  <th className="text-right">Trials</th>
-                  <th className="text-right">Paid</th>
-                  <th className="text-right">Revenue</th>
-                  <th className="text-right">Active now</th>
-                  <th className="text-right">Cancelled</th>
-                </tr>
-              </thead>
-              <tbody>
-                {r.plans.map((p) => <Row key={p.id} p={p} />)}
-                <Row p={t} total />
-              </tbody>
-            </table>
-          </div>
-        </Fold>
         <div className="flex flex-col gap-6 min-w-0">
+          <ComingUp {...soon} />
+          <Fold title="By plan" className="min-w-0">
+            <p className="text-xs text-ink-soft mb-3">Over the last {n} days: trials started, members who paid and what they paid. Active now is today.</p>
+            <div className="overflow-x-auto">
+              <table className="data-table stack-sm text-sm">
+                <thead>
+                  <tr>
+                    <th>Plan</th>
+                    <th className="text-right">Trials</th>
+                    <th className="text-right">Paid</th>
+                    <th className="text-right">Revenue</th>
+                    <th className="text-right">Active now</th>
+                    <th className="text-right">Cancelled</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {r.plans.map((p) => <Row key={p.id} p={p} />)}
+                  <Row p={t} total />
+                </tbody>
+              </table>
+            </div>
+          </Fold>
+        </div>
+        <div className="flex flex-col gap-6 min-w-0">
+          <Fold title="New accounts" className="min-w-0">
+            <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
+            <Funnel people={r.signups.people} />
+          </Fold>
           <Fold title="Trials">
             <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
             <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
