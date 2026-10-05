@@ -10,6 +10,7 @@ import { adsReport, type AdsReport } from "@/lib/ads/report";
 import { invested, SINCE, type Invested } from "@/lib/invested";
 import { RunningTotals } from "@/components/RunningTotals";
 import { addCost, removeCost, stopCost } from "./actions";
+import { Funnel, PeopleTile } from "./People";
 import { planById, TERMS, weekly } from "@/lib/billing/plans";
 import { priceBook, type PriceCell } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
@@ -55,13 +56,13 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       </section>
 
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3 mb-6">
-        <Tile n={money(r.mrr_cents)} label="monthly recurring" tone="bet" />
+        <PeopleTile n={money(r.mrr_cents)} label="monthly recurring" tone="bet" title={`Paying now, ${r.payingNow.length}`} people={r.payingNow} sum="A month's worth each: a yearly or quarterly bill spread over its months." />
         <Tile n={money(t.revenue_cents)} label={`paid, ${n} days`} tone="bet" />
         <Tile n={r.signups.made} label="accounts made" />
         <Tile n={r.signups.confirmed} label="confirmed email" />
         <Tile n={t.clicks} label="plan clicks" />
         <Tile n={t.starts} label="trials and passes" />
-        <Tile n={t.paid} label="paid" tone="prime" />
+        <PeopleTile n={r.paidPeople.length} label="paid" tone="prime" title={`Paid in the last ${n} days`} people={r.paidPeople} sum={`${money(r.paidPeople.reduce((a, p) => a + (p.cents ?? 0), 0))} in all`} />
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
@@ -102,7 +103,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       <Fold title="New accounts" className="flex-1 flex flex-col">
         <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got.</p>
         <div className="flex-1 flex flex-col justify-center">
-          <Funnel {...r.signups} />
+          <Funnel people={r.signups.people} />
         </div>
       </Fold>
       </div>
@@ -278,48 +279,6 @@ function Bars({ title, values, labels }: { title: string; values: number[]; labe
         ))}
       </div>
     </figure>
-  );
-}
-
-/** One step of the account funnel: the count, and the share of the step before. */
-/**
- * The window's sign-ups as one bar, each person in the furthest place they got:
- * never confirmed, confirmed with no plan, a plan that has ended, on a trial now, or paying.
- * Each piece is its share of everyone; hovering one gives the count.
- */
-function Funnel({ made, confirmed, trials, trialling, paying }: { made: number; confirmed: number; trials: number; trialling: number; paying: number }) {
-  if (made === 0) return <p className="text-sm text-ink-soft">No sign-ups in this window.</p>;
-  // Left to right, red to green: how far each person got.
-  const parts = [
-    { n: Math.max(0, made - confirmed), label: "never confirmed their email", cls: "bg-red" },
-    { n: Math.max(0, confirmed - trials), label: "confirmed, no plan", cls: "bg-amber" },
-    { n: Math.max(0, trials - trialling - paying), label: "plan ended", cls: "bg-ink-soft" },
-    { n: trialling, label: "on a trial now", cls: "bg-blue" },
-    { n: paying, label: "paying now", cls: "bg-lime" },
-  ];
-  const pct = (n: number) => `${Math.round((n / made) * 100)}%`;
-  return (
-    <div>
-      <div className="flex items-baseline gap-2 mb-2">
-        <span className="font-display text-3xl font-extrabold nums">{made}</span>
-        <span className="text-xs text-ink-soft">signed up</span>
-      </div>
-      <div className="flex h-8 w-full overflow-hidden rounded-md">
-        {parts.filter((x) => x.n > 0).map((x) => (
-          <div key={x.label} className={`${x.cls} h-full cursor-help border-r-2 border-panel last:border-r-0`} style={{ width: `${(x.n / made) * 100}%` }} data-tip={`${x.n} ${x.label}, ${pct(x.n)} of sign-ups`} />
-        ))}
-      </div>
-      <ul className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs">
-        {parts.map((x) => (
-          <li key={x.label} className="flex items-center gap-2 min-w-0">
-            <span className={`${x.cls} h-2.5 w-2.5 shrink-0 rounded-sm`} />
-            <span className="nums font-semibold">{x.n}</span>
-            <span className="text-ink-soft truncate">{x.label}</span>
-            <span className="nums text-ink-soft ml-auto">{pct(x.n)}</span>
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
 

@@ -32,6 +32,20 @@ export interface PlanFunnel {
   startToPaid: number;
 }
 
+/** One member in a list the Money tab opens on a click. */
+export interface Person {
+  id: string;
+  who: string;
+  email: string | null;
+  /** "Every day, yearly", "3 day passes". */
+  plan: string;
+  /** A figure beside the name: paid in the window, or a month's worth. */
+  cents?: number;
+}
+
+/** Where a new account got to, furthest first. */
+export type Stage = "paying" | "trial" | "ended" | "confirmed" | "unconfirmed";
+
 export interface MoneyReport {
   days: number;
   plans: PlanFunnel[];
@@ -39,7 +53,11 @@ export interface MoneyReport {
   /** Estimated monthly recurring revenue from active subscriptions, cents. */
   mrr_cents: number;
   /** Accounts made in the window, and how many confirmed their email. */
-  signups: { made: number; confirmed: number; trials: number; trialling: number; paying: number };
+  signups: { made: number; confirmed: number; trials: number; trialling: number; paying: number; people: (Person & { stage: Stage })[] };
+  /** Everyone who paid in the window, with what they paid. */
+  paidPeople: Person[];
+  /** Members paying now, with what each adds a month. */
+  payingNow: Person[];
   /** Sign-ups in the window by where they came from. */
   sources: { source: string; signups: number; confirmed: number; paying: number; revenue_cents: number }[];
   /** Bookie clicks in the window. */
@@ -56,6 +74,15 @@ export interface MoneyReport {
   growth: { accounts: Series; trials: Series; week: { accounts: [number, number]; trials: [number, number] } };
   /** The last 50 plan clicks and checkouts, newest first. */
   recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean; userId?: string }[];
+}
+
+/** The plan as a member reads it: "Every day, yearly", or a pass bundle. */
+function planLabel(plan: string | null, term: string | null): string {
+  const passes = plan?.match(/^passes_(\d+)$/);
+  if (passes) return `${passes[1]} day ${passes[1] === "1" ? "pass" : "passes"}`;
+  const p = planById(plan ?? undefined);
+  if (!p) return plan ?? "no plan";
+  return term ? `${p.name}, ${termById(term).name.toLowerCase()}` : p.name;
 }
 
 const sydneyDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -139,11 +166,29 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const paidUp = (m: Member) => m.subscription_status === "active" && (m.total_spent_cents ?? 0) > 0;
   const live = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at && paidUp(m));
   // Each bill spread over the months it covers: a $470 yearly is $39.17 a month, not the $49 list price.
-  const mrr_cents = live.reduce((a, m) => {
+  const monthly = (m: Member) => {
     const plan = planById(m.plan ?? undefined);
     const term = termById(m.billing_term ?? undefined);
-    return a + (plan ? Math.round((termPrice(plan, term) / term.months) * 100) : 0);
-  }, 0);
+    return plan ? Math.round((termPrice(plan, term) / term.months) * 100) : 0;
+  };
+  const mrr_cents = live.reduce((a, m) => a + monthly(m), 0);
+  const person = (m: Member, cents?: number): Person => ({ id: m.id, who: m.full_name || m.email || "a member", email: m.email, plan: planLabel(m.plan, m.billing_term), cents });
+  const payingNow = live.map((m) => person(m, monthly(m))).sort((a, b) => (b.cents ?? 0) - (a.cents ?? 0));
+  const byId = new Map(members.map((m) => [m.id, m]));
+  const paidBy = new Map<string, { cents: number; plans: Set<string> }>();
+  for (const e of events) {
+    if (e.kind !== "payment" || !e.user_id) continue;
+    const cur = paidBy.get(e.user_id) ?? { cents: 0, plans: new Set<string>() };
+    cur.cents += e.amount_cents ?? 0;
+    if (e.plan?.startsWith("passes_")) cur.plans.add(planLabel(e.plan, null));
+    paidBy.set(e.user_id, cur);
+  }
+  const paidPeople = [...paidBy].map(([id, v]) => {
+    const m = byId.get(id);
+    // A pass buyer's plan is the pass; a member's is the plan they are on now.
+    const plan = [...(m?.plan ? [planLabel(m.plan, m.billing_term)] : []), ...v.plans].join(" + ") || "no plan";
+    return { id, who: m?.full_name || m?.email || "a member", email: m?.email ?? null, plan, cents: v.cents };
+  }).sort((a, b) => b.cents - a.cents);
 
   const joined = members.filter((m) => m.created_at >= since);
   const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && paidUp(m));
@@ -153,6 +198,15 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     trials: joined.filter((m) => m.subscribed_since).length,
     trialling: joined.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && m.subscription_status === "trialing").length,
     paying: joined.filter(paying).length,
+    // Each person once, at the furthest place they got; the bar's pieces are these counts.
+    people: joined.map((m) => {
+      const live = Boolean(m.access_until && new Date(m.access_until).getTime() > now);
+      const stage: Stage = paying(m) ? "paying"
+        : live && (m.subscription_status === "trialing" || m.subscription_status === "active") ? "trial"
+        : m.subscribed_since ? "ended"
+        : m.confirmed_at ? "confirmed" : "unconfirmed";
+      return { ...person(m), stage };
+    }),
   };
   const bySource = new Map<string, { signups: number; confirmed: number; paying: number; revenue_cents: number }>();
   for (const m of joined) {
@@ -222,7 +276,7 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     week: { accounts: weekOf(accountDays), trials: weekOf(trialDays) },
   };
 
-  return { days, plans, totals, mrr_cents, signups, sources, bookies, trials, byDay, byHour, byWeekday, growth, recent };
+  return { days, plans, totals, mrr_cents, signups, paidPeople, payingNow, sources, bookies, trials, byDay, byHour, byWeekday, growth, recent };
 }
 
 /** A charge Stripe will try on a live subscription: a trial turning into its first bill, or a renewal. */
@@ -254,6 +308,12 @@ export async function upcomingCharges(days = 14): Promise<{ charges: UpcomingCha
   }
 }
 
+/**
+ * A trial that began a day or more after the subscription did is a bill pushed back on a
+ * paying member (a free week, the win-back offer), not a trial: its bill is a renewal.
+ */
+const pushedBill = (s: { trial_start: number | null; created: number }) => Boolean(s.trial_start && s.trial_start - s.created > 86400);
+
 async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
   const until = Math.floor(Date.now() / 1000) + days * 86400;
   const subs = [];
@@ -278,7 +338,7 @@ async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
       if (!at || at > until) return null;
       if (s.cancel_at_period_end || (s.cancel_at && s.cancel_at <= at)) return null;
       const preview = await stripe().invoices.createPreview({ subscription: s.id }).catch(() => null);
-      return { ...base, at, kind: s.status === "trialing" ? "first bill" : "renewal", amount_cents: preview?.amount_due ?? 0 };
+      return { ...base, at, kind: s.status === "trialing" && !pushedBill(s) ? "first bill" : "renewal", amount_cents: preview?.amount_due ?? 0 };
     }),
   );
   return out.filter((c): c is UpcomingCharge => c !== null).sort((a, b) => a.at - b.at);
@@ -303,7 +363,7 @@ export async function trialConversion(): Promise<{ ended: number; paid: number; 
   const nowS = Math.floor(Date.now() / 1000);
   let ended = 0, paid = 0;
   for await (const s of stripe().subscriptions.list({ status: "all", limit: 100 })) {
-    if (!s.trial_end) continue;
+    if (!s.trial_end || pushedBill(s)) continue;
     const over = s.trial_end <= nowS || s.status === "canceled" || s.status === "incomplete_expired";
     if (!over) continue;
     ended++;

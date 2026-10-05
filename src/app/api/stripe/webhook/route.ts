@@ -132,11 +132,14 @@ export async function POST(request: NextRequest) {
       // (a trial's, always) or behind cancel_at_period_end; either is a
       // member on the way out, and the admin should say so.
       const cancelAt = cancelDate(sub, until);
+      // A trial end on a subscription already paid is a bill pushed back (a free week, the win-back
+      // offer), not a trial: the member is paying and shows as active (Josh Sear, 6 Oct 2026).
+      const status = sub.status === "trialing" && (await paidBefore(sub.id)) ? "active" : sub.status;
       const cancelReason = cancelAt ? sub.cancellation_details?.feedback ?? sub.cancellation_details?.reason ?? null : null;
       await supabaseAdmin()
         .from("profiles")
         .update({
-          subscription_status: sub.status,
+          subscription_status: status,
           billing_term: sub.status === "canceled" ? null : billingTerm(sub.items.data[0]?.price.recurring),
           cancel_at: cancelAt?.toISOString() ?? null,
           cancel_reason: cancelReason,
@@ -200,6 +203,12 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ received: true });
+}
+
+/** Whether the subscription has had a bill paid with money in it. */
+async function paidBefore(subscriptionId: string): Promise<boolean> {
+  const paid = await stripe().invoices.list({ subscription: subscriptionId, status: "paid", limit: 10 }).catch(() => null);
+  return Boolean(paid?.data.some((i) => i.amount_paid > 0));
 }
 
 /** When the subscription is booked to end, if it is: cancel_at, or the period's end when cancel_at_period_end is set. */
