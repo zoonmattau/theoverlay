@@ -1,24 +1,23 @@
 import { bookieName } from "@/lib/bookies";
+import { Fold } from "../Fold";
 import type { MoneyReport } from "@/lib/money";
 
 /** When people press a plan button, by hour and weekday. Moved here from Money, by way of Reports (6 Oct 2026). */
 export function PlanClicks({ r }: { r: MoneyReport }) {
   return (
-    <div className="card">
-      <h2 className="font-display font-extrabold mb-3">Plan clicks</h2>
+    <Fold title="Plan clicks">
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <Bars title="By hour, Sydney time" values={r.byHour} labels={r.byHour.map((_, h) => (h % 3 === 0 ? `${h % 12 || 12}${h < 12 ? "am" : "pm"}` : ""))} />
         <Bars title="By weekday" values={r.byWeekday} labels={["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]} />
       </div>
-    </div>
+    </Fold>
   );
 }
 
 /** Which bookies prices were followed out to. */
 export function BookieClicks({ r }: { r: MoneyReport }) {
   return (
-    <div className="card">
-      <h2 className="font-display font-extrabold mb-3">Bookie clicks</h2>
+    <Fold title="Bookie clicks">
       {r.bookies.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
       {r.bookies.map((b) => (
         <div key={b.bookie} className="panel-row text-sm">
@@ -26,7 +25,7 @@ export function BookieClicks({ r }: { r: MoneyReport }) {
           <span className="nums font-bold">{b.clicks}</span>
         </div>
       ))}
-    </div>
+    </Fold>
   );
 }
 

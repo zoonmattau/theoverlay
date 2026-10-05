@@ -9,6 +9,7 @@ import { type Area, activityReport, AREA_LABEL } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { moneyReport } from "@/lib/money";
+import { Fold } from "../Fold";
 import { BookieClicks, PlanClicks } from "./Clicks";
 
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
@@ -77,8 +78,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
           */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
             <div className="flex flex-col gap-4 min-w-0">
-              <div className="card">
-                <h2 className="font-display font-extrabold mb-3">Where they go</h2>
+              <Fold title="Where they go">
                 <table className="data-table w-full text-sm">
                   <thead><tr><th>Area</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
                   <tbody>
@@ -92,9 +92,8 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                     ))}
                   </tbody>
                 </table>
-              </div>
-              <div className="card">
-                <h2 className="font-display font-extrabold mb-3">Races they open</h2>
+              </Fold>
+              <Fold title="Races they open">
                 <table className="data-table w-full text-sm">
                   <thead><tr><th>Race</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
                   <tbody>
@@ -108,22 +107,20 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                     {r.topRaces.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No race page opened.</td></tr>}
                   </tbody>
                 </table>
-              </div>
+              </Fold>
               {r.sources.length > 0 && (
-                <div className="card">
-                  <h2 className="font-display font-extrabold mb-1">Where they came from</h2>
+                <Fold title="Where they came from">
                   <p className="text-xs text-ink-soft mb-3">People by their first visit in the window. Ads are counted from 26 Sep 2026, when the tracker began keeping the campaign.</p>
                   <table className="data-table w-full text-sm">
                     <thead><tr><th>Source</th><th className="text-right">People</th></tr></thead>
                     <tbody>{r.sources.map((x) => <tr key={x.source}><td className={x.source.endsWith(" ads") ? "font-semibold" : ""}>{x.source}</td><td className="text-right nums">{x.people}</td></tr>)}</tbody>
                   </table>
-                </div>
+                </Fold>
               )}
               <PlanClicks r={money} />
             </div>
             <div className="flex flex-col gap-4 min-w-0">
-              <div className="card">
-                <h2 className="font-display font-extrabold mb-3">By day</h2>
+              <Fold title="By day">
                 <table className="data-table w-full text-sm">
                   <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People who landed from an ad that day, returning visitors too, as the Money tab counts them">From ads</th><th></th></tr></thead>
                   <tbody>
@@ -138,9 +135,8 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                     ))}
                   </tbody>
                 </table>
-              </div>
-              <div className="card">
-                <h2 className="font-display font-extrabold mb-3">Tipsters they look at</h2>
+              </Fold>
+              <Fold title="Tipsters they look at">
                 <table className="data-table w-full text-sm">
                   <thead><tr><th>Tipster</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
                   <tbody>
@@ -150,9 +146,8 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                     {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
                   </tbody>
                 </table>
-              </div>
-              <div className="card">
-                <h2 id="follows" className="font-display font-extrabold mb-3 scroll-mt-20">Followers by tipster</h2>
+              </Fold>
+              <Fold id="follows" title="Followers by tipster">
                 {r.follows.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
                 {Object.entries(
                   r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
@@ -174,15 +169,12 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                       </ul>
                     </details>
                   ))}
-              </div>
+              </Fold>
               <BookieClicks r={money} />
             </div>
           </div>
 
-          <div className="card mt-4 overflow-x-auto">
-            <h2 className="font-display font-extrabold mb-1">
-              {r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}
-            </h2>
+          <Fold className="mt-4 overflow-x-auto" title={r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}>
             <p className="text-xs text-ink-soft mb-3">
               Members by email. A visitor is a browser we have seen but no account: the number is its cookie, the source is where its first view in the window came from. {r.cut ? <Link href={`/admin/activity?days=${days}`} className="underline">Back to everyone</Link> : "Click a people count above for that cut."}
             </p>
@@ -201,7 +193,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                 ))}
               </tbody>
             </table>
-          </div>
+          </Fold>
         </>
       )}
     </>
