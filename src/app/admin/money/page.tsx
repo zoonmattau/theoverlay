@@ -93,12 +93,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </Fold>
       </div>
 
-      <details open className="section group/fold mb-6">
-        <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-          <span className="section-letter">P</span>
-          <h2>By plan</h2>
-          <span className="ml-auto inline-block text-sm transition-transform group-open/fold:rotate-90" aria-hidden>▸</span>
-        </summary>
+      <Fold title="By plan" className="mb-6">
+        <p className="text-xs text-ink-soft mb-3">Over the last {n} days: trials started, members who paid and what they paid. Active now is today.</p>
         <div className="overflow-x-auto">
           <table className="data-table stack-sm text-sm">
             <thead>
@@ -117,10 +113,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
             </tbody>
           </table>
         </div>
-        <p className="px-4 py-3 text-xs text-ink-soft">
-          Over the last {n} days: trials started, members who paid and what they paid. Active now is today.
-        </p>
-      </details>
+      </Fold>
 
       <Fold title="When" className="mb-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
