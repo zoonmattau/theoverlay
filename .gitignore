@@ -60,3 +60,6 @@ email-preview.html
 
 # OBS recordings
 /YouTube/
+# YouTube video files live with the rest of the YouTube work in marketing/youtube, but never in git (5 Oct 2026).
+/marketing/youtube/**/*.mp4
+/marketing/youtube/**/*.mov
