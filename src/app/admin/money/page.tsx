@@ -74,23 +74,14 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
-      {/* Side by side on a wide screen, stacked on a phone. */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <ThisMonth m={totals.month} costs={totals.costs} feeShare={totals.revenue.gross ? totals.revenue.fees / totals.revenue.gross : 0} charges={monthCharges} conversion={upcoming.conversion} mrr={r.mrr_cents / 100} paying={r.payingNow.length} today={today} />
-        <Bank b={cash} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <Totals t={totals} />
-        <Ads r={ads} n={n} />
-      </div>
-
       {/*
-        Two stacks, each card at its own height: Trials and Sign-ups by source sit under New accounts,
-        in the room Coming up leaves beside it (6 Oct 2026).
+        Two stacks, each card at its own height, so a short card never leaves a hole beside a tall
+        one (6 Oct 2026). On a phone, the left stack then the right.
       */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <div className="flex flex-col gap-6 min-w-0">
+          <ThisMonth m={totals.month} costs={totals.costs} feeShare={totals.revenue.gross ? totals.revenue.fees / totals.revenue.gross : 0} charges={monthCharges} conversion={upcoming.conversion} mrr={r.mrr_cents / 100} paying={r.payingNow.length} today={today} />
+          <Totals t={totals} />
           <ComingUp {...soon} />
           <Fold title="By plan" className="min-w-0">
             <p className="text-xs text-ink-soft mb-3">Over the last {n} days: trials started, members who paid and what they paid. Active now is today.</p>
@@ -115,6 +106,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           </Fold>
         </div>
         <div className="flex flex-col gap-6 min-w-0">
+          <Bank b={cash} />
+          <Ads r={ads} n={n} />
           <Fold title="New accounts" className="min-w-0">
             <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
             <Funnel people={r.signups.people} />
