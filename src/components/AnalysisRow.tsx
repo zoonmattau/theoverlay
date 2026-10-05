@@ -2,7 +2,8 @@ import { Badge } from "./Badge";
 import { bm, bmPar } from "@/lib/model/display";
 import { FormWorm } from "./FormWorm";
 import { MAP_LABEL, SignalBadge, TEMPO_LABEL } from "./Ratings";
-import { percent, price, signedPercent } from "@/lib/format";
+import { percent, price } from "@/lib/format";
+import { callLimit } from "@/lib/model/publish";
 import type { PublishedRace } from "@/lib/model/types";
 
 /** Three quick reads: the pace, where we see value, and who rates best. */
@@ -42,7 +43,7 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
       <div className="panel">
         <div className="panel-title">
           Overlays
-          <span className="ml-auto text-xs text-ink-soft">rated vs live, edge in points</span>
+          <span className="ml-auto text-xs text-ink-soft">rated v live, price to take</span>
         </div>
         {overlays.length === 0 && <p className="text-sm text-ink-soft">Nothing to act on.</p>}
         {overlays.map((r) => (
@@ -54,12 +55,12 @@ export function AnalysisRow({ race }: { race: PublishedRace }) {
               </span>
             </span>
             <span className="nums whitespace-nowrap">
-              <span className="text-ink-soft">{price(r.ratedPrice)}<span className="hidden sm:inline">{r.ratedProbability ? ` · ${percent(r.ratedProbability)}` : ""}</span></span>
+              <span className="text-ink-soft">{price(r.ratedPrice)}</span>
               <span className="text-muted"> v </span>
               <span className={r.prime ? "text-accent font-bold" : r.signal === "back" ? "text-blue font-bold" : "text-red font-bold"}>
                 {price(r.marketPrice)}
               </span>
-              <span className="text-ink-soft text-xs"> {signedPercent(r.edge)}</span>
+              {callLimit(r) ? <span className="text-ink-soft text-xs font-semibold"> · {r.signal === "lay" ? "max" : "min"} {price(callLimit(r))}</span> : null}
             </span>
           </div>
         ))}

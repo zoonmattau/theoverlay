@@ -1,6 +1,6 @@
 import { PickCard } from "./PickCard";
 import { bm } from "@/lib/model/display";
-import { takeable } from "@/lib/model/publish";
+import { callLimit, takeable } from "@/lib/model/publish";
 import { BookieLink } from "./BookieLink";
 import { MarketHover } from "./MarketHover";
 import { Factors } from "./Factors";
@@ -60,6 +60,8 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
                 {/* The bookie holding the best price is the label; the market behind it opens on the price. */}
                 <span className="label">{r.signal === "lay" ? "Live" : (bestBookie(r.bookies)?.name ?? "Live")}</span>
                 <MarketHover r={r}><span className="value nums">{price(r.marketPrice)}</span></MarketHover>
+                {/* The shortest a bet is still worth taking, the longest a lay is still worth laying. */}
+                {callLimit(r) ? <span className="pick-limit nums">{r.signal === "lay" ? "max" : "min"} {price(callLimit(r))}</span> : null}
               </span>
               <span className="pick-price">
                 <span className="label">Rated</span>
@@ -75,8 +77,7 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
               {r.weight ? ` · ${r.weight}kg` : ""}
               {r.jockey ? ` · ${r.jockey}` : ""}
             </div>
-            <p className="pick-why">{r.why ?? ""}</p>
-            {takeable(r) ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block text-xs font-bold" /> : null}
+            <p className="pick-why">{r.why ?? ""}</p>            {takeable(r) ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block text-xs font-bold" /> : null}
             <div className="flex items-center gap-3 pt-2 border-t border-line-soft">
               <div className="today-tile py-2 px-3 min-w-[84px]">
                 <div className="today-label">Today</div>

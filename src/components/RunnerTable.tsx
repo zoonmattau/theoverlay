@@ -9,6 +9,7 @@ import { RunnerDetail } from "./RunnerDetail";
 import type { PersonPower } from "@/lib/data/race-facts";
 import { Section } from "./Section";
 import { jumpTime, percent, price, signedPercent } from "@/lib/format";
+import { callLimit } from "@/lib/model/publish";
 import type { PublishedRace, Signal } from "@/lib/model/types";
 
 /**
@@ -90,7 +91,7 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
               <th data-col="live" className="text-right">Live</th>
               {!locked && <th data-col="rated" className="text-right">Rated</th>}
               {!locked && <th data-col="win" className="hide-sm text-right">Win</th>}
-              {!locked && <th data-col="edge" className="text-right tip tip-right cursor-help" data-tip="Our chance less the chance the best bookmaker price implies, in points. A bet needs +2.5 or more.">Back edge</th>}
+              {!locked && <th data-col="edge" className="text-right tip tip-right cursor-help" data-tip="Our chance less the chance the best bookmaker price implies, in points. A bet needs +2 or more.">Back edge</th>}
               {!locked && <th data-col="lay" className="hide-sm text-right tip tip-right cursor-help" data-tip="Betfair's best lay on offer now, and our chance less the chance it implies. A lay needs −6 or more, at $12 or under.">Lay at</th>}
               {tipping && <th data-col="tip" className="text-right">Tip</th>}
             </tr>
@@ -142,6 +143,8 @@ export function RunnerTable({ race, locked, people, tipping, calls }: { race: Pu
                         <span className={r.prime ? "text-accent font-semibold" : r.signal === "back" ? "text-blue font-semibold" : r.signal === "lay" ? "text-red font-semibold" : "text-muted"}>
                           {signedPercent(r.edge)}
                         </span>
+                        {/* The shortest a bet is still worth taking, the longest a lay is still worth laying. */}
+                        {callLimit(r) ? <span className="block text-[10px] font-semibold text-ink-soft whitespace-nowrap">{r.signal === "lay" ? "max" : "min"} {price(callLimit(r))}</span> : null}
                       </td>
                     )}
                     {!locked && (

@@ -4,6 +4,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { holdersLine } from "@/lib/bookies";
 import { price } from "@/lib/format";
+import { callLimit } from "@/lib/model/publish";
+import type { Signal } from "@/lib/model/types";
 
 export interface MarketDetail {
   marketPrice?: number;
@@ -19,6 +21,9 @@ export interface MarketDetail {
   /** Named on the phone's sheet, which sits away from the price that was tapped. */
   tabNumber?: number;
   horseName?: string;
+  /** With the rated chance, gives the shortest a bet is worth taking or the longest a lay is worth laying. */
+  signal?: Signal;
+  ratedProbability?: number;
 }
 
 /**
@@ -56,6 +61,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
   }, [open]);
   if (!r.marketPrice) return <>{children}</>;
   const holders = holdersLine(r.bookies);
+  const limit = r.ratedProbability ? callLimit({ signal: r.signal, ratedProbability: r.ratedProbability }) : undefined;
   const move = r.marketMove;
   const moveText = move === undefined ? "" : Math.abs(move) < 0.5 ? "holding" : move > 0 ? `firmed ${move.toFixed(1)} pts` : `drifted ${Math.abs(move).toFixed(1)} pts`;
   return (
@@ -95,6 +101,12 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
             <span className="market-row">
               <span className="market-k">Lay at</span>
               <span className="market-v nums">{price(r.layPrice)}</span>
+            </span>
+          ) : null}
+          {limit ? (
+            <span className="market-row">
+              <span className="market-k">{r.signal === "lay" ? "Max" : "Min"}</span>
+              <span className="market-v nums">{price(limit)}</span>
             </span>
           ) : null}
           {r.marketAvg ? (

@@ -498,6 +498,13 @@ export function callLimit(x: { signal?: Signal; ratedProbability: number }): num
   return undefined;
 }
 
+/** The call's price line in words: "Bet at $3.40 or better", "Lay at $2.80 or under". */
+export function limitLine(x: { signal?: Signal; ratedProbability: number }): string | undefined {
+  const limit = callLimit(x);
+  if (!limit) return undefined;
+  return x.signal === "lay" ? `Lay at $${limit.toFixed(2)} or under` : `Bet at $${limit.toFixed(2)} or better`;
+}
+
 /**
  * A bet whose best price is still at or above the price we said to take: only
  * then is "take $X at <bookie>" shown. Under it the call stays a call, the

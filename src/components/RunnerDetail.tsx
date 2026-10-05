@@ -8,7 +8,7 @@ import { Factors } from "./Factors";
 import { FormWorm } from "./FormWorm";
 import { price } from "@/lib/format";
 import { bm, bmGap } from "@/lib/model/display";
-import { takeable } from "@/lib/model/publish";
+import { limitLine, takeable } from "@/lib/model/publish";
 import { MAP_LABEL } from "./Ratings";
 import { personKey } from "@/lib/data/people";
 import type { PersonPower } from "@/lib/data/race-facts";
@@ -362,6 +362,7 @@ export function RunnerDetail({ r, race, people, calls }: { r: PublishedRunner; r
         <h4 className="mt-4">Our call</h4>
         <p className={`detail-call ${r.prime ? "is-prime" : r.signal === "back" ? "is-back" : r.signal === "lay" ? "is-lay" : ""}`}>
           {callLine(r)}
+          {limitLine(r) ? <span className="block mt-1 font-bold">{limitLine(r)}.</span> : null}
           {takeable(r) ? <BookieLink codes={r.bookies} raceId={race.raceId} prefix={`Take ${price(r.marketPrice)} at `} className="block mt-1 font-bold" /> : null}
         </p>
         {calls && (r.signal || calls.off.includes(`${race.raceId}:${r.tabNumber}`)) && (

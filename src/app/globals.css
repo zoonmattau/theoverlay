@@ -1675,6 +1675,11 @@ body {
   font-weight: 600;
   color: var(--color-ink-soft);
 }
+.pick-limit {
+  font-size: 0.68rem;
+  font-weight: 700;
+  opacity: 0.85;
+}
 .pick-price.is-prime {
   background: var(--color-lime);
   border-color: var(--color-lime);

@@ -19,7 +19,7 @@ import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
-import { callLimit, hasJumped, LAY_EDGE, MIN_EDGE, takeable } from "@/lib/model/publish";
+import { callLimit, hasJumped, MIN_EDGE, takeable } from "@/lib/model/publish";
 import { readMutes } from "@/lib/model/store";
 import { setCallOff } from "@/app/admin/actions";
 import { CallOffButton } from "@/components/CallOffButton";
@@ -273,12 +273,11 @@ function PhoneCall({ call: c, side }: { call: Call; side: Signal }) {
     );
   }
   const live = callPrice(c.runner) ?? c.runner.marketPrice;
-  const note =
-    !lay && (c.runner.edge ?? 0) < MIN_EDGE && c.price && c.price > (c.runner.marketPrice ?? 0)
-      ? `bet at ${price(c.price)}`
-      : lay && (c.runner.layEdge ?? LAY_EDGE) > LAY_EDGE && callLimit(c.runner)
-        ? `lay max ${price(callLimit(c.runner))}`
-        : undefined;
+  const limit = c.jumped ? undefined : callLimit(c.runner);
+  const note = [
+    !lay && (c.runner.edge ?? 0) < MIN_EDGE && c.price && c.price > (c.runner.marketPrice ?? 0) ? `bet at ${price(c.price)}` : "",
+    limit ? `${lay ? "max" : "min"} ${price(limit)}` : "",
+  ].filter(Boolean).join(" · ") || undefined;
   return (
     <div className="tp">
       <div className="tp-line">
@@ -397,9 +396,9 @@ function CallTable({
                     {side === "back" && !c.resulted && (c.runner.edge ?? 0) < MIN_EDGE && c.price && c.price > (c.runner.marketPrice ?? 0) ? (
                       <span className="bet-at block text-[10px] font-semibold text-ink-soft whitespace-nowrap">bet at {price(c.price)}</span>
                     ) : null}
-                    {/* A lay the market has drifted past the line: the longest price it is still worth laying at. */}
-                    {side === "lay" && !c.resulted && (c.runner.layEdge ?? LAY_EDGE) > LAY_EDGE && callLimit(c.runner) ? (
-                      <span className="bet-at block text-[10px] font-semibold text-ink-soft whitespace-nowrap">lay max {price(callLimit(c.runner))}</span>
+                    {/* The shortest a bet is still worth taking, the longest a lay is still worth laying. */}
+                    {!c.resulted && callLimit(c.runner) ? (
+                      <span className="bet-at block text-[10px] font-semibold text-ink-soft whitespace-nowrap">{side === "lay" ? "max" : "min"} {price(callLimit(c.runner))}</span>
                     ) : null}
                   </td>
                   <td data-col="result">
