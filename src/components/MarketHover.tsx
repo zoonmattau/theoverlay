@@ -93,7 +93,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
         <span
           ref={pop}
           className="market-pop"
-          style={pos ? { position: "fixed", left: pos.left, right: pos.right, top: pos.top } : sheet ? undefined : { position: "fixed", visibility: "hidden", top: 0, left: 0 }}
+          style={pos ? { position: "fixed", left: pos.left ?? "auto", right: pos.right ?? "auto", top: pos.top } : sheet ? undefined : { position: "fixed", visibility: "hidden", top: 0, left: 0 }}
           role="tooltip"
           onClick={(e) => {
             // On a phone the panel is a sheet, and a tap on it is how it closes.
