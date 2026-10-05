@@ -11,6 +11,7 @@ import { LiveRefresh } from "@/components/LiveRefresh";
 import { moneyReport } from "@/lib/money";
 import { DayChart } from "@/components/DayChart";
 import type { Series } from "@/lib/reports";
+import { BarList, BarRow } from "../BarList";
 import { Fold } from "../Fold";
 import { BookieClicks, PlanClicks } from "./Clicks";
 
@@ -37,14 +38,13 @@ const raceName = (meetingId: string, raceId: string) => {
   return n ? `${track} R${n}` : `${track} ${raceId}`;
 };
 const dayLabel = (day: string) => new Date(`${day}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
+const short = (day: string) => new Date(`${day}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 
-function Bar({ n, max }: { n: number; max: number }) {
-  return (
-    <span className="inline-block h-2 rounded-full bg-lime align-middle" style={{ width: `${Math.max(2, (100 * n) / Math.max(1, max))}%`, maxWidth: 160 }} />
-  );
-}
-
-/** What people do on the site: where they go, which races and tipsters, who follows whom, who is most active. */
+/**
+ * What people do on the site, as pictures: the headline counts against the
+ * window before, views by day and by rolling week, then where they go and
+ * where they came from as bars. Any bar or day opens the people behind it.
+ */
 async function Activity({ searchParams }: { searchParams: PageProps<"/admin/activity">["searchParams"] }) {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
@@ -54,13 +54,11 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   // What links carry to keep the window: "all" stays all as the days go by.
   const param = all ? "all" : String(days);
   const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
-  const [r, money] = await Promise.all([activityReport(days, cut), moneyReport(days)]);
-  const maxArea = Math.max(...r.byArea.map((a) => a.views), 1);
-  const maxDay = Math.max(...r.byDay.map((d) => d.views), 1);
+  const [r, money] = await Promise.all([activityReport(days, cut, !all), moneyReport(days)]);
   // Every day in the window, oldest first, a quiet day as nought, for the charts.
   const window = Array.from({ length: days }, (_, i) => new Date(now() - (days - 1 - i) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
   const perDay = new Map(r.byDay.map((d) => [d.day, d]));
-  const series = (key: "views" | "people", title: string): Series => {
+  const series = (key: "views" | "people" | "ads", title: string): Series => {
     const points = window.map((date) => ({ date, value: perDay.get(date)?.[key] ?? 0 }));
     return { key, title, format: "count", points, total: points.reduce((a, p) => a + p.value, 0) };
   };
@@ -69,15 +67,23 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
     const points = r.rolling.map((d) => ({ date: d.day, value: d[key] }));
     return { key: `week-${key}`, title, format: "count", points, total: points.at(-1)?.value ?? 0, totalLabel: "this week" };
   };
+  const span = all ? "since the first view" : days === 1 ? "today" : `in the last ${days} days`;
+  const versus = days === 1 ? "yesterday" : `the ${days} days before`;
+  // Followers grouped by tipster, most first.
+  const followers = Object.entries(
+    r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
+      (acc[f.tipster] ??= []).push(f);
+      return acc;
+    }, {}),
+  ).sort((a, b) => b[1].length - a[1].length);
+  const mostFollowed = Math.max(1, ...followers.map(([, list]) => list.length));
 
   return (
     <>
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Activity</h1>
-          <p className="mt-1 text-sm text-ink-soft">
-            {r.views} page views {all ? "since the first one" : `in the last ${days === 1 ? "day" : `${days} days`}`} from {r.members} signed-in {r.members === 1 ? "member" : "members"} and {r.visitors} {r.visitors === 1 ? "visitor" : "visitors"}. Admin views are not counted.
-          </p>
+          <p className="mt-1 text-sm text-ink-soft">Who uses the site {span}. Click any bar or day for the people behind it. Admin views are not counted.</p>
         </div>
         <div className="flex flex-wrap gap-1">
           {WINDOWS.map((d) => (
@@ -93,16 +99,23 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
         <div className="card text-sm text-ink-soft">Nothing recorded yet. Views start counting from the next deploy; give it a day.</div>
       ) : (
         <>
-          {/*
-            Two stacks, each card at its own height: side-by-side pairs stretched the short card to
-            match the tall one (6 Oct 2026). On a phone, the left stack then the right.
-          */}
-          <Fold title="Page views a day" className="mb-4">
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-              <DayChart s={series("views", "Page views")} />
-              <DayChart s={series("people", "People")} />
-            </div>
-          </Fold>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
+            <Tile n={r.views} was={r.before?.views} label="page views" versus={versus} />
+            <Tile n={r.reach} was={r.before?.reach} label="people" versus={versus} />
+            <Tile n={r.members} was={r.before?.members} label="members" versus={versus} />
+            <Tile n={r.visitors} was={r.before?.visitors} label="visitors, no account" versus={versus} />
+          </div>
+
+          {days > 1 && (
+            <Fold title="Page views a day" className="mb-4">
+              <p className="text-xs text-ink-soft mb-3">Click a day for who came.</p>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+                <DayChart s={series("views", "Page views")} hrefBase={`/admin/activity?days=${param}&day=`} />
+                <DayChart s={series("people", "People")} hrefBase={`/admin/activity?days=${param}&day=`} />
+                <DayChart s={series("ads", "People from ads")} hrefBase={`/admin/activity?days=${param}&day=`} />
+              </div>
+            </Fold>
+          )}
 
           {days > 1 && (
             <Fold title="Rolling 7 days" className="mb-4">
@@ -114,126 +127,116 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             </Fold>
           )}
 
+          {/* Two stacks, each card at its own height, so a short card never leaves a hole beside a tall one. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
             <div className="flex flex-col gap-4 min-w-0">
               <Fold title="Where they go">
-                <table className="data-table w-full text-sm">
-                  <thead><tr><th>Area</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
-                  <tbody>
-                    {r.byArea.map((a) => (
-                      <tr key={a.area} className={cut.area === a.area ? "bg-lime-soft" : ""}>
-                        <td>{AREA_LABEL[a.area] ?? a.area}</td>
-                        <td className="text-right nums">{a.views}</td>
-                        <td className="text-right nums"><Link href={`/admin/activity?days=${param}&area=${a.area}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{a.people}</Link></td>
-                        <td className="w-44"><Bar n={a.views} max={maxArea} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </Fold>
-              <Fold title="Races they open">
-                <table className="data-table w-full text-sm">
-                  <thead><tr><th>Race</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
-                  <tbody>
-                    {r.topRaces.map((x) => (
-                      <tr key={x.key}>
-                        <td><Link href={`/racing/${x.date}/${x.meetingId}/${x.raceId}`} className="underline">{raceName(x.meetingId, x.raceId)}</Link> <span className="text-ink-soft text-xs">{x.date}</span></td>
-                        <td className="text-right nums">{x.views}</td>
-                        <td className="text-right nums">{x.people}</td>
-                      </tr>
-                    ))}
-                    {r.topRaces.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No race page opened.</td></tr>}
-                  </tbody>
-                </table>
+                <p className="text-xs text-ink-soft mb-2">Page views by part of the site. Click one for who looked.</p>
+                <BarList items={r.byArea.map((a) => ({
+                  key: a.area,
+                  label: AREA_LABEL[a.area] ?? a.area,
+                  value: a.views,
+                  sub: `${a.people} ${a.people === 1 ? "person" : "people"}`,
+                  href: `/admin/activity?days=${param}&area=${a.area}#people`,
+                  on: cut.area === a.area,
+                }))} />
               </Fold>
               {r.sources.length > 0 && (
                 <Fold title="Where they came from">
-                  <p className="text-xs text-ink-soft mb-3">People by their first visit in the window. Ads are counted from 26 Sep 2026, when the tracker began keeping the campaign.</p>
-                  <table className="data-table w-full text-sm">
-                    <thead><tr><th>Source</th><th className="text-right">People</th></tr></thead>
-                    <tbody>{r.sources.map((x) => <tr key={x.source}><td className={x.source.endsWith(" ads") ? "font-semibold" : ""}>{x.source}</td><td className="text-right nums">{x.people}</td></tr>)}</tbody>
-                  </table>
+                  <p className="text-xs text-ink-soft mb-2">People by their first visit in the window. Ads counted from 26 Sep 2026.</p>
+                  <BarList items={r.sources.map((x) => ({ key: x.source, label: x.source, value: x.people, tone: x.source.endsWith(" ads") ? "bg-blue" : undefined }))} />
                 </Fold>
               )}
               <PlanClicks r={money} />
             </div>
             <div className="flex flex-col gap-4 min-w-0">
-              <Fold title="By day">
-                <table className="data-table w-full text-sm">
-                  <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People who landed from an ad that day, returning visitors too, as the Money tab counts them">From ads</th><th></th></tr></thead>
-                  <tbody>
-                    {r.byDay.map((d) => (
-                      <tr key={d.day} className={cut.day === d.day ? "bg-lime-soft" : ""}>
-                        <td>{dayLabel(d.day)}</td>
-                        <td className="text-right nums">{d.views}</td>
-                        <td className="text-right nums"><Link href={`/admin/activity?days=${param}&day=${d.day}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{d.people}</Link></td>
-                        <td className={`text-right nums ${d.ads ? "font-semibold" : "text-ink-soft"}`}>{d.ads || "—"}</td>
-                        <td className="w-44"><Bar n={d.views} max={maxDay} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+              <Fold title="Races they open">
+                <BarList top={5} empty="No race page opened." items={r.topRaces.map((x) => ({
+                  key: x.key,
+                  label: <><Link href={`/racing/${x.date}/${x.meetingId}/${x.raceId}`} className="underline">{raceName(x.meetingId, x.raceId)}</Link> <span className="text-ink-soft text-xs">{short(x.date)}</span></>,
+                  value: x.views,
+                  sub: `${x.people} ${x.people === 1 ? "person" : "people"}`,
+                }))} />
               </Fold>
               <Fold title="Tipsters they look at">
-                <table className="data-table w-full text-sm">
-                  <thead><tr><th>Tipster</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
-                  <tbody>
-                    {r.topTipsters.map((x) => (
-                      <tr key={x.code}><td>{x.code}</td><td className="text-right nums">{x.views}</td><td className="text-right nums">{x.people}</td></tr>
-                    ))}
-                    {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
-                  </tbody>
-                </table>
+                <BarList top={5} empty="No tipster page opened." items={r.topTipsters.map((x) => ({ key: x.code, label: x.code, value: x.views, sub: `${x.people} ${x.people === 1 ? "person" : "people"}` }))} />
               </Fold>
               <Fold id="follows" title="Followers by tipster">
-                {r.follows.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
-                {Object.entries(
-                  r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
-                    (acc[f.tipster] ??= []).push(f);
-                    return acc;
-                  }, {}),
-                )
-                  .sort((a, b) => b[1].length - a[1].length)
-                  .map(([tipster, list]) => (
-                    <details key={tipster} className="group border-b border-line py-2">
-                      <summary className="cursor-pointer flex items-baseline justify-between gap-3 text-sm">
-                        <span className="font-semibold"><span className="inline-block w-4 text-ink-soft group-open:rotate-90 transition-transform">›</span> {tipster}{list[0]?.tipsterCode && <Link href={`/t/${list[0].tipsterCode}`} className="ml-2 text-xs font-normal underline text-ink-soft">their page</Link>}</span>
-                        <span className="nums">{list.length} {list.length === 1 ? "follower" : "followers"}</span>
-                      </summary>
-                      <ul className="mt-2 ml-4 space-y-1 text-sm">
-                        {list.map((f, i) => (
-                          <li key={i} className="flex justify-between gap-3"><span>{f.followerId ? <Link href={`/admin/${f.followerId}`} className="underline">{f.follower}</Link> : f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
-                        ))}
-                      </ul>
-                    </details>
-                  ))}
+                {followers.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
+                {followers.map(([tipster, list]) => (
+                  <details key={tipster} className="group/f">
+                    <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+                      <BarRow max={mostFollowed} item={{ key: tipster, label: <>{tipster}{list[0]?.tipsterCode && <span className="ml-2 text-xs text-ink-soft">see who</span>}</>, value: list.length, sub: list.length === 1 ? "follower" : "followers" }} />
+                    </summary>
+                    <ul className="mb-2 ml-2 space-y-1 text-sm">
+                      {list.map((f, i) => (
+                        <li key={i} className="flex justify-between gap-3"><span>{f.followerId ? <Link href={`/admin/${f.followerId}`} className="underline">{f.follower}</Link> : f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
+                      ))}
+                      {list[0]?.tipsterCode && <li><Link href={`/t/${list[0].tipsterCode}`} className="text-xs underline text-ink-soft">Their page</Link></li>}
+                    </ul>
+                  </details>
+                ))}
               </Fold>
               <BookieClicks r={money} />
             </div>
           </div>
 
-          <Fold className="mt-4 overflow-x-auto" title={r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}>
+          {/* Shut unless a bar or day was clicked: a long list, worth reading only when looking for someone. */}
+          <Fold
+            id="people"
+            closed={!r.cut}
+            className="mt-4 overflow-x-auto"
+            title={r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}
+          >
             <p className="text-xs text-ink-soft mb-3">
-              Members by email. A visitor is a browser we have seen but no account: the number is its cookie, the source is where its first view in the window came from. {r.cut ? <Link href={`/admin/activity?days=${param}`} className="underline">Back to everyone</Link> : "Click a people count above for that cut."}
+              Members by email. A visitor is a browser with no account: the number is its cookie, the source where its first view in the window came from. {r.cut && <Link href={`/admin/activity?days=${param}`} className="underline">Back to everyone</Link>}
             </p>
-            <table className="data-table stack-sm w-full text-sm whitespace-nowrap">
-              <thead><tr><th>Who</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
-              <tbody>
-                {r.people.map((p) => (
-                  <tr key={p.id}>
-                    <td>{p.email ? <Link href={`/admin/${p.id}`} className="underline">{p.email}</Link> : <span className="text-ink-soft">visitor {p.id.slice(2, 8)}</span>}</td>
-                    <td data-label="From" className="text-xs text-ink-soft">{p.from ?? "direct"}</td>
-                    <td data-label="Views" className="text-right nums">{p.views}</td>
-                    <td data-label="Races opened" className="text-right nums">{p.races}</td>
-                    <td data-label="Mostly" className="text-xs">{p.areas}</td>
-                    <td data-label="Last seen" className="text-ink-soft text-xs">{when(p.last)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <People people={r.cut ? r.people : r.people.slice(0, 10)} />
+            {!r.cut && r.people.length > 10 && (
+              <details className="group/more">
+                <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold text-ink-soft mt-2 group-open/more:hidden">Show all {r.people.length}</summary>
+                <People people={r.people.slice(10)} />
+              </details>
+            )}
           </Fold>
         </>
       )}
     </>
+  );
+}
+
+/** A headline count, and the change on the window before it. */
+function Tile({ n, was, label, versus }: { n: number; was?: number; label: string; versus: string }) {
+  const pct = was ? Math.round(((n - was) / was) * 100) : undefined;
+  return (
+    <div className="card text-center">
+      <div className="font-display text-2xl font-extrabold tracking-tight nums">{n.toLocaleString("en-AU")}</div>
+      <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
+      {was !== undefined && (
+        <div className={`text-xs font-semibold nums mt-1 ${n > was ? "text-accent" : n < was ? "text-red" : "text-ink-soft"}`} title={`${was.toLocaleString("en-AU")} ${versus}`}>
+          {n > was ? "▲" : n < was ? "▼" : "="} {pct === undefined ? "new" : `${Math.abs(pct)}%`} <span className="font-normal text-ink-soft">vs {versus}</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function People({ people }: { people: Awaited<ReturnType<typeof activityReport>>["people"] }) {
+  return (
+    <table className="data-table stack-sm w-full text-sm whitespace-nowrap">
+      <thead><tr><th>Who</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
+      <tbody>
+        {people.map((p) => (
+          <tr key={p.id}>
+            <td>{p.email ? <Link href={`/admin/${p.id}`} className="underline">{p.email}</Link> : <span className="text-ink-soft">visitor {p.id.slice(2, 8)}</span>}</td>
+            <td data-label="From" className="text-xs text-ink-soft">{p.from ?? "direct"}</td>
+            <td data-label="Views" className="text-right nums">{p.views}</td>
+            <td data-label="Races opened" className="text-right nums">{p.races}</td>
+            <td data-label="Mostly" className="text-xs">{p.areas}</td>
+            <td data-label="Last seen" className="text-ink-soft text-xs">{when(p.last)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }

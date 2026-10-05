@@ -64,6 +64,10 @@ export interface ActivityReport {
   /** Distinct signed-in members and distinct anonymous visitors. */
   members: number;
   visitors: number;
+  /** Different people: members and visitors, a visitor's cookie folded into the member it later signed in as. */
+  reach: number;
+  /** The same counts over the window before this one, as long; none for All time. */
+  before?: { views: number; reach: number; members: number; visitors: number };
   byArea: { area: Area; views: number; people: number }[];
   /** Each day in the window, the 7 days ending on it: views, and different people. Smooths the race-day swing. */
   rolling: { day: string; views: number; people: number }[];
@@ -132,7 +136,7 @@ export async function daysOfViews(): Promise<number> {
   return Math.max(1, Math.ceil((Date.now() - first) / 86400_000) + 1);
 }
 
-export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}): Promise<ActivityReport> {
+export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}, compare = true): Promise<ActivityReport> {
   const db = supabaseAdmin();
   // Whole Sydney days: from midnight `days - 1` days ago, so the oldest row is a full day (it started at
   // this time of day, and 27 Sep read 365 views of its 475, 4 Oct 2026).
@@ -142,9 +146,11 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
   const noon = new Date(`${first}T12:00:00Z`);
   const hour = Number(noon.toLocaleString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hour12: false }));
   const since = new Date(noon.getTime() - hour * 3600_000).toISOString();
-  // Six days more than the window, so the window's first day has a whole week behind it for the rolling count.
+  // Read back far enough for a whole week behind the window's first day (the rolling count) and, to
+  // compare, the window before this one as long.
+  const back = compare ? Math.max(6, days) : 6;
   const [wide, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
-    pageViewsSince(new Date(new Date(since).getTime() - 6 * 86400_000).toISOString()),
+    pageViewsSince(new Date(new Date(since).getTime() - back * 86400_000).toISOString()),
     db.from("profiles").select("id, email"),
     db.from("follows").select("user_id, tipster_id, created_at"),
     db.from("affiliates").select("id, name, code"),
@@ -248,9 +254,20 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     return { day: end.toISOString().slice(0, 10), views: week.length, people: new Set(week.map((v) => who(v, owners))).size };
   });
 
+  const counts = (vs: ViewRow[]) => ({
+    views: vs.length,
+    reach: new Set(vs.map((v) => who(v, owners))).size,
+    members: new Set(vs.filter((v) => v.user_id).map((v) => v.user_id)).size,
+    visitors: new Set(vs.filter((v) => !v.user_id && v.meta?.vid).map((v) => v.meta!.vid)).size,
+  });
+  const beforeSince = new Date(new Date(since).getTime() - days * 86400_000).toISOString();
+  const before = compare ? counts(wide.filter((v) => v.created_at >= beforeSince && v.created_at < since)) : undefined;
+
   return {
     days,
     rolling,
+    reach: counts(views).reach,
+    before,
     cut: cut.area || cut.day ? cut : undefined,
     views: views.length,
     members: new Set(views.filter((v) => v.user_id).map((v) => v.user_id)).size,

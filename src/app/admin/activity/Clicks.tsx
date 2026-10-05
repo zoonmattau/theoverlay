@@ -1,4 +1,5 @@
 import { bookieName } from "@/lib/bookies";
+import { BarList } from "../BarList";
 import { Fold } from "../Fold";
 import type { MoneyReport } from "@/lib/money";
 
@@ -18,13 +19,8 @@ export function PlanClicks({ r }: { r: MoneyReport }) {
 export function BookieClicks({ r }: { r: MoneyReport }) {
   return (
     <Fold title="Bookie clicks">
-      {r.bookies.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
-      {r.bookies.map((b) => (
-        <div key={b.bookie} className="panel-row text-sm">
-          <span>{bookieName(b.bookie) || b.bookie}</span>
-          <span className="nums font-bold">{b.clicks}</span>
-        </div>
-      ))}
+      <p className="text-xs text-ink-soft mb-2">Prices followed out to a bookie.</p>
+      <BarList items={r.bookies.map((b) => ({ key: b.bookie, label: bookieName(b.bookie) || b.bookie, value: b.clicks }))} />
     </Fold>
   );
 }

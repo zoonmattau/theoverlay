@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useId, useState } from "react";
 
 import type { Series } from "@/lib/reports";
@@ -32,8 +33,10 @@ function ticks(max: number, min: number): number[] {
   return out;
 }
 
-export function DayChart({ s, cumulative }: { s: Series; cumulative?: boolean }) {
+/** With `hrefBase`, a click on a day's bar goes to hrefBase plus the date ("…&day=" then 2026-10-06). */
+export function DayChart({ s, cumulative, hrefBase }: { s: Series; cumulative?: boolean; hrefBase?: string }) {
   const id = useId();
+  const router = useRouter();
   const [hover, setHover] = useState<number | null>(null);
   const pts = cumulative
     ? s.points.reduce<{ date: string; value: number }[]>((acc, p) => [...acc, { date: p.date, value: Math.round(((acc.at(-1)?.value ?? 0) + p.value) * 100) / 100 }], [])
@@ -71,7 +74,7 @@ export function DayChart({ s, cumulative }: { s: Series; cumulative?: boolean })
           const yy = p.value >= 0 ? y(p.value) : zero;
           const hh = Math.abs(y(p.value) - zero);
           return (
-            <g key={p.date} onMouseEnter={() => setHover(i)}>
+            <g key={p.date} onMouseEnter={() => setHover(i)} onClick={hrefBase ? () => router.push(`${hrefBase}${p.date}`) : undefined} className={hrefBase ? "cursor-pointer" : undefined}>
               <rect x={PAD.l + i * slot} y={PAD.t} width={slot} height={plotH} fill="transparent" />
               {hh > 0 && <rect x={x} y={yy} width={bw} height={Math.max(1, hh)} rx={Math.min(2, bw / 2)} fill={colour(p.value)} opacity={hover === null || hover === i ? 1 : 0.45} />}
               {i % labelEvery === 0 && (
