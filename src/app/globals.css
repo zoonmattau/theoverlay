@@ -4908,3 +4908,52 @@ td[data-col="phone"],
 .sheet .caret::before { content: "▾"; display: inline-block; width: 0.9em; color: var(--color-lime); }
 .sheet tr.sheet-day.is-shut .caret::before { content: "▸"; }
 .sheet th.num { text-align: right; }
+
+/* The onboarding page: the call colours as chips, plain lists, a worked lay. */
+.start-keys { display: grid; gap: 8px; }
+.start-keys li { display: flex; align-items: center; gap: 10px; }
+.start-key {
+  flex: 0 0 112px;
+  white-space: nowrap;
+  text-align: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-md);
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.start-key.is-back { background: var(--color-blue); color: #fff; }
+.start-key.is-prime { background: var(--color-lime); color: var(--color-ink); }
+.start-key.is-way { background: var(--color-blue-soft); color: var(--color-blue); }
+.start-key.is-lay { background: var(--color-red); color: #fff; }
+.start-list { display: grid; gap: 6px; padding-left: 1.1rem; list-style: disc; }
+.start-list.is-numbered { list-style: decimal; }
+.start-list b, .start-example b { color: var(--color-ink); }
+.start-h3 { padding-top: 6px; font-weight: 800; color: var(--color-ink); font-size: 0.9rem; }
+.start-example {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-red-dim);
+  background: var(--color-red-soft);
+}
+.start-example-title {
+  font-size: 0.62rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-red);
+}
+.footer-start {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  background: var(--color-panel-alt);
+}

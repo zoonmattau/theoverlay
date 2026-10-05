@@ -151,10 +151,19 @@ function line(c: Call): string {
   const prime = isPrime(c);
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
   const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : isRoughie(c.x) ? "Way Overlay" : "Bet";
-  const limit = callLimit(c.x);
-  const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
   const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
-  return `${square} R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`;
+  return `${square} R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side}, ${strictOf(c)}${stake}`;
+}
+
+/**
+ * The price a call is good to, and nothing else: no live price, no rated
+ * price. "lay at $4.50 or under", "bet at $7.90 or better". A bet too long
+ * to have one says the price it was called at.
+ */
+function strictOf(c: Call): string {
+  const limit = callLimit(c.x);
+  if (c.x.signal === "lay") return `lay at ${price(limit ?? callPrice(c.x))} or under`;
+  return limit ? `bet at ${price(limit)} or better` : `bet at ${price(callPrice(c.x))}`;
 }
 
 /** Every call, a heading per meeting and a blank line between meetings, races in jump order. */
@@ -290,11 +299,10 @@ function callPost(c: Call, date: string): string {
   const prime = isPrime(c);
   const side = c.x.signal === "lay" ? "LAY" : prime ? "PRIME" : isRoughie(c.x) ? "WAY OVERLAY" : "BET";
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
-  const limit = callLimit(c.x);
-  const strict = limit ? (c.x.signal === "lay" ? `, lay at ${price(limit)} or under` : `, take ${price(limit)} or better`) : "";
   const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
+  const strict = strictOf(c);
   // The heading is the link to the race; embeds are off on every post, so it stays one line.
-  return [`**[${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)}, ${side} ${c.x.tabNumber}. ${c.x.horseName}](${raceUrl(date, c.m, c.r)})**`, `${square} ${price(callPrice(c.x)!)}, rated ${price(c.x.ratedPrice)}${strict}${stake}`].join("\n");
+  return [`**[${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)}, ${side} ${c.x.tabNumber}. ${c.x.horseName}](${raceUrl(date, c.m, c.r)})**`, `${square} ${strict[0].toUpperCase()}${strict.slice(1)}${stake}`].join("\n");
 }
 
 /** The discord_posts kinds that remember a lay, or a Prime made during the day, has been posted. */
