@@ -74,23 +74,27 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
-      {/* Side by side on a wide screen, stacked on a phone. */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <ThisMonth m={totals.month} costs={totals.costs} feeShare={totals.revenue.gross ? totals.revenue.fees / totals.revenue.gross : 0} charges={monthCharges} conversion={upcoming.conversion} mrr={r.mrr_cents / 100} paying={r.payingNow.length} today={today} />
-        <Bank b={cash} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <Totals t={totals} />
-        <Ads r={ads} n={n} />
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
-        <ComingUp {...soon} />
-        <Fold title="New accounts" className="min-w-0">
-          <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
-          <Funnel people={r.signups.people} />
-        </Fold>
+      {/*
+        Two columns that stack down, not rows of pairs: a short card beside a tall one left a hole
+        under it (6 Oct 2026). The last card in each column stretches so both end level.
+        On a phone it is one column in this order.
+      */}
+      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+        <div className="flex flex-col gap-6 min-w-0">
+          <ThisMonth m={totals.month} costs={totals.costs} feeShare={totals.revenue.gross ? totals.revenue.fees / totals.revenue.gross : 0} charges={monthCharges} conversion={upcoming.conversion} mrr={r.mrr_cents / 100} paying={r.payingNow.length} today={today} />
+          <Totals t={totals} />
+          <ComingUp {...soon} />
+        </div>
+        <div className="flex flex-col gap-6 min-w-0">
+          <Bank b={cash} />
+          <Ads r={ads} n={n} />
+          <Fold title="New accounts" className="min-w-0 flex-1 flex flex-col">
+            <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
+            <div className="flex-1 flex flex-col justify-center">
+              <Funnel people={r.signups.people} />
+            </div>
+          </Fold>
+        </div>
       </div>
 
       <details open className="section group/fold mb-6">
@@ -150,7 +154,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
       <Growth g={r.growth} />
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6 items-start">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 mb-6">
         <Fold title="Trials">
           <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
           <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
@@ -211,7 +215,6 @@ function ThisMonth({ m, costs, feeShare, charges, conversion, mrr, paying, today
   // A month when nothing is lumpy: running costs against monthly recurring.
   const running = costs.filter((c) => c.monthly && !c.stopped).reduce((a, c) => a + c.amount_cents / 100, 0) + m.adsPerDay * 30.4;
   const each = paying ? mrr / paying : 0;
-  const short = running - mrr;
   const name = dayLabel(`${m.month}-15`, { month: "long" });
   return (
     <Fold title={`This month, ${name}`} className="min-w-0">
@@ -221,14 +224,20 @@ function ThisMonth({ m, costs, feeShare, charges, conversion, mrr, paying, today
         <Mini n={whole(due)} label="still due" sub={`renewals ${whole(renewals)} · trials ${whole(trialsExpected)} of ${whole(trials)}`} />
         <Mini n={whole(fixed + ads)} label="costs" sub={`fixed ${whole(fixed)} · ads ${whole(ads)}`} />
       </div>
-      <p className="mt-3 text-sm">
-        {name} ends about <strong className={`nums ${end >= 0 ? "text-accent" : "text-red"}`}>{end >= 0 ? `${whole(end)} ahead` : `${whole(-end)} behind`}</strong>
-        <span className="text-ink-soft">, {m.daysLeft} {m.daysLeft === 1 ? "day" : "days"} to go.</span>
-      </p>
-      <p className="mt-2 text-sm">
-        A month costs about <strong className="nums">{whole(running)}</strong> <span className="text-ink-soft">(ads at {whole(m.adsPerDay)} a day)</span>; monthly recurring <strong className="nums">{whole(mrr)}</strong> covers <strong className="nums">{running ? Math.round((mrr / running) * 100) : 100}%</strong>.
-        {short > 0 && each > 0 && <span className="text-ink-soft"> {Math.ceil(short / each)} more paying members at {whole(each)} a month covers it.</span>}
-      </p>
+      {/* One figure a line. The month can end ahead on yearly bills paid up front while the run rate is short, so the two are kept apart. */}
+      <div className="mt-3 text-sm">
+        <div className="panel-row">
+          <span>{name} at the end, est.</span>
+          <strong className={`nums ${end >= 0 ? "text-accent" : "text-red"}`}>{end >= 0 ? "+" : "−"}{whole(Math.abs(end))}</strong>
+        </div>
+        <div className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft mt-4 mb-1">Any month, at today&apos;s rate</div>
+        <div className="panel-row"><span>Costs</span><span className="nums font-bold">{whole(running)}</span></div>
+        <div className="panel-row"><span>Monthly recurring</span><span className="nums font-bold">{whole(mrr)}</span></div>
+        <div className="panel-row">
+          <span>Paying members to cover costs</span>
+          <span className="nums font-bold">{each > 0 ? Math.ceil(running / each) : "—"} <span className="font-normal text-ink-soft">(have {paying})</span></span>
+        </div>
+      </div>
       {m.fixed.length > 0 && (
         <details className="mt-3 group">
           <summary className="cursor-pointer select-none text-xs font-semibold text-ink-soft">Costs in {name}</summary>
@@ -292,7 +301,8 @@ function Fold({ title, className = "", summary, children }: { title: string; cla
         </h2>
         {summary}
       </summary>
-      <div className="mt-2">{children}</div>
+      {/* A fold that stretches to fill its column passes the height on to what is inside. */}
+      <div className={`mt-2 ${className.includes("flex-col") ? "flex-1 flex flex-col" : ""}`}>{children}</div>
     </details>
   );
 }
@@ -545,7 +555,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const top = Math.max(1, ...days.map((d) => d.trial + d.paying + d.retry));
 
   return (
-    <Fold title={`Coming up, next ${AHEAD} days`} className="min-w-0 flex flex-col">
+    <Fold title={`Coming up, next ${AHEAD} days`} className="min-w-0 flex-1 flex flex-col">
       <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill. Plans booked to cancel are left out.</p>
       {error && <p className="mt-3 text-sm text-red">Stripe did not answer: {error}</p>}
 
