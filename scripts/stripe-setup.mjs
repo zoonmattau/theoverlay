@@ -26,9 +26,9 @@ async function price(lookupKey, params) {
 const out = {};
 
 for (const p of [
-  { key: "SATURDAY", overlay: "saturday", name: "The Overlay: Saturday", desc: "Every Saturday meeting we cover: top four, ratings, rated prices, bet and lay calls.", amount: 1900 },
-  { key: "MIDWEEK", overlay: "midweek", name: "The Overlay: Saturday + Wednesday", desc: "Saturday and Wednesday metro meetings: top four, ratings, rated prices, bet and lay calls.", amount: 2900 },
-  { key: "EVERYDAY", overlay: "everyday", name: "The Overlay: Every day", desc: "Every meeting we cover, every day: top four, ratings, rated prices, bet and lay calls.", amount: 4900 },
+  { key: "SATURDAY", overlay: "saturday", name: "The Overlay: Saturday", desc: "Every Saturday meeting we cover: top four, ratings, rated prices, bet and lay calls.", amount: 1900, week: 500, weekKey: "weekly" },
+  { key: "MIDWEEK", overlay: "midweek", name: "The Overlay: Saturday + Wednesday", desc: "Saturday and Wednesday metro meetings: top four, ratings, rated prices, bet and lay calls.", amount: 2900, week: 1000, weekKey: "weekly_10" },
+  { key: "EVERYDAY", overlay: "everyday", name: "The Overlay: Every day", desc: "Every meeting we cover, every day: top four, ratings, rated prices, bet and lay calls.", amount: 4900, week: 1500, weekKey: "weekly_15" },
 ]) {
   const prod = await product(p.name, p.desc, { overlay: p.overlay });
   const pr = await price(`overlay_${p.overlay}_monthly`, {
@@ -40,11 +40,11 @@ for (const p of [
   });
   out[`STRIPE_PRICE_${p.key}`] = pr.id;
   console.log(p.name, prod.id, pr.id);
-  // Weekly, no trial: a quarter of the monthly price rounded up (5 Oct 2026). termPrice in plans.ts says the same.
-  const week = await price(`overlay_${p.overlay}_weekly`, {
+  // Weekly, no trial: $5, $10, $15 (5 Oct 2026), weekPrice in plans.ts. A price can't change, so a new amount gets a new lookup key.
+  const week = await price(`overlay_${p.overlay}_${p.weekKey}`, {
     product: prod.id,
     currency: "aud",
-    unit_amount: Math.ceil(p.amount / 400) * 100,
+    unit_amount: p.week,
     recurring: { interval: "week" },
     nickname: "Weekly",
     tax_behavior: "exclusive",

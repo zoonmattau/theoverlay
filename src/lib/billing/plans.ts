@@ -12,6 +12,8 @@ export interface Plan {
   name: string;
   /** AUD per month. No GST is charged while the business is not registered (30 Sep 2026). */
   price: number;
+  /** AUD per week on the weekly term, no trial; set by hand (5 Oct 2026), dearer than monthly over a year. */
+  weekPrice: number;
   blurb: string;
   features: string[];
   /** Days of the week the plan covers, 0 = Sunday. Empty means every day. */
@@ -30,6 +32,7 @@ export const PLANS: Plan[] = [
     id: "saturday",
     name: "Saturday",
     price: 19,
+    weekPrice: 5,
     blurb: "The big day, every week.",
     features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls", "7-day free trial"],
     days: [6],
@@ -40,6 +43,7 @@ export const PLANS: Plan[] = [
     id: "midweek",
     name: "Saturday + Wednesday",
     price: 29,
+    weekPrice: 10,
     blurb: "The two metro days.",
     features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls", "7-day free trial"],
     days: [3, 6],
@@ -52,6 +56,7 @@ export const PLANS: Plan[] = [
     highlight: true,
     name: "Every day",
     price: 49,
+    weekPrice: 15,
     blurb: "The full board, seven days a week.",
     features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls", "7-day free trial"],
     days: [],
@@ -82,7 +87,7 @@ export interface Term {
 }
 
 export const TERMS: Term[] = [
-  // A quarter of the monthly price rounded up, so it costs more than monthly over a year.
+  // Each plan's own weekly price (weekPrice), more than monthly over a year.
   { id: "week", name: "Weekly", months: 12 / 52, off: 0, every: "a week", noTrial: true },
   { id: "month", name: "Monthly", months: 1, off: 0, every: "a month" },
   { id: "quarter", name: "3 months", months: 3, off: 0.1, every: "every 3 months" },
@@ -93,7 +98,7 @@ export const TERMS: Term[] = [
 export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS.find((t) => t.id === "month")!;
 
 /** What a plan costs per bill on a term, whole AUD, matching the Stripe Price. */
-export const termPrice = (plan: Plan, term: Term) => (term.id === "week" ? Math.ceil(plan.price / 4) : Math.round(plan.price * term.months * (1 - term.off)));
+export const termPrice = (plan: Plan, term: Term) => (term.id === "week" ? plan.weekPrice : Math.round(plan.price * term.months * (1 - term.off)));
 
 /** The Stripe Price for a plan on a term. */
 export const termPriceId = (plan: Plan, term: Term) => (term.id === "month" ? plan.priceId : plan.termPriceIds[term.id]);
