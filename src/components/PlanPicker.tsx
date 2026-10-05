@@ -28,11 +28,11 @@ export interface PickerPlan {
 type TermId = "month" | "quarter" | "year" | "week";
 
 const TERMS: { id: TermId; label: string; short: string; months: number; per: string; billed: string; noTrial?: boolean }[] = [
+  // No free trial: paid from today, for anyone who wants in without one (5 Oct 2026). Shortest first, left of Monthly.
+  { id: "week", label: "Weekly", short: "Weekly", months: 12 / 52, per: "/week", billed: "billed weekly", noTrial: true },
   { id: "month", label: "Monthly", short: "Monthly", months: 1, per: "/month", billed: "billed monthly" },
   { id: "quarter", label: "Every 3 months", short: "3 months", months: 3, per: "/3 months", billed: "billed every 3 months" },
   { id: "year", label: "Yearly", short: "Yearly", months: 12, per: "/year", billed: "billed yearly" },
-  // No free trial: paid from today, for anyone who wants in without one (5 Oct 2026).
-  { id: "week", label: "Weekly", short: "Weekly", months: 12 / 52, per: "/week", billed: "billed weekly", noTrial: true },
 ];
 
 /**
@@ -131,7 +131,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                     </div>
                     <div className="mt-0.5 text-sm text-ink-secondary tabular-nums">
                       {/* The bill spread over the weeks it covers, to the cent, then what the term saves. */}
-                      {t.id === "week" ? "No free trial. Starts today." : <>${(bill / ((t.months * 52) / 12)).toFixed(2)} a week</>}
+                      {t.id === "week" ? "Week to week. Cancel any time." : <>${(bill / ((t.months * 52) / 12)).toFixed(2)} a week</>}
                       {saved > 0 && <>, <span className="font-semibold text-accent">save ${saved}</span></>}
                     </div>
                   </>
@@ -162,7 +162,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                   />
                   {!pro && (
                     <p className="mt-2 text-center text-xs text-ink-soft tabular-nums">
-                      {t.noTrial ? <>${bill} today, then {t.billed}. Cancel any week.</> : <>Nothing today. Then ${bill} {t.billed}.</>}
+                      {t.noTrial ? <>${bill} today, then {t.billed}.</> : <>Nothing today. Then ${bill} {t.billed}.</>}
                     </p>
                   )}
                 </div>

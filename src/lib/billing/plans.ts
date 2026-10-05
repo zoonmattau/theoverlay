@@ -82,14 +82,15 @@ export interface Term {
 }
 
 export const TERMS: Term[] = [
+  // A quarter of the monthly price rounded up, so it costs more than monthly over a year.
+  { id: "week", name: "Weekly", months: 12 / 52, off: 0, every: "a week", noTrial: true },
   { id: "month", name: "Monthly", months: 1, off: 0, every: "a month" },
   { id: "quarter", name: "3 months", months: 3, off: 0.1, every: "every 3 months" },
   { id: "year", name: "Yearly", months: 12, off: 0.2, every: "a year" },
-  // A quarter of the monthly price rounded up, so it costs more than monthly over a year.
-  { id: "week", name: "Weekly", months: 12 / 52, off: 0, every: "a week", noTrial: true },
 ];
 
-export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS[0];
+// Monthly when no term is given, whatever order the list is in (Weekly sits first, 5 Oct 2026).
+export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS.find((t) => t.id === "month")!;
 
 /** What a plan costs per bill on a term, whole AUD, matching the Stripe Price. */
 export const termPrice = (plan: Plan, term: Term) => (term.id === "week" ? Math.ceil(plan.price / 4) : Math.round(plan.price * term.months * (1 - term.off)));
