@@ -14,6 +14,9 @@ import type { Series } from "@/lib/reports";
 import { Fold } from "../Fold";
 import { BookieClicks, PlanClicks } from "./Clicks";
 
+/** The windows, in days: today, a week, a fortnight, a month. */
+const WINDOWS = [1, 7, 14, 30];
+
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
 
 export default function Page({ searchParams }: PageProps<"/admin/activity">) {
@@ -46,7 +49,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
-  const days = [1, 7, 30].includes(Number(sp.days)) ? Number(sp.days) : 7;
+  const days = WINDOWS.includes(Number(sp.days)) ? Number(sp.days) : 7;
   const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
   const [r, money] = await Promise.all([activityReport(days, cut), moneyReport(days)]);
   const maxArea = Math.max(...r.byArea.map((a) => a.views), 1);
@@ -69,7 +72,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
           </p>
         </div>
         <div className="flex gap-1">
-          {[1, 7, 30].map((d) => (
+          {WINDOWS.map((d) => (
             <Link key={d} href={`/admin/activity?days=${d}`} className={`btn btn-sm ${d === days ? "btn-primary" : "btn-secondary"}`}>{d === 1 ? "Today" : `${d} days`}</Link>
           ))}
         </div>
