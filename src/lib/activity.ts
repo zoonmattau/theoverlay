@@ -65,6 +65,8 @@ export interface ActivityReport {
   members: number;
   visitors: number;
   byArea: { area: Area; views: number; people: number }[];
+  /** Each day in the window, the 7 days ending on it: views, and different people. Smooths the race-day swing. */
+  rolling: { day: string; views: number; people: number }[];
   /** Views and people each day, and how many of those people first came that day from an ad. */
   byDay: { day: string; views: number; people: number; ads: number }[];
   topRaces: { key: string; date: string; meetingId: string; raceId: string; views: number; people: number }[];
@@ -123,6 +125,13 @@ async function pageViewsSince(since: string): Promise<ViewRow[]> {
   return out;
 }
 
+/** Days since the first page view recorded, today counted: the "All time" window. */
+export async function daysOfViews(): Promise<number> {
+  const { data } = await supabaseAdmin().from("events").select("created_at").eq("kind", "page_view").order("created_at").limit(1).maybeSingle();
+  const first = data?.created_at ? new Date(data.created_at).getTime() : Date.now();
+  return Math.max(1, Math.ceil((Date.now() - first) / 86400_000) + 1);
+}
+
 export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}): Promise<ActivityReport> {
   const db = supabaseAdmin();
   // Whole Sydney days: from midnight `days - 1` days ago, so the oldest row is a full day (it started at
@@ -133,13 +142,15 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
   const noon = new Date(`${first}T12:00:00Z`);
   const hour = Number(noon.toLocaleString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", hour12: false }));
   const since = new Date(noon.getTime() - hour * 3600_000).toISOString();
-  const [views, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
-    pageViewsSince(since),
+  // Six days more than the window, so the window's first day has a whole week behind it for the rolling count.
+  const [wide, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
+    pageViewsSince(new Date(new Date(since).getTime() - 6 * 86400_000).toISOString()),
     db.from("profiles").select("id, email"),
     db.from("follows").select("user_id, tipster_id, created_at"),
     db.from("affiliates").select("id, name, code"),
   ]);
-  const owners = cookieOwners(views);
+  const views = wide.filter((v) => v.created_at >= since);
+  const owners = cookieOwners(wide);
   const email = new Map(((profiles ?? []) as { id: string; email: string | null }[]).map((p) => [p.id, p.email]));
   const tipsterName = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.id, t.name]));
   const tipsterCode = new Map(((tipsters ?? []) as { id: string; name: string; code: string }[]).map((t) => [t.id, t.code]));
@@ -223,8 +234,23 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     .sort((a, b) => b.views - a.views)
     .slice(0, cut.area || cut.day ? 1000 : 40);
 
+  // The week ending each day of the window: views, and different people across those seven days.
+  const weekBy = new Map<string, ViewRow[]>();
+  for (const v of wide) {
+    const d = dayOf(v);
+    const list = weekBy.get(d) ?? [];
+    list.push(v);
+    weekBy.set(d, list);
+  }
+  const rolling = Array.from({ length: days }, (_, i) => {
+    const end = new Date(new Date(`${first}T12:00:00Z`).getTime() + i * 86400_000);
+    const week = Array.from({ length: 7 }, (_, k) => new Date(end.getTime() - k * 86400_000).toISOString().slice(0, 10)).flatMap((d) => weekBy.get(d) ?? []);
+    return { day: end.toISOString().slice(0, 10), views: week.length, people: new Set(week.map((v) => who(v, owners))).size };
+  });
+
   return {
     days,
+    rolling,
     cut: cut.area || cut.day ? cut : undefined,
     views: views.length,
     members: new Set(views.filter((v) => v.user_id).map((v) => v.user_id)).size,

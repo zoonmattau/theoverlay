@@ -56,7 +56,7 @@ export function DayChart({ s, cumulative }: { s: Series; cumulative?: boolean })
     <figure className="m-0">
       <figcaption className="flex items-baseline justify-between gap-3 mb-1">
         <span className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft">{s.title}{cumulative ? ", running total" : ""}</span>
-        <span className="nums text-sm font-semibold">{h ? `${short(h.date)}: ${fmt(h.value, s.format)}` : `${fmt(s.total, s.format)} in the window`}</span>
+        <span className="nums text-sm font-semibold">{h ? `${short(h.date)}: ${fmt(h.value, s.format)}` : `${fmt(s.total, s.format)} ${s.totalLabel ?? "in the window"}`}</span>
       </figcaption>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-labelledby={`${id}-t`} onMouseLeave={() => setHover(null)}>
         <title id={`${id}-t`}>{`${s.title} by day`}</title>

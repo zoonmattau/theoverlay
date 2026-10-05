@@ -5,7 +5,7 @@ import { Suspense } from "react";
 
 import { isAdmin, now } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { type Area, activityReport, AREA_LABEL } from "@/lib/activity";
+import { type Area, activityReport, AREA_LABEL, daysOfViews } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { moneyReport } from "@/lib/money";
@@ -14,8 +14,8 @@ import type { Series } from "@/lib/reports";
 import { Fold } from "../Fold";
 import { BookieClicks, PlanClicks } from "./Clicks";
 
-/** The windows, in days: today, a week, a fortnight, a month. */
-const WINDOWS = [1, 7, 14, 30];
+/** The windows, in days, then every day since the first page view. */
+const WINDOWS = [1, 7, 14, 30, 90];
 
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
 
@@ -49,7 +49,10 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
-  const days = WINDOWS.includes(Number(sp.days)) ? Number(sp.days) : 7;
+  const all = sp.days === "all";
+  const days = all ? await daysOfViews() : WINDOWS.includes(Number(sp.days)) ? Number(sp.days) : 7;
+  // What links carry to keep the window: "all" stays all as the days go by.
+  const param = all ? "all" : String(days);
   const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
   const [r, money] = await Promise.all([activityReport(days, cut), moneyReport(days)]);
   const maxArea = Math.max(...r.byArea.map((a) => a.views), 1);
@@ -61,6 +64,11 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
     const points = window.map((date) => ({ date, value: perDay.get(date)?.[key] ?? 0 }));
     return { key, title, format: "count", points, total: points.reduce((a, p) => a + p.value, 0) };
   };
+  // A rolling week has no sum worth showing: its figure is the latest week.
+  const rolling = (key: "views" | "people", title: string): Series => {
+    const points = r.rolling.map((d) => ({ date: d.day, value: d[key] }));
+    return { key: `week-${key}`, title, format: "count", points, total: points.at(-1)?.value ?? 0, totalLabel: "this week" };
+  };
 
   return (
     <>
@@ -68,13 +76,14 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Activity</h1>
           <p className="mt-1 text-sm text-ink-soft">
-            {r.views} page views in the last {days === 1 ? "day" : `${days} days`} from {r.members} signed-in {r.members === 1 ? "member" : "members"} and {r.visitors} {r.visitors === 1 ? "visitor" : "visitors"}. Admin views are not counted.
+            {r.views} page views {all ? "since the first one" : `in the last ${days === 1 ? "day" : `${days} days`}`} from {r.members} signed-in {r.members === 1 ? "member" : "members"} and {r.visitors} {r.visitors === 1 ? "visitor" : "visitors"}. Admin views are not counted.
           </p>
         </div>
-        <div className="flex gap-1">
+        <div className="flex flex-wrap gap-1">
           {WINDOWS.map((d) => (
-            <Link key={d} href={`/admin/activity?days=${d}`} className={`btn btn-sm ${d === days ? "btn-primary" : "btn-secondary"}`}>{d === 1 ? "Today" : `${d} days`}</Link>
+            <Link key={d} href={`/admin/activity?days=${d}`} className={`btn btn-sm ${!all && d === days ? "btn-primary" : "btn-secondary"}`}>{d === 1 ? "Today" : `${d} days`}</Link>
           ))}
+          <Link href="/admin/activity?days=all" className={`btn btn-sm ${all ? "btn-primary" : "btn-secondary"}`}>All time</Link>
         </div>
       </section>
 
@@ -95,6 +104,16 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             </div>
           </Fold>
 
+          {days > 1 && (
+            <Fold title="Rolling 7 days" className="mb-4">
+              <p className="text-xs text-ink-soft mb-3">Each day is the week ending on it, so race days don&apos;t swing it. People counts each person once across the week.</p>
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                <DayChart s={rolling("views", "Views, last 7 days")} />
+                <DayChart s={rolling("people", "People, last 7 days")} />
+              </div>
+            </Fold>
+          )}
+
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
             <div className="flex flex-col gap-4 min-w-0">
               <Fold title="Where they go">
@@ -105,7 +124,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                       <tr key={a.area} className={cut.area === a.area ? "bg-lime-soft" : ""}>
                         <td>{AREA_LABEL[a.area] ?? a.area}</td>
                         <td className="text-right nums">{a.views}</td>
-                        <td className="text-right nums"><Link href={`/admin/activity?days=${days}&area=${a.area}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{a.people}</Link></td>
+                        <td className="text-right nums"><Link href={`/admin/activity?days=${param}&area=${a.area}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{a.people}</Link></td>
                         <td className="w-44"><Bar n={a.views} max={maxArea} /></td>
                       </tr>
                     ))}
@@ -147,7 +166,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                       <tr key={d.day} className={cut.day === d.day ? "bg-lime-soft" : ""}>
                         <td>{dayLabel(d.day)}</td>
                         <td className="text-right nums">{d.views}</td>
-                        <td className="text-right nums"><Link href={`/admin/activity?days=${days}&day=${d.day}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{d.people}</Link></td>
+                        <td className="text-right nums"><Link href={`/admin/activity?days=${param}&day=${d.day}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{d.people}</Link></td>
                         <td className={`text-right nums ${d.ads ? "font-semibold" : "text-ink-soft"}`}>{d.ads || "—"}</td>
                         <td className="w-44"><Bar n={d.views} max={maxDay} /></td>
                       </tr>
@@ -195,7 +214,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
 
           <Fold className="mt-4 overflow-x-auto" title={r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}>
             <p className="text-xs text-ink-soft mb-3">
-              Members by email. A visitor is a browser we have seen but no account: the number is its cookie, the source is where its first view in the window came from. {r.cut ? <Link href={`/admin/activity?days=${days}`} className="underline">Back to everyone</Link> : "Click a people count above for that cut."}
+              Members by email. A visitor is a browser we have seen but no account: the number is its cookie, the source is where its first view in the window came from. {r.cut ? <Link href={`/admin/activity?days=${param}`} className="underline">Back to everyone</Link> : "Click a people count above for that cut."}
             </p>
             <table className="data-table stack-sm w-full text-sm whitespace-nowrap">
               <thead><tr><th>Who</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>

@@ -22,6 +22,8 @@ export interface Series {
   diverging?: boolean;
   points: Point[];
   total: number;
+  /** What the total is, after the figure; "in the window" when unset. */
+  totalLabel?: string;
 }
 
 const sydneyDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
