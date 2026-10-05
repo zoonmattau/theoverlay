@@ -254,7 +254,9 @@ function ThisMonth({ m, costs, feeShare, charges, conversion, mrr, paying, today
 function Bank({ b }: { b: BankInfo }) {
   const cents = (v: number) => `$${v.toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   const day = (iso: string) => dayLabel(iso, { weekday: "short", day: "numeric", month: "short" });
-  const coming = b.onTheWay.reduce((a, p) => a + p.amount, 0);
+  // What lands with the next payout, all else equal: payouts already sent, what is ready now, and what clears by payout day.
+  const sent = b.onTheWay.reduce((a, p) => a + p.amount, 0);
+  const coming = sent + (b.nextPayout ? b.available + b.clearing.filter((c) => c.date <= b.nextPayout!).reduce((a, c) => a + c.amount, 0) : 0);
   return (
     <Fold title="Where the money is" className="min-w-0">
       <p className="mt-1 text-xs text-ink-soft">From Stripe, now. A payment takes {b.clearDays ?? "a few"} days to clear{b.schedule ? `, then goes out ${b.schedule}` : ""}.</p>
@@ -263,7 +265,7 @@ function Bank({ b }: { b: BankInfo }) {
           <div className="mt-3 grid grid-cols-3 gap-2">
             <Mini n={cents(b.pending)} label="clearing" />
             <Mini n={cents(b.available)} label="ready to pay out" tone="bet" />
-            <Mini n={cents(coming)} label="on the way" tone="prime" sub={b.onTheWay[0] ? `lands ${day(b.onTheWay[0].arrives)}` : b.nextPayout ? `next payout ${day(b.nextPayout)}` : "nothing sent"} />
+            <Mini n={cents(coming)} label={b.nextPayout ? `bank, ${dayLabel(b.nextPayout, { weekday: "long" })}` : "on the way"} tone="prime" sub={b.nextPayout ? `payout ${day(b.nextPayout)}` : b.onTheWay[0] ? `lands ${day(b.onTheWay[0].arrives)}` : "nothing sent"} />
           </div>
           {b.clearing.length > 0 && (
             <div className="mt-3">
