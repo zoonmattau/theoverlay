@@ -1,6 +1,9 @@
 import "server-only";
 import { cacheLife } from "next/cache";
 
+import { deducted, keptAfter } from "@/lib/model/deductions";
+import { CALL_LOCK_MS } from "@/lib/model/publish";
+
 import { supabaseAdmin } from "@/lib/billing/access";
 import type { StoredCard } from "@/lib/model/store";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
@@ -116,6 +119,8 @@ interface Held {
   sp: number | null;
   units: number | null;
   settled_at: string | null;
+  /** When the call joined the ledger: a scratching after it takes the deduction. */
+  published_at?: string | null;
 }
 
 /**
@@ -128,7 +133,7 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
   if (!card.meetings.length) return;
   const db = supabaseAdmin();
   const rows = rowsFor(date, card).filter((r) => !EXCLUDED_CALLS.has(`${r.race_id}:${r.tab_number}`));
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at").eq("date", date).eq("source", "model");
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at, published_at").eq("date", date).eq("source", "model");
   if (error) {
     console.error("[tips]", error.message);
     return;
@@ -164,7 +169,11 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
       const recorded = cents(!live ? price : was.side === "back" ? Math.max(price, live.market_price) : Math.min(price, live.market_price));
       if (race.result?.length) {
         const placing = race.placings?.find((p) => p.tabNumber === was.tab_number);
-        const at = settlePrice(was.side, recorded, placing, x.marketPrice);
+        // A price taken before a late scratching pays less by the official deductions; the jump and starting prices come after it.
+        // A lay is struck when it is posted, 30 minutes from the jump, so only a scratching after that reduces it.
+        const calledAt = was.side === "lay" && race.jumpTime ? new Date(Math.max(new Date(race.jumpTime).getTime() - CALL_LOCK_MS, new Date(was.published_at ?? 0).getTime())).toISOString() : was.published_at ?? undefined;
+        const kept = keptAfter(race.runners.filter((y) => y.scratched), calledAt);
+        const at = settlePrice(was.side, deducted(recorded, kept), placing, x.marketPrice);
         const finish = x.finishPosition ?? 0;
         target = { market_price: at, finish_position: finish, sp: placing?.sp ?? null, units: cents(settle(was.side, at, finish, stake)), settled_at: was.settled_at && !voided ? was.settled_at : now };
       } else {

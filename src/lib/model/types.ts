@@ -180,6 +180,9 @@ export interface PublishedRunner {
   /** Last five finishes, most recent last, e.g. "3x121". */
   form?: string;
   scratched: boolean;
+  /** A late scratching: when the card first saw it out, and its last price before, which sets the deduction. */
+  scratchedAt?: string;
+  scratchPrice?: number;
   ratings: RunnerRatings;
   /** Our price: the form melded with the market. Ours, not Form King's. On a bet, held under the bet price (holdBetRatedUnder). */
   ratedPrice: number;

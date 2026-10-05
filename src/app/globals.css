@@ -4722,6 +4722,11 @@ body {
 tr.tip-row.is-run > td {
   opacity: 0.6;
 }
+/* The fade would carry into a price's market panel, which sits inside the
+   cell; while one is open, its cell comes back to full strength. */
+tr.tip-row.is-run > td:has(.market-pop) {
+  opacity: 1;
+}
 tr.tip-divider > td {
   padding: 10px var(--sp-3) 6px;
   border-top: 2px solid var(--color-line-strong);
@@ -4787,7 +4792,7 @@ td[data-col="phone"],
   tr.tip-row > td[data-col="block"] {
     padding-top: 6px;
   }
-  tr.tip-row.is-run > td {
+  tr.tip-row.is-run > td:not(:has(.market-pop)) {
     opacity: 0.55;
   }
   .tp {
@@ -4957,3 +4962,49 @@ td[data-col="phone"],
   border: 1px solid var(--color-line);
   background: var(--color-panel-alt);
 }
+
+/* Onboarding examples: made-up runner rows, a Discord post and a Betfair ladder. */
+.ex-grid { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); }
+.ex-card { display: grid; gap: 8px; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-line); background: var(--color-panel); }
+.ex-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; }
+.ex-tab { font-weight: 700; font-size: 1rem; text-align: center; color: var(--color-ink-secondary); }
+.ex-name { font-weight: 600; color: var(--color-ink); line-height: 1.2; }
+.ex-prices { display: grid; grid-template-columns: 66px 66px; gap: 4px 5px; }
+.ex-prices .pick-price { padding: 2px 4px; }
+.ex-prices .pick-price .label { font-size: 0.5rem; }
+.ex-prices .pick-price .value { font-size: 0.86rem; margin-top: 0; }
+.ex-strip {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 4px;
+  padding: 1px 4px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--color-line);
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+.ex-strip .label { font-size: 0.5rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--color-ink-soft); }
+.ex-strip.is-back { background: var(--color-blue); border-color: var(--color-blue); color: #fff; }
+.ex-strip.is-lay { background: var(--color-red); border-color: var(--color-red); color: #fff; }
+.ex-strip.is-back .label, .ex-strip.is-lay .label { color: rgba(255, 255, 255, 0.8); }
+.ex-note { font-size: 0.78rem; color: var(--color-ink-secondary); border-top: 1px solid var(--color-line-soft); padding-top: 6px; }
+
+.ex-discord { display: grid; gap: 4px; max-width: 420px; padding: 12px 14px; border-radius: var(--radius-md); background: #313338; color: #dbdee1; font-size: 0.85rem; }
+.ex-discord-head { display: flex; align-items: center; gap: 8px; color: #f2f3f5; }
+.ex-discord-avatar { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 999px; background: var(--color-lime); color: var(--color-ink); font-weight: 800; font-size: 0.7rem; }
+.ex-discord-time { font-size: 0.68rem; color: #949ba4; }
+.ex-discord-link { font-weight: 700; color: #00a8fc; }
+
+.ex-ladder { display: grid; gap: 6px; max-width: 420px; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-line); background: var(--color-panel); }
+.ex-ladder-row { display: grid; grid-template-columns: minmax(0, 1fr) 72px 72px; gap: 4px; align-items: center; }
+.ex-ladder-row.is-head { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.08em; color: var(--color-ink-soft); }
+.ex-ladder-row.is-head span:nth-child(n+2) { text-align: center; }
+.ex-back, .ex-lay { display: grid; justify-items: center; padding: 4px; border-radius: 4px; font-weight: 700; color: var(--color-ink); }
+.ex-back { background: #a6d8ff; }
+.ex-lay { background: #fac9d1; }
+.ex-lay.is-pick { outline: 2px solid var(--color-red); outline-offset: 1px; }
+.ex-back small, .ex-lay small { font-size: 0.6rem; font-weight: 500; color: var(--color-ink-secondary); }
+.ex-ladder-note { font-size: 0.78rem; color: var(--color-ink-secondary); }

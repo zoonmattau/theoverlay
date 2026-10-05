@@ -323,12 +323,35 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     if (call && !x.scratched && !x.signal) x.signal = call.side;
   }
   // BetWatch is the word on every placing after a race: its result goes over whatever the feed sent.
+  let book: Awaited<ReturnType<typeof readPriceBook>> | undefined;
   if (storeConfigured() && usingLiveData()) {
     try {
-      const fixed = applyBookResults(meetings, await readPriceBook(date));
+      book = await readPriceBook(date);
+      const fixed = applyBookResults(meetings, book);
       if (fixed.length) console.log("[card] placings from BetWatch", fixed.join(", "));
     } catch (err) {
       console.error("[card] BetWatch placings failed", err);
+    }
+  }
+  // A runner live on the last card and scratched on this one is a late
+  // scratching: its price when it came out (BetWatch keeps the last one it
+  // saw, the card's last price otherwise) and the time set the deductions on
+  // calls made before it. One already out when the card first saw it is not.
+  const seenAt = new Date().toISOString();
+  for (const m of meetings) for (const r of m.races) for (const x of r.runners) {
+    if (!x.scratched) continue;
+    const was = before.get(r.raceId)?.runners.find((y) => y.tabNumber === x.tabNumber);
+    if (was?.scratchPrice) {
+      x.scratchPrice = was.scratchPrice;
+      x.scratchedAt = was.scratchedAt;
+      continue;
+    }
+    if (!was || was.scratched) continue;
+    const last = book?.races[r.raceId]?.runners?.[String(x.tabNumber)]?.best;
+    const at = last && last > 1.01 ? last : was.marketPrice;
+    if (at) {
+      x.scratchPrice = at;
+      x.scratchedAt = seenAt;
     }
   }
   // Any race newly called off is written down for every build after this one.

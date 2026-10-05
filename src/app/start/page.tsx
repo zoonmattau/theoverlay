@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
+import { Section } from "@/components/Section";
 import { BRAND_SOCIAL } from "@/lib/social";
 
 export const metadata: Metadata = {
@@ -51,7 +52,13 @@ export default function Page() {
             <li><b>Back at $7.90</b> means take $7.90 or bigger. Shorter than that, leave it.</li>
             <li><b>Lay at $4.50</b> means lay at $4.50 or shorter. Longer than that, leave it.</li>
           </ul>
-          <P>A price box turns blue or red only when the price on offer right now is good enough. Plain means the price has moved past the line, so wait or skip.</P>
+          <P>A price box turns blue or red only when the price on offer right now is good enough. Plain means the price has moved past the line, so wait or skip. Here is what you might run into:</P>
+          <div className="ex-grid">
+            <Example tab={3} horse="Sizzling Sue" note="Bet. $8.00 beats the line of $7.90, so take it." live={{ label: "Bet", price: "$8.00", tone: "back" }} rated="$6.80" strip={{ label: "Back at", price: "$7.90", tone: "back" }} />
+            <Example tab={6} horse="Tuesday Pie" note="Still a bet, but $7.50 is under the line. Leave it, or wait for a drift." live={{ label: "Bet", price: "$7.50", tone: "back" }} rated="$6.80" strip={{ label: "Back at", price: "$7.90" }} />
+            <Example tab={1} horse="Gravy Train" note="Lay. Betfair's lay is $4.20, under the line of $4.50. Lay it." live={{ label: "Lay", price: "$3.90", tone: "lay" }} rated="$6.20" strip={{ label: "Lay at", price: "$4.50", tone: "lay" }} />
+            <Example tab={9} horse="Not Today Mate" note="No call. The market has it about right, so do nothing." live={{ label: "Live", price: "$12.00" }} rated="$11.50" />
+          </div>
           <Links links={[{ label: "Today's tips", href: "/tips" }, { label: "Today's board", href: "/" }]} />
         </Step>
 
@@ -61,6 +68,11 @@ export default function Page() {
             <li><b>11am</b> the bets go out by email and in Discord.</li>
             <li><b>30 minutes before each jump</b> calls lock, and each lay is posted in Discord with its lay at price.</li>
           </ul>
+          <div className="ex-discord" aria-label="A lay as it reads in Discord">
+            <div className="ex-discord-head"><span className="ex-discord-avatar">O</span><b>The Overlay</b><span className="ex-discord-time">Today at 2:00 PM</span></div>
+            <div className="ex-discord-link">Randwick R6 2:30pm, LAY 1. Gravy Train</div>
+            <div>🟥 Lay at $4.50 or under</div>
+          </div>
           <P>Calls can change with the market until they lock. Once a horse is called it stays a call for the day.</P>
           <Links links={[{ label: "Join the Discord", href: BRAND_SOCIAL.discord }, { label: "Link Discord to your account", href: "/account" }]} />
         </Step>
@@ -71,7 +83,6 @@ export default function Page() {
             <li>Check the price on offer is at or above the back at price.</li>
             <li>Back it for your unit stake. A Way Overlay is a tenth of a unit.</li>
           </ol>
-          <P>Shop around. Best fixed odds, the price at the jump, SP and Betfair SP all count toward our record, and we settle a bet at the best of them, so you should take the best you can find too.</P>
         </Step>
 
         <Step id="lay">
@@ -88,6 +99,11 @@ export default function Page() {
             <li>If it is at or under our lay at price, tap it. If it is longer, wait, or put in your own lay at our price and let a backer take it.</li>
             <li>Enter your unit as the stake. Betfair shows the liability before you confirm.</li>
           </ol>
+          <div className="ex-ladder" aria-label="A Betfair price ladder">
+            <div className="ex-ladder-row is-head"><span>Gravy Train</span><span>Back</span><span>Lay</span></div>
+            <div className="ex-ladder-row"><span className="text-ink-soft">Best price</span><span className="ex-back">4.10<small>$212</small></span><span className="ex-lay is-pick">4.20<small>$186</small></span></div>
+            <p className="ex-ladder-note">Tap the pink 4.20. It is under our $4.50, so it qualifies.</p>
+          </div>
           <div className="start-example">
             <div className="start-example-title">Example</div>
             <p>Lay at $4.50 or under. Betfair&apos;s lay is $4.20, so it qualifies. Stake $10.</p>
@@ -109,6 +125,8 @@ export default function Page() {
             <li>A lay that holds is plus one unit. A lay that loses is minus the price less one.</li>
             <li>An abandoned race is void. A scratched horse is no bet.</li>
           </ul>
+          <h3 className="start-h3">Why results don&apos;t take off commission</h3>
+          <P>Betfair charges commission on your net winnings in each market, not on each bet, and the rate is different for every member: it depends on the race, your Betfair account and any discount you get. There is no one number we could take off that would be right for you, so lays are recorded before commission, the same way bets are recorded at the price with no fees. Take your own rate off a winning lay when you track your results.</P>
           <P>Judge it over months, not days. A single day can swing ten units either way.</P>
           <Links links={[{ label: "Results", href: "/results" }, { label: "Questions", href: "/faq" }]} />
         </Step>
@@ -131,14 +149,48 @@ export default function Page() {
 
 function Step({ id, children }: { id: string; children: React.ReactNode }) {
   const s = STEPS.find((x) => x.id === id)!;
+  // The bar folds the step away like every section on the site; the wrapper keeps the jump links' anchor.
   return (
-    <section id={id} className="section scroll-mt-24">
-      <div className="section-bar">
-        <span className="section-letter">{s.letter}</span>
-        <h2>{s.title}</h2>
+    <div id={id} className="scroll-mt-24">
+      <Section id={`start-${id}`} letter={s.letter} title={s.title}>
+        <div className="section-body space-y-3 text-sm text-ink-secondary leading-relaxed">{children}</div>
+      </Section>
+    </div>
+  );
+}
+
+/** A made-up runner row as the race page draws it on a phone, and what to do about it. */
+function Example({ tab, horse, note, live, rated, strip }: {
+  tab: number;
+  horse: string;
+  note: string;
+  live: { label: string; price: string; tone?: "back" | "lay" };
+  rated: string;
+  strip?: { label: string; price: string; tone?: "back" | "lay" };
+}) {
+  return (
+    <figure className="ex-card">
+      <div className="ex-row">
+        <span className="ex-tab">{tab}</span>
+        <span className="ex-name">{horse}</span>
+        <span className="ex-prices">
+          <span className={`pick-price ${live.tone ? `is-${live.tone}` : ""}`}>
+            <span className="label">{live.label}</span>
+            <span className="value nums">{live.price}</span>
+          </span>
+          <span className="pick-price">
+            <span className="label">Rated</span>
+            <span className="value nums">{rated}</span>
+          </span>
+          {strip && (
+            <span className={`ex-strip ${strip.tone ? `is-${strip.tone}` : ""}`}>
+              <span className="label">{strip.label}</span> <span className="nums">{strip.price}</span>
+            </span>
+          )}
+        </span>
       </div>
-      <div className="section-body space-y-3 text-sm text-ink-secondary leading-relaxed">{children}</div>
-    </section>
+      <figcaption className="ex-note">{note}</figcaption>
+    </figure>
   );
 }
 
