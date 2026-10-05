@@ -9,7 +9,7 @@ import { type Area, activityReport, AREA_LABEL } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { moneyReport } from "@/lib/money";
-import { Clicks } from "./Clicks";
+import { BookieClicks, PlanClicks } from "./Clicks";
 
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
 
@@ -71,102 +71,111 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
         <div className="card text-sm text-ink-soft">Nothing recorded yet. Views start counting from the next deploy; give it a day.</div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="card">
-              <h2 className="font-display font-extrabold mb-3">Where they go</h2>
-              <table className="data-table w-full text-sm">
-                <thead><tr><th>Area</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
-                <tbody>
-                  {r.byArea.map((a) => (
-                    <tr key={a.area} className={cut.area === a.area ? "bg-lime-soft" : ""}>
-                      <td>{AREA_LABEL[a.area] ?? a.area}</td>
-                      <td className="text-right nums">{a.views}</td>
-                      <td className="text-right nums"><Link href={`/admin/activity?days=${days}&area=${a.area}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{a.people}</Link></td>
-                      <td className="w-44"><Bar n={a.views} max={maxArea} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-            <div className="card">
-              <h2 className="font-display font-extrabold mb-3">By day</h2>
-              <table className="data-table w-full text-sm">
-                <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People who landed from an ad that day, returning visitors too, as the Money tab counts them">From ads</th><th></th></tr></thead>
-                <tbody>
-                  {r.byDay.map((d) => (
-                    <tr key={d.day} className={cut.day === d.day ? "bg-lime-soft" : ""}>
-                      <td>{dayLabel(d.day)}</td>
-                      <td className="text-right nums">{d.views}</td>
-                      <td className="text-right nums"><Link href={`/admin/activity?days=${days}&day=${d.day}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{d.people}</Link></td>
-                      <td className={`text-right nums ${d.ads ? "font-semibold" : "text-ink-soft"}`}>{d.ads || "—"}</td>
-                      <td className="w-44"><Bar n={d.views} max={maxDay} /></td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 mt-4">
-            <div className="card">
-              <h2 className="font-display font-extrabold mb-3">Races they open</h2>
-              <table className="data-table w-full text-sm">
-                <thead><tr><th>Race</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
-                <tbody>
-                  {r.topRaces.map((x) => (
-                    <tr key={x.key}>
-                      <td><Link href={`/racing/${x.date}/${x.meetingId}/${x.raceId}`} className="underline">{raceName(x.meetingId, x.raceId)}</Link> <span className="text-ink-soft text-xs">{x.date}</span></td>
-                      <td className="text-right nums">{x.views}</td>
-                      <td className="text-right nums">{x.people}</td>
-                    </tr>
-                  ))}
-                  {r.topRaces.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No race page opened.</td></tr>}
-                </tbody>
-              </table>
-            </div>
-            <div className="card">
-              <h2 className="font-display font-extrabold mb-3">Tipsters they look at</h2>
-              <table className="data-table w-full text-sm">
-                <thead><tr><th>Tipster</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
-                <tbody>
-                  {r.topTipsters.map((x) => (
-                    <tr key={x.code}><td>{x.code}</td><td className="text-right nums">{x.views}</td><td className="text-right nums">{x.people}</td></tr>
-                  ))}
-                  {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
-                </tbody>
-              </table>
-              <h2 id="follows" className="font-display font-extrabold mt-6 mb-3 scroll-mt-20">Followers by tipster</h2>
-              {r.follows.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
-              {Object.entries(
-                r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
-                  (acc[f.tipster] ??= []).push(f);
-                  return acc;
-                }, {}),
-              )
-                .sort((a, b) => b[1].length - a[1].length)
-                .map(([tipster, list]) => (
-                  <details key={tipster} className="group border-b border-line py-2">
-                    <summary className="cursor-pointer flex items-baseline justify-between gap-3 text-sm">
-                      <span className="font-semibold"><span className="inline-block w-4 text-ink-soft group-open:rotate-90 transition-transform">›</span> {tipster}{list[0]?.tipsterCode && <Link href={`/t/${list[0].tipsterCode}`} className="ml-2 text-xs font-normal underline text-ink-soft">their page</Link>}</span>
-                      <span className="nums">{list.length} {list.length === 1 ? "follower" : "followers"}</span>
-                    </summary>
-                    <ul className="mt-2 ml-4 space-y-1 text-sm">
-                      {list.map((f, i) => (
-                        <li key={i} className="flex justify-between gap-3"><span>{f.followerId ? <Link href={`/admin/${f.followerId}`} className="underline">{f.follower}</Link> : f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
-                      ))}
-                    </ul>
-                  </details>
-                ))}
+          {/*
+            Two stacks, each card at its own height: side-by-side pairs stretched the short card to
+            match the tall one (6 Oct 2026). On a phone, the left stack then the right.
+          */}
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
+            <div className="flex flex-col gap-4 min-w-0">
+              <div className="card">
+                <h2 className="font-display font-extrabold mb-3">Where they go</h2>
+                <table className="data-table w-full text-sm">
+                  <thead><tr><th>Area</th><th className="text-right">Views</th><th className="text-right">People</th><th></th></tr></thead>
+                  <tbody>
+                    {r.byArea.map((a) => (
+                      <tr key={a.area} className={cut.area === a.area ? "bg-lime-soft" : ""}>
+                        <td>{AREA_LABEL[a.area] ?? a.area}</td>
+                        <td className="text-right nums">{a.views}</td>
+                        <td className="text-right nums"><Link href={`/admin/activity?days=${days}&area=${a.area}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{a.people}</Link></td>
+                        <td className="w-44"><Bar n={a.views} max={maxArea} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="card">
+                <h2 className="font-display font-extrabold mb-3">Races they open</h2>
+                <table className="data-table w-full text-sm">
+                  <thead><tr><th>Race</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
+                  <tbody>
+                    {r.topRaces.map((x) => (
+                      <tr key={x.key}>
+                        <td><Link href={`/racing/${x.date}/${x.meetingId}/${x.raceId}`} className="underline">{raceName(x.meetingId, x.raceId)}</Link> <span className="text-ink-soft text-xs">{x.date}</span></td>
+                        <td className="text-right nums">{x.views}</td>
+                        <td className="text-right nums">{x.people}</td>
+                      </tr>
+                    ))}
+                    {r.topRaces.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No race page opened.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
               {r.sources.length > 0 && (
-                <>
-                  <h2 className="font-display font-extrabold mt-6 mb-1">Where they came from</h2>
+                <div className="card">
+                  <h2 className="font-display font-extrabold mb-1">Where they came from</h2>
                   <p className="text-xs text-ink-soft mb-3">People by their first visit in the window. Ads are counted from 26 Sep 2026, when the tracker began keeping the campaign.</p>
                   <table className="data-table w-full text-sm">
                     <thead><tr><th>Source</th><th className="text-right">People</th></tr></thead>
                     <tbody>{r.sources.map((x) => <tr key={x.source}><td className={x.source.endsWith(" ads") ? "font-semibold" : ""}>{x.source}</td><td className="text-right nums">{x.people}</td></tr>)}</tbody>
                   </table>
-                </>
+                </div>
               )}
+              <PlanClicks r={money} />
+            </div>
+            <div className="flex flex-col gap-4 min-w-0">
+              <div className="card">
+                <h2 className="font-display font-extrabold mb-3">By day</h2>
+                <table className="data-table w-full text-sm">
+                  <thead><tr><th>Day</th><th className="text-right">Views</th><th className="text-right">People</th><th className="text-right" title="People who landed from an ad that day, returning visitors too, as the Money tab counts them">From ads</th><th></th></tr></thead>
+                  <tbody>
+                    {r.byDay.map((d) => (
+                      <tr key={d.day} className={cut.day === d.day ? "bg-lime-soft" : ""}>
+                        <td>{dayLabel(d.day)}</td>
+                        <td className="text-right nums">{d.views}</td>
+                        <td className="text-right nums"><Link href={`/admin/activity?days=${days}&day=${d.day}`} className="underline decoration-dotted underline-offset-2" title="Who they were">{d.people}</Link></td>
+                        <td className={`text-right nums ${d.ads ? "font-semibold" : "text-ink-soft"}`}>{d.ads || "—"}</td>
+                        <td className="w-44"><Bar n={d.views} max={maxDay} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="card">
+                <h2 className="font-display font-extrabold mb-3">Tipsters they look at</h2>
+                <table className="data-table w-full text-sm">
+                  <thead><tr><th>Tipster</th><th className="text-right">Views</th><th className="text-right">People</th></tr></thead>
+                  <tbody>
+                    {r.topTipsters.map((x) => (
+                      <tr key={x.code}><td>{x.code}</td><td className="text-right nums">{x.views}</td><td className="text-right nums">{x.people}</td></tr>
+                    ))}
+                    {r.topTipsters.length === 0 && <tr><td colSpan={3} className="text-ink-soft">No tipster page opened.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
+              <div className="card">
+                <h2 id="follows" className="font-display font-extrabold mb-3 scroll-mt-20">Followers by tipster</h2>
+                {r.follows.length === 0 && <p className="text-sm text-ink-soft">Nobody follows a tipster yet.</p>}
+                {Object.entries(
+                  r.follows.reduce<Record<string, typeof r.follows>>((acc, f) => {
+                    (acc[f.tipster] ??= []).push(f);
+                    return acc;
+                  }, {}),
+                )
+                  .sort((a, b) => b[1].length - a[1].length)
+                  .map(([tipster, list]) => (
+                    <details key={tipster} className="group border-b border-line py-2">
+                      <summary className="cursor-pointer flex items-baseline justify-between gap-3 text-sm">
+                        <span className="font-semibold"><span className="inline-block w-4 text-ink-soft group-open:rotate-90 transition-transform">›</span> {tipster}{list[0]?.tipsterCode && <Link href={`/t/${list[0].tipsterCode}`} className="ml-2 text-xs font-normal underline text-ink-soft">their page</Link>}</span>
+                        <span className="nums">{list.length} {list.length === 1 ? "follower" : "followers"}</span>
+                      </summary>
+                      <ul className="mt-2 ml-4 space-y-1 text-sm">
+                        {list.map((f, i) => (
+                          <li key={i} className="flex justify-between gap-3"><span>{f.followerId ? <Link href={`/admin/${f.followerId}`} className="underline">{f.follower}</Link> : f.follower}</span><span className="text-ink-soft text-xs">{when(f.since)}</span></li>
+                        ))}
+                      </ul>
+                    </details>
+                  ))}
+              </div>
+              <BookieClicks r={money} />
             </div>
           </div>
 
@@ -195,7 +204,6 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
           </div>
         </>
       )}
-      <Clicks r={money} />
     </>
   );
 }
