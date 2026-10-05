@@ -65,8 +65,6 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <Tile n={t.cancelled} label="cancelled" />
       </div>
 
-      <Growth g={r.growth} />
-
       {/* Side by side on a wide screen, stacked on a phone. */}
       <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <Totals t={totals} />
@@ -74,12 +72,11 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       </div>
 
       {/* Side by side on a wide screen, stacked on a phone: Coming up on the left, prices and new accounts down the right, both ending level. */}
-      <div className="grid gap-6 lg:grid-cols-2 mb-6">
+      <div className="grid gap-6 lg:grid-cols-2 mb-6 items-start">
         <ComingUp {...upcoming} />
 
       <div className="flex flex-col gap-6 min-w-0">
-      <div className="card min-w-0">
-        <h2 className="font-display font-extrabold">Plan prices</h2>
+      <Fold title="Plan prices" className="min-w-0">
         <p className="mt-1 text-xs text-ink-soft mb-3">What Stripe charges now, per bill. The week figure is the bill spread over the weeks it covers.</p>
         {/* Half width on a wide screen: a column that does not fit scrolls inside the card. */}
         <div className="overflow-x-auto">
@@ -99,24 +96,24 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           <span className="font-semibold">Day passes</span> <span className="text-ink-soft">any one date:</span>{" "}
           {prices.passes.map((b, i) => <span key={b.qty} className="whitespace-nowrap">{i ? " · " : ""}{b.qty} for <Price c={b.cell} /></span>)}
         </p>
-      </div>
+      </Fold>
 
       {/* How far the window's new accounts got, each step's share of the one before; it takes up the rest of the column. */}
-      <div className="card flex-1 flex flex-col">
-        <h2 className="font-display font-extrabold">New accounts</h2>
+      <Fold title="New accounts" className="flex-1 flex flex-col">
         <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got.</p>
         <div className="flex-1 flex flex-col justify-center">
           <Funnel {...r.signups} />
         </div>
-      </div>
+      </Fold>
       </div>
       </div>
 
-      <div className="section mb-6">
-        <div className="section-bar">
+      <details className="section group/fold mb-6">
+        <summary className="section-bar cursor-pointer list-none [&::-webkit-details-marker]:hidden">
           <span className="section-letter">F</span>
           <h2>Funnel by plan</h2>
-        </div>
+          <span className="ml-auto inline-block text-sm transition-transform group-open/fold:rotate-90" aria-hidden>▸</span>
+        </summary>
         <div className="overflow-x-auto">
           <table className="data-table stack-sm text-sm">
             <thead>
@@ -144,10 +141,9 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <p className="px-4 py-3 text-xs text-ink-soft">
           Clicks are presses on a plan button. Checkouts are Stripe sessions opened. Trials are subscriptions that started, or passes bought. Paid is members who made a payment in the window. Rates are between neighbouring steps.
         </p>
-      </div>
+      </details>
 
-      <div className="card mb-6">
-        <h2 className="font-display font-extrabold mb-3">When</h2>
+      <Fold title="When" className="mb-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {r.byDay.map((s) => <DayChart key={s.key} s={s} />)}
         </div>
@@ -175,20 +171,20 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
             </tbody>
           </table>
         </details>
-      </div>
+      </Fold>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-6">
-        <div className="card">
-          <h2 className="font-display font-extrabold">Trials</h2>
+      <Growth g={r.growth} />
+
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3 mb-6 items-start">
+        <Fold title="Trials">
           <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
           <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
           <div className="panel-row"><span>Converted to paid</span><span className="nums font-bold">{r.trials.converted}</span></div>
           <div className="panel-row"><span>Still on trial</span><span className="nums font-bold">{r.trials.open}</span></div>
           <div className="panel-row"><span>Ended without paying</span><span className="nums font-bold">{r.trials.ended}</span></div>
           <div className="panel-row"><span>Conversion so far</span><span className="nums font-bold">{r.trials.started - r.trials.open ? rate(Math.round((r.trials.converted / (r.trials.started - r.trials.open)) * 1000) / 10) : "—"}</span></div>
-        </div>
-        <div className="card">
-          <h2 className="font-display font-extrabold">Sign-ups by source</h2>
+        </Fold>
+        <Fold title="Sign-ups by source">
           <p className="text-xs text-ink-soft mb-3">Where the window&apos;s new accounts came from, and what they have paid.</p>
           {r.sources.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
           {r.sources.map((s) => (
@@ -197,9 +193,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
               <span className="nums text-ink-secondary">{s.signups} {s.signups === 1 ? "sign-up" : "sign-ups"}, {s.confirmed} confirmed, {s.paying} paying, {money(s.revenue_cents)}</span>
             </div>
           ))}
-        </div>
-        <div className="card">
-          <h2 className="font-display font-extrabold">Bookie clicks</h2>
+        </Fold>
+        <Fold title="Bookie clicks">
           <p className="text-xs text-ink-soft mb-3">Prices followed out to a bookie.</p>
           {r.bookies.length === 0 && <p className="text-sm text-ink-soft">None in the window.</p>}
           {r.bookies.map((b) => (
@@ -208,13 +203,29 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
               <span className="nums font-bold">{b.clicks}</span>
             </div>
           ))}
-        </div>
+        </Fold>
       </div>
     </>
   );
 }
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
+
+/** A section that folds to its heading, closed until opened. The named group keeps its arrow apart from folds inside it. */
+function Fold({ title, className = "", summary, children }: { title: string; className?: string; summary?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <details className={`card group/fold min-w-0 ${className}`}>
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
+        <h2 className="flex items-center gap-2 font-display font-extrabold">
+          <span className="inline-block text-sm transition-transform group-open/fold:rotate-90" aria-hidden>▸</span>
+          {title}
+        </h2>
+        {summary}
+      </summary>
+      <div className="mt-2">{children}</div>
+    </details>
+  );
+}
 
 /** This week against last for one count, with the change. */
 function Week({ label, w }: { label: string; w: [number, number] }) {
@@ -236,23 +247,17 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
 /** Are we growing: new accounts and trial sign-ups a day, each with this week against last. */
 function Growth({ g }: { g: MoneyReport["growth"] }) {
   return (
-    <details className="card group mb-6">
-      {/* Folded, it is the heading and this week against last; the daily charts open underneath. */}
-      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden">
-        <h2 className="flex items-center gap-2 font-display font-extrabold">
-          <span className="inline-block text-sm transition-transform group-open:rotate-90" aria-hidden>▸</span>
-          Growth
-        </h2>
-        <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
-          <Week label="Accounts" w={g.week.accounts} />
-          <Week label="Trials" w={g.week.trials} />
-        </div>
-      </summary>
+    <Fold title="Growth" className="mb-6" summary={
+      <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
+        <Week label="Accounts" w={g.week.accounts} />
+        <Week label="Trials" w={g.week.trials} />
+      </div>
+    }>
       <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
         <DayChart s={g.accounts} />
         <DayChart s={g.trials} />
       </div>
-    </details>
+    </Fold>
   );
 }
 
@@ -348,8 +353,7 @@ function Totals({ t }: { t: Invested }) {
   const whole = (v: number) => `$${Math.round(v).toLocaleString("en-AU")}`;
   const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
   return (
-    <div className="card min-w-0">
-      <h2 className="font-display font-extrabold">Invested and revenue</h2>
+    <Fold title="Invested and revenue" className="min-w-0">
       <p className="mt-1 text-xs text-ink-soft">Since {dayLabel(SINCE, { day: "numeric", month: "short" })}. Revenue after Stripe&apos;s fees; invested is Meta plus the costs below.</p>
       {t.adsMissing && <p className="mt-1 text-xs text-amber">{t.adsMissing}</p>}
       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -398,7 +402,7 @@ function Totals({ t }: { t: Invested }) {
           </table>
         )}
       </details>
-    </div>
+    </Fold>
   );
 }
 
@@ -412,8 +416,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
   const cost = (v?: number) => (v === undefined ? "–" : `$${v.toFixed(v >= 100 ? 0 : 2)}`);
   const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.trials || d.paid);
   return (
-    <div className="card min-w-0">
-      <h2 className="font-display font-extrabold">Meta ads</h2>
+    <Fold title="Meta ads" className="min-w-0">
       <p className="mt-1 text-xs text-ink-soft">Last {n} days, against accounts from our own ad-link tags. A boost with no link counts as Instagram.</p>
       {r.missing && <p className="mt-1 text-xs text-amber">{r.missing}</p>}
       <div className="mt-3 grid grid-cols-4 gap-2">
@@ -484,7 +487,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
           </table>
         </details>
       )}
-    </div>
+    </Fold>
   );
 }
 
@@ -552,8 +555,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
   const top = Math.max(1, ...days.map((d) => d.trial + d.paying + d.retry));
 
   return (
-    <div className="card min-w-0 flex flex-col">
-      <h2 className="font-display font-extrabold">Coming up, next 14 days</h2>
+    <Fold title="Coming up, next 14 days" className="min-w-0 flex flex-col">
       <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill. Plans booked to cancel are left out.</p>
       {error && <p className="mt-3 text-sm text-red">Stripe did not answer: {error}</p>}
 
@@ -642,6 +644,6 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
           )}
         </>
       )}
-    </div>
+    </Fold>
   );
 }
