@@ -2,6 +2,7 @@ import { Badge } from "./Badge";
 import { Section } from "./Section";
 import { MAP_LABEL, TEMPO_LABEL } from "./Ratings";
 import { percent, price } from "@/lib/format";
+import { limitLine } from "@/lib/model/publish";
 import type { MapPosition, PublishedRace, PublishedRunner } from "@/lib/model/types";
 
 const PRESSURE_TIP =
@@ -111,7 +112,7 @@ export function PaceGrid({ race, rail, locked }: { race: PublishedRace; rail?: s
                           key={r.tabNumber}
                           className={`map-chip tip ${call} ${unsure ? "is-unsure" : ""}`}
                           style={{ "--lane": lane, transform: `translateX(${shift}%)` } as React.CSSProperties}
-                          data-tip={`${r.tabNumber}. ${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${unsure ? ", on little form so it could be anywhere" : ""}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.`}
+                          data-tip={`${r.tabNumber}. ${r.horseName}, barrier ${r.barrier}. Settles ${MAP_LABEL[r.ratings.map].toLowerCase()}${unsure ? ", on little form so it could be anywhere" : ""}${locked ? "" : `, rated ${price(r.ratedPrice)} against ${price(r.marketPrice)}`}.${!locked && limitLine(r) ? ` ${limitLine(r)}.` : ""}`}
                         >
                           <span className="map-cloth">{r.tabNumber}</span>
                           <span className="map-text">

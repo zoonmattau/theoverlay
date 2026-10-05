@@ -70,8 +70,9 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
     <span
       ref={host}
       className={`market-hover ${className}`}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      // Hover is for a mouse: a tap fires its own enter first, which opened the panel only for the click to shut it again.
+      onPointerEnter={(e) => e.pointerType === "mouse" && setOpen(true)}
+      onPointerLeave={(e) => e.pointerType === "mouse" && setOpen(false)}
       onClick={(e) => {
         // A tap opens the detail without following the card's link or toggling the row.
         e.preventDefault();
@@ -107,7 +108,7 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
           ) : null}
           {r.layPrice ? (
             <span className="market-row">
-              <span className="market-k">Lay at</span>
+              <span className="market-k">Betfair lay</span>
               <span className="market-v nums">{price(r.layPrice)}</span>
             </span>
           ) : null}
