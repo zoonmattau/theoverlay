@@ -44,7 +44,9 @@ function describe(e: Event, member?: Member): Line | null {
         const reason = str(m.cancelReason) === "cancellation_requested" ? "" : str(m.cancelReason);
         return { tone: "lay", key: `cancel|${ends}`, text: `cancelled ${plan(e.plan)}, on until ${ends ? short(ends) : "the period ends"}${reason ? ` (${reason.replace(/_/g, " ")})` : ""}` };
       }
-      if (m.status === "trialing") {
+      // A trial begins when the subscription is made on one. A later update while Stripe says "trialing" is not
+      // a new trial: a bill pushed back on a paying member read as one (Josh Sear's free week, 6 Oct 2026).
+      if (m.status === "trialing" && (m.event === undefined || m.event === "customer.subscription.created")) {
         const term = TERM[str(m.term) || (member?.billing_term ?? "")];
         return { tone: "prime", text: `started a free trial of ${plan(e.plan)}${term ? `, ${term}` : ""}` };
       }
@@ -69,6 +71,7 @@ function describe(e: Event, member?: Member): Line | null {
     case "signup_chase":
       return m.emailed === false ? { tone: "lay", text: "was not sent an email that should have gone: it failed" } : null;
     case "admin":
+      if (m.action === "free_week") return { tone: "prime", text: `given a free week, next bill moved to ${m.nextBill ? short(str(m.nextBill)) : "a week later"}` };
       return str(m.action).endsWith("failed") ? { tone: "lay", text: `${str(m.action).replace(/_failed$/, "").replace(/_/g, " ")} failed: ${str(m.error)}` } : null;
     default:
       return null;
