@@ -105,7 +105,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="page py-8 text-xs text-ink-soft space-y-4">
             <div className="flex flex-wrap gap-x-6 gap-y-2">
               <a href="/results" className="hover:text-ink-secondary" target="_blank" rel="noopener">Results</a>
-              <Link href="/start" className="hover:text-ink-secondary">How to use it</Link>
+              <Link href="/start" className="hover:text-ink-secondary">Getting started</Link>
               <Link href="/method" className="hover:text-ink-secondary">How it works</Link>
               <Link href="/faq" className="hover:text-ink-secondary">Questions</Link>
               <Link href="/tipsters" className="hover:text-ink-secondary">Tipsters</Link>

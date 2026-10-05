@@ -5,7 +5,7 @@ import { Section } from "@/components/Section";
 import { BRAND_SOCIAL } from "@/lib/social";
 
 export const metadata: Metadata = {
-  title: "How to use The Overlay",
+  title: "Getting started",
   description: "How to read a call, when the calls come, how to place a bet and how to lay a horse on the exchange.",
   alternates: { canonical: "/start" },
 };
@@ -27,7 +27,7 @@ export default function Page() {
   return (
     <div className="page max-w-3xl">
       <section className="py-8">
-        <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight">How to use The Overlay</h1>
+        <h1 className="font-display text-4xl sm:text-5xl font-extrabold tracking-tight">Getting started</h1>
         <p className="mt-2 text-ink-secondary">Five minutes to read, then you know what every colour and price on the site means and how to act on it.</p>
         <nav className="mt-5 flex flex-wrap gap-2" aria-label="Jump to">
           {STEPS.map((s) => (
