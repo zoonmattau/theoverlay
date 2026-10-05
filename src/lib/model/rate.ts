@@ -89,6 +89,13 @@ const LAY_OUTLIER_WEIGHT = Number(process.env.OVERLAY_LAY_OUTLIER_WEIGHT ?? 0.8)
 const SHORT_WEIGHT = Number(process.env.OVERLAY_SHORT_WEIGHT ?? 0.8);
 /** Sharpening on the de-vigged market for the favourite-longshot bias, 1 for none. Set with scripts/sweep-short.ts. */
 const FL_POWER = Number(process.env.OVERLAY_FL_POWER ?? 1);
+/**
+ * Spreads the rated prices apart, 1 for none: each chance is raised to this
+ * power and the race brought back to 100%. Over 25 days to 5 Oct 2026 the
+ * rated prices were bunched: horses rated under $2 won 74% against 60% said,
+ * those rated $8 to $16 won less than said. Under test, off by default.
+ */
+const SPREAD = Number(process.env.OVERLAY_SPREAD ?? 1);
 const SHORT_FROM = 0.25;
 const SHORT_TO = 0.5;
 /**
@@ -169,7 +176,7 @@ export interface RateResult {
 
 export function rateRace(
   inputs: RateInput[],
-  opts: { temperature?: number; marketWeight?: number; outlierWeight?: number; layOutlierWeight?: number; outlierScale?: number } = {},
+  opts: { temperature?: number; marketWeight?: number; outlierWeight?: number; layOutlierWeight?: number; outlierScale?: number; spread?: number } = {},
 ): RateResult {
   const temperature = opts.temperature ?? DEFAULT_TEMPERATURE;
   const marketWeight = opts.marketWeight ?? DEFAULT_MARKET_WEIGHT;
@@ -216,8 +223,10 @@ export function rateRace(
     return sigmoid(w * logit(market) + (1 - w) * logit(model));
   });
 
-  const total = blended.reduce((a, b) => a + b, 0);
-  const normalised = blended.map((p) => p / total);
+  const power = opts.spread ?? SPREAD;
+  const spread = power === 1 ? blended : blended.map((p) => Math.pow(p, power));
+  const total = spread.reduce((a, b) => a + b, 0);
+  const normalised = spread.map((p) => p / total);
   const modelTotal = modelProbs.reduce((a, b) => a + b, 0);
 
   const runners: RateOutput[] = live.map((r, i) => {

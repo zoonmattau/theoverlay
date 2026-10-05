@@ -1,4 +1,5 @@
-export type TipSource = "model" | "backtest";
+/** "shadow" is a model variant recorded alongside the live calls for testing: never published, never in the record. */
+export type TipSource = "model" | "backtest" | "shadow";
 
 /** Types shared with the Record component, no server imports. */
 

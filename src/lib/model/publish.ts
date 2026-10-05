@@ -184,6 +184,8 @@ export function publishRace(
   meeting: MeetingSummary,
   speedmap?: Speedmap,
   kept: KeptSignals = new Map(),
+  /** A model variant under test (the shadow build): the spread on the rated prices. */
+  variant: { spread?: number } = {},
 ): PublishedRace {
   let points = classPoints(race.restrictions, race.name);
   const going = goingBand(race.going);
@@ -226,7 +228,7 @@ export function publishRace(
       };
     }),
     // The fitted rating's spread is its own, so it prices at its own temperature.
-    FITTED ? { temperature: FIT_TEMPERATURE } : {},
+    { ...(FITTED ? { temperature: FIT_TEMPERATURE } : {}), ...(variant.spread ? { spread: variant.spread } : {}) },
   );
   const priceByTab = new Map(priced.runners.map((r) => [r.key, r]));
   // Once the race has jumped the market is over: bookmakers leave quotes up
@@ -724,6 +726,7 @@ export function publishMeeting(
   races: RaceSummary[],
   speedmaps: Record<string, Speedmap> = {},
   kept: KeptSignals = new Map(),
+  variant: { spread?: number } = {},
 ): PublishedMeeting {
   const first = races[0];
   return {
@@ -738,7 +741,7 @@ export function publishMeeting(
     trackCondition: first ? goingLabel(first.going, first.goingNumber) : undefined,
     railPosition: decodeEntities(meeting.railPosition ?? first?.railPosition),
     races: races
-      .map((r) => publishRace(r, meeting, speedmaps[r.raceId], kept))
+      .map((r) => publishRace(r, meeting, speedmaps[r.raceId], kept, variant))
       .sort((a, b) => a.raceNumber - b.raceNumber),
   };
 }

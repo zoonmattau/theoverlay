@@ -129,11 +129,11 @@ interface Held {
  * worked out from scratch and written only when it differs, so a rebuild,
  * a late result or a hand settlement all land the same way.
  */
-export async function recordTips(date: string, card: StoredCard): Promise<void> {
+export async function recordTips(date: string, card: StoredCard, source: TipSource = "model"): Promise<void> {
   if (!card.meetings.length) return;
   const db = supabaseAdmin();
-  const rows = rowsFor(date, card).filter((r) => !EXCLUDED_CALLS.has(`${r.race_id}:${r.tab_number}`));
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at, published_at").eq("date", date).eq("source", "model");
+  const rows = rowsFor(date, card, source).filter((r) => !EXCLUDED_CALLS.has(`${r.race_id}:${r.tab_number}`));
+  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at, published_at").eq("date", date).eq("source", source);
   if (error) {
     console.error("[tips]", error.message);
     return;
@@ -189,7 +189,7 @@ export async function recordTips(date: string, card: StoredCard): Promise<void> 
       Boolean(was.settled_at) === Boolean(target.settled_at) &&
       !prime.tag;
     if (same) continue;
-    const { error: e } = await db.from("tips").update({ ...target, ...prime }).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", "model");
+    const { error: e } = await db.from("tips").update({ ...target, ...prime }).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", source);
     if (e) console.error("[tips] update", e.message);
   }
 }
@@ -203,8 +203,8 @@ export interface RecordedCall {
 }
 
 /** The day's calls on the record, keyed raceId:tab, voids left out: a call once is a call for the day. */
-export async function callsOnRecord(date: string): Promise<Map<string, RecordedCall>> {
-  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, side, market_price, rated_price, edge, finish_position, settled_at").eq("date", date).eq("source", "model");
+export async function callsOnRecord(date: string, source: TipSource = "model"): Promise<Map<string, RecordedCall>> {
+  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, side, market_price, rated_price, edge, finish_position, settled_at").eq("date", date).eq("source", source);
   if (error) console.error("[tips]", error.message);
   const rows = (data ?? []) as { race_id: string; tab_number: number; side: Signal; market_price: number; rated_price: number; edge: number | null; finish_position: number | null; settled_at: string | null }[];
   return new Map(
@@ -329,7 +329,8 @@ async function settledRows(source?: TipSource) {
       .select("date, side, units, finish_position, source, stake, market_price")
       .not("settled_at", "is", null)
       .not("finish_position", "is", null);
-    if (source) q = q.eq("source", source);
+    // A shadow variant is a test, never the record.
+    q = source ? q.eq("source", source) : q.in("source", ["model", "backtest"]);
     const { data, error } = await q.order("id").range(from, from + 999);
     if (error) {
       console.error("[tips]", error.message);

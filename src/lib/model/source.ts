@@ -401,6 +401,7 @@ export async function buildCard(date: string, opts: { revalidate?: boolean; repr
     else await writeStoredCard(date, card, seconds, { runs: !opts.reprice });
     // New calls join the ledger at today's price; run races settle.
     await recordTips(date, card);
+    await recordShadow(date, raw, card);
     await settleCreatorTips(date, card);
     // Not allowed from inside a cache scope, so the in-cache build skips it.
     if (opts.revalidate !== false) {
@@ -696,3 +697,53 @@ const sydneyNow = () => new Date(new Date().toLocaleString("en-US", { timeZone: 
 export const sydneyHour = () => sydneyNow().getHours() + sydneyNow().getMinutes() / 60;
 
 const pad = (n: number) => String(n).padStart(2, "0");
+
+/**
+ * The spread on the rated prices under test (5 Oct 2026): 1.05 recorded
+ * alongside the live calls, 0 or 1 for none. Over the clean cache it kept
+ * the bets and halved the lays on short favourites; the shadow is how it
+ * gets checked on races it was not tuned on.
+ */
+const SHADOW_SPREAD = Number(process.env.OVERLAY_SHADOW_SPREAD ?? 1.05);
+
+/**
+ * Prices every race again with the variant and records the calls it would
+ * have made under source "shadow": never published, never in the record,
+ * settled the same way. The live card is copied and only the calls and
+ * rated prices swapped in, so prices, scratchings and results are the live
+ * ones; a race that has jumped keeps the shadow calls it had, no new ones.
+ */
+async function recordShadow(date: string, raw: { meeting: MeetingSummary; races: RaceSummary[]; speedmaps: Record<string, Speedmap> }[], card: StoredCard): Promise<void> {
+  if (!(SHADOW_SPREAD > 0) || SHADOW_SPREAD === 1 || !usingLiveData()) return;
+  try {
+    const known = await callsOnRecord(date, "shadow");
+    const kept: KeptSignals = new Map([...known].map(([k, c]) => [k, c.side]));
+    const priced = new Map(
+      raw.flatMap(({ meeting, races, speedmaps }) => publishMeeting(meeting, races, speedmaps, kept, { spread: SHADOW_SPREAD }).races.map((r) => [r.raceId, r] as const)),
+    );
+    const shadow: StoredCard = structuredClone(card);
+    shadow.selections = [];
+    for (const m of shadow.meetings) {
+      for (const r of m.races) {
+        const run = Boolean(r.result?.length) || hasJumped(r.feedStatus, r.jumpTime);
+        const s = priced.get(r.raceId);
+        for (const x of r.runners) {
+          x.prime = undefined;
+          const y = s?.runners.find((z) => z.tabNumber === x.tabNumber);
+          if (run || !y) {
+            x.signal = x.scratched ? undefined : kept.get(`${r.raceId}:${x.tabNumber}`);
+            continue;
+          }
+          x.signal = y.signal;
+          x.ratedPrice = y.ratedPrice;
+          x.ratedProbability = y.ratedProbability;
+          x.edge = y.edge;
+          x.layEdge = y.layEdge;
+        }
+      }
+    }
+    await recordTips(date, shadow, "shadow");
+  } catch (err) {
+    console.error("[shadow]", err instanceof Error ? err.message : err);
+  }
+}
