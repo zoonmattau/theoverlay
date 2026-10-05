@@ -31,14 +31,7 @@ export default function Page({ searchParams }: PageProps<"/admin/activity">) {
 }
 
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" });
-/** "caulfield-heath-20260916" and "CAUH_160926_6" read as "Caulfield Heath R6". */
-const raceName = (meetingId: string, raceId: string) => {
-  const track = meetingId.replace(/-\d{8}$/, "").replace(/-[a-z]{1,2}$/, "").split("-").map((w) => w[0]?.toUpperCase() + w.slice(1)).join(" ");
-  const n = raceId.match(/_(\d+)$/)?.[1];
-  return n ? `${track} R${n}` : `${track} ${raceId}`;
-};
 const dayLabel = (day: string) => new Date(`${day}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short" });
-const short = (day: string) => new Date(`${day}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short" });
 
 /**
  * What people do on the site, as pictures: the headline counts against the
@@ -150,14 +143,6 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
               <PlanClicks r={money} />
             </div>
             <div className="flex flex-col gap-4 min-w-0">
-              <Fold title="Races they open">
-                <BarList top={5} empty="No race page opened." items={r.topRaces.map((x) => ({
-                  key: x.key,
-                  label: <><Link href={`/racing/${x.date}/${x.meetingId}/${x.raceId}`} className="underline">{raceName(x.meetingId, x.raceId)}</Link> <span className="text-ink-soft text-xs">{short(x.date)}</span></>,
-                  value: x.views,
-                  sub: `${x.people} ${x.people === 1 ? "person" : "people"}`,
-                }))} />
-              </Fold>
               <Fold title="Tipsters they look at">
                 <BarList top={5} empty="No tipster page opened." items={r.topTipsters.map((x) => ({ key: x.code, label: x.code, value: x.views, sub: `${x.people} ${x.people === 1 ? "person" : "people"}` }))} />
               </Fold>
