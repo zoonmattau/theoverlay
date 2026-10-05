@@ -4,7 +4,7 @@ import { arrivalSource } from "@/lib/arrival";
 
 import { listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { PLANS, planById } from "@/lib/billing/plans";
+import { PLANS, planById, termById, termPrice } from "@/lib/billing/plans";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
 import type { Series } from "@/lib/reports";
 
@@ -135,7 +135,12 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   };
 
   const live = members.filter((m) => m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at && m.subscription_status === "active");
-  const mrr_cents = live.reduce((a, m) => a + (planById(m.plan ?? undefined)?.price ?? 0) * 100, 0);
+  // Each bill spread over the months it covers: a $470 yearly is $39.17 a month, not the $49 list price.
+  const mrr_cents = live.reduce((a, m) => {
+    const plan = planById(m.plan ?? undefined);
+    const term = termById(m.billing_term ?? undefined);
+    return a + (plan ? Math.round((termPrice(plan, term) / term.months) * 100) : 0);
+  }, 0);
 
   const joined = members.filter((m) => m.created_at >= since);
   const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && m.subscription_status === "active");

@@ -47,7 +47,8 @@ async function stripeByDay(): Promise<Record<string, { gross: number; fees: numb
     const day = sydneyDay(t.created * 1000);
     // Stripe's own charges (Billing and the like) come as separate stripe_fee movements, negative.
     if (t.type === "stripe_fee") {
-      (out[day] ??= { gross: 0, fees: 0 }).fees += -t.amount / 100;
+      // Its own fee (GST on the charge) comes off too: the net is what left the balance.
+      (out[day] ??= { gross: 0, fees: 0 }).fees += -t.net / 100;
       continue;
     }
     if (!["charge", "payment", "refund", "payment_refund"].includes(t.type)) continue;
