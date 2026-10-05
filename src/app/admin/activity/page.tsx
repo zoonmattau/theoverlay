@@ -3,12 +3,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { isAdmin } from "@/lib/admin";
+import { isAdmin, now } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { type Area, activityReport, AREA_LABEL } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { moneyReport } from "@/lib/money";
+import { DayChart } from "@/components/DayChart";
+import type { Series } from "@/lib/reports";
 import { Fold } from "../Fold";
 import { BookieClicks, PlanClicks } from "./Clicks";
 
@@ -49,6 +51,13 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   const [r, money] = await Promise.all([activityReport(days, cut), moneyReport(days)]);
   const maxArea = Math.max(...r.byArea.map((a) => a.views), 1);
   const maxDay = Math.max(...r.byDay.map((d) => d.views), 1);
+  // Every day in the window, oldest first, a quiet day as nought, for the charts.
+  const window = Array.from({ length: days }, (_, i) => new Date(now() - (days - 1 - i) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
+  const perDay = new Map(r.byDay.map((d) => [d.day, d]));
+  const series = (key: "views" | "people", title: string): Series => {
+    const points = window.map((date) => ({ date, value: perDay.get(date)?.[key] ?? 0 }));
+    return { key, title, format: "count", points, total: points.reduce((a, p) => a + p.value, 0) };
+  };
 
   return (
     <>
@@ -76,6 +85,13 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             Two stacks, each card at its own height: side-by-side pairs stretched the short card to
             match the tall one (6 Oct 2026). On a phone, the left stack then the right.
           */}
+          <Fold title="Page views a day" className="mb-4">
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+              <DayChart s={series("views", "Page views")} />
+              <DayChart s={series("people", "People")} />
+            </div>
+          </Fold>
+
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 items-start">
             <div className="flex flex-col gap-4 min-w-0">
               <Fold title="Where they go">
