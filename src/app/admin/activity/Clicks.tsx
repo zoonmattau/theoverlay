@@ -1,7 +1,7 @@
 import { bookieName } from "@/lib/bookies";
 import type { MoneyReport } from "@/lib/money";
 
-/** When people press a plan button, by hour and weekday, and which bookies prices were followed out to. Moved here from Money (6 Oct 2026). */
+/** When people press a plan button, by hour and weekday, and which bookies prices were followed out to. Moved here from Money, by way of Reports (6 Oct 2026). */
 export function Clicks({ r }: { r: MoneyReport }) {
   return (
     <section className="card mt-6">

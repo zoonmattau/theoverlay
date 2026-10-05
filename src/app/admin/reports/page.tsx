@@ -7,9 +7,7 @@ import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { daysSinceLaunch, growthSeries, modelTipSeries, tipsterTipSeries, windowStart, type Series } from "@/lib/reports";
-import { moneyReport } from "@/lib/money";
 import { windowStats } from "@/lib/tips";
-import { Clicks } from "./Clicks";
 import type { SideStats } from "@/lib/tips/stats";
 
 export const metadata: Metadata = { title: "Reports", robots: { index: false } };
@@ -108,13 +106,8 @@ function Group({ title, series, cumulativeKeys = [], collapsible }: { title?: st
 }
 
 async function Growth({ n }: { n: number }) {
-  const [series, money] = await Promise.all([growthSeries(n), moneyReport(n)]);
-  return (
-    <>
-      <Group series={series} />
-      <Clicks r={money} />
-    </>
-  );
+  const series = await growthSeries(n);
+  return <Group series={series} />;
 }
 
 async function ModelTips({ n, all }: { n: number; all: boolean }) {

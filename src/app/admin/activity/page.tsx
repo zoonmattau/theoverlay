@@ -8,6 +8,8 @@ import { getViewer } from "@/lib/auth";
 import { type Area, activityReport, AREA_LABEL } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
+import { moneyReport } from "@/lib/money";
+import { Clicks } from "./Clicks";
 
 export const metadata: Metadata = { title: "Activity", robots: { index: false } };
 
@@ -43,7 +45,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   const sp = await searchParams;
   const days = [1, 7, 30].includes(Number(sp.days)) ? Number(sp.days) : 7;
   const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
-  const r = await activityReport(days, cut);
+  const [r, money] = await Promise.all([activityReport(days, cut), moneyReport(days)]);
   const maxArea = Math.max(...r.byArea.map((a) => a.views), 1);
   const maxDay = Math.max(...r.byDay.map((d) => d.views), 1);
 
@@ -193,6 +195,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
           </div>
         </>
       )}
+      <Clicks r={money} />
     </>
   );
 }
