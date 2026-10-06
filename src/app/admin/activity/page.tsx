@@ -142,7 +142,6 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                   <BarList items={r.sources.map((x) => ({ key: x.source, label: x.source, value: x.people, tone: x.source.endsWith(" ads") ? "bg-blue" : undefined }))} />
                 </Fold>
               )}
-              <PlanClicks r={money} />
             </div>
             <div className="flex flex-col gap-4 min-w-0">
               <Fold title="Tipsters they look at">
@@ -164,6 +163,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                   </details>
                 ))}
               </Fold>
+              <PlanClicks r={money} />
             </div>
           </div>
 
