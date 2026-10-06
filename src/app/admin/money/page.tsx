@@ -46,9 +46,9 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   const today = sydney(Math.floor(now() / 1000));
   const [y, m] = today.split("-").map(Number);
   const leftInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate() - Number(today.slice(8));
-  const [r, prices, upcoming, ads, totals, cash] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(Math.max(AHEAD, leftInMonth + 1)), adsReport(n), invested(), bank()]);
+  const [r, prices, upcoming, ads, totals, cash] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(Math.max(AHEAD + 1, leftInMonth + 1)), adsReport(n), invested(), bank()]);
   const t = r.totals;
-  const weekOut = Math.floor(now() / 1000) + AHEAD * 86400;
+  const weekOut = Math.floor(now() / 1000) + (AHEAD + 1) * 86400;
   const soon = { ...upcoming, charges: upcoming.charges.filter((c) => c.at <= weekOut) };
   const monthCharges = upcoming.charges.filter((c) => sydney(c.at).startsWith(today.slice(0, 7)));
 
@@ -483,17 +483,22 @@ const dollars = (cents: number) => `$${Math.round(cents / 100).toLocaleString("e
  * is money that may not come, so it is kept apart from a paying member's
  * renewal everywhere it shows.
  */
-function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; conversion?: { ended: number; paid: number; rate: number }; error?: string }) {
+function ComingUp({ charges: all, conversion, error }: { charges: UpcomingCharge[]; conversion?: { ended: number; paid: number; rate: number }; error?: string }) {
+  const today = sydney(Math.floor(now() / 1000));
+  // From tomorrow: cards are charged about 1am, so by day today's bar is always spent (6 Oct 2026).
+  // Today stays only while a charge is still to come today, a failed card Stripe will retry later, say.
+  const from = all.some((c) => sydney(c.at) === today) ? 0 : 1;
+  const dayAt = (i: number) => new Date(new Date(`${today}T12:00:00+10:00`).getTime() + (i + from) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const shown = new Set(Array.from({ length: AHEAD }, (_, i) => dayAt(i)));
+  // The sums and the list cover the days on the bars, no more.
+  const charges = all.filter((c) => shown.has(sydney(c.at)));
   const trial = charges.filter((c) => c.kind === "first bill");
   // A failed card retrying is not a paying member: its own group, amber, everywhere it shows.
   const paying = charges.filter((c) => c.kind === "renewal");
   const retrying = charges.filter((c) => c.kind === "retry");
   const sum = (xs: UpcomingCharge[]) => xs.reduce((a, c) => a + c.amount_cents, 0);
-  const today = sydney(Math.floor(now() / 1000));
-  // Today on: a trial ends at 11pm, so a charge later today is still to come; one already tried is no longer due in Stripe.
-  // Starting tomorrow left a yearly bill due at 11pm Saturday 3 Oct 2026 off the bars on the day itself.
   const days = Array.from({ length: AHEAD }, (_, i) => {
-    const iso = new Date(new Date(`${today}T12:00:00+10:00`).getTime() + i * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+    const iso = dayAt(i);
     const on = charges.filter((c) => sydney(c.at) === iso);
     // Hover or tap a day for who is billed: "Gabriel Carr, Every day, yearly: $470 (trial ends)".
     const tip = on.map((c) => `${c.who}, ${c.plan}: ${dollars(c.amount_cents)}${c.kind === "first bill" ? " (trial ends)" : c.kind === "retry" ? " (retrying)" : ""}`).join("\n");
