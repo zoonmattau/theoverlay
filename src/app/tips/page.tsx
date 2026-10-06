@@ -13,10 +13,10 @@ import { SignalBadge } from "@/components/Ratings";
 import { Section } from "@/components/Section";
 import { Outcome, ReleaseNotice } from "@/components/SelectionCard";
 import { TipsterCallTable } from "@/components/TipsterCallTable";
-import { ledgerFor } from "@/lib/tips";
+import { dailyUnits, ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { followedCalls } from "@/lib/creators";
+import { allTipsters, callsOn, followedCalls } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { callLimit, hasJumped, MIN_EDGE, takeable } from "@/lib/model/publish";
@@ -95,6 +95,15 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const theirs = followed.flatMap((f) => f.tips.map((t) => ({ ...t, tipster: f.tipster })));
   const theirsSettled = theirs.filter((t) => t.settled_at);
   const theirsUnits = theirsSettled.reduce((a, t) => a + Number(t.units), 0);
+  // Locked out: something real to look at. The record lately, when it is up, and every tipster's
+  // calls for anyone who follows none (they are public on the tipster pages anyway).
+  const daily = open ? [] : (await dailyUnits()).filter((d) => d.date < date);
+  const yesterday = daily.at(-1);
+  const week = daily.filter((d) => d.date >= new Date(new Date(`${date}T12:00:00Z`).getTime() - 7 * 86400_000).toISOString().slice(0, 10));
+  const weekUnits = week.reduce((a, d) => a + d.units, 0);
+  // bets and lays in a day are units by side, not counts.
+  const lately = yesterday && yesterday.units > 0 ? { n: yesterday.units, label: "units yesterday", sub: "level stakes, one unit a call" } : weekUnits > 0 ? { n: weekUnits, label: "units, last 7 days", sub: "level stakes, one unit a call" } : undefined;
+  const everyTipster = !open && theirs.length === 0 ? await callsOn(date, await allTipsters()) : [];
 
   const calls: Call[] = meetings
     .flatMap((m) =>
@@ -164,6 +173,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
           <StatCard n={primes.length} label={primes.length === 1 ? "prime overlay" : "prime overlays"} tone="prime" />
           <StatCard n={bets.length} label={bets.length === 1 ? "bet" : "bets"} tone="bet" />
           <StatCard n={lays.length} label={lays.length === 1 ? "lay" : "lays"} tone="lay" />
+          {!open && lately && <StatCard n={`+${lately.n.toFixed(1)}u`} label={lately.label} sub={lately.sub} tone="prime" />}
           {open && (
             <StatCard
               n={settled.length ? units(total) : "—"}
@@ -203,6 +213,14 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
             aside={`${theirs.length} ${theirs.length === 1 ? "call" : "calls"}${theirsSettled.length ? `, ${units(theirsUnits)}u so far` : ""}`}
           >
             <TipsterCallTable tips={theirs} jumps={jumps} />
+          </Section>
+        </div>
+      )}
+
+      {everyTipster.length > 0 && (
+        <div className="mb-4">
+          <Section id="tipsters-today" letter="T" title="Tipsters today" aside={<Link href="/tipsters" className="text-lime">Free to see, follow one &rarr;</Link>}>
+            <TipsterCallTable tips={everyTipster} jumps={jumps} showWho />
           </Section>
         </div>
       )}
