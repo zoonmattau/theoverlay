@@ -3,6 +3,7 @@ import "server-only";
 import { foundUs } from "@/lib/arrival";
 import { isAdminEmail } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { reviewBots } from "./bots";
 import { metaAds, metaSpend } from "./meta-spend";
 
 /**
@@ -101,22 +102,33 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
 
   // Visitors by ad: distinct visitor ids whose page views carry a paid Meta tag, paged past Supabase's 1,000-row cap.
   const visitors = new Map<string, Set<string>>();
+  const landings: { vid: string; tag: string; at: number }[] = [];
   for (let at = 0; ; at += 1000) {
     const { data: views } = await db
       .from("events")
-      .select("meta")
+      .select("meta, created_at")
       .eq("kind", "page_view")
       .gte("created_at", new Date(`${from}T00:00:00+10:00`).toISOString())
       .filter("meta->utm->>source", "in", "(meta,facebook,fb,instagram,ig)")
       .filter("meta->utm->>medium", "eq", "paid")
       .range(at, at + 999);
-    for (const v of (views ?? []) as { meta: { vid?: string; utm?: { campaign?: string; content?: string } } | null }[]) {
+    for (const v of (views ?? []) as { meta: { vid?: string; utm?: { campaign?: string; content?: string } } | null; created_at: string }[]) {
       if (!v.meta?.vid) continue;
       const tag = `${v.meta.utm?.campaign ?? ""}/${v.meta.utm?.content ?? ""}`.toLowerCase();
       visitors.set(tag, (visitors.get(tag) ?? new Set()).add(v.meta.vid));
+      landings.push({ vid: v.meta.vid, tag, at: new Date(v.created_at).getTime() });
     }
     if ((views ?? []).length < 1000) break;
   }
+  // Meta's review bots out: a burst of one-page visitors on the same ad. Only a burst's visitors need their page count.
+  const suspects = [...new Set(reviewBots(landings, new Map()))];
+  const pagesBy = new Map<string, number>();
+  for (let i = 0; i < suspects.length; i += 200) {
+    const { data: rows } = await db.from("events").select("meta->>vid").eq("kind", "page_view").in("meta->>vid", suspects.slice(i, i + 200));
+    for (const r of (rows ?? []) as { vid: string }[]) pagesBy.set(r.vid, (pagesBy.get(r.vid) ?? 0) + 1);
+  }
+  const bots = reviewBots(landings, pagesBy);
+  for (const set of visitors.values()) for (const vid of bots) set.delete(vid);
 
   // By ad: accounts made in the window from each ad's link, and how far they got.
   const fromStart = new Date(`${from}T00:00:00+10:00`).getTime();

@@ -12,6 +12,7 @@ import { invested, SINCE, type Invested } from "@/lib/invested";
 import { RunningTotals } from "@/components/RunningTotals";
 import { addCost, removeCost, stopCost } from "./actions";
 import { Fold } from "@/components/Fold";
+import { ByAd } from "./ByAd";
 import { Funnel, PeopleTile } from "./People";
 import { planById, TERMS } from "@/lib/billing/plans";
 import { priceBook, type PriceBook } from "@/lib/billing/prices";
@@ -416,36 +417,10 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
             By ad
           </summary>
-          <p className="mt-1 text-xs text-ink-soft">Visits, accounts, trials and members (Mbr) from each ad&apos;s own link, what they paid (Rev, plans and passes), and dollars back per $1 spent.</p>
+          <p className="mt-1 text-xs text-ink-soft">Visits, accounts, trials and members (Mbr) from each ad&apos;s own link, what they paid (Rev), and dollars back per $1. Meta&apos;s review bots are left out of visits. Click a heading to sort.</p>
           <div className="overflow-x-auto -mx-1 px-1">
           {/* Tight: ten columns in half a page. Short headings, little padding, whole dollars where cents add nothing. */}
-          <table className="data-table stack-sm text-[11px] mt-2 [&_th]:px-1 [&_td]:px-1 [&_th]:whitespace-nowrap">
-            <thead><tr><th>Ad</th><th className="text-right">Spend</th><th className="text-right">Visits</th><th className="text-right">Accts</th><th className="text-right">Trials</th><th className="text-right">Mbr</th><th className="text-right">Rev</th><th className="text-right">/visit</th><th className="text-right">/trial</th><th className="text-right">$ back</th></tr></thead>
-            <tbody>
-              {r.byAd.map((a) => {
-                const off = a.status && a.status !== "ACTIVE";
-                const per = a.trials && a.spend ? a.spend / a.trials : undefined;
-                const back = a.spend ? a.revenue / a.spend : undefined;
-                return (
-                  <tr key={`${a.campaign}-${a.ad}`} className={off ? "text-ink-soft" : ""}>
-                    <td className="max-w-[9rem]">
-                      <span className="font-semibold block truncate" title={a.ad}>{a.ad}</span>
-                      <span className="block truncate text-[10px] text-ink-soft" title={a.campaign}>{a.campaign.replace(/^The Overlay - /, "")}{off ? ` · ${a.status.toLowerCase().replace(/_/g, " ")}` : ""}</span>
-                    </td>
-                    <td data-label="Spend" className="text-right nums">{a.spend ? `$${Math.round(a.spend)}` : "–"}</td>
-                    <td data-label="Visits" className="text-right nums">{a.visits || ""}</td>
-                    <td data-label="Accounts" className="text-right nums">{a.accounts || ""}</td>
-                    <td data-label="Trials" className="text-right nums">{a.trials || ""}</td>
-                    <td data-label="Members" className="text-right nums font-semibold">{a.paid || ""}</td>
-                    <td data-label="Revenue" className="text-right nums">{a.revenue ? `$${Math.round(a.revenue)}` : ""}</td>
-                    <td data-label="Per visit" className="text-right nums">{a.visits && a.spend ? `$${(a.spend / a.visits).toFixed(2)}` : ""}</td>
-                    <td data-label="Per trial" className="text-right nums">{per !== undefined ? `$${Math.round(per)}` : a.spend ? "–" : ""}</td>
-                    <td data-label="Back per $1" className={`text-right nums font-semibold ${back !== undefined && back >= 1 ? "text-accent" : ""}`}>{back !== undefined ? `$${back.toFixed(2)}` : ""}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+          <ByAd rows={r.byAd} />
           </div>
         </details>
       )}
