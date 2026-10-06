@@ -150,9 +150,10 @@ const isPrime = (c: Call) => Boolean(c.x.prime || c.tag === "prime_overlay" || c
 function line(c: Call): string {
   const prime = isPrime(c);
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
-  const side = c.x.signal === "lay" ? "Lay" : prime ? "Prime" : isRoughie(c.x) ? "Way Overlay" : "Bet";
+  const side = c.x.signal === "lay" ? "" : prime ? "Prime, " : isRoughie(c.x) ? "Way Overlay, " : "";
   const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
-  return `${square} R${c.r.raceNumber} ${clock(c.r.jumpTime)}  **${c.x.tabNumber}. ${c.x.horseName}**  ${side}, ${strictOf(c)}${stake}`;
+  const strict = strictOf(c);
+  return `${square} R${c.r.raceNumber} ${clock(c.r.jumpTime)} **${c.x.tabNumber}. ${c.x.horseName}** ${side}${side ? strict : strict[0].toUpperCase() + strict.slice(1)}${stake}`;
 }
 
 /**
@@ -162,8 +163,8 @@ function line(c: Call): string {
  */
 function strictOf(c: Call): string {
   const limit = callLimit(c.x);
-  if (c.x.signal === "lay") return `lay at ${price(limit ?? callPrice(c.x))} or under`;
-  return limit ? `bet at ${price(limit)} or better` : `bet at ${price(callPrice(c.x))}`;
+  if (c.x.signal === "lay") return `lay at ${price(limit ?? callPrice(c.x))} or less`;
+  return limit ? `back at ${price(limit)}+` : `back at ${price(callPrice(c.x))}`;
 }
 
 /**
@@ -175,7 +176,9 @@ function lines(calls: Call[], date: string): string {
   return calls.map((c) => callPost(c, date)).join("\n\n");
 }
 
-const LAYS_LATER = "Lays post here half an hour before the jump, at the exchange price then.";
+const LAYS_LATER = "Lays come 30 min before each jump.";
+/** "Tue 7 Oct": a post's date, short. */
+const shortDate = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" }).replace(/,/g, "");
 
 /**
  * The morning posts: every bet, the Primes among them, and the free race. Each goes
@@ -192,7 +195,7 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
     if (opts.early) {
       // Tomorrow's bets the night before, for members only.
       const body = bets.length ? lines(bets, date) : "No bets on the card yet.";
-      await once(date, "early", () => send(CHANNELS.early, `**Early look, ${day}.** Prices will move by morning, the calls may too.\n\n${body}`));
+      await once(date, "early", () => send(CHANNELS.early, `**Early look · ${shortDate(date)}.** Calls may change by morning.\n\n${body}`));
       return;
     }
     if (calls.length === 0) return;
@@ -206,8 +209,8 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
 
 /** The 11am post: a line for the day, then each bet as its own linked block. */
 function morningPost(date: string, bets: Call[]): string {
-  const day = longDate(date);
-  return bets.length ? `**${day}: ${bets.length} ${bets.length === 1 ? "bet" : "bets"}.** ${LAYS_LATER}\n\n${lines(bets, date)}` : `**${day}: no bets this morning.** ${LAYS_LATER}`;
+  const day = shortDate(date);
+  return bets.length ? `**${day} · ${bets.length} ${bets.length === 1 ? "bet" : "bets"}.** ${LAYS_LATER}\n\n${lines(bets, date)}` : `**${day} · no bets this morning.** ${LAYS_LATER}`;
 }
 
 /** The 11am post as it would go now, to put right a post already sent. */
@@ -224,16 +227,16 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
   const tempo = r.pace.tempo === "fast" ? "A fast tempo" : r.pace.tempo === "slow" ? "A slow tempo" : "An even tempo";
   const lead = r.pace.leaderGap !== undefined && r.pace.leaderGap < 1 ? "a contested lead" : r.pace.leaderGap !== undefined && r.pace.leaderGap >= 3 ? "one horse on its own in front" : "no fight for the lead";
   const leader = live.find((x) => x.ratings.map === "leader");
-  const shape = `${tempo} on our read of the early sectionals, with ${lead}${leader ? `, ${leader.horseName} the likely leader` : ""}.`;
-  const four = top.map((x) => `${x.rank}. **${x.tabNumber}. ${x.horseName}** rates ${bm(x.ratings.today).toFixed(0)}, ${price(x.ratedPrice)} against ${price(x.marketPrice)}${x.why ? `. ${x.why}` : ""}`).join("\n");
+  const shape = `${tempo}, ${lead}${leader ? `, ${leader.horseName} to lead` : ""}.`;
+  const four = top.map((x) => `${x.rank}. **${x.tabNumber}. ${x.horseName}** ${bm(x.ratings.today).toFixed(0)} · ${price(x.ratedPrice)} vs ${price(x.marketPrice)}${x.why ? `. ${x.why}` : ""}`).join("\n");
   const own = calls.filter((c) => c.r.raceId === r.raceId);
   const bets = own.filter((c) => c.x.signal === "back");
   const called = [
-    ...(bets.length ? bets.map((c) => line(c)) : own.length ? [] : ["No bet in this race: the market has it about right."]),
-    ...(own.length > bets.length ? [`A lay in this race. ${LAYS_LATER}`] : []),
+    ...(bets.length ? bets.map((c) => line(c)) : own.length ? [] : ["No bet: the market has it right."]),
+    ...(own.length > bets.length ? [`A lay here, posted 30 min before the jump.`] : []),
   ].join("\n");
   return [
-    `**Free race of the day, ${day}**`,
+    `**Free race · ${shortDate(date)}**`,
     `${m.track} R${r.raceNumber}, ${r.name}${r.className ? ` (${r.className})` : ""}, ${r.distance}m${r.goingText ? `, ${r.goingText}` : ""}, ${live.length} runners, jumps ${clock(r.jumpTime)}.`,
     ``,
     `**The shape.** ${shape}`,
@@ -246,7 +249,7 @@ function freeRacePost(date: string, day: string, m: PublishedMeeting, r: Publish
     `**The calls.**`,
     called,
     ``,
-    `Every runner rated, the sectionals and the speed map: ${raceUrl(date, m, r)}`,
+    `Full race: ${raceUrl(date, m, r)}`,
   ].join("\n");
 }
 
@@ -307,12 +310,12 @@ export async function postCallChanges(date: string, before: Map<string, Publishe
  */
 function callPost(c: Call, date: string): string {
   const prime = isPrime(c);
-  const side = c.x.signal === "lay" ? "LAY" : prime ? "PRIME" : isRoughie(c.x) ? "WAY OVERLAY" : "BET";
+  const side = c.x.signal === "lay" ? "LAY" : prime ? "PRIME" : isRoughie(c.x) ? "WAY OVERLAY" : "BACK";
   const square = c.x.signal === "lay" ? "🟥" : prime ? "🟩" : isRoughie(c.x) ? "🔷" : "🟦";
   const stake = isRoughie(c.x) ? `, ${stakeOf(c.x)}u` : "";
   const strict = strictOf(c);
   // The heading is the link to the race; embeds are off on every post, so it stays one line.
-  return [`**[${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)}, ${side} ${c.x.tabNumber}. ${c.x.horseName}](${raceUrl(date, c.m, c.r)})**`, `${square} ${strict[0].toUpperCase()}${strict.slice(1)}${stake}`].join("\n");
+  return [`${square} **[${c.m.track} R${c.r.raceNumber} ${clock(c.r.jumpTime)} · ${side} ${c.x.tabNumber}. ${c.x.horseName}](${raceUrl(date, c.m, c.r)})**`, `${strict[0].toUpperCase()}${strict.slice(1)}${stake}`].join("\n");
 }
 
 /** The discord_posts kinds that remember a lay, or a Prime made during the day, has been posted. */
@@ -371,12 +374,12 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
       const at = row?.price ?? settledAt(c.x.signal!, callPrice(c.x)!, c.r.placings?.find((p) => p.tabNumber === c.x.tabNumber)?.bsp);
       const got = row?.units ?? (c.x.signal === "back" ? (at - 1) * stakeOf(c.x) : stakeOf(c.x));
       if (c.x.signal === "back") {
-        return `🏆 **${c.x.horseName}** won ${c.m.track} R${c.r.raceNumber} at ${price(at)}${prime ? ", a Prime" : isRoughie(c.x) ? ", a Way Overlay" : ""}. +${got.toFixed(2)}u`;
+        return `🏆 **${c.x.horseName}** ${c.m.track} R${c.r.raceNumber} ${price(at)}${prime ? " Prime" : isRoughie(c.x) ? " Way Overlay" : ""} · +${got.toFixed(2)}u`;
       }
-      return `✅ Lay held: **${c.x.horseName}** ran ${ran(c)} in ${c.m.track} R${c.r.raceNumber}, laid at ${price(at)}. +${got.toFixed(2)}u`;
+      return `✅ Lay **${c.x.horseName}** ${c.m.track} R${c.r.raceNumber} ran ${ran(c)}, laid ${price(at)} · +${got.toFixed(2)}u`;
     };
-    const lines = [...won.map(lineFor), ...flipped.map((c) => `⚖️ Result amended, ${c.m.track} R${c.r.raceNumber}: ${lineFor(c)}`)];
-    const messageId = await send(CHANNELS.winners, [...lines, `Day so far ${units >= 0 ? "+" : ""}${units.toFixed(2)}u, level stakes. ${SITE}/tips`].join("\n"));
+    const lines = [...won.map(lineFor), ...flipped.map((c) => `⚖️ Amended: ${lineFor(c)}`)];
+    const messageId = await send(CHANNELS.winners, [...lines, `Today ${units >= 0 ? "+" : ""}${units.toFixed(2)}u · ${SITE}/tips`].join("\n"));
     await remember(messageId);
     if (flipped.length) await supabaseAdmin().from("discord_posts").upsert(flipped.map((c) => ({ date, kind: `flip:${c.r.raceId}:${c.x.tabNumber}`, message_id: messageId ?? null })), { onConflict: "date,kind" });
   } catch (err) {
