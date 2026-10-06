@@ -1,0 +1,58 @@
+import Link from "next/link";
+import { connection } from "next/server";
+
+import { FollowButton } from "./FollowButton";
+import { UnitsSpark } from "./RunningUnits";
+import { pct, units } from "./TipsterCard";
+import { getViewer } from "@/lib/auth";
+import { allTipsters, followedTipsters, rankProfiles, tipsterCallCounts, tipsterProfiles } from "@/lib/creators";
+import { racingToday } from "@/lib/model/source";
+
+/**
+ * The tipsters on the home page: the three in form over 30 days, their line,
+ * what they have on today and a Follow button. The home page is where most
+ * visitors land, and before this a tipster was only found from the nav.
+ */
+export async function HomeTipsters() {
+  await connection();
+  const viewer = await getViewer();
+  const tipsters = await allTipsters();
+  if (tipsters.length === 0) return null;
+  const [profiles, counts, followed] = await Promise.all([tipsterProfiles(tipsters), tipsterCallCounts(racingToday()), followedTipsters(viewer)]);
+  const top = rankProfiles(profiles, "30").filter((p) => p.all.n > 0).slice(0, 3);
+  if (top.length === 0) return null;
+  const following = new Set(followed.map((t) => t.id));
+  const today = [...counts.values()].reduce((a, n) => a + n, 0);
+  return (
+    <section className="card mt-6">
+      <div className="flex flex-wrap items-baseline justify-between gap-2">
+        <h2 className="font-display text-xl font-extrabold tracking-tight">Tipsters</h2>
+        <Link href="/tipsters" className="text-sm text-blue">{today ? `${today} ${today === 1 ? "call" : "calls"} today, see them all` : "See them all"} &rarr;</Link>
+      </div>
+      <p className="mt-1 text-sm text-ink-secondary">Punters posting their own calls with their reasons, every one settled by us at the price posted. Follow one and their calls land in your inbox and on every race page.</p>
+      <ul className="mt-3 grid gap-3 md:grid-cols-3">
+        {top.map((p) => {
+          const n = counts.get(p.tipster.id) ?? 0;
+          const w = p.windows["30"].n ? p.windows["30"] : p.all;
+          return (
+            <li key={p.tipster.id} className="rounded-md border border-line p-3 flex flex-col gap-2">
+              <div className="flex items-center gap-2">
+                <span className="h-9 w-9 shrink-0 rounded-full bg-lime text-ink font-display font-extrabold flex items-center justify-center" aria-hidden>{p.tipster.name.slice(0, 1).toUpperCase()}</span>
+                <Link href={`/t/${p.tipster.code}`} className="font-display font-extrabold hover:underline truncate">{p.tipster.name}</Link>
+                <span className="ml-auto"><UnitsSpark calls={[...p.recent].reverse()} /></span>
+              </div>
+              <div className="text-sm">
+                <span className={`nums font-bold ${w.units > 0 ? "text-accent" : w.units < 0 ? "text-red" : ""}`}>{units(w.units)}</span>
+                <span className="text-ink-soft"> {p.windows["30"].n ? "last 30 days" : "all time"}, {w.hit} of {w.n} landed{w.n >= 10 ? `, ${pct(w.roi)}` : ""}</span>
+              </div>
+              <div className="mt-auto flex items-center gap-2 text-xs">
+                <span className={n ? "font-semibold" : "text-ink-soft"}>{n ? `${n} ${n === 1 ? "call" : "calls"} today` : "Nothing posted today"}</span>
+                <span className="ml-auto"><FollowButton code={p.tipster.code} following={following.has(p.tipster.id)} small /></span>
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}

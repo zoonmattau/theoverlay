@@ -18,6 +18,7 @@ import { bannerReview } from "@/lib/reviews";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
 import { followedCalls } from "@/lib/creators";
+import { HomeTipsters } from "@/components/HomeTipsters";
 import { getCardFor, keepFresh, keepPrices, racingToday, RELEASE_HOUR } from "@/lib/model/source";
 import { dailyUnits, publicRecord } from "@/lib/tips";
 import { jumpTime, longDate } from "@/lib/format";
@@ -49,6 +50,10 @@ export default function Page({ searchParams }: PageProps<"/">) {
 
       <Suspense>
         <Results />
+      </Suspense>
+
+      <Suspense>
+        <HomeTipsters />
       </Suspense>
 
       <WhyUs />
