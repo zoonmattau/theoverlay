@@ -23,7 +23,7 @@ async function Maps({ searchParams }: { searchParams: PageProps<"/admin/trackmap
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
-  if (sp.all) return <All distance={Number(sp.d) || 1200} />;
+  if (sp.all || sp.review) return <All distance={Number(sp.d) || 1200} review={Boolean(sp.review)} />;
   const name = typeof sp.track === "string" ? sp.track : "Flemington";
   const track = trackMapFor(name);
   if (!track) return <p className="py-6">No map for {name} yet.</p>;
@@ -43,18 +43,19 @@ async function Maps({ searchParams }: { searchParams: PageProps<"/admin/trackmap
   );
 }
 
-/** Every map built, the doubtful ones too, at one distance: the review before they go live. */
-function All({ distance }: { distance: number }) {
+/** Every map built, the doubtful ones too, at one distance: the review before they go live. `review` shows only those waiting for a look. */
+function All({ distance, review }: { distance: number; review?: boolean }) {
   const dir = path.join(process.cwd(), "src/lib/tracks");
   const tracks = readdirSync(dir)
     .filter((f) => f.endsWith(".json"))
-    .map((f) => JSON.parse(readFileSync(path.join(dir, f), "utf-8")) as Track);
+    .map((f) => JSON.parse(readFileSync(path.join(dir, f), "utf-8")) as Track & { auto?: { reviewed?: boolean } })
+    .filter((t) => !review || (t.auto && !t.auto.reviewed));
   const rank = { high: 0, medium: 1, low: 2 } as Record<string, number>;
   tracks.sort((a, b) => (rank[a.auto?.confidence ?? "high"] ?? 0) - (rank[b.auto?.confidence ?? "high"] ?? 0) || a.name.localeCompare(b.name));
   return (
     <>
-      <h1 className="font-display text-3xl font-extrabold tracking-tight py-6">All track maps, {distance}m</h1>
-      <p className="text-sm text-ink-soft -mt-4 mb-4">Low confidence maps stay off the site until fixed. <a className="underline" href={`?all=1&d=${distance === 1200 ? 2000 : 1200}`}>Show {distance === 1200 ? 2000 : 1200}m</a></p>
+      <h1 className="font-display text-3xl font-extrabold tracking-tight py-6">{review ? `Waiting for review: ${tracks.length} maps` : "All track maps"}, {distance}m</h1>
+      <p className="text-sm text-ink-soft -mt-4 mb-4">Low confidence maps stay off the site until fixed. <a className="underline" href={`?${review ? "review" : "all"}=1&d=${distance === 1200 ? 2000 : 1200}`}>Show {distance === 1200 ? 2000 : 1200}m</a></p>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {tracks.map((t) => (
           <div key={t.name} className="card">

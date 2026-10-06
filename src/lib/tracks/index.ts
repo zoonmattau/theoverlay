@@ -1,16 +1,22 @@
 // Written by scripts/track-index.py: every track map with a usable post, keyed by name squashed to letters.
 import type { Track } from "@/components/TrackMap";
 
+import alicesprings from "./alicesprings.json";
 import armidale from "./armidale.json";
+import atherton from "./atherton.json";
 import bairnsdale from "./bairnsdale.json";
 import balaklava from "./balaklava.json";
 import ballarat from "./ballarat.json";
+import ballaratsynthetic from "./ballaratsynthetic.json";
 import bathurst from "./bathurst.json";
 import beaudesert from "./beaudesert.json";
+import belmont from "./belmont.json";
 import bendigo from "./bendigo.json";
 import bordertown from "./bordertown.json";
 import bowraville from "./bowraville.json";
+import broome from "./broome.json";
 import bunbury from "./bunbury.json";
+import cairns from "./cairns.json";
 import canterbury from "./canterbury.json";
 import carnarvon from "./carnarvon.json";
 import caulfield from "./caulfield.json";
@@ -19,6 +25,7 @@ import coleraine from "./coleraine.json";
 import corowa from "./corowa.json";
 import cranbourne from "./cranbourne.json";
 import darwin from "./darwin.json";
+import devonportsynthetic from "./devonportsynthetic.json";
 import donald from "./donald.json";
 import doomben from "./doomben.json";
 import dubbo from "./dubbo.json";
@@ -31,12 +38,16 @@ import gatton from "./gatton.json";
 import gawler from "./gawler.json";
 import geelong from "./geelong.json";
 import goldcoast from "./goldcoast.json";
+import gosford from "./gosford.json";
 import goulburn from "./goulburn.json";
 import grafton from "./grafton.json";
 import gunbower from "./gunbower.json";
 import gunnedah from "./gunnedah.json";
+import gympie from "./gympie.json";
 import hamilton from "./hamilton.json";
 import hawkesbury from "./hawkesbury.json";
+import hobart from "./hobart.json";
+import ipswich from "./ipswich.json";
 import kalgoorlie from "./kalgoorlie.json";
 import kemblagrange from "./kemblagrange.json";
 import kilcoy from "./kilcoy.json";
@@ -51,15 +62,23 @@ import mornington from "./mornington.json";
 import morphettville from "./morphettville.json";
 import moruya from "./moruya.json";
 import mountgambier from "./mountgambier.json";
+import mtgambier from "./mtgambier.json";
 import murraybridge from "./murraybridge.json";
 import murtoa from "./murtoa.json";
+import muswellbrook from "./muswellbrook.json";
+import narromine from "./narromine.json";
 import newcastle from "./newcastle.json";
 import northam from "./northam.json";
 import nowra from "./nowra.json";
+import pakenhamsynthetic from "./pakenhamsynthetic.json";
 import portmacquarie from "./portmacquarie.json";
 import randwick from "./randwick.json";
+import rockhampton from "./rockhampton.json";
 import rosehill from "./rosehill.json";
+import sale from "./sale.json";
+import sandownhillside from "./sandownhillside.json";
 import scone from "./scone.json";
+import seymour from "./seymour.json";
 import strathalbyn from "./strathalbyn.json";
 import sunshinecoast from "./sunshinecoast.json";
 import swanhill from "./swanhill.json";
@@ -72,22 +91,30 @@ import townsville from "./townsville.json";
 import tuncurry from "./tuncurry.json";
 import wagga from "./wagga.json";
 import waggariverside from "./waggariverside.json";
+import wangaratta from "./wangaratta.json";
 import warrnambool from "./warrnambool.json";
 import warwick from "./warwick.json";
 import warwickfarm from "./warwickfarm.json";
 import wodonga from "./wodonga.json";
+import wyong from "./wyong.json";
 
 export const TRACKS: Record<string, Track> = {
+  alicesprings: alicesprings as Track,
   armidale: armidale as Track,
+  atherton: atherton as Track,
   bairnsdale: bairnsdale as Track,
   balaklava: balaklava as Track,
   ballarat: ballarat as Track,
+  ballaratsynthetic: ballaratsynthetic as Track,
   bathurst: bathurst as Track,
   beaudesert: beaudesert as Track,
+  belmont: belmont as Track,
   bendigo: bendigo as Track,
   bordertown: bordertown as Track,
   bowraville: bowraville as Track,
+  broome: broome as Track,
   bunbury: bunbury as Track,
+  cairns: cairns as Track,
   canterbury: canterbury as Track,
   carnarvon: carnarvon as Track,
   caulfield: caulfield as Track,
@@ -96,6 +123,7 @@ export const TRACKS: Record<string, Track> = {
   corowa: corowa as Track,
   cranbourne: cranbourne as Track,
   darwin: darwin as Track,
+  devonportsynthetic: devonportsynthetic as Track,
   donald: donald as Track,
   doomben: doomben as Track,
   dubbo: dubbo as Track,
@@ -108,12 +136,16 @@ export const TRACKS: Record<string, Track> = {
   gawler: gawler as Track,
   geelong: geelong as Track,
   goldcoast: goldcoast as Track,
+  gosford: gosford as Track,
   goulburn: goulburn as Track,
   grafton: grafton as Track,
   gunbower: gunbower as Track,
   gunnedah: gunnedah as Track,
+  gympie: gympie as Track,
   hamilton: hamilton as Track,
   hawkesbury: hawkesbury as Track,
+  hobart: hobart as Track,
+  ipswich: ipswich as Track,
   kalgoorlie: kalgoorlie as Track,
   kemblagrange: kemblagrange as Track,
   kilcoy: kilcoy as Track,
@@ -128,15 +160,23 @@ export const TRACKS: Record<string, Track> = {
   morphettville: morphettville as Track,
   moruya: moruya as Track,
   mountgambier: mountgambier as Track,
+  mtgambier: mtgambier as Track,
   murraybridge: murraybridge as Track,
   murtoa: murtoa as Track,
+  muswellbrook: muswellbrook as Track,
+  narromine: narromine as Track,
   newcastle: newcastle as Track,
   northam: northam as Track,
   nowra: nowra as Track,
+  pakenhamsynthetic: pakenhamsynthetic as Track,
   portmacquarie: portmacquarie as Track,
   randwick: randwick as Track,
+  rockhampton: rockhampton as Track,
   rosehill: rosehill as Track,
+  sale: sale as Track,
+  sandownhillside: sandownhillside as Track,
   scone: scone as Track,
+  seymour: seymour as Track,
   strathalbyn: strathalbyn as Track,
   sunshinecoast: sunshinecoast as Track,
   swanhill: swanhill as Track,
@@ -149,8 +189,10 @@ export const TRACKS: Record<string, Track> = {
   tuncurry: tuncurry as Track,
   wagga: wagga as Track,
   waggariverside: waggariverside as Track,
+  wangaratta: wangaratta as Track,
   warrnambool: warrnambool as Track,
   warwick: warwick as Track,
   warwickfarm: warwickfarm as Track,
   wodonga: wodonga as Track,
+  wyong: wyong as Track,
 };
