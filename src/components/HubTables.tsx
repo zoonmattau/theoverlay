@@ -32,7 +32,7 @@ export function PeopleTable({ rows, find, what, filtered, compact, runsCut }: { 
   ];
   const cols = compact ? all.filter((c) => ["name", "power", "rides", "wins", "winPct", "edge"].includes(c.key)) : all;
   return (
-    <DataTable rows={rows} columns={cols} rowKey={(r) => r.name} find={find} searchKeys={["name"]} defaultSort="power" noun={what === "rider" ? "jockeys" : "trainers"}
+    <DataTable rows={rows} columns={cols} rowKey={(r) => r.name} find={find} searchKeys={["name"]} id={compact ? undefined : "grid"} defaultSort="power" noun={what === "rider" ? "jockeys" : "trainers"}
       minRows={runsCut ? undefined : { key: "rides", min: filtered ? 10 : 30, label: `Show records under ${filtered ? 10 : 30} rides` }}
       note={compact ? undefined : "Built from every past run on the form of every horse we have rated, so a jockey's record here is their rides on those horses, not their whole book. Power is winners over the market's expectation per hundred rides, shrunk toward nought until the record is long enough to trust."} />
   );
@@ -50,13 +50,13 @@ export function TracksTable({ rows, find }: { rows: Track[]; find?: string }) {
     { key: "runs", label: "Runs", tip: "Timed runs.", right: true, value: (r) => r.runs },
     { key: "lastRun", label: "Last", tip: "Most recent run we hold.", value: (r) => r.lastRun, render: (r) => day(r.lastRun) },
   ];
-  return <DataTable rows={rows} columns={cols} rowKey={(r) => r.track} find={find} searchKeys={["track", "state"]} defaultSort="runs" noun="tracks" note="A length is a sixth of a second. Speed compares each distance's typical time here with the same distance everywhere else, so a track with one odd distance is not judged on it." />;
+  return <DataTable rows={rows} columns={cols} rowKey={(r) => r.track} find={find} searchKeys={["track", "state"]} id="grid" defaultSort="runs" noun="tracks" note="A length is a sixth of a second. Speed compares each distance's typical time here with the same distance everywhere else, so a track with one odd distance is not judged on it." />;
 }
 
 /** One track's distances and standard times. */
 export function TrackDistancesTable({ rows, track }: { rows: TrackDistance[]; track: string }) {
   const cols: Column<TrackDistance>[] = [
-    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, strong: true, asc: true, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
+    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, strong: true, asc: true, fmt: (v) => `${v}m`, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
     { key: "median", label: "Standard", tip: "The typical time here, the middle of every timed run.", right: true, value: (r) => r.median, asc: true, render: (r) => <span className="font-semibold">{clock(r.median)}</span> },
     { key: "best", label: "Quickest", tip: "The quickest time we hold.", right: true, value: (r) => r.best, asc: true, render: (r) => clock(r.best) },
     { key: "good", label: "Good", tip: "Typical time on good ground.", right: true, value: (r) => r.good, asc: true, render: (r) => clock(r.good) },
@@ -73,7 +73,7 @@ export function TrackDistancesTable({ rows, track }: { rows: TrackDistance[]; tr
 /** Every distance: the typical time, the quickest track, the record. */
 export function DistancesTable({ rows, find }: { rows: Distance[]; find?: string }) {
   const cols: Column<Distance>[] = [
-    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, strong: true, asc: true, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
+    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, strong: true, asc: true, fmt: (v) => `${v}m`, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
     { key: "typical", label: "Typical", tip: "The typical time over this distance across every track, weighted by runs.", right: true, value: (r) => r.typical, asc: true, render: (r) => <span className="font-semibold">{clock(r.typical)}</span> },
     { key: "quickest", label: "Quickest track", tip: "The track with the quickest typical time, among tracks with twenty runs or more.", value: (r) => r.quickest, asc: true, render: (r) => <Link href={trackHref(r.quickest)} className="underline decoration-dotted underline-offset-2">{r.quickest}</Link> },
     { key: "quickestMedian", label: "Its time", tip: "", right: true, value: (r) => r.quickestMedian, asc: true, render: (r) => clock(r.quickestMedian) },
@@ -82,7 +82,7 @@ export function DistancesTable({ rows, find }: { rows: Distance[]; find?: string
     { key: "tracks", label: "Tracks", tip: "Tracks we hold this distance at.", right: true, value: (r) => r.tracks },
     { key: "runs", label: "Runs", tip: "Timed runs.", right: true, value: (r) => r.runs },
   ];
-  return <DataTable rows={rows} columns={cols} rowKey={(r) => String(r.distance)} find={find} searchKeys={["distance", "quickest"]} defaultSort="distance" noun="distances" />;
+  return <DataTable rows={rows} columns={cols} rowKey={(r) => String(r.distance)} find={find} searchKeys={["distance", "quickest"]} id="grid" defaultSort="distance" noun="distances" />;
 }
 
 /** One distance across the tracks that run it. */
@@ -105,7 +105,8 @@ export function DistanceTracksTable({ rows, distance }: { rows: TrackDistance[];
 export function GoingsTable({ rows, find }: { rows: Going[]; find?: string }) {
   const cols: Column<Going>[] = [
     { key: "track", label: "Track", tip: "Click a track for its page.", value: (r) => r.track, strong: true, asc: true, render: (r) => <Link href={trackHref(r.track)} className="underline decoration-dotted underline-offset-2">{r.track}</Link> },
-    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, asc: true, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
+    { key: "state", label: "State", tip: "", value: (r) => r.state ?? null, asc: true },
+    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, asc: true, fmt: (v) => `${v}m`, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
     { key: "good", label: "Good", tip: "Typical time on good ground.", right: true, value: (r) => r.good, asc: true, render: (r) => clock(r.good) },
     { key: "soft", label: "Soft", tip: "Typical time on soft ground.", right: true, value: (r) => r.soft, asc: true, render: (r) => clock(r.soft) },
     { key: "softLengths", label: "Soft costs", tip: "Lengths slower than good on soft ground.", right: true, value: (r) => r.softLengths, render: (r) => (r.softLengths === null ? "—" : `${r.softLengths.toFixed(1)}L`) },
@@ -114,7 +115,7 @@ export function GoingsTable({ rows, find }: { rows: Going[]; find?: string }) {
     { key: "runs", label: "Runs", tip: "Timed runs over this trip here, all goings.", right: true, value: (r) => r.runs },
     { key: "who", label: "Who handles it", tip: "The jockeys ranked on soft or heavy ground at this track.", value: () => null, render: (r) => <span className="text-xs"><Link href={`/data/jockeys?track=${encodeURIComponent(r.track)}&going=5,6,7`} className="underline decoration-dotted underline-offset-2">soft</Link> · <Link href={`/data/jockeys?track=${encodeURIComponent(r.track)}&going=8,9,10`} className="underline decoration-dotted underline-offset-2">heavy</Link></span> },
   ];
-  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.track} ${r.distance}`} find={find} searchKeys={["track", "distance"]} defaultSort="runs" noun="track and distance pairs" note="Only pairs with a good-ground time and twenty runs or more. A negative cost means the soft or heavy runs we hold were the quicker ones, which with few runs is the sample, not the ground." />;
+  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.track} ${r.distance}`} find={find} searchKeys={["track", "state", "distance"]} id="grid" defaultSort="runs" noun="track and distance pairs" note="Only pairs with a good-ground time and twenty runs or more. A negative cost means the soft or heavy runs we hold were the quicker ones, which with few runs is the sample, not the ground." />;
 }
 
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
@@ -132,7 +133,7 @@ export function CombosTable({ rows, find, note, runsCut }: { rows: Combo[]; find
     { key: "edge", label: "+/−", tip: "Winners on priced runs over or under the market's expectation.", right: true, value: (r) => Math.round((r.winsPriced - r.expected) * 10) / 10, render: (r) => <span className={tone(r.winsPriced - r.expected)}>{signed(Math.round((r.winsPriced - r.expected) * 10) / 10)}</span> },
     { key: "lastRide", label: "Last", tip: "", value: (r) => r.lastRide, render: (r) => day(r.lastRide) },
   ];
-  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.jockey} / ${r.trainer}`} find={find} searchKeys={["jockey", "trainer"]} defaultSort="power" noun="pairs" note={note} minRows={runsCut ? undefined : { key: "rides", min: 20, label: "Show pairs under 20 runs" }} />;
+  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.jockey} / ${r.trainer}`} find={find} searchKeys={["jockey", "trainer"]} id="grid" defaultSort="power" noun="pairs" note={note} minRows={runsCut ? undefined : { key: "rides", min: 20, label: "Show pairs under 20 runs" }} />;
 }
 
 /** A person's record cut one way: by track, trip, going, year, partner or horse. */
@@ -190,7 +191,7 @@ const pct = (v: number | null) => (v === null ? "—" : `${v.toFixed(0)}%`);
 /** How races are run at one track, trip by trip. */
 export function TrackShapeTable({ rows }: { rows: TrackShape[] }) {
   const cols: Column<TrackShape>[] = [
-    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, strong: true, asc: true, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
+    { key: "distance", label: "Distance", tip: "Click a distance for its page.", value: (r) => r.distance, strong: true, asc: true, fmt: (v) => `${v}m`, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
     { key: "front", label: "Leader wins", tip: "How often the horse that led won, one row a race.", right: true, value: (r) => r.frontRunnerWinPct, render: (r) => <span className={`font-semibold ${r.frontRunnerWinPct !== null && r.frontRunnerWinPct >= 30 ? "text-accent" : ""}`}>{pct(r.frontRunnerWinPct)}</span> },
     { key: "placed", label: "Leader places", tip: "How often the horse that led held a place.", right: true, value: (r) => r.leaderPlacedPct, render: (r) => pct(r.leaderPlacedPct) },
     { key: "races", label: "Races", tip: "Races behind the leader figures.", right: true, value: (r) => r.races },
@@ -238,7 +239,7 @@ export function UpcomingRacesTable({ rows }: { rows: UpcomingRace[] }) {
     { key: "when", label: "Jumps", tip: "", value: (r) => r.jumpTime ?? r.date, asc: true, render: (r) => `${day(r.date)} ${clockOf(r.jumpTime)}` },
     { key: "race", label: "Race", tip: "Click for the race page.", value: (r) => `${r.track} R${r.raceNumber}`, asc: true, render: (r) => <Link href={`/racing/${r.date}/${r.meetingId}/${r.raceId}`} className="underline decoration-dotted underline-offset-2">{r.track} R{r.raceNumber}</Link> },
     { key: "name", label: "", tip: "", value: (r) => r.name, asc: true, render: (r) => <span className="text-xs text-ink-secondary">{r.name}</span> },
-    { key: "distance", label: "Trip", tip: "Click for the distance's page.", right: true, value: (r) => r.distance, asc: true, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
+    { key: "distance", label: "Trip", tip: "Click for the distance's page.", right: true, value: (r) => r.distance, asc: true, fmt: (v) => `${v}m`, render: (r) => <Link href={distanceHref(r.distance)} className="underline decoration-dotted underline-offset-2">{r.distance}m</Link> },
     { key: "going", label: "Going", tip: "", value: (r) => r.going, asc: true },
     { key: "runners", label: "Runners", tip: "", right: true, value: (r) => r.runners },
     { key: "fav", label: "Favourite", tip: "The market favourite, its price and ours.", value: (r) => r.fav?.horse ?? null, asc: true, render: (r) => (r.fav ? `${r.fav.horse} ${r.fav.marketPrice ? `$${r.fav.marketPrice.toFixed(2)}` : ""} (ours $${r.fav.ratedPrice.toFixed(2)})` : "—") },

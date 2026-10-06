@@ -31,7 +31,7 @@ export function HubFilters({ base, filter, tracks, find }: { base: string; filte
   }, [tracks, states, q]);
 
   const toggle = <T,>(list: T[], set: (v: T[]) => void, v: T) => set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const apply = () => router.push(`${base}${filterQuery({ states, tracks: chosen, goings: [...goings].sort((a, b) => a - b), distances: [...distances].sort((a, b) => a - b), period, minRuns: whole(minRuns), maxRuns: whole(maxRuns) }, { find })}`);
+  const apply = () => router.push(`${base}${filterQuery({ states, tracks: chosen, goings: [...goings].sort((a, b) => a - b), distances: [...distances].sort((a, b) => a - b), period, minRuns: whole(minRuns), maxRuns: whole(maxRuns) }, { find, grid: new URLSearchParams(window.location.search).get("grid") ?? undefined })}`);
   const active = states.length || chosen.length || goings.length || distances.length || (period && period !== "all") || minRuns || maxRuns;
   const chip = (on: boolean) => `px-2 py-0.5 rounded-full border text-xs cursor-pointer select-none ${on ? "bg-ink text-bg border-ink" : "border-line hover:border-ink-soft"}`;
 

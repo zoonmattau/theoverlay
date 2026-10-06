@@ -137,16 +137,30 @@ export interface HorseSummary {
   trend: number | null;
   /** Runs the peak and the trend are built on. */
   starts: number | null;
+  /** The career line stored with its entry, "7:3-0-0": starts, wins, seconds, thirds. */
+  career: { starts: number; wins: number; seconds: number; thirds: number } | null;
 }
 const SUMMARY_BARE = "id, name, class, ratings, age, state, last_track, last_seen";
-const SUMMARY = `${SUMMARY_BARE}, peak, trend, starts`;
+const SUMMARY = `${SUMMARY_BARE}, peak, trend, starts, career:entry->form->careerForm`;
+/** "7:3-0-0" as numbers; anything else is no record. */
+const careerOf = (v: unknown) => {
+  const m = typeof v === "string" ? v.match(/^(\d+):(\d+)-(\d+)-(\d+)$/) : null;
+  return m ? { starts: Number(m[1]), wins: Number(m[2]), seconds: Number(m[3]), thirds: Number(m[4]) } : null;
+};
 const summary = (r: Record<string, unknown>): HorseSummary => ({
   id: String(r.id), name: String(r.name), class: r.class === null ? null : Number(r.class), ratings: (r.ratings as HorseRatings | null) ?? null,
   age: r.age === null ? null : Number(r.age), state: (r.state as string | null) ?? null, lastTrack: (r.last_track as string | null) ?? null, lastSeen: String(r.last_seen),
   peak: r.peak === null || r.peak === undefined ? null : Number(r.peak),
   trend: r.trend === null || r.trend === undefined ? null : Number(r.trend),
   starts: r.starts === null || r.starts === undefined ? null : Number(r.starts),
+  career: careerOf(r.career),
 });
+
+/** One horse's summary by id, for its page. */
+export async function horseSummary(id: string): Promise<HorseSummary | undefined> {
+  const { data } = await supabaseAdmin().from("horses").select(SUMMARY).eq("id", id).maybeSingle();
+  return data ? summary(data as Record<string, unknown>) : undefined;
+}
 
 /** Horses whose name contains the query, best rated first. */
 export async function searchHorses(q: string, limit = 12): Promise<HorseSummary[]> {

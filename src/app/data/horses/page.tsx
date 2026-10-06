@@ -195,7 +195,7 @@ async function Horses({ searchParams }: { searchParams: Params }) {
         <div className="flex flex-wrap items-end justify-between gap-3 mb-3">
           <div>
             <h2 className="font-display text-2xl font-extrabold tracking-tight">Power rankings</h2>
-            <p className="text-xs text-ink-soft">Every horse we have rated, from every card we have run. Ratings are in benchmark points. Click a heading to sort{open ? ", a row to add it to the race" : ""}.</p>
+            <p className="text-xs text-ink-soft">Every horse we have rated, from every card we have run. Ratings are in benchmark points. Click a horse for every run we hold{open ? ", Add to put it in the race" : ""}.</p>
           </div>
         </div>
         <HorsesTable rows={ranked.rows} total={ranked.total} chosen={ids} query={{ d: String(distance), g: going, c: String(classPoints), h: ids.join(",") }} canPick={open} seen={seen} />

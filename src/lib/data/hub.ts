@@ -1,4 +1,6 @@
 import "server-only";
+
+import { goingLabel } from "@/lib/model/ratings";
 import { cacheLife } from "next/cache";
 
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -315,7 +317,7 @@ export async function hubPerson(kind: "jockey" | "trainer", key: string): Promis
   const [data, all, c] = await Promise.all([rpcAll("hub_person_runs", { p_kind: kind, p_key: key }, 3000), hubPeople(kind), calibration()]);
   const rows = data.map((r) => ({
     date: String(r.date), track: (r.track as string | null) ?? null, state: (r.state as string | null) ?? null, distance: r.distance === null ? null : Number(r.distance),
-    going: (r.going as string | null) ?? null, raceName: (r.race_name as string | null) ?? null, horse: String(r.horse), finish: Number(r.finish),
+    going: goingLabel((r.going as string | null) ?? undefined) ?? null, raceName: (r.race_name as string | null) ?? null, horse: String(r.horse), finish: Number(r.finish),
     margin: r.margin === null ? null : Number(r.margin), runners: r.runners === null ? null : Number(r.runners), sp: r.sp === null ? null : Number(r.sp), bsp: r.bsp === null ? null : Number(r.bsp),
     weight: r.weight === null ? null : Number(r.weight), barrier: r.barrier === null ? null : Number(r.barrier), other: (r.other as string | null) ?? null, raceId: String(r.race_id),
   }));
@@ -450,6 +452,8 @@ export async function hubDistances(): Promise<Distance[]> {
 }
 
 export interface Going {
+  /** Filled in by the page from the tracks list, for slicing by state. */
+  state?: string | null;
   track: string;
   distance: number;
   runs: number;
