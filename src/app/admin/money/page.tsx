@@ -503,7 +503,7 @@ function ComingUp({ charges, conversion, error }: { charges: UpcomingCharge[]; c
 
   return (
     <Fold title={`Coming up, next ${AHEAD} days`} className="min-w-0 flex flex-col">
-      <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill. Plans booked to cancel are left out.</p>
+      <p className="mt-1 text-xs text-ink-soft">From Stripe, at the amount it will bill, on the day the card is charged: a trial ending late at night is charged just after midnight. Plans booked to cancel are left out.</p>
       {error && <p className="mt-3 text-sm text-red">Stripe did not answer: {error}</p>}
 
       {!error && (

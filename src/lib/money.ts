@@ -314,6 +314,9 @@ export async function upcomingCharges(days = 14): Promise<{ charges: UpcomingCha
  */
 const pushedBill = (s: { trial_start: number | null; created: number }) => Boolean(s.trial_start && s.trial_start - s.created > 86400);
 
+/** How long after a period ends Stripe takes the card: it finalises the bill about an hour on. */
+const CHARGE_LAG_S = 3600;
+
 async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
   const until = Math.floor(Date.now() / 1000) + days * 86400;
   const subs = [];
@@ -334,7 +337,11 @@ async function chargesWithin(days: number): Promise<UpcomingCharge[]> {
         if (!open?.next_payment_attempt || open.next_payment_attempt > until) return null;
         return { ...base, at: open.next_payment_attempt, kind: "retry", amount_cents: open.amount_due };
       }
-      const at = s.status === "trialing" && s.trial_end ? s.trial_end : (s.items.data[0]?.current_period_end ?? 0);
+      // Stripe raises the bill when the period ends and takes the card about an hour later, so a
+      // trial ending at 11:45pm is charged just after midnight, the next day (two on 6 Oct 2026 at
+      // 12:46am and 1:01am). The charge sits on the day the card is actually charged.
+      const ends = s.status === "trialing" && s.trial_end ? s.trial_end : (s.items.data[0]?.current_period_end ?? 0);
+      const at = ends ? ends + CHARGE_LAG_S : 0;
       if (!at || at > until) return null;
       if (s.cancel_at_period_end || (s.cancel_at && s.cancel_at <= at)) return null;
       const preview = await stripe().invoices.createPreview({ subscription: s.id }).catch(() => null);
