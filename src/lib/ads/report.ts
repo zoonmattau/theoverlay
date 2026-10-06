@@ -14,6 +14,17 @@ import { metaAds, metaSpend } from "./meta-spend";
  * today. Paying lags a trial by its length, so the window totals read the
  * cost per paying member better than any single day.
  */
+/**
+ * An ad's tag as campaign/content. Some links reach us under a tag no ad in the
+ * API carries: the Spring "mate" ad has delivered utm_content=springmate (same
+ * ad set id in utm_term) while its creative reads mate, so those fold into it.
+ */
+const ALIASES: Record<string, string> = { "spring/springmate": "spring/mate" };
+const tagOf = (utm: { campaign?: string; content?: string } | null | undefined) => {
+  const tag = `${utm?.campaign ?? ""}/${utm?.content ?? ""}`.toLowerCase();
+  return ALIASES[tag] ?? tag;
+};
+
 export interface AdsDay {
   date: string;
   spend: number;
@@ -114,7 +125,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
       .range(at, at + 999);
     for (const v of (views ?? []) as { meta: { vid?: string; utm?: { campaign?: string; content?: string } } | null; created_at: string }[]) {
       if (!v.meta?.vid) continue;
-      const tag = `${v.meta.utm?.campaign ?? ""}/${v.meta.utm?.content ?? ""}`.toLowerCase();
+      const tag = tagOf(v.meta.utm);
       visitors.set(tag, (visitors.get(tag) ?? new Set()).add(v.meta.vid));
       landings.push({ vid: v.meta.vid, tag, at: new Date(v.created_at).getTime() });
     }
@@ -136,7 +147,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   const cohort = new Map<string, { accounts: number; trials: number; paid: number; revenue: number }>();
   for (const p of (profs ?? []) as { id: string; created_at: string; utm: Record<string, string> | null }[]) {
     if (!fromMeta.has(p.id) || new Date(p.created_at).getTime() < fromStart) continue;
-    const tag = `${p.utm?.campaign ?? ""}/${p.utm?.content ?? ""}`.toLowerCase();
+    const tag = tagOf(p.utm);
     const c = cohort.get(tag) ?? { accounts: 0, trials: 0, paid: 0, revenue: 0 };
     c.revenue += revenueOf.get(p.id) ?? 0;
     c.accounts++;
