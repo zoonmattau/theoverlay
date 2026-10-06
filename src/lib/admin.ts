@@ -139,6 +139,21 @@ export async function subscriptionEnded(id: string): Promise<string | undefined>
   return (data as { created_at: string } | null)?.created_at;
 }
 
+export type MemberStatus = "admin" | "invited" | "unconfirmed" | "paused" | "trial" | "paying" | "gift" | "lapsed" | "none";
+
+/** Where a member stands now, the first that fits. The Members page groups by it and Activity shows it beside each person. */
+export function memberStatus(m: Member, at: number): MemberStatus {
+  const state = accountState(m);
+  const live = Boolean(m.access_until && new Date(m.access_until).getTime() > at && !m.paused_at);
+  if (m.is_admin) return "admin";
+  if (state === "invited") return "invited";
+  if (state === "unconfirmed") return "unconfirmed";
+  if (m.paused_at) return "paused";
+  if (live) return m.subscription_status === "trialing" ? "trial" : "paying";
+  if (m.bonus_until && new Date(m.bonus_until).getTime() > at) return "gift";
+  return m.plan || m.access_until || m.bonus_until ? "lapsed" : "none";
+}
+
 export async function recentEvents(kind?: string, limit = 100): Promise<Event[]> {
   let q = supabaseAdmin().from("events").select("*").order("created_at", { ascending: false }).limit(limit);
   // Page views have their own page; they would drown everything else here.

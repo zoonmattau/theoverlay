@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { deleteMember, inviteMember } from "@/app/admin/actions";
-import { accountState, isAdmin, listMembers, now as clock } from "@/lib/admin";
+import { accountState, isAdmin, listMembers, memberStatus, now as clock } from "@/lib/admin";
 import { keysByUser } from "@/lib/api-keys";
 import { foundUs, FOUND_US } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
@@ -49,26 +49,10 @@ async function Members() {
     const code = m.affiliate_id ? codeOf.get(m.affiliate_id) : undefined;
     const found = code ? { group: "Affiliate" as const, detail: code } : foundUs(m);
     const live = Boolean(m.access_until && new Date(m.access_until).getTime() > now && !m.paused_at);
-    const giftLive = Boolean(m.bonus_until && new Date(m.bonus_until).getTime() > now);
     const state = accountState(m);
-    // One group each, the first that fits.
-    const category: Category = m.is_admin
-      ? "admin"
-      : tipsterIds.has(m.id)
-        ? "tipster"
-        : state === "invited"
-          ? "invited"
-          : state === "unconfirmed"
-            ? "unconfirmed"
-          : m.paused_at
-            ? "paused"
-            : live
-              ? m.subscription_status === "trialing" ? "trial" : "paying"
-              : giftLive
-                ? "gift"
-                : m.plan || m.access_until || m.bonus_until
-                  ? "lapsed"
-                  : "none";
+    // One group each, the first that fits; a tipster ahead of all but admin.
+    const status = memberStatus(m, now);
+    const category: Category = status !== "admin" && tipsterIds.has(m.id) ? "tipster" : status;
     return {
       category,
       id: m.id,

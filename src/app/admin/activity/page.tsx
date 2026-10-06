@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { isAdmin, now } from "@/lib/admin";
+import { isAdmin, listMembers, memberStatus, type MemberStatus, now } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { type Area, activityReport, AREA_LABEL, daysOfViews } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
@@ -47,7 +47,9 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   // What links carry to keep the window: "all" stays all as the days go by.
   const param = all ? "all" : String(days);
   const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
-  const [r, money] = await Promise.all([activityReport(days, cut, !all), moneyReport(days)]);
+  const [r, money, members] = await Promise.all([activityReport(days, cut, !all), moneyReport(days), listMembers()]);
+  const at = now();
+  const statusOf = new Map(members.map((m) => [m.id, memberStatus(m, at)]));
   // Every day in the window, oldest first, a quiet day as nought, for the charts.
   const window = Array.from({ length: days }, (_, i) => new Date(now() - (days - 1 - i) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
   const perDay = new Map(r.byDay.map((d) => [d.day, d]));
@@ -175,11 +177,11 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             <p className="text-xs text-ink-soft mb-3">
               Members by email. A visitor is a browser with no account: the number is its cookie, the source where its first view in the window came from. {r.cut && <Link href={`/admin/activity?days=${param}`} className="underline">Back to everyone</Link>}
             </p>
-            <People people={r.cut ? r.people : r.people.slice(0, 10)} />
+            <People people={r.cut ? r.people : r.people.slice(0, 10)} statusOf={statusOf} />
             {!r.cut && r.people.length > 10 && (
               <details className="group/more">
                 <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden text-xs font-semibold text-ink-soft mt-2 group-open/more:hidden">Show all {r.people.length}</summary>
-                <People people={r.people.slice(10)} />
+                <People people={r.people.slice(10)} statusOf={statusOf} />
               </details>
             )}
           </Fold>
@@ -205,14 +207,28 @@ function Tile({ n, was, label, versus }: { n: number; was?: number; label: strin
   );
 }
 
-function People({ people }: { people: Awaited<ReturnType<typeof activityReport>>["people"] }) {
+/** A member's status as the Members page names it, coloured by what it means for money. */
+const STATUS: Record<MemberStatus, { label: string; cls: string }> = {
+  paying: { label: "Live", cls: "text-accent font-semibold" },
+  trial: { label: "On trial", cls: "text-blue font-semibold" },
+  gift: { label: "Gift days", cls: "text-blue" },
+  paused: { label: "Paused", cls: "text-amber" },
+  lapsed: { label: "Lapsed", cls: "text-red" },
+  none: { label: "No plan", cls: "text-ink-soft" },
+  unconfirmed: { label: "Not confirmed", cls: "text-amber" },
+  invited: { label: "Not signed up", cls: "text-ink-soft" },
+  admin: { label: "Admin", cls: "text-ink-soft" },
+};
+
+function People({ people, statusOf }: { people: Awaited<ReturnType<typeof activityReport>>["people"]; statusOf: Map<string, MemberStatus> }) {
   return (
     <table className="data-table stack-sm w-full text-sm whitespace-nowrap">
-      <thead><tr><th>Who</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
+      <thead><tr><th>Who</th><th>Status</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
       <tbody>
         {people.map((p) => (
           <tr key={p.id}>
             <td>{p.email ? <Link href={`/admin/${p.id}`} className="underline">{p.email}</Link> : <span className="text-ink-soft">visitor {p.id.slice(2, 8)}</span>}</td>
+            <td data-label="Status" className={`text-xs ${p.email ? STATUS[statusOf.get(p.id) ?? "none"].cls : "text-ink-soft"}`}>{p.email ? STATUS[statusOf.get(p.id) ?? "none"].label : "Visitor"}</td>
             <td data-label="From" className="text-xs text-ink-soft">{p.from ?? "direct"}</td>
             <td data-label="Views" className="text-right nums">{p.views}</td>
             <td data-label="Races opened" className="text-right nums">{p.races}</td>
