@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { Fold } from "./Fold";
 import { FollowButton } from "./FollowButton";
 import { pct, units } from "./TipsterCard";
 import { stakeLabel, struckAt, type CreatorTip, type TipsterProfile } from "@/lib/creators";
@@ -14,11 +15,8 @@ import { price } from "@/lib/format";
 export function TipstersOnRace({ calls }: { calls: { profile: TipsterProfile; tip: CreatorTip }[] }) {
   if (calls.length === 0) return null;
   return (
-    <section className="card mb-4">
-      <div className="flex items-baseline justify-between gap-2 mb-1">
-        <h2 className="font-display font-extrabold">Tipsters on this race</h2>
-        <Link href="/tipsters" className="text-xs text-blue">All tipsters</Link>
-      </div>
+    <Fold title="Tipsters on this race" className="mb-4">
+      <Link href="/tipsters" className="text-xs text-blue">All tipsters</Link>
       <ul className="divide-y divide-line">
         {calls.map(({ profile: p, tip: t }) => {
           const u = t.settled_at ? Number(t.units) : undefined;
@@ -45,6 +43,6 @@ export function TipstersOnRace({ calls }: { calls: { profile: TipsterProfile; ti
           );
         })}
       </ul>
-    </section>
+    </Fold>
   );
 }

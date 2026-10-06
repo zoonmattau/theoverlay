@@ -5,6 +5,7 @@ import { connection } from "next/server";
 import { Suspense } from "react";
 
 import { Jumps } from "@/components/Countdown";
+import { Fold } from "@/components/Fold";
 import { FollowButton } from "@/components/FollowButton";
 import { ReactionBar } from "@/components/ReactionBar";
 import { RunningUnits } from "@/components/RunningUnits";
@@ -120,15 +121,17 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
       </section>
 
       {/* The record: the line, then four figures, over the window picked. */}
-      <section className="card mb-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-          <h2 className="font-display font-extrabold">Record</h2>
-          <div className="flex gap-1" role="group" aria-label="Window">
+      <Fold
+        title="Record"
+        className="mb-4"
+        controls={
+          <div className="flex flex-wrap gap-1" role="group" aria-label="Window">
             {TIPSTER_PERIODS.map((x) => (
               <Link key={x.id} href={href({ p: x.id })} scroll={false} className={`btn btn-sm ${x.id === period ? "btn-primary" : "btn-secondary"}`}>{x.label}</Link>
             ))}
           </div>
-        </div>
+        }
+      >
         <RunningUnits calls={settled.map((t) => ({ date: t.date, units: Number(t.units) }))} />
         <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">
           <Figure label="Units" value={rec.n ? units(rec.units) : "—"} cls={tone(rec.units)} />
@@ -142,14 +145,10 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
           {p.lays.n > 0 && <span>Lays <strong className={`nums ${tone(p.lays.units)}`}>{units(p.lays.units)}</strong>, {p.lays.hit} of {p.lays.n} held</span>}
           <span>All time unless picked above. Settled by us at the price posted, one unit unless staked otherwise.</span>
         </div>
-      </section>
+      </Fold>
 
       {/* Today, as cards. */}
-      <section className="card mb-4">
-        <div className="flex items-baseline justify-between gap-2 mb-2">
-          <h2 className="font-display font-extrabold">Today</h2>
-          <span className="text-xs text-ink-soft">{longDate(date)}</span>
-        </div>
+      <Fold title={<>Today <span className="font-sans text-xs font-normal text-ink-soft ml-1">{longDate(date)}</span></>} className="mb-4">
         {today.length === 0 ? (
           <p className="text-sm text-ink-soft">{tipster.name} has not posted today{following ? ". You will get an email when they do." : "."}</p>
         ) : (
@@ -188,18 +187,21 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
             })}
           </ul>
         )}
-      </section>
+      </Fold>
 
-      {/* Every call before today, a day at a time. */}
-      <section className="card mb-4" id="history">
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-          <h2 className="font-display font-extrabold">Every call before today</h2>
+      {/* Every call before today, a day at a time. The filters sit inside, so a tap on one never folds it. */}
+      <Fold
+        id="history"
+        title="Every call before today"
+        className="mb-4"
+        controls={
           <div className="flex gap-1" role="group" aria-label="Side">
             {[["", "All"], ["back", "Bets"], ["lay", "Lays"]].map(([id, label]) => (
               <Link key={id} href={`${href({ side: id })}#history`} scroll={false} className={`btn btn-sm ${(side ?? "") === id ? "btn-primary" : "btn-secondary"}`}>{label}</Link>
             ))}
           </div>
-        </div>
+        }
+      >
         {days.length === 0 ? (
           <p className="text-sm text-ink-soft">{tipster.name} has not posted {side === "lay" ? "a lay " : side === "back" ? "a bet " : ""}before today.</p>
         ) : (
@@ -213,7 +215,7 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
             )}
           </>
         )}
-      </section>
+      </Fold>
 
       {!you && !member && (
         <div className="card border-lime bg-lime-soft mb-4 flex flex-wrap items-center gap-3">

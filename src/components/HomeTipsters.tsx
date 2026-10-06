@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { connection } from "next/server";
 
+import { Fold } from "./Fold";
 import { FollowButton } from "./FollowButton";
 import { UnitsSpark } from "./RunningUnits";
 import { pct, units } from "./TipsterCard";
@@ -24,12 +25,8 @@ export async function HomeTipsters() {
   const following = new Set(followed.map((t) => t.id));
   const today = [...counts.values()].reduce((a, n) => a + n, 0);
   return (
-    <section className="card mt-6">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-display text-xl font-extrabold tracking-tight">Tipsters</h2>
-        <Link href="/tipsters" className="text-sm text-blue">{today ? `${today} ${today === 1 ? "call" : "calls"} today, see them all` : "See them all"} &rarr;</Link>
-      </div>
-      <p className="mt-1 text-sm text-ink-secondary">Punters posting their own calls with their reasons, every one settled by us at the price posted. Follow one and their calls land in your inbox and on every race page.</p>
+    <Fold title="Tipsters" className="mt-6">
+      <p className="text-sm text-ink-secondary">Punters posting their own calls with their reasons, every one settled by us at the price posted. Follow one and their calls land in your inbox and on every race page. <Link href="/tipsters" className="text-blue whitespace-nowrap">{today ? `${today} ${today === 1 ? "call" : "calls"} today, see them all` : "See them all"} &rarr;</Link></p>
       <ul className="mt-3 grid gap-3 md:grid-cols-3">
         {top.map((p) => {
           const n = counts.get(p.tipster.id) ?? 0;
@@ -53,6 +50,6 @@ export async function HomeTipsters() {
           );
         })}
       </ul>
-    </section>
+    </Fold>
   );
 }

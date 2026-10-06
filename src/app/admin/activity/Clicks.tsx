@@ -1,4 +1,4 @@
-import { Fold } from "../Fold";
+import { Fold } from "@/components/Fold";
 import type { MoneyReport } from "@/lib/money";
 
 /** When people press a plan button, by hour and weekday. Moved here from Money, by way of Reports (6 Oct 2026). */

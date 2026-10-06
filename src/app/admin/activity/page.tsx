@@ -12,7 +12,7 @@ import { moneyReport } from "@/lib/money";
 import { DayChart } from "@/components/DayChart";
 import type { Series } from "@/lib/reports";
 import { BarList, BarRow } from "../BarList";
-import { Fold } from "../Fold";
+import { Fold } from "@/components/Fold";
 import { PlanClicks } from "./Clicks";
 
 /** The windows, in days, then every day since the first page view. */

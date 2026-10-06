@@ -11,7 +11,7 @@ import { bank, type Bank as BankInfo } from "@/lib/bank";
 import { invested, SINCE, type Invested } from "@/lib/invested";
 import { RunningTotals } from "@/components/RunningTotals";
 import { addCost, removeCost, stopCost } from "./actions";
-import { Fold } from "../Fold";
+import { Fold } from "@/components/Fold";
 import { Funnel, PeopleTile } from "./People";
 import { planById, TERMS } from "@/lib/billing/plans";
 import { priceBook, type PriceBook } from "@/lib/billing/prices";
