@@ -11,6 +11,7 @@ import { ReactionBar } from "@/components/ReactionBar";
 import { RunningUnits } from "@/components/RunningUnits";
 import { Outcome } from "@/components/SelectionCard";
 import { SocialLinks } from "@/components/SocialLinks";
+import { TipsterAvatar } from "@/components/TipsterAvatar";
 import { FormDots, pct, perWeek, units } from "@/components/TipsterCard";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
@@ -96,7 +97,7 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
     <>
       {/* Who they are, once. */}
       <section className="py-6 flex flex-wrap items-start gap-4">
-        <span className="h-16 w-16 shrink-0 rounded-full bg-lime text-ink font-display text-3xl font-extrabold flex items-center justify-center" aria-hidden>{tipster.name.slice(0, 1).toUpperCase()}</span>
+        <TipsterAvatar tipster={tipster} size={64} />
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
             <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">{tipster.name}</h1>

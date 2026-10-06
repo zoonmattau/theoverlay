@@ -3,6 +3,7 @@ import { connection } from "next/server";
 
 import { Fold } from "./Fold";
 import { FollowButton } from "./FollowButton";
+import { TipsterAvatar } from "./TipsterAvatar";
 import { UnitsSpark } from "./RunningUnits";
 import { pct, units } from "./TipsterCard";
 import { getViewer } from "@/lib/auth";
@@ -34,7 +35,7 @@ export async function HomeTipsters() {
           return (
             <li key={p.tipster.id} className="rounded-md border border-line p-3 flex flex-col gap-2">
               <div className="flex items-center gap-2">
-                <span className="h-9 w-9 shrink-0 rounded-full bg-lime text-ink font-display font-extrabold flex items-center justify-center" aria-hidden>{p.tipster.name.slice(0, 1).toUpperCase()}</span>
+                <TipsterAvatar tipster={p.tipster} size={36} />
                 <Link href={`/t/${p.tipster.code}`} className="font-display font-extrabold hover:underline truncate">{p.tipster.name}</Link>
                 <span className="ml-auto"><UnitsSpark calls={[...p.recent].reverse()} /></span>
               </div>

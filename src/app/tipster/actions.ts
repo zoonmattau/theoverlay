@@ -86,3 +86,34 @@ export async function saveBlurb(form: FormData): Promise<void> {
   await supabaseAdmin().from("affiliates").update({ blurb, instagram: handle("instagram"), twitter: handle("twitter"), tiktok: handle("tiktok") }).eq("id", tipster.id);
   paths();
 }
+
+/**
+ * The tipster's avatar: a letter or two, and a logo already cropped to 256px
+ * in the browser (a JPEG data URL), or remove the logo they had.
+ */
+export async function saveAvatar(form: FormData): Promise<void> {
+  const viewer = await getViewer();
+  const tipster = await tipsterForUser(viewer.id);
+  if (!tipster) return;
+  const letter = String(form.get("letter") ?? "").replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || null;
+  const patch: { avatar_letter: string | null; avatar_url?: string | null } = { avatar_letter: letter };
+  if (form.get("remove") === "1") patch.avatar_url = null;
+  const image = String(form.get("image") ?? "");
+  const m = image.match(/^data:image\/jpeg;base64,(.+)$/);
+  if (m) {
+    const bytes = Buffer.from(m[1], "base64");
+    // A 256px JPEG is a few tens of kilobytes; anything far bigger is not what the picker sends.
+    if (bytes.length > 500_000) return;
+    const path = `tipsters/${tipster.id}-${Date.now()}.jpg`;
+    const db = supabaseAdmin();
+    const { error } = await db.storage.from("avatars").upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+    if (error) {
+      console.error("[tipster] avatar upload", error.message);
+      return;
+    }
+    patch.avatar_url = db.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+  }
+  await supabaseAdmin().from("affiliates").update(patch).eq("id", tipster.id);
+  paths(`/t/${tipster.code}`);
+}
+

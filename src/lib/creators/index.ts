@@ -20,6 +20,10 @@ export interface Tipster extends Affiliate {
   instagram?: string | null;
   twitter?: string | null;
   tiktok?: string | null;
+  /** A letter or two the tipster picked for their avatar. */
+  avatar_letter?: string | null;
+  /** Their uploaded round logo, in the avatars bucket. */
+  avatar_url?: string | null;
 }
 
 export interface CreatorTip {

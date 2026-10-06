@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Fold } from "./Fold";
 import { FollowButton } from "./FollowButton";
+import { TipsterAvatar } from "./TipsterAvatar";
 import { pct, units } from "./TipsterCard";
 import { stakeLabel, struckAt, type CreatorTip, type TipsterProfile } from "@/lib/creators";
 import { price } from "@/lib/format";
@@ -22,7 +23,7 @@ export function TipstersOnRace({ calls }: { calls: { profile: TipsterProfile; ti
           const u = t.settled_at ? Number(t.units) : undefined;
           return (
             <li key={t.id} className="py-3 flex flex-wrap items-start gap-3">
-              <span className="h-9 w-9 shrink-0 rounded-full bg-lime text-ink font-display font-extrabold flex items-center justify-center" aria-hidden>{p.tipster.name.slice(0, 1).toUpperCase()}</span>
+              <TipsterAvatar tipster={p.tipster} size={36} />
               <div className="min-w-0 flex-1">
                 <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
                   <Link href={`/t/${p.tipster.code}`} className="font-display font-extrabold hover:underline">{p.tipster.name}</Link>

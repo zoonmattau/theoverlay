@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ClickRow } from "./ClickRow";
 import { FollowButton } from "./FollowButton";
+import { TipsterAvatar } from "./TipsterAvatar";
 import { UnitsSpark } from "./RunningUnits";
 import { FormDots, pct, units } from "./TipsterCard";
 import { TIPSTER_PERIODS, type TipsterPeriod, type TipsterProfile } from "@/lib/creators";
@@ -43,7 +44,7 @@ export function TipsterRow({ p, rank, following, you, today, live, period }: { p
       <td data-col="rank" className="text-right nums text-ink-soft"><span className="rank-disc">{rank}</span></td>
       <td data-col="name">
         {/* The initial as an avatar, as on their page, so a name has a face in the list. */}
-        <span className="inline-flex h-7 w-7 mr-2 align-middle rounded-full bg-lime text-ink font-display font-extrabold text-sm items-center justify-center" aria-hidden>{t.name.slice(0, 1).toUpperCase()}</span>
+        <TipsterAvatar tipster={t} size={28} className="mr-2 align-middle" />
         <Link href={`/t/${t.code}`} className="font-display font-extrabold hover:underline">{t.name}</Link>
         {you && <span className="badge badge-prime ml-2">You</span>}
         {p.followers > 0 && <span className="tipster-followers text-[11px] text-ink-soft ml-2 whitespace-nowrap">{p.followers} {p.followers === 1 ? "follower" : "followers"}</span>}

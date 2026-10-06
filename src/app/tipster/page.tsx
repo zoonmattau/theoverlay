@@ -3,7 +3,8 @@ import Link from "next/link";
 import { connection } from "next/server";
 import { Suspense } from "react";
 
-import { postTip, removeTip, saveBlurb } from "./actions";
+import { postTip, removeTip, saveAvatar, saveBlurb } from "./actions";
+import { AvatarPicker } from "./AvatarPicker";
 import { CopyLink } from "@/components/CopyLink";
 import { TipsterMatrix, type MatrixMeeting } from "@/components/TipsterMatrix";
 import { getViewer } from "@/lib/auth";
@@ -186,6 +187,12 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
         </div>
       </div>
 
+
+      <div className="card">
+        <h2 className="font-display font-extrabold">Your avatar</h2>
+        <p className="text-xs text-ink-soft mt-1">The circle beside your name on your page, the leaderboard and race pages. A letter or two, or your logo.</p>
+        <AvatarPicker name={tipster.name} letter={tipster.avatar_letter ?? null} url={tipster.avatar_url ?? null} action={saveAvatar} />
+      </div>
 
       <div className="card">
         <h2 className="font-display font-extrabold">About you</h2>
