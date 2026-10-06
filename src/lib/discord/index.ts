@@ -166,11 +166,13 @@ function strictOf(c: Call): string {
   return limit ? `bet at ${price(limit)} or better` : `bet at ${price(callPrice(c.x))}`;
 }
 
-/** Every call, a heading per meeting and a blank line between meetings, races in jump order. */
-function lines(calls: Call[]): string {
-  const groups = new Map<string, Call[]>();
-  for (const c of calls) groups.set(c.m.track, [...(groups.get(c.m.track) ?? []), c]);
-  return [...groups.entries()].map(([track, list]) => `**${track.toUpperCase()}**\n${list.map((c) => line(c)).join("\n")}`).join("\n\n");
+/**
+ * Every call in jump order, each the same block as a call posted during the day: the race,
+ * time and runner as a link to the race page, then the price. The old list grouped by
+ * meeting had no links and read differently from the day's posts (6 Oct 2026).
+ */
+function lines(calls: Call[], date: string): string {
+  return calls.map((c) => callPost(c, date)).join("\n\n");
 }
 
 const LAYS_LATER = "Lays post here half an hour before the jump, at the exchange price then.";
@@ -189,19 +191,27 @@ export async function postCalls(date: string, card: StoredCard, opts: { early?: 
   try {
     if (opts.early) {
       // Tomorrow's bets the night before, for members only.
-      const body = bets.length ? lines(bets) : "No bets on the card yet.";
+      const body = bets.length ? lines(bets, date) : "No bets on the card yet.";
       await once(date, "early", () => send(CHANNELS.early, `**Early look, ${day}.** Prices will move by morning, the calls may too.\n\n${body}`));
       return;
     }
     if (calls.length === 0) return;
-    const body = bets.length ? `**${day}: ${bets.length} ${bets.length === 1 ? "bet" : "bets"}.** ${LAYS_LATER}\n\n${lines(bets)}` : `**${day}: no bets this morning.** ${LAYS_LATER}`;
-    await once(date, "calls", () => send(CHANNELS.calls, `${body}\n\n${SITE}/`));
+    await once(date, "calls", () => send(CHANNELS.calls, morningPost(date, bets)));
     const free = card.meetings.flatMap((m) => m.races.map((r) => ({ m, r }))).find(({ r }) => r.raceId === card.freeRaceId);
     if (free) await once(date, "free", () => send(CHANNELS.free, freeRacePost(date, day, free.m, free.r, calls)));
   } catch (err) {
     console.error("[discord] calls", err);
   }
 }
+
+/** The 11am post: a line for the day, then each bet as its own linked block. */
+function morningPost(date: string, bets: Call[]): string {
+  const day = longDate(date);
+  return bets.length ? `**${day}: ${bets.length} ${bets.length === 1 ? "bet" : "bets"}.** ${LAYS_LATER}\n\n${lines(bets, date)}` : `**${day}: no bets this morning.** ${LAYS_LATER}`;
+}
+
+/** The 11am post as it would go now, to put right a post already sent. */
+export const morningPostFor = (date: string, card: StoredCard) => morningPost(date, callsOn(card).filter((c) => c.x.signal === "back"));
 
 /**
  * The free race written up: what the race is, how it should be run, our
