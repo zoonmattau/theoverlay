@@ -379,7 +379,7 @@ export async function postWinners(date: string, before: Map<string, PublishedRac
       return `✅ Lay **${c.x.horseName}** ${c.m.track} R${c.r.raceNumber} ran ${ran(c)}, laid ${price(at)} · +${got.toFixed(2)}u`;
     };
     const lines = [...won.map(lineFor), ...flipped.map((c) => `⚖️ Amended: ${lineFor(c)}`)];
-    const messageId = await send(CHANNELS.winners, [...lines, `Today ${units >= 0 ? "+" : ""}${units.toFixed(2)}u · ${SITE}/tips`].join("\n"));
+    const messageId = await send(CHANNELS.winners, [...lines, `Today ${units >= 0 ? "+" : ""}${units.toFixed(2)}u`].join("\n"));
     await remember(messageId);
     if (flipped.length) await supabaseAdmin().from("discord_posts").upsert(flipped.map((c) => ({ date, kind: `flip:${c.r.raceId}:${c.x.tabNumber}`, message_id: messageId ?? null })), { onConflict: "date,kind" });
   } catch (err) {
