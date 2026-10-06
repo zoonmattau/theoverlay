@@ -1,0 +1,203 @@
+{
+ "shots": [
+  {
+   "name": "kom-market",
+   "url": "/racing/2026-10-07/gold-coast-poly-20261007/GCPT_071026_7",
+   "from": "#runner-5",
+   "to": "#runner-7",
+   "pad": 6,
+   "ring": [
+    "#runner-6"
+   ]
+  },
+  {
+   "name": "kom-rankings",
+   "url": "/racing/2026-10-07/gold-coast-poly-20261007/GCPT_071026_7",
+   "from": "section.section:has(h2:text-is(\"Rankings\")) .bar-row >> nth=0",
+   "to": "section.section:has(h2:text-is(\"Rankings\")) .bar-row >> nth=9",
+   "pad": 6,
+   "ring": [
+    "section.section:has(h2:text-is(\"Rankings\")) .bar-row:has-text(\"King Of Minto\")"
+   ]
+  },
+  {
+   "name": "kom-map",
+   "url": "/racing/2026-10-07/gold-coast-poly-20261007/GCPT_071026_7",
+   "from": "section.section:has(h2:text-is(\"Speed map\")) .section-bar",
+   "to": "section.section:has(h2:text-is(\"Speed map\")) .rail",
+   "ring": [
+    "section.section:has(h2:text-is(\"Speed map\")) .map-chip:has(.map-cloth:text-is(\"6\"))"
+   ]
+  },
+  {
+   "name": "kom-watch",
+   "url": "/racing/2026-10-07/gold-coast-poly-20261007/GCPT_071026_7",
+   "from": ".watch-item:has-text(\"King Of Minto\")",
+   "pad": 10
+  },
+  {
+   "name": "kom-runs-first",
+   "url": "/racing/2026-10-07/gold-coast-poly-20261007/GCPT_071026_7",
+   "click": [
+    "#runner-6"
+   ],
+   "from": ".runner-detail-runs",
+   "to": ".runs-table .runs-row >> nth=2",
+   "ring": [
+    ".runs-table .runs-row >> nth=0"
+   ]
+  },
+  {
+   "name": "kom-runs-form",
+   "url": "/racing/2026-10-07/gold-coast-poly-20261007/GCPT_071026_7",
+   "from": ".runner-detail-runs",
+   "to": ".runs-table .runs-row >> nth=4",
+   "ring": [
+    ".runs-table .runs-row >> nth=3"
+   ],
+   "click": [
+    "#runner-6"
+   ]
+  },
+  {
+   "name": "sat-byday",
+   "url": "/results",
+   "from": "section.section:has(h2:text-is(\"By day\")) .section-bar",
+   "to": "section.section:has(h2:text-is(\"By day\")) tbody tr >> nth=7",
+   "ring": [
+    "section.section:has(h2:text-is(\"By day\")) tbody tr:has-text(\"Sat, 3 Oct\")"
+   ]
+  },
+  {
+   "name": "sat-winners",
+   "url": "/results?side=bets&period=7",
+   "select": [
+    [
+     "section.section:has(h2:text-is(\"Every call\")) select",
+     "won"
+    ]
+   ],
+   "from": "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\")",
+   "pad": 4,
+   "click": [
+    "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\") tr >> nth=0"
+   ],
+   "to": "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\") + tbody tr >> nth=-1"
+  },
+  {
+   "name": "sat-winners-mb",
+   "url": "/results?side=bets&period=7",
+   "select": [
+    [
+     "section.section:has(h2:text-is(\"Every call\")) select",
+     "won"
+    ]
+   ],
+   "from": "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\")",
+   "pad": 4,
+   "click": [
+    "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\") tr >> nth=0"
+   ],
+   "to": "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\") + tbody tr >> nth=-1",
+   "ring": [
+    "section.section:has(h2:text-is(\"Every call\")) tr:has-text(\"Shadow Eagle\")"
+   ]
+  },
+  {
+   "name": "sat-winners-ef",
+   "url": "/results?side=bets&period=7",
+   "select": [
+    [
+     "section.section:has(h2:text-is(\"Every call\")) select",
+     "won"
+    ]
+   ],
+   "from": "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\")",
+   "pad": 4,
+   "click": [
+    "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\") tr >> nth=0"
+   ],
+   "to": "section.section:has(h2:text-is(\"Every call\")) tbody:has-text(\"Sat, 3 Oct\") + tbody tr >> nth=-1",
+   "ring": [
+    "section.section:has(h2:text-is(\"Every call\")) tr:has-text(\"Liberty Park\")",
+    "section.section:has(h2:text-is(\"Every call\")) tr:has-text(\"Easy Love\")"
+   ]
+  },
+  {
+   "name": "sat-gc1",
+   "url": "/racing/2026-10-03/gold-coast-20261003/GCST_031026_1",
+   "from": "section.section:has(h2:text-is(\"Results, first four\"))",
+   "ring": [
+    "section.section:has(h2:text-is(\"Results, first four\")) :text-is(\"$17.56\")"
+   ]
+  },
+  {
+   "name": "sat-gc1-margin",
+   "url": "/racing/2026-10-03/gold-coast-20261003/GCST_031026_1",
+   "from": "section.section:has(h2:text-is(\"Results, first four\")) ",
+   "ring": [
+    "section.section:has(h2:text-is(\"Results, first four\")) :text(\"0.3L\")"
+   ]
+  },
+  {
+   "name": "sat-gc1-pick",
+   "url": "/racing/2026-10-03/gold-coast-20261003/GCST_031026_1",
+   "from": "section.section:has(h2:text-is(\"Our selections\")) ",
+   "ring": [
+    "section.section:has(h2:text-is(\"Our selections\")) .pick-card >> nth=0"
+   ]
+  },
+  {
+   "name": "sat-efm4",
+   "url": "/racing/2026-10-03/eagle-farm-20261003/E%20FM_031026_4",
+   "from": "section.section:has(h2:text-is(\"Results, first four\"))"
+  },
+  {
+   "name": "sat-efm6",
+   "url": "/racing/2026-10-03/eagle-farm-20261003/E%20FM_031026_6",
+   "from": "section.section:has(h2:text-is(\"Results, first four\"))"
+  },
+  {
+   "name": "sat-flem4",
+   "url": "/racing/2026-10-03/flemington-20261003/FLEM_031026_4",
+   "from": "section.section:has(h2:text-is(\"Results, first four\"))"
+  },
+  {
+   "name": "guide-tips",
+   "url": "/tips",
+   "from": "h1",
+   "to": "section.section:has(h2:text-is(\"Bets\")) .section-bar",
+   "pad": 12
+  },
+  {
+   "name": "guide-bets",
+   "url": "/tips",
+   "from": "section.section:has(h2:text-is(\"Bets\"))",
+   "pad": 4
+  },
+  {
+   "name": "guide-min",
+   "url": "/tips",
+   "from": "section.section:has(h2:text-is(\"Bets\"))",
+   "pad": 4,
+   "ring": [
+    "section.section:has(h2:text-is(\"Bets\")) :text-matches(\"^min \\\\$\") >> nth=0"
+   ]
+  },
+  {
+   "name": "guide-form",
+   "url": "/racing/2026-10-07/randwick-kensington-20261007/KENS_071026_6",
+   "click": [
+    "#runner-1"
+   ],
+   "from": ".runner-detail-runs",
+   "to": ".runs-table .runs-row >> nth=4"
+  },
+  {
+   "name": "guide-discord",
+   "url": "/welcome",
+   "from": "section.card:has-text(\"in the Discord every race day\")",
+   "pad": 10
+  }
+ ]
+}

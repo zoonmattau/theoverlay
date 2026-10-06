@@ -1,0 +1,73 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,800;0,900;1,900&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  /* YouTube thumbnail, 1280x720. ?big=+46 UNITS&small=BEST SATURDAY YET&lay=KING OF MINTO&layk=BIGGEST UNDERLAY&ep=EP 1
+     Reads at phone size: one huge lime number, one red call, the show bars, both faces of the show. */
+  :root { --ink: #14161a; --lime: #c6f24e; --red: #d93636; --paper: #f5f7f2; --mute: #8b919b; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1280px; height: 720px; overflow: hidden; background: var(--ink); color: var(--paper); font-family: Archivo, sans-serif; }
+  .band { position: absolute; left: -10%; width: 120%; height: 12px; transform: rotate(-3deg); }
+  .band.l { top: 70px; background: var(--lime); }
+  .band.r { bottom: 70px; background: var(--red); }
+  .show { position: absolute; left: 56px; top: 104px; display: flex; flex-direction: column; gap: 6px; transform: rotate(-3deg); }
+  .show span { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 34px; line-height: 1; padding: 6px 16px 8px; clip-path: polygon(4% 0, 100% 0, 96% 100%, 0 100%); width: fit-content; }
+  .show .o { background: var(--lime); color: var(--ink); }
+  .show .u { background: var(--red); color: var(--paper); margin-left: 20px; }
+  .small { position: absolute; left: 60px; top: 236px; font: 600 30px "IBM Plex Mono", monospace; letter-spacing: 0.12em; color: var(--paper); text-transform: uppercase; }
+  .big { position: absolute; left: 50px; top: 268px; font-weight: 900; font-style: italic; font-size: 164px; line-height: 0.9; letter-spacing: -0.03em; color: var(--lime); text-transform: uppercase; white-space: nowrap; }
+  .lay { position: absolute; left: 60px; top: 478px; display: flex; align-items: stretch; transform: rotate(-2deg); }
+  .lay .tag { background: var(--red); color: var(--paper); font-weight: 900; font-style: italic; font-size: 54px; padding: 8px 22px 10px; text-transform: uppercase; }
+  .lay .who { background: var(--paper); color: var(--ink); padding: 6px 22px 8px; display: flex; flex-direction: column; justify-content: center; }
+  .lay .who small { font: 600 18px "IBM Plex Mono", monospace; letter-spacing: 0.12em; color: #5b616b; }
+  .lay .who b { font-weight: 900; font-style: italic; font-size: 46px; line-height: 1; text-transform: uppercase; }
+  .faces { position: absolute; right: 64px; top: 200px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+  .face { width: 184px; height: 184px; border-radius: 50%; border: 8px solid var(--paper); background: var(--ink); display: grid; place-items: center; overflow: hidden; }
+  .face img.m { width: 100px; }
+  .face img.s { width: 100%; height: 100%; object-fit: cover; }
+  .x { font: 600 26px "IBM Plex Mono", monospace; color: var(--mute); margin: -12px 0; }
+  .lay .tag.lime { background: var(--lime); color: var(--ink); }
+  .big.long { font-size: 128px; }
+  /* ?square=1: 1080x1080, stacked, for Instagram and the episode art. */
+  body.sq { width: 1080px; height: 1080px; }
+  body.sq .band.l { top: 60px; } body.sq .band.r { bottom: 60px; }
+  body.sq .show { left: 60px; top: 110px; }
+  body.sq .ep { top: 130px; }
+  body.sq .small { top: 270px; font-size: 32px; white-space: normal; right: 60px; line-height: 1.35; }
+  body.sq .big { top: 330px; font-size: 150px; white-space: normal; right: 40px; }
+  body.sq .lay { top: 650px; }
+  body.sq .faces { right: auto; left: 60px; top: 830px; flex-direction: row; gap: 18px; }
+  body.sq .face { width: 120px; height: 120px; border-width: 6px; } body.sq .face img.m { width: 64px; }
+  body.sq .x { margin: 0 -4px; }
+  body.sq .handles { display: block; }
+  .handles { display: none; position: absolute; left: 360px; top: 862px; font: 600 28px "IBM Plex Mono", monospace; letter-spacing: 0.06em; line-height: 1.5; color: var(--paper); }
+  .ep { position: absolute; right: 60px; top: 104px; font: 600 26px "IBM Plex Mono", monospace; letter-spacing: 0.14em; color: var(--mute); }
+</style>
+</head>
+<body>
+<div class="band l"></div><div class="band r"></div>
+<img class="show" src="show-logo.png" style="height:104px;transform:none">
+<div class="ep" id="ep"></div>
+<div class="small" id="small"></div>
+<div class="big" id="big"></div>
+<div class="lay"><div class="tag" id="tag">Lay</div><div class="who"><small id="layk"></small><b id="lay"></b></div></div>
+<div class="faces">
+  <div class="face"><img class="m" src="../../../public/brand/mark-mono-white.svg" alt=""></div>
+  <div class="x">×</div>
+  <div class="face"><img class="s" src="../ep1/video/stablemate.png" alt=""></div>
+</div>
+<div class="handles">@theoverlay_au<br>@the_stablemate</div>
+<script>
+  const q = new URLSearchParams(location.search);
+  for (const id of ["ep", "small", "big", "lay", "layk"]) document.getElementById(id).textContent = q.get(id) ?? "";
+  // ?tag= changes the call box's label (default Lay), ?tagc=lime colours it lime; ?square=1 lays it out 1080x1080.
+  if (q.get("tag")) document.getElementById("tag").textContent = q.get("tag");
+  if (q.get("tagc") === "lime") document.getElementById("tag").classList.add("lime");
+  if ((q.get("big") ?? "").length > 9) document.getElementById("big").classList.add("long");
+  if (q.get("square")) document.body.classList.add("sq");
+  Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))]).then(() => (document.body.dataset.ready = "1"));
+</script>
+</body>
+</html>

@@ -1,0 +1,192 @@
+{
+ "note": "Instagram Reels cut from the episode. Pieces are [start, end] seconds on the v3 timeline (episode/final-v3.wav). Cards: a race page screenshot ('shot', relative to video/) or an episode stage card ('card', by its title or kicker), from 'at'. 'why' items appear as they're said. Facts from the 7 Oct card: King Of Minto rates 7th of 10, fast tempo.",
+ "clips": [
+  {
+   "name": "king-of-minto",
+   "pieces": [
+    [
+     923.6,
+     947.4
+    ],
+    [
+     961.0,
+     974.2
+    ]
+   ],
+   "hook": [
+    "Wednesday's biggest",
+    "Underlay"
+   ],
+   "tone": "lay",
+   "cards": [
+    {
+     "at": 923.6,
+     "play": {
+      "tone": "lay",
+      "tag": "Lay",
+      "k": "Gold Coast Poly R7 · 6.10pm Wed",
+      "t": "King Of Minto",
+      "mkt": "$1.75",
+      "rated": "$2.55",
+      "side": "Lay at",
+      "line": "$2.20 or under",
+      "stats": "Barrier 2|57.5kg|T. Marshall|Form 31384x|193 days off|On pace"
+     }
+    },
+    {
+     "at": 939.0,
+     "shot": "shots/GCPT_071026_7-rankings.png"
+    },
+    {
+     "at": 961.0,
+     "shot": "shots/GCPT_071026_7-map.png",
+     "crop": [
+      0.42,
+      0,
+      1,
+      1
+     ]
+    }
+   ],
+   "why": {
+    "title": "Why we're laying King Of Minto",
+    "tone": "lay",
+    "items": [
+     {
+      "at": 925.5,
+      "text": "$1.75 favourite. We rate him $2.55"
+     },
+     {
+      "at": 933.0,
+      "text": "First up after 193 days"
+     },
+     {
+      "at": 942.2,
+      "text": "1 win from his last 5, 3 from 8"
+     },
+     {
+      "at": 945.0,
+      "text": "7th of 10 on our ratings"
+     },
+     {
+      "at": 961.3,
+      "text": "Has to lead, in a fast-run race"
+     }
+    ]
+   },
+   "cta": "Lay at $2.20 or under · 6.10pm Wed"
+  },
+  {
+   "name": "saturday-haul",
+   "pieces": [
+    [
+     584.6,
+     623.2
+    ]
+   ],
+   "hook": [
+    "Our best Saturday yet",
+    "+46 units"
+   ],
+   "tone": "bet",
+   "cards": [
+    {
+     "at": 584.6,
+     "stat": {
+      "k": "Saturday 3 Oct · The Overlay",
+      "t": "+46 units",
+      "facts": "Bets=36 · 7 winners|Lays=52 · 40 beaten|Best=Bodmin Moor $17.56"
+     }
+    },
+    {
+     "at": 601.0,
+     "shot": "shots/GCST_031026_1-result.png"
+    },
+    {
+     "at": 613.0,
+     "shot": "shots/MUBR_031026_4-result.png"
+    },
+    {
+     "at": 618.3,
+     "shot": "shots/FLEM_031026_4-result.png"
+    }
+   ],
+   "why": {
+    "title": "Saturday in numbers",
+    "items": [
+     {
+      "at": 590.0,
+      "text": "+46 units on the day"
+     },
+     {
+      "at": 593.0,
+      "text": "7 winners from 36 bets"
+     },
+     {
+      "at": 595.0,
+      "text": "Average winning price over $9"
+     },
+     {
+      "at": 604.5,
+      "text": "Bodmin Moor won at $17.56"
+     },
+     {
+      "at": 613.0,
+      "text": "Then $11, $8 and $9 winners"
+     }
+    ]
+   },
+   "cta": "Full episode on YouTube and Spotify"
+  },
+  {
+   "name": "guide-not-a-bible",
+   "pieces": [
+    [
+     1643.8,
+     1671.6
+    ]
+   ],
+   "hook": [
+    "How to use The Overlay",
+    "A guide, not a Bible"
+   ],
+   "tone": "bet",
+   "cards": [
+    {
+     "at": 1643.8,
+     "shot": "shots/site-tips-sat.png"
+    },
+    {
+     "at": 1655.0,
+     "shot": "shots/site-home-sat.png"
+    }
+   ],
+   "why": {
+    "title": "How members use it",
+    "items": [
+     {
+      "at": 1644.5,
+      "text": "It's not one size fits all"
+     },
+     {
+      "at": 1646.5,
+      "text": "Don't stress 10c either side"
+     },
+     {
+      "at": 1654.5,
+      "text": "Pick the ones you like"
+     },
+     {
+      "at": 1658.0,
+      "text": "Add your own form"
+     },
+     {
+      "at": 1661.0,
+      "text": "Banter in the Discord"
+     }
+    ]
+   },
+   "cta": "Full episode on YouTube and Spotify"
+  }
+ ]
+}

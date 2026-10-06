@@ -1,0 +1,276 @@
+{
+ "note": "Instagram Reels cut from the episode (v2 layout, 7 Oct). Pieces are [start, end] seconds on the v3 timeline (episode/final-v3.wav). Each beat: the point as a claim over its proof, a phone-width shot of the real site (proofs.json, proof-shots.mjs) with the point ringed. Claims use the site's figures at the time of shooting; King Of Minto's spoken prices ($1.65, $2.65) are cut because the card has moved to $1.60 and $2.25.",
+ "clips": [
+  {
+   "name": "king-of-minto",
+   "pieces": [
+    [
+     923.6,
+     926.3
+    ],
+    [
+     931.5,
+     947.5
+    ],
+    [
+     961.6,
+     974
+    ]
+   ],
+   "hook": [
+    "Wednesday's biggest",
+    "Underlay"
+   ],
+   "tone": "lay",
+   "beats": [
+    {
+     "at": 923.6,
+     "shot": "proofs/kom-market.png",
+     "k": "Gold Coast Poly R7 · 6.10pm Wed",
+     "t": "*$1.60* fav. We rate him *$2.25*"
+    },
+    {
+     "at": 933.4,
+     "shot": "proofs/kom-runs-first.png",
+     "k": "Last start 28 March",
+     "t": "First up after *193 days*"
+    },
+    {
+     "at": 937.8,
+     "shot": "proofs/kom-runs-form.png",
+     "k": "His last 5 runs",
+     "t": "*1 win* from his last 5"
+    },
+    {
+     "at": 945.6,
+     "shot": "proofs/kom-rankings.png",
+     "k": "Our rankings · today",
+     "t": "*7th of 10* on our ratings"
+    },
+    {
+     "at": 961.7,
+     "shot": "proofs/kom-map.png",
+     "k": "Speed map · pressure 82%",
+     "t": "Fast pace, and he's *up in it*"
+    },
+    {
+     "at": 968.3,
+     "shot": "proofs/kom-watch.png",
+     "k": "What to watch",
+     "t": "The tempo is *against him*"
+    }
+   ],
+   "cta": "Lay at $2.00 or under · 6.10pm"
+  },
+  {
+   "name": "saturday-haul",
+   "pieces": [
+    [
+     584.9,
+     606.5
+    ],
+    [
+     608.3,
+     623
+    ]
+   ],
+   "hook": [
+    "Our best Saturday yet",
+    "+46 units"
+   ],
+   "tone": "",
+   "beats": [
+    {
+     "at": 584.9,
+     "shot": "proofs/sat-byday.png",
+     "k": "Results · by day",
+     "t": "Saturday: *+46.28 units*"
+    },
+    {
+     "at": 593.2,
+     "shot": "proofs/sat-winners.png",
+     "crop": [
+      0,
+      0,
+      1,
+      0.92
+     ],
+     "k": "Bets that won · Sat 3 Oct",
+     "t": "*7 winners* from 36 bets"
+    },
+    {
+     "at": 595,
+     "shot": "proofs/sat-winners.png",
+     "crop": [
+      0,
+      0,
+      1,
+      0.92
+     ],
+     "k": "Bets that won · Sat 3 Oct",
+     "t": "Average winning price *$9.45*"
+    },
+    {
+     "at": 600.4,
+     "shot": "proofs/sat-gc1.png",
+     "k": "Gold Coast R1 · result",
+     "t": "Bodmin Moor, *$17.56*"
+    },
+    {
+     "at": 608.8,
+     "shot": "proofs/sat-gc1-margin.png",
+     "k": "Gold Coast R1 · result",
+     "t": "Held on by *0.3 lengths*"
+    },
+    {
+     "at": 609.8,
+     "shot": "proofs/sat-gc1-pick.png",
+     "k": "Our selections · before the race",
+     "t": "Our *top pick*, bet at *$9.50*"
+    },
+    {
+     "at": 613.3,
+     "shot": "proofs/sat-winners-mb.png",
+     "crop": [
+      0,
+      0,
+      1,
+      0.92
+     ],
+     "k": "Murray Bridge R4",
+     "t": "Shadow Eagle, *$11*"
+    },
+    {
+     "at": 615.7,
+     "shot": "proofs/sat-winners-ef.png",
+     "crop": [
+      0,
+      0,
+      1,
+      0.92
+     ],
+     "k": "Eagle Farm R4 and R6",
+     "t": "*$8.85* and *$9.63* winners"
+    },
+    {
+     "at": 617.8,
+     "shot": "proofs/sat-flem4.png",
+     "k": "Flemington R4 · result",
+     "t": "Saintly Dancer, *$6.14*"
+    }
+   ],
+   "cta": "Full episode on YouTube and Spotify",
+   "fix": [
+    [
+     "Bodmin Moore",
+     "Bodmin Moor"
+    ],
+    [
+     "Saitley",
+     "Saintly"
+    ],
+    [
+     "winder",
+     "winner"
+    ],
+    [
+     "I'm about a half head.",
+     "By about a half head."
+    ],
+    [
+     "one by that far.",
+     "won by that far."
+    ],
+    [
+     "eagle farm.",
+     "Eagle Farm."
+    ],
+    [
+     "around 1750",
+     "around $17.50"
+    ],
+    [
+     "11 bucks,",
+     "$11,"
+    ]
+   ]
+  },
+  {
+   "name": "guide-not-a-bible",
+   "pieces": [
+    [
+     1643.9,
+     1671.4
+    ]
+   ],
+   "hook": [
+    "How to use The Overlay",
+    "A guide, not a Bible"
+   ],
+   "tone": "",
+   "beats": [
+    {
+     "at": 1643.9,
+     "shot": "proofs/guide-tips.png",
+     "k": "Today's tips",
+     "t": "Every bet and lay, *every day*"
+    },
+    {
+     "at": 1647.5,
+     "shot": "proofs/guide-min.png",
+     "k": "Every bet has a minimum",
+     "t": "Don't stress *10c* either side",
+     "crop": [
+      0,
+      0,
+      1,
+      0.42
+     ]
+    },
+    {
+     "at": 1653.5,
+     "shot": "proofs/guide-bets.png",
+     "k": "Today's bets",
+     "t": "Pick the ones *you like*",
+     "crop": [
+      0,
+      0,
+      1,
+      0.62
+     ]
+    },
+    {
+     "at": 1658.1,
+     "shot": "proofs/guide-form.png",
+     "k": "Last runs on every runner",
+     "t": "Add your *own form*"
+    },
+    {
+     "at": 1660.3,
+     "shot": "proofs/guide-discord.png",
+     "k": "The members' Discord",
+     "t": "Banter in *the Discord*"
+    },
+    {
+     "at": 1662,
+     "shot": "proofs/sat-gc1.png",
+     "k": "Gold Coast R1 · Sat 3 Oct",
+     "t": "When one *gets up*"
+    },
+    {
+     "at": 1665.3,
+     "shot": "proofs/guide-discord.png",
+     "k": "The members' Discord",
+     "t": "Win or lose, *good fun*"
+    }
+   ],
+   "cta": "Every call at theoverlay.com.au",
+   "fix": [
+    [
+     "-size-fits-all.",
+     "-size-fits-all."
+    ]
+   ]
+  }
+ ]
+}

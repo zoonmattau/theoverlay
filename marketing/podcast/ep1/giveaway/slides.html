@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,700;0,800;0,900;1,900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  /* The guess-the-rating giveaway carousel, 1080x1350 a slide, ?slide=1..5. Shot by shoot.mts.
+     Every rating printed here is the displayed figure off the site (benchmark points), 7 Oct 2026. */
+  :root { --ink: #14161a; --panel: #1c1f24; --line: #2c3037; --lime: #c6f24e; --red: #d93636; --hot: #ff5c5c; --blue: #5aa9ff; --paper: #f5f7f2; --mute: #8b919b; --soft: #c9ccd2; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1350px; overflow: hidden; background: var(--ink); color: var(--paper); font-family: Archivo, sans-serif; }
+  .band { position: absolute; left: -10%; width: 120%; height: 14px; transform: rotate(-3deg); }
+  .bl { top: 54px; background: var(--lime); }
+  .br { bottom: 54px; background: var(--red); }
+  .top { position: absolute; left: 70px; right: 70px; top: 104px; display: flex; justify-content: space-between; align-items: center; }
+  .top img { height: 130px; }
+  .top .n { font: 600 26px "IBM Plex Mono", monospace; letter-spacing: 0.14em; color: var(--mute); text-align: right; line-height: 1.5; }
+  .top .n b { color: var(--paper); }
+  .main { position: absolute; left: 70px; right: 70px; top: 270px; bottom: 150px; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
+  .k { font: 600 28px "IBM Plex Mono", monospace; letter-spacing: 0.16em; color: var(--lime); text-transform: uppercase; }
+  .h { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 128px; line-height: 0.9; letter-spacing: -0.02em; }
+  .h.m { font-size: 92px; }
+  .lime { color: var(--lime); }
+  .p { font-size: 36px; font-weight: 500; color: var(--soft); line-height: 1.3; }
+  .p b { color: var(--paper); font-weight: 800; }
+  .foot { position: absolute; left: 70px; right: 70px; bottom: 92px; display: flex; justify-content: space-between; font: 600 24px "IBM Plex Mono", monospace; letter-spacing: 0.08em; color: var(--mute); }
+
+  /* Slide 1 */
+  .horse { display: inline-block; align-self: flex-start; background: var(--lime); color: var(--ink); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 84px; line-height: 1; padding: 14px 30px 18px; clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%); }
+  .tag { display: inline-block; align-self: flex-start; background: var(--paper); color: var(--ink); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 60px; line-height: 1; padding: 12px 26px 16px; clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%); }
+  .race { font: 600 30px "IBM Plex Mono", monospace; letter-spacing: 0.1em; color: var(--paper); text-transform: uppercase; }
+  .prize { display: flex; align-items: center; gap: 26px; background: var(--panel); border: 2px solid var(--lime); border-radius: 20px; padding: 24px 30px; }
+  .prize .big { font-weight: 900; font-style: italic; font-size: 64px; color: var(--lime); line-height: 1; }
+  .prize .t { font-size: 32px; font-weight: 800; line-height: 1.2; }
+  .prize .t small { display: block; font: 600 22px "IBM Plex Mono", monospace; letter-spacing: 0.1em; color: var(--mute); margin-top: 6px; text-transform: uppercase; }
+  .faces { display: flex; align-items: center; gap: 20px; }
+  .face { width: 120px; height: 120px; border-radius: 50%; border: 6px solid var(--paper); background: var(--ink); display: grid; place-items: center; overflow: hidden; flex: none; }
+  .face img.m { width: 64px; } .face img.s { width: 100%; height: 100%; object-fit: cover; }
+  .faces .x { font: 600 30px "IBM Plex Mono", monospace; color: var(--mute); }
+  .faces .who { font: 600 26px "IBM Plex Mono", monospace; letter-spacing: 0.06em; color: var(--paper); line-height: 1.5; margin-left: 10px; }
+  .swipe { font: 600 26px "IBM Plex Mono", monospace; letter-spacing: 0.14em; color: var(--lime); text-transform: uppercase; }
+
+  /* Slide 2: the scale */
+  .scale { display: flex; flex-direction: column; gap: 14px; }
+  .lv { display: grid; grid-template-columns: 170px 1fr; align-items: center; gap: 26px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 14px 26px; }
+  .lv .v { font-weight: 900; font-style: italic; font-size: 68px; line-height: 1; text-align: right; }
+  .lv .d { font-size: 34px; font-weight: 800; line-height: 1.15; }
+  .lv .d small { display: block; font: 600 22px "IBM Plex Mono", monospace; letter-spacing: 0.08em; color: var(--mute); margin-top: 6px; }
+  .lv.peak .v { color: var(--lime); } .lv.peak { border-color: var(--lime); }
+
+  /* Slide 3: his runs, the race page's own figures */
+  .runs { background: var(--paper); color: var(--ink); border-radius: 18px; overflow: hidden; }
+  .runs .hd, .runs .r { display: grid; grid-template-columns: 150px 1fr 120px 130px; align-items: center; gap: 14px; padding: 0 26px; }
+  .runs .hd { height: 60px; font: 600 20px "IBM Plex Mono", monospace; letter-spacing: 0.12em; color: #6b7076; border-bottom: 2px solid #dde0d8; }
+  .runs .hd span:last-child, .runs .r .pts { text-align: right; }
+  .runs .r { min-height: 108px; border-bottom: 1px solid #e3e5df; }
+  .runs .r:last-child { border-bottom: 0; }
+  .runs .dt { font: 600 26px "IBM Plex Mono", monospace; }
+  .runs .rc b { display: block; font-size: 32px; font-weight: 800; line-height: 1.1; }
+  .runs .rc small { font: 500 21px "IBM Plex Mono", monospace; color: #6b7076; }
+  .runs .fn { font: 600 28px "IBM Plex Mono", monospace; }
+  .runs .pts { font-weight: 900; font-size: 50px; }
+  .runs .r.best { background: #eef8d6; }
+  .runs .r.gr { background: #f0f1ec; }
+  .runs .r.gr .pts { font: 600 22px "IBM Plex Mono", monospace; color: #6b7076; line-height: 1.3; }
+  .src { font: 500 22px "IBM Plex Mono", monospace; color: var(--mute); letter-spacing: 0.04em; }
+
+  /* Slide 4: how to enter */
+  .steps { display: flex; flex-direction: column; gap: 18px; }
+  .st { display: grid; grid-template-columns: 96px 1fr; gap: 26px; align-items: center; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 22px 26px; }
+  .st .no { width: 96px; height: 96px; border-radius: 50%; background: var(--lime); color: var(--ink); display: grid; place-items: center; font-weight: 900; font-style: italic; font-size: 58px; }
+  .st .t { font-size: 38px; font-weight: 800; line-height: 1.15; }
+  .st .t small { display: block; font: 600 23px "IBM Plex Mono", monospace; letter-spacing: 0.04em; color: var(--mute); margin-top: 8px; }
+  .rules { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .rules div { border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; font-size: 28px; font-weight: 800; line-height: 1.2; }
+  .rules div small { display: block; font: 600 20px "IBM Plex Mono", monospace; letter-spacing: 0.12em; color: var(--lime); text-transform: uppercase; margin-bottom: 8px; }
+
+  /* Slide 5: terms */
+  .terms { display: flex; flex-direction: column; gap: 12px; counter-reset: t; }
+  .terms p { font-size: 27px; font-weight: 500; color: var(--soft); line-height: 1.3; padding-left: 52px; position: relative; }
+  .terms p::before { counter-increment: t; content: counter(t); position: absolute; left: 0; top: 0; font: 600 24px "IBM Plex Mono", monospace; color: var(--lime); }
+  .terms p b { color: var(--paper); font-weight: 800; }
+  .help { border: 2px solid var(--paper); border-radius: 16px; padding: 18px 24px; font-size: 30px; font-weight: 800; text-align: center; }
+</style>
+</head>
+<body>
+<div class="band bl"></div><div class="band br"></div>
+<div class="top"><img src="../../show/show-logo.png"><div class="n"><b>GIVEAWAY</b><br>CAULFIELD GUINEAS</div></div>
+<div class="main" id="main"></div>
+<div class="foot"><span>theoverlay.com.au</span><span>18+ · Gamble responsibly</span></div>
+<script>
+  const slides = {
+    1: `
+      <div class="tag">$150 giveaway</div>
+      <div class="h">Guess our<br><span class="lime">rating</span></div>
+      <div class="horse">Central Europe</div>
+      <div class="race">For his run in the Caulfield Guineas (G1)<br>Sat 10 Oct</div>
+      <div class="prize"><div class="big">3 months</div><div class="t">of The Overlay, free<small>Worth $150 · closest guess wins</small></div></div>
+      <div class="faces"><div class="face"><img class="m" src="../../../../public/brand/mark-mono-white.svg"></div><span class="x">×</span><div class="face"><img class="s" src="../video/stablemate.png"></div>
+        <div class="who">@theoverlay_au<br>@the_stablemate</div></div>
+      <div class="swipe">Swipe to enter →</div>`,
+    2: `
+      <div class="k">What's a rating?</div>
+      <div class="h m">One number<br>for every horse</div>
+      <div class="p">Every runner gets a rating on the <b>benchmark scale</b>. Higher is better.</div>
+      <div class="scale">
+        <div class="lv"><div class="v">64</div><div class="d">A BM64 horse<small>A midweek provincial handicapper</small></div></div>
+        <div class="lv"><div class="v">90</div><div class="d">A BM90 horse<small>City handicap class</small></div></div>
+        <div class="lv"><div class="v">130</div><div class="d">A Group 1 winner<small>The best in the country</small></div></div>
+        <div class="lv peak"><div class="v">138</div><div class="d">Autumn Glow<small>Highest rated horse in our rankings</small></div></div>
+      </div>`,
+    3: `
+      <div class="k">Your guide · Central Europe's runs</div>
+      <div class="h m">What he's<br><span class="lime">rated</span> so far</div>
+      <div class="runs">
+        <div class="hd"><span>DATE</span><span>RACE</span><span>FIN</span><span>RATING</span></div>
+        <div class="r"><div class="dt">26 Sep</div><div class="rc"><b>Golden Rose (G1)</b><small>Rosehill · 1400m</small></div><div class="fn">10th/12</div><div class="pts">107.0</div></div>
+        <div class="r"><div class="dt">12 Sep</div><div class="rc"><b>Run To The Rose (G2)</b><small>Rosehill · 1200m</small></div><div class="fn">4th/11</div><div class="pts">104.5</div></div>
+        <div class="r best"><div class="dt">15 Aug</div><div class="rc"><b>Rosebud (Listed)</b><small>Rosehill · 1100m</small></div><div class="fn">3rd/13</div><div class="pts">107.3</div></div>
+        <div class="r"><div class="dt">14 Mar</div><div class="rc"><b>Pago Pago Stakes (G3)</b><small>Rosehill · 1200m</small></div><div class="fn">3rd/9</div><div class="pts">93.8</div></div>
+        <div class="r"><div class="dt">28 Feb</div><div class="rc"><b>Skyline Stakes (G2)</b><small>Randwick · 1200m</small></div><div class="fn">2nd/10</div><div class="pts">83.3</div></div>
+      </div>
+      <div class="src">Off his race page at theoverlay.com.au. Saturday is his first go at 1600m.</div>`,
+    4: `
+      <div class="k">How to enter</div>
+      <div class="steps">
+        <div class="st"><div class="no">1</div><div class="t">Follow both of us<small>@theoverlay_au and @the_stablemate</small></div></div>
+        <div class="st"><div class="no">2</div><div class="t">Get a free account<small>theoverlay.com.au, takes 30 seconds</small></div></div>
+        <div class="st"><div class="no">3</div><div class="t">Comment your guess<small>e.g. "108.5". One guess per person</small></div></div>
+      </div>
+      <div class="rules">
+        <div><small>Closes</small>Friday 9 Oct, 8pm AEDT</div>
+        <div><small>Revealed</small>Monday 12 Oct, once his run is rated</div>
+        <div><small>Winner</small>Closest guess</div>
+        <div><small>Tie</small>Earliest comment wins</div>
+      </div>`,
+    5: `
+      <div class="k">The fine print</div>
+      <div class="terms">
+        <p>Run by <b>The Overlay</b> (theoverlay.com.au) with The Stablemate. <b>18+, Australian residents</b> only.</p>
+        <p>Enter by following both accounts, holding a free account at theoverlay.com.au and commenting <b>one guess</b>. Later comments don't count.</p>
+        <p>Entries close <b>8pm AEDT Friday 9 October 2026</b>.</p>
+        <p>The answer is the rating The Overlay gives <b>Central Europe's run in the Caulfield Guineas</b> on Saturday 10 October, posted on our Instagram by <b>Monday 12 October</b>. If he's scratched, we name another runner in the race.</p>
+        <p>Closest guess wins, earliest comment breaks a tie. Winner announced with the rating and messaged; reply with your account email within 7 days.</p>
+        <p>Prize: three months of The Overlay, worth $150. No cash, not transferable. <b>No purchase or bet needed.</b></p>
+        <p>Not sponsored, endorsed or run by Instagram or Meta.</p>
+      </div>
+      <div class="help">Gamble responsibly · Gambling Help 1800 858 858</div>`,
+  };
+  const n = new URLSearchParams(location.search).get("slide") ?? "1";
+  document.getElementById("main").innerHTML = slides[n];
+  Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))]).then(() => (document.body.dataset.ready = "1"));
+</script>
+</body>
+</html>

@@ -1,0 +1,80 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,500;0,800;0,900;1,900&family=IBM+Plex+Mono:wght@600&display=swap" rel="stylesheet">
+<style>
+  /* Instagram Reel frame, 1080x1920, drawn one layer at a time (transparent but the base) for clip.py to animate.
+     Instagram covers the top ~200px and the bottom ~420px (plus the buttons down the right), so everything that
+     matters sits between y 230 and 1490:
+       claim  y 250-520   what's being said, as a headline (the hook takes this slot for the first two seconds)
+       proof  y 540-1300  the real site, phone width, the point ringed (composited by clip.py, not drawn here)
+       cap    y 1320-1480 the words as they're spoken, a phrase at a time, the spoken word lit
+     Layers: base, on-m / on-a (who is talking), hook, claim, cap, end (the last beat's call to action). */
+  :root { --ink: #14161a; --panel: #1c1f24; --line: #2c3037; --lime: #c6f24e; --red: #d93636; --hot: #ff5c5c; --blue: #5aa9ff; --paper: #f5f7f2; --mute: #8b919b; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1080px; height: 1920px; overflow: hidden; background: transparent; color: var(--paper); font-family: Archivo, sans-serif; }
+  body.L-base { background: var(--ink); background-image: radial-gradient(1100px 900px at 50% 48%, rgba(198, 242, 78, .08), transparent 70%); }
+  .logo { position: absolute; left: 40px; top: 120px; height: 104px; }
+  .url { position: absolute; left: 0; right: 0; top: 1500px; text-align: center; font: 600 26px "IBM Plex Mono", monospace; letter-spacing: 0.1em; color: var(--mute); }
+
+  .who { position: absolute; right: 40px; top: 132px; transform: scale(.7); transform-origin: right top; }
+  .pill { display: flex; align-items: center; gap: 18px; padding: 12px 30px 12px 14px; border-radius: 999px; border: 5px solid var(--lime); background: var(--panel); }
+  .pill.a { border-color: var(--paper); }
+  .pill .face { width: 76px; height: 76px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; overflow: hidden; border: 3px solid var(--paper); }
+  .pill .face img.m { width: 44px; } .pill .face img.s { width: 100%; height: 100%; object-fit: cover; }
+  .pill .n { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 40px; line-height: 1; }
+  .pill .r { font: 600 20px "IBM Plex Mono", monospace; letter-spacing: 0.12em; color: var(--mute); margin-top: 4px; }
+
+  /* The claim: a mono kicker (where the proof comes from) over the point itself. */
+  .claim { position: absolute; left: 44px; right: 44px; top: 262px; height: 262px; display: flex; flex-direction: column; justify-content: flex-end; }
+  .claim .k { font: 600 27px "IBM Plex Mono", monospace; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lime); margin-bottom: 12px; }
+  .claim .t { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 74px; line-height: .98; letter-spacing: -0.015em; }
+  .claim .t b { color: var(--lime); font-weight: 900; }
+  .claim.lay .k, .claim.lay .t b { color: var(--hot); }
+  .claim.bet .k, .claim.bet .t b { color: var(--blue); }
+
+  /* The hook, over the claim slot only, never over the proof. */
+  .hookbar { position: absolute; left: 0; right: 0; top: 236px; display: flex; flex-direction: column; align-items: center; transform: rotate(-3deg); }
+  .hookbar span { display: block; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.02em; line-height: .9; padding: 16px 40px 22px; clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%); box-shadow: 0 30px 80px rgba(0,0,0,.6); }
+  .hookbar .a { font-size: 56px; background: var(--paper); color: var(--ink); }
+  .hookbar .b { font-size: 100px; margin-top: 8px; background: var(--lime); color: var(--ink); }
+  .hookbar .b.long { font-size: 72px; }
+  .hookbar .b.lay { background: var(--red); color: var(--paper); } .hookbar .b.bet { background: var(--blue); color: var(--ink); }
+
+  .caption { position: absolute; left: 60px; right: 60px; top: 1318px; height: 168px; display: flex; align-items: center; justify-content: center; text-align: center; font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 60px; line-height: 1.06; text-shadow: 0 6px 30px rgba(0,0,0,.8); }
+  .caption.long { font-size: 50px; }
+  .caption em { font-style: italic; color: var(--ink); background: var(--lime); padding: 0 10px; border-radius: 10px; text-shadow: none; }
+
+  /* The last beat's call to action, over the caption slot. */
+  .end { position: absolute; left: 60px; right: 60px; top: 1318px; height: 168px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; background: var(--ink); }
+  .end .l1 { font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 50px; text-align: center; line-height: 1; padding: 14px 28px 18px; background: var(--lime); color: var(--ink); clip-path: polygon(2% 0, 100% 0, 98% 100%, 0 100%); }
+  .end.lay .l1 { background: var(--red); color: var(--paper); }
+  .end .l2 { font: 600 24px "IBM Plex Mono", monospace; letter-spacing: 0.08em; color: var(--mute); }
+</style>
+</head>
+<body>
+<script>
+  const esc = (s) => (s ?? "").replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  // *word* in a claim is lit in the tone's colour.
+  const lit = (s) => esc(s).replace(/\*([^*]+)\*/g, "<b>$1</b>");
+  window.draw = (q) => {
+    const layer = q.layer ?? "base";
+    const face = q.avatar ? `<img class="s" src="${q.avatar}">` : "SM";
+    const html = {
+      base: `<img class="logo" src="../show/show-logo.png"><div class="url">theoverlay.com.au · 18+</div>`,
+      "on-m": `<div class="who"><div class="pill"><div class="face"><img class="m" src="../../../public/brand/mark-mono-white.svg"></div><div><div class="n">The Overlay</div><div class="r">MATT</div></div></div></div>`,
+      "on-a": `<div class="who"><div class="pill a"><div class="face">${face}</div><div><div class="n">The Stablemate</div><div class="r">ALEX KERR</div></div></div></div>`,
+      hook: `<div class="hookbar"><span class="a">${esc(q.a)}</span><span class="b ${esc(q.tone)} ${q.long ? "long" : ""}">${esc(q.b)}</span></div>`,
+      claim: `<div class="claim ${esc(q.tone)}"><div class="k">${esc(q.k)}</div><div class="t">${lit(q.t)}</div></div>`,
+      cap: `<div class="caption ${(q.t ?? "").length > 34 ? "long" : ""}"><div>${(q.t ?? "").split(" ").map((w, i) => (i === Number(q.on) ? `<em>${esc(w)}</em>` : esc(w))).join(" ")}</div></div>`,
+      end: `<div class="end ${esc(q.tone)}"><div class="l1">${esc(q.t)}</div><div class="l2">18+ · Gamble responsibly · Gambling Help 1800 858 858</div></div>`,
+    };
+    document.body.className = "L-" + layer;
+    document.body.innerHTML = html[layer];
+    return Promise.all([document.fonts.ready, ...[...document.images].map((i) => i.decode().catch(() => {}))]);
+  };
+  window.draw(Object.fromEntries(new URLSearchParams(location.search))).then(() => (document.body.dataset.ready = "1"));
+</script>
+</body>
+</html>
