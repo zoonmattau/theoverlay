@@ -34,6 +34,10 @@ ALIASES = {
     "Wellington": ["Wellington Racecourse", "Wellington Boot", "Wellington Racing"], "Bowen": ["Bowen"], "Ballarat": ["Dowling Forest", "Ballarat Turf"],
     "Townsville": ["Cluden", "Townsville Turf"], "Echuca": ["Echuca"], "Kalgoorlie": ["Kalgoorlie", "Boulder Racing"], "Narromine": ["Narromine"],
     "Murray Bridge": ["Gifford Hill", "Murray Bridge"], "Toodyay": ["Toodyay"],
+    # 6 Oct 2026: the card's names for courses OSM names otherwise. Synthetics sit inside the turf course.
+    "Rockhampton": ["Callaghan Park"], "Cairns": ["Cannon Park"], "Hobart": ["Elwick"], "Atherton": ["Tolga"],
+    "Mt Gambier": ["Mount Gambier Racing Club"], "Devonport Synthetic": ["Spreyton"], "Sandown Hillside": ["Sandown Racecourse"],
+    "Sandown Lakeside": ["Sandown Racecourse"], "Pakenham Synthetic": ["Pakenham Racecourse"], "Ballarat Synthetic": ["Dowling Forest"],
 }
 
 # Courses mapped in OSM with no name on them: the centre of the unnamed horse-racing way.

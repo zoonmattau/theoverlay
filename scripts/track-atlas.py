@@ -37,9 +37,12 @@ CHUTE_STARTS = {"murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 140
 # Chutes the imagery or map draws longer than they are: the one measuring near "from" is cut back at its tip to start "to".
 CHUTE_CUT = {"murraybridge": [(1200, 900)]}  # the top chute is a short one, for 900m races only
 # Courses not in OpenStreetMap, traced from aerial imagery by scripts/out/tracks/trace.py.
-TRACED = {"murraybridge": "traced from Esri World Imagery", "mildura": "traced from Esri World Imagery"}
+TRACED = {"murraybridge": "traced from Esri World Imagery", "mildura": "traced from Esri World Imagery", "belmont": "traced from Esri World Imagery", "muswellbrook": "traced from Esri World Imagery", "narromine": "traced from Esri World Imagery", "alicesprings": "traced from Esri World Imagery", "pakenhamsynthetic": "traced from Esri World Imagery", "sandownlakeside": "traced from Esri World Imagery", "sale": "traced from Esri World Imagery"}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
 NO_OUTER = {"newcastle"}
+# The course ring by OSM way id where the longest ring with a rail is the wrong course: the turf course
+# round a synthetic, or the main course round an inner one (6 Oct 2026).
+RING = {"morphettvilleparks": 519192491}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
 STARTS = [800, 900, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1800, 1850, 1900, 2000, 2050, 2100, 2200, 2300, 2400, 2500]
 SKIP_TAGS = ("building", "highway", "railway", "waterway", "power", "boundary", "admin_level", "amenity", "shop", "natural", "barrier_skip")
@@ -136,7 +139,7 @@ def despur(ring, gap=35, span=80):
     return pts + [pts[0]]
 
 
-def find_rings(ways, centre, within=None):
+def find_rings(ways, centre, within=None, prefer=None):
     """The course (inner rail) and, when mapped, the outer rail around it."""
     rings = []
     for w in ways:
@@ -162,6 +165,8 @@ def find_rings(ways, centre, within=None):
             if sharpest(clean) <= 30:
                 r = {**r, "pts": clean, "L": length(clean)}
         if not (1000 <= r["L"] <= 2800):
+            continue
+        if prefer and r["id"] != prefer:
             continue
         # Inside the venue's own boundary when we have one, so the course next door is never taken.
         if within and not inside(centroid(r["pts"]), within):
@@ -244,7 +249,7 @@ def build(slug, path, state, venue=None):
     racing = own or [p for w in ways if w["tags"].get("sport") == "horse_racing" for p in w["pts"]]
     allpts = racing or [p for w in ways if length(w["pts"]) < 5000 for p in w["pts"]] or [p for w in ways for p in w["pts"]]
     centre = centroid(allpts)
-    inner, outer, gap = find_rings(ways, centre, own if len(own) > 8 and own[0] == own[-1] else None)
+    inner, outer, gap = find_rings(ways, centre, own if len(own) > 8 and own[0] == own[-1] else None, RING.get(slug))
     if slug in NO_OUTER:
         outer, gap = None, None
     if not inner:

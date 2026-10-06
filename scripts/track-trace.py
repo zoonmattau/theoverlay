@@ -1,7 +1,10 @@
 """Traces a course's rails from a green turf mask over aerial imagery into an OSM-shaped file track-atlas.py can read,
 for a course OpenStreetMap does not have (Murray Bridge, at Gifford Hill).
 
-    python scripts/track-trace.py <mask.npy> <tiles.json> <out osm json> <name>
+    python scripts/track-trace.py <mask.npy> <tiles.json> <out osm json> <name> [round]
+
+round (pixels, default 0) rounds off notches in the infield's outline before tracing, for a mask with a
+nick in the turf that leaves a kink sharper than the atlas takes (Muswellbrook, Belmont).
 
 mask.npy is the course's turf as a boolean image (the largest green blob, chutes and all) over Esri World
 Imagery tiles at zoom z, starting at tile x0, y0 (tiles.json). The hole in the middle is the inner rail, the
@@ -56,6 +59,9 @@ filled = nd.binary_fill_holes(lab)
 holes, n = nd.label(filled & ~lab)
 sizes = nd.sum(np.ones_like(holes), holes, range(1, n + 1))
 hole = holes == (int(np.argmax(sizes)) + 1)
+R = int(sys.argv[5]) if len(sys.argv) > 5 else 0
+if R:
+    hole = nd.binary_opening(nd.binary_closing(np.pad(hole, R + 2), iterations=R), iterations=R)[R + 2:-R - 2, R + 2:-R - 2]
 
 def to_ll(px, py):
     nt = 2 ** z
