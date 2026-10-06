@@ -1,6 +1,7 @@
 import { connection } from "next/server";
 
 import { NextTipTicker } from "./NextTipTicker";
+import { now as clock } from "@/lib/clock";
 import { getTodayCard, RELEASE_HOUR } from "@/lib/model/source";
 
 /**
@@ -14,7 +15,7 @@ export async function SignupPitch({ dark }: { dark?: boolean }) {
   const calls = meetings.flatMap((m) =>
     m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched).map((x) => ({ track: m.track, raceNumber: r.raceNumber, jump: r.jumpTime, run: Boolean(r.result?.length), side: x.signal }))),
   );
-  const now = Date.now();
+  const now = clock();
   const next = calls
     .filter((c) => !c.run && c.jump && new Date(c.jump).getTime() > now)
     .sort((a, b) => (a.jump ?? "").localeCompare(b.jump ?? ""))[0];

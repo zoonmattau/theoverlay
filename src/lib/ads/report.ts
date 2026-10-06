@@ -14,17 +14,6 @@ import { metaAds, metaSpend } from "./meta-spend";
  * today. Paying lags a trial by its length, so the window totals read the
  * cost per paying member better than any single day.
  */
-/**
- * An ad's tag as campaign/content. Some links reach us under a tag no ad in the
- * API carries: the Spring "mate" ad has delivered utm_content=springmate (same
- * ad set id in utm_term) while its creative reads mate, so those fold into it.
- */
-const ALIASES: Record<string, string> = { "spring/springmate": "spring/mate" };
-const tagOf = (utm: { campaign?: string; content?: string } | null | undefined) => {
-  const tag = `${utm?.campaign ?? ""}/${utm?.content ?? ""}`.toLowerCase();
-  return ALIASES[tag] ?? tag;
-};
-
 export interface AdsDay {
   date: string;
   spend: number;
@@ -84,6 +73,24 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
       .filter((p) => !p.is_admin && !isAdminEmail(p.email) && foundUs(p).group === "Meta ads")
       .map((p) => p.id),
   );
+  // A tag no ad carries (a link that changed after launch: springmate on the Spring mate ad) falls back to its ad set,
+  // which our links carry as utm_term: the set's ad whose content sits inside the tag, or its only ad. Page views
+  // only kept the term from 6 Oct 2026, so a tag resolved on a sign-up is remembered for the views without one.
+  const adList = ads && !("error" in ads) ? ads : [];
+  const known = new Set(adList.map((a) => a.tag));
+  const learned = new Map<string, string>();
+  const tagOf = (utm: { campaign?: string; content?: string; term?: string } | null | undefined) => {
+    const tag = `${utm?.campaign ?? ""}/${utm?.content ?? ""}`.toLowerCase();
+    if (known.has(tag)) return tag;
+    if (!utm?.term) return learned.get(tag) ?? tag;
+    const set = adList.filter((a) => a.adset === utm.term);
+    const content = (utm.content ?? "").toLowerCase();
+    const inside = set.filter((a) => { const c = a.tag.split("/")[1]; return c && content.includes(c); }).sort((x, y) => y.tag.length - x.tag.length);
+    const hit = (set.length === 1 ? set[0] : inside[0])?.tag;
+    if (hit) learned.set(tag, hit);
+    return hit ?? tag;
+  };
+  for (const p of (profs ?? []) as { utm: Record<string, string> | null }[]) tagOf(p.utm);
   const created = new Map(((profs ?? []) as { id: string; created_at: string }[]).map((p) => [p.id, p.created_at]));
   const blank = (date: string): AdsDay => ({ date, spend: 0, signups: 0, trials: 0, paid: 0 });
   const by = new Map(dates.map((d) => [d, blank(d)]));
@@ -123,7 +130,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
       .filter("meta->utm->>source", "in", "(meta,facebook,fb,instagram,ig)")
       .filter("meta->utm->>medium", "eq", "paid")
       .range(at, at + 999);
-    for (const v of (views ?? []) as { meta: { vid?: string; utm?: { campaign?: string; content?: string } } | null; created_at: string }[]) {
+    for (const v of (views ?? []) as { meta: { vid?: string; utm?: { campaign?: string; content?: string; term?: string } } | null; created_at: string }[]) {
       if (!v.meta?.vid) continue;
       const tag = tagOf(v.meta.utm);
       visitors.set(tag, (visitors.get(tag) ?? new Set()).add(v.meta.vid));

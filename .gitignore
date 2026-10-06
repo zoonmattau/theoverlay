@@ -66,3 +66,6 @@ email-preview.html
 # Reel exports are big: the small webm previews stay in git, the mp4 and mov masters do not (6 Oct 2026).
 /marketing/reels/**/*.mp4
 /marketing/reels/**/*.mov
+
+# Throwaway analysis scripts and their output, prefixed _ (6 Oct 2026); kept on disk, never in git.
+/marketing/analysis/_*

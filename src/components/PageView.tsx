@@ -31,7 +31,7 @@ export function PageView() {
     last.current = { path, at: now };
     // The campaign a link carried, and whose ad was clicked: the address loses both after the first page.
     const q = new URLSearchParams(window.location.search);
-    const utm = Object.fromEntries(["source", "medium", "campaign", "content"].map((k) => [k, q.get(`utm_${k}`)]).filter(([, v]) => v));
+    const utm = Object.fromEntries(["source", "medium", "campaign", "content", "term"].map((k) => [k, q.get(`utm_${k}`)]).filter(([, v]) => v));
     const clid = q.has("fbclid") ? "fb" : q.has("gclid") || q.has("gbraid") || q.has("wbraid") ? "google" : q.has("ttclid") ? "tiktok" : q.has("msclkid") ? "microsoft" : undefined;
     const body = JSON.stringify({
       kind: "page_view",

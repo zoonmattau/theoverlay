@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     // The campaign on the link, and whose ad was clicked, so paid visits can be told from the rest.
     if (body.utm && typeof body.utm === "object") {
       const utm: Record<string, string> = {};
-      for (const k of ["source", "medium", "campaign", "content"]) if (body.utm[k]) utm[k] = String(body.utm[k]).slice(0, 60);
+      for (const k of ["source", "medium", "campaign", "content", "term"]) if (body.utm[k]) utm[k] = String(body.utm[k]).slice(0, 60);
       if (Object.keys(utm).length) meta.utm = utm;
     }
     if (body.clid && ["fb", "google", "tiktok", "microsoft"].includes(body.clid)) meta.clid = body.clid;

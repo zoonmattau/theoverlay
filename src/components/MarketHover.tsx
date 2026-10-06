@@ -1,12 +1,19 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 
 import { holdersLine } from "@/lib/bookies";
 import { price } from "@/lib/format";
 import { callLimit } from "@/lib/model/publish";
 import type { Signal } from "@/lib/model/types";
+
+/** A phone, or any screen without hover, gets the bottom sheet instead of a placed panel. */
+const isPhone = () => window.matchMedia("(hover: none)").matches || window.innerWidth <= 640;
+const onResize = (change: () => void) => {
+  window.addEventListener("resize", change);
+  return () => window.removeEventListener("resize", change);
+};
 
 export interface MarketDetail {
   marketPrice?: number;
@@ -40,16 +47,14 @@ export function MarketHover({ r, children, className = "" }: { r: MarketDetail; 
   // above a price in the lower half of the screen. A phone's sheet is CSS.
   const [pos, setPos] = useState<{ left?: number; right?: number; top: number } | undefined>();
   // The phone's sheet needs no placing; a desktop panel stays hidden until it is placed, so it never flashes at the corner.
-  const [sheet, setSheet] = useState(false);
+  const sheet = useSyncExternalStore(onResize, isPhone, () => false);
   const host = useRef<HTMLSpanElement>(null);
   const pop = useRef<HTMLSpanElement>(null);
   const right = className.includes("market-right");
   useLayoutEffect(() => {
     const el = pop.current;
     const at = host.current?.getBoundingClientRect();
-    const phone = window.matchMedia("(hover: none)").matches || window.innerWidth <= 640;
-    setSheet(phone);
-    if (!open || !el || !at || phone) {
+    if (!open || !el || !at || isPhone()) {
       setPos(undefined);
       return;
     }

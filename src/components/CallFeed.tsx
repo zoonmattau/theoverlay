@@ -4,6 +4,7 @@ import { Jumps } from "./Countdown";
 import { ReactionBar } from "./ReactionBar";
 import { Outcome } from "./SelectionCard";
 import { getViewer } from "@/lib/auth";
+import { now as clock } from "@/lib/clock";
 import { priceFlagged, stakeLabel, struckAt, type CreatorTip, type FeedTip } from "@/lib/creators";
 import { jumpTime, price } from "@/lib/format";
 import { getCard } from "@/lib/model/source";
@@ -33,7 +34,7 @@ export async function CallFeed({ tips, date, empty, withDate, compact }: { tips:
   const reactions = compact ? new Map<number, TipReactions>() : await reactionsFor(tips.map((t) => t.id), viewer.id);
   if (tips.length === 0) return <p className="text-sm text-ink-soft">{empty}</p>;
   // Today's calls run next to go first: the live ones in jump order, then the ones that have run.
-  const now = Date.now();
+  const now = clock();
   const live = (t: CreatorTip) => !t.settled_at && new Date(jumps.get(t.race_id) || 0).getTime() > now;
   const ordered = withDate ? tips : [...tips].sort((a, b) => Number(live(b)) - Number(live(a)) || (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
   return (

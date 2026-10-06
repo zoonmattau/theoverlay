@@ -71,6 +71,8 @@ export interface AdRow {
   status: string;
   /** "campaign/content" from the ad's link, lower case; the ad's name when the link has none. */
   tag: string;
+  /** The ad set it runs in, which our links also carry as utm_term. */
+  adset?: string;
   spend: number;
   impressions: number;
   clicks: number;
@@ -103,12 +105,12 @@ export async function metaAds(since: string, until: string): Promise<AdRow[] | {
     const [insights, ads] = await Promise.all([
       get("insights", { level: "ad", time_range: JSON.stringify({ since, until }), fields: "ad_id,ad_name,campaign_name,spend,impressions,inline_link_clicks" }),
       get("ads", {
-        fields: "name,effective_status,creative{url_tags,object_story_spec{link_data{link},video_data{call_to_action}},asset_feed_spec{link_urls}}",
+        fields: "name,adset_id,effective_status,creative{url_tags,object_story_spec{link_data{link},video_data{call_to_action}},asset_feed_spec{link_urls}}",
         filtering: JSON.stringify([{ field: "effective_status", operator: "IN", value: ["ACTIVE", "PAUSED", "ARCHIVED", "DELETED", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "DISAPPROVED", "WITH_ISSUES", "IN_PROCESS", "PENDING_REVIEW"] }]),
       }),
     ]);
-    const info = new Map<string, { status: string; tag?: string }>();
-    for (const a of ads as { id: string; effective_status: string; creative?: { url_tags?: string; object_story_spec?: { link_data?: { link?: string }; video_data?: { call_to_action?: { value?: { link?: string } } } }; asset_feed_spec?: { link_urls?: { website_url?: string }[] } } }[]) {
+    const info = new Map<string, { status: string; tag?: string; adset?: string }>();
+    for (const a of ads as { id: string; adset_id?: string; effective_status: string; creative?: { url_tags?: string; object_story_spec?: { link_data?: { link?: string }; video_data?: { call_to_action?: { value?: { link?: string } } } }; asset_feed_spec?: { link_urls?: { website_url?: string }[] } } }[]) {
       const c = a.creative;
       const link = c?.object_story_spec?.link_data?.link ?? c?.object_story_spec?.video_data?.call_to_action?.value?.link ?? c?.asset_feed_spec?.link_urls?.[0]?.website_url ?? "";
       let q: URLSearchParams | undefined;
@@ -118,7 +120,7 @@ export async function metaAds(since: string, until: string): Promise<AdRow[] | {
         q = c?.url_tags ? new URLSearchParams(c.url_tags) : undefined;
       }
       const campaign = q?.get("utm_campaign"), content = q?.get("utm_content");
-      info.set(a.id, { status: a.effective_status, tag: campaign ? `${campaign}/${content ?? ""}`.toLowerCase() : undefined });
+      info.set(a.id, { status: a.effective_status, adset: a.adset_id, tag: campaign ? `${campaign}/${content ?? ""}`.toLowerCase() : undefined });
     }
     return (insights as { ad_id: string; ad_name: string; campaign_name: string; spend: string; impressions: string; inline_link_clicks?: string }[]).filter((r) => !OTHER_PROJECTS.test(r.campaign_name)).map((r) => ({
       id: r.ad_id,
@@ -126,6 +128,7 @@ export async function metaAds(since: string, until: string): Promise<AdRow[] | {
       campaign: r.campaign_name,
       status: info.get(r.ad_id)?.status ?? "DELETED",
       tag: info.get(r.ad_id)?.tag ?? r.ad_name.toLowerCase(),
+      adset: info.get(r.ad_id)?.adset,
       spend: Math.round(Number(r.spend) * 100) / 100,
       impressions: Number(r.impressions) || 0,
       clicks: Number(r.inline_link_clicks) || 0,

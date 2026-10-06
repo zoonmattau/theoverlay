@@ -1,6 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "./billing/access";
+import { now } from "./clock";
 import type { Viewer } from "./auth";
 
 export const isAdmin = (viewer: Viewer): boolean => viewer.admin;
@@ -199,8 +200,7 @@ export async function referralsMade(id: string): Promise<number> {
   return count ?? 0;
 }
 
-/** Server components cannot call Date.now() in render, so the clock lives here. */
-export const now = () => Date.now();
+export { now };
 
 /** The overview numbers. */
 export async function overview(members?: Member[]) {
