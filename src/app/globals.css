@@ -1110,10 +1110,19 @@ body {
   }
   .matrix-table > tbody > tr {
     display: grid;
-    grid-template-columns: repeat(6, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding: 10px var(--sp-3) 12px;
   }
+  /*
+   * Columns from the meeting's own race count, so rows come out even: six columns left a
+   * seven-race card's R7 alone on a row (6 Oct 2026). 6 races 3+3, 7-8 in fours, 9-10 in fives,
+   * 11-12 in fours. Empty cells are hidden, so they are not counted.
+   */
+  .matrix-table > tbody > tr:has(> td:nth-child(6 of :not(.matrix-track, .matrix-empty))) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .matrix-table > tbody > tr:has(> td:nth-child(7 of :not(.matrix-track, .matrix-empty))) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .matrix-table > tbody > tr:has(> td:nth-child(9 of :not(.matrix-track, .matrix-empty))) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+  .matrix-table > tbody > tr:has(> td:nth-child(11 of :not(.matrix-track, .matrix-empty))) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .matrix-table > tbody > tr + tr {
     border-top: 1px solid var(--color-line);
   }

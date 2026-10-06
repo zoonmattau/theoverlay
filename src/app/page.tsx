@@ -168,7 +168,7 @@ function Tile({ href, label, tone, children }: { href: string; label: string; to
   return (
     <Link href={href} className={`card card-hover block min-w-0 text-center ${cls}`}>
       <div className="font-display text-3xl font-extrabold tracking-tight nums leading-none">{children}</div>
-      <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-2 truncate">{label}</div>
+      <div className="text-[11px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-2 leading-snug">{label}</div>
     </Link>
   );
 }
