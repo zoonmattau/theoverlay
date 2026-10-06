@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { ClickRow } from "./ClickRow";
 import { FollowButton } from "./FollowButton";
+import { UnitsSpark } from "./RunningUnits";
 import { FormDots, pct, units } from "./TipsterCard";
 import { TIPSTER_PERIODS, type TipsterPeriod, type TipsterProfile } from "@/lib/creators";
 import { price } from "@/lib/format";
@@ -41,6 +42,8 @@ export function TipsterRow({ p, rank, following, you, today, live, period }: { p
     <ClickRow href={`/t/${t.code}`} className={`tipster-row ${following ? "is-followed" : ""}`}>
       <td data-col="rank" className="text-right nums text-ink-soft"><span className="rank-disc">{rank}</span></td>
       <td data-col="name">
+        {/* The initial as an avatar, as on their page, so a name has a face in the list. */}
+        <span className="inline-flex h-7 w-7 mr-2 align-middle rounded-full bg-lime text-ink font-display font-extrabold text-sm items-center justify-center" aria-hidden>{t.name.slice(0, 1).toUpperCase()}</span>
         <Link href={`/t/${t.code}`} className="font-display font-extrabold hover:underline">{t.name}</Link>
         {you && <span className="badge badge-prime ml-2">You</span>}
         {p.followers > 0 && <span className="tipster-followers text-[11px] text-ink-soft ml-2 whitespace-nowrap">{p.followers} {p.followers === 1 ? "follower" : "followers"}</span>}
@@ -51,7 +54,8 @@ export function TipsterRow({ p, rank, following, you, today, live, period }: { p
       <td data-col="roi" className={`text-right nums ${tone(w.roi, w.n > 0)}`}>{w.n ? pct(w.roi) : "—"}</td>
       <td data-col="strike" className="text-right nums">{w.n ? `${Math.round((w.hit / w.n) * 100)}%` : "—"}</td>
       <td data-col="avg" className="text-right nums" title={`${p.bets.n} ${p.bets.n === 1 ? "bet" : "bets"}, ${p.lays.n} ${p.lays.n === 1 ? "lay" : "lays"}`}>{p.avgPrice ? price(p.avgPrice) : "—"}</td>
-      <td data-col="form"><FormDots recent={p.recent} /></td>
+      {/* The last ten as a running line, then as dots: the trend, then each result. */}
+      <td data-col="form" className="whitespace-nowrap"><UnitsSpark calls={[...p.recent].reverse()} /> <FormDots recent={p.recent} /></td>
       {/* The phone's second line, one run of small text: the form, the return, the followers and what is on today. */}
       <td data-col="meta" className="text-xs text-ink-soft">
         {p.recent.length > 0 && <span className="mr-2 align-middle"><FormDots recent={p.recent} /></span>}

@@ -247,6 +247,10 @@ h1, h2, h3 {
     overflow-x: auto;
     white-space: nowrap;
     scrollbar-width: none;
+    /* The strip scrolls: the last links fade at the edge so it reads as more to swipe, not cut off (6 Oct 2026). */
+    -webkit-mask-image: linear-gradient(to right, #000 82%, transparent);
+    mask-image: linear-gradient(to right, #000 82%, transparent);
+    padding-right: var(--sp-6);
   }
   .search {
     max-width: none;
