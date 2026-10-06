@@ -1,6 +1,6 @@
 import "server-only";
 
-import { arrivalSource } from "@/lib/arrival";
+import { foundUs } from "@/lib/arrival";
 
 import { listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -211,7 +211,9 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const bySource = new Map<string, { signups: number; confirmed: number; paying: number; revenue_cents: number }>();
   for (const m of joined) {
     // Invites and affiliates name themselves; anyone else is grouped by the site that sent them.
-    const key = m.source?.startsWith("affiliate:") ? m.source.replace(/^affiliate:/, "affiliate ") : m.source === "invite" ? "invite" : arrivalSource(m);
+    // Named the way Members names it: t.co read as Telegram, and ig and instagram.com were two lines (6 Oct 2026).
+    const found = foundUs(m);
+    const key = found.group === "Affiliate" ? `Affiliate ${found.detail ?? ""}`.trim() : found.group;
     const cur = bySource.get(key) ?? { signups: 0, confirmed: 0, paying: 0, revenue_cents: 0 };
     cur.signups += 1;
     if (m.confirmed_at) cur.confirmed += 1;
