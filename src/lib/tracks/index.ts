@@ -1,6 +1,7 @@
 // Written by scripts/track-index.py: every track map with a usable post, keyed by name squashed to letters.
 import type { Track } from "@/components/TrackMap";
 
+import albury from "./albury.json";
 import alicesprings from "./alicesprings.json";
 import armidale from "./armidale.json";
 import atherton from "./atherton.json";
@@ -16,9 +17,11 @@ import bordertown from "./bordertown.json";
 import bowraville from "./bowraville.json";
 import broome from "./broome.json";
 import bunbury from "./bunbury.json";
+import bundaberg from "./bundaberg.json";
 import cairns from "./cairns.json";
 import canterbury from "./canterbury.json";
 import carnarvon from "./carnarvon.json";
+import casterton from "./casterton.json";
 import caulfield from "./caulfield.json";
 import coffsharbour from "./coffsharbour.json";
 import coleraine from "./coleraine.json";
@@ -38,10 +41,12 @@ import gatton from "./gatton.json";
 import gawler from "./gawler.json";
 import geelong from "./geelong.json";
 import goldcoast from "./goldcoast.json";
+import goondiwindi from "./goondiwindi.json";
 import gosford from "./gosford.json";
 import goulburn from "./goulburn.json";
 import grafton from "./grafton.json";
 import gunbower from "./gunbower.json";
+import gundagai from "./gundagai.json";
 import gunnedah from "./gunnedah.json";
 import gympie from "./gympie.json";
 import hamilton from "./hamilton.json";
@@ -50,14 +55,18 @@ import hobart from "./hobart.json";
 import ipswich from "./ipswich.json";
 import kalgoorlie from "./kalgoorlie.json";
 import kemblagrange from "./kemblagrange.json";
+import kensington from "./kensington.json";
 import kilcoy from "./kilcoy.json";
 import kilmore from "./kilmore.json";
+import kununurra from "./kununurra.json";
 import launceston from "./launceston.json";
 import leeton from "./leeton.json";
 import lismore from "./lismore.json";
+import longreach from "./longreach.json";
 import mackay from "./mackay.json";
 import mildura from "./mildura.json";
 import moe from "./moe.json";
+import moree from "./moree.json";
 import mornington from "./mornington.json";
 import morphettville from "./morphettville.json";
 import moruya from "./moruya.json";
@@ -66,11 +75,14 @@ import mtgambier from "./mtgambier.json";
 import murraybridge from "./murraybridge.json";
 import murtoa from "./murtoa.json";
 import muswellbrook from "./muswellbrook.json";
+import naracoorte from "./naracoorte.json";
+import narrandera from "./narrandera.json";
 import narromine from "./narromine.json";
 import newcastle from "./newcastle.json";
 import northam from "./northam.json";
 import nowra from "./nowra.json";
 import pakenhamsynthetic from "./pakenhamsynthetic.json";
+import portaugusta from "./portaugusta.json";
 import portmacquarie from "./portmacquarie.json";
 import randwick from "./randwick.json";
 import rockhampton from "./rockhampton.json";
@@ -100,6 +112,7 @@ import wodonga from "./wodonga.json";
 import wyong from "./wyong.json";
 
 export const TRACKS: Record<string, Track> = {
+  albury: albury as Track,
   alicesprings: alicesprings as Track,
   armidale: armidale as Track,
   atherton: atherton as Track,
@@ -115,9 +128,11 @@ export const TRACKS: Record<string, Track> = {
   bowraville: bowraville as Track,
   broome: broome as Track,
   bunbury: bunbury as Track,
+  bundaberg: bundaberg as Track,
   cairns: cairns as Track,
   canterbury: canterbury as Track,
   carnarvon: carnarvon as Track,
+  casterton: casterton as Track,
   caulfield: caulfield as Track,
   coffsharbour: coffsharbour as Track,
   coleraine: coleraine as Track,
@@ -137,10 +152,12 @@ export const TRACKS: Record<string, Track> = {
   gawler: gawler as Track,
   geelong: geelong as Track,
   goldcoast: goldcoast as Track,
+  goondiwindi: goondiwindi as Track,
   gosford: gosford as Track,
   goulburn: goulburn as Track,
   grafton: grafton as Track,
   gunbower: gunbower as Track,
+  gundagai: gundagai as Track,
   gunnedah: gunnedah as Track,
   gympie: gympie as Track,
   hamilton: hamilton as Track,
@@ -149,14 +166,18 @@ export const TRACKS: Record<string, Track> = {
   ipswich: ipswich as Track,
   kalgoorlie: kalgoorlie as Track,
   kemblagrange: kemblagrange as Track,
+  kensington: kensington as Track,
   kilcoy: kilcoy as Track,
   kilmore: kilmore as Track,
+  kununurra: kununurra as Track,
   launceston: launceston as Track,
   leeton: leeton as Track,
   lismore: lismore as Track,
+  longreach: longreach as Track,
   mackay: mackay as Track,
   mildura: mildura as Track,
   moe: moe as Track,
+  moree: moree as Track,
   mornington: mornington as Track,
   morphettville: morphettville as Track,
   moruya: moruya as Track,
@@ -165,11 +186,14 @@ export const TRACKS: Record<string, Track> = {
   murraybridge: murraybridge as Track,
   murtoa: murtoa as Track,
   muswellbrook: muswellbrook as Track,
+  naracoorte: naracoorte as Track,
+  narrandera: narrandera as Track,
   narromine: narromine as Track,
   newcastle: newcastle as Track,
   northam: northam as Track,
   nowra: nowra as Track,
   pakenhamsynthetic: pakenhamsynthetic as Track,
+  portaugusta: portaugusta as Track,
   portmacquarie: portmacquarie as Track,
   randwick: randwick as Track,
   rockhampton: rockhampton as Track,

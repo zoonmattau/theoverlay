@@ -38,6 +38,8 @@ ALIASES = {
     "Rockhampton": ["Callaghan Park"], "Cairns": ["Cannon Park"], "Hobart": ["Elwick"], "Atherton": ["Tolga"],
     "Mt Gambier": ["Mount Gambier Racing Club"], "Devonport Synthetic": ["Spreyton"], "Sandown Hillside": ["Sandown Racecourse"],
     "Sandown Lakeside": ["Sandown Racecourse"], "Pakenham Synthetic": ["Pakenham Racecourse"], "Ballarat Synthetic": ["Dowling Forest"],
+    "Kensington": ["Royal Randwick", "Randwick"], "Pinjarra Scarpside": ["Pinjarra"], "Bundaberg": ["Salter Oval", "Bundaberg"],
+    "Goondiwindi": ["Goondiwindi"], "Port Hedland": ["Port Hedland"], "Mt Isa": ["Mount Isa", "Kalkadoon"], "Port Augusta": ["Port Augusta"],
 }
 
 # Courses mapped in OSM with no name on them: the centre of the unnamed horse-racing way.

@@ -42,7 +42,7 @@ TRACED = {"murraybridge": "traced from Esri World Imagery", "mildura": "traced f
 NO_OUTER = {"newcastle"}
 # The course ring by OSM way id where the longest ring with a rail is the wrong course: the turf course
 # round a synthetic, or the main course round an inner one (6 Oct 2026).
-RING = {"morphettvilleparks": 519192491, "sandownlakeside": 301179470}
+RING = {"morphettvilleparks": 519192491, "sandownlakeside": 301179470, "kensington": 387933613}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}
 STARTS = [800, 900, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1350, 1400, 1450, 1500, 1550, 1600, 1650, 1700, 1800, 1850, 1900, 2000, 2050, 2100, 2200, 2300, 2400, 2500]
 SKIP_TAGS = ("building", "highway", "railway", "waterway", "power", "boundary", "admin_level", "amenity", "shop", "natural", "barrier_skip")
