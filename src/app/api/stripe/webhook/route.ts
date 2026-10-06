@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import type Stripe from "stripe";
 
 import { logEvent, recordPayment } from "@/lib/admin";
+import { sendMetaEvent } from "@/lib/ads/meta-capi";
 import { creditPasses, emailForUser, grantAccess, supabaseAdmin, userIdForCustomer } from "@/lib/billing/access";
 import { billingTerm, planById } from "@/lib/billing/plans";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
@@ -70,6 +71,7 @@ export async function POST(request: NextRequest) {
         if (total !== undefined) {
           await recordPayment(userId, session.amount_total ?? 0, `passes_${passes}`, { session: session.id });
           await logEvent({ user_id: userId, kind: "checkout_completed", plan: `passes_${passes}`, amount_cents: session.amount_total ?? null, meta: null });
+          await sendMetaEvent("Purchase", userId, { eventId: `Purchase-${session.id}`, value: (session.amount_total ?? 0) / 100, plan: `passes_${passes}`, path: "/pricing" });
         }
         const to = await emailForUser(userId);
         if (to && total !== undefined) await sendEmail(to, EMAILS.passesAdded(passes, total));
@@ -163,6 +165,8 @@ export async function POST(request: NextRequest) {
         const when = longDate(until.toISOString().slice(0, 10));
         if (event.type === "customer.subscription.created") {
           await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when, await firstBill(sub)) : EMAILS.planActive(planName, when));
+          // Meta hears of the trial here, once, as the browser pixel only did when the checkout page came back.
+          if (sub.status === "trialing") await sendMetaEvent("StartTrial", userId, { once: true, value: (sub.items.data[0]?.price.unit_amount ?? 0) / 100, plan: planId, path: "/pricing" });
           // An invited friend starting a plan earns both sides their fortnight.
           await rewardReferral(userId);
           if (sub.metadata?.first_month_off) await spendFirstMonth(userId);
@@ -195,6 +199,8 @@ export async function POST(request: NextRequest) {
       if (userId && invoice.amount_paid > 0) {
         const { data } = await supabaseAdmin().from("profiles").select("plan").eq("id", userId).maybeSingle();
         await recordPayment(userId, invoice.amount_paid, data?.plan ?? null, { invoice: invoice.id });
+        // Every bill with money in it, the first after a trial most of all: no browser sees that one.
+        await sendMetaEvent("Purchase", userId, { eventId: `Purchase-${invoice.id}`, value: invoice.amount_paid / 100, plan: data?.plan ?? undefined, path: "/account" });
         // A failed yearly or 3-month first bill paid after all: a month on the house, as the payment emails promise.
         try { await rewardLatePay(userId, invoice); } catch (err) { console.error("[webhook] late pay bonus", err); }
       }

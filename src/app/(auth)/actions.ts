@@ -8,6 +8,7 @@ import { AFF_COOKIE, FOLLOW_COOKIE, attributeSignup, codeFromInput, followFromCo
 import { ARRIVAL_COOKIE, parseArrival } from "@/lib/arrival";
 import { OAUTH_COOKIE, PROVIDERS, type Provider } from "@/lib/social";
 
+import { matchFromRequest, saveMatch, sendMetaEvent } from "@/lib/ads/meta-capi";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
@@ -161,6 +162,8 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
     }
     if (data.user) await attributeSignup(data.user.id, aff);
     if (data.user) await followFromCookie(data.user.id, (await cookies()).get(FOLLOW_COOKIE)?.value);
+    // The click is read here, in the browser that signed up; Meta hears of the account once it is confirmed.
+    if (data.user) await saveMatch(data.user.id, await matchFromRequest());
     const ok = await sendEmail(email, EMAILS.confirmSignup(confirmLink(site, data.properties.hashed_token, "signup", next)));
     if (ok && data.user) after(() => sendTodaysTipsTo(data.user!.id, email, marketing));
     return ok ? { notice: "Check your email for a link to confirm your account." } : { error: "We could not send the confirmation email, try again in a minute." };
@@ -179,10 +182,12 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
   if (error) return { error: error.message };
   if (data.user) await attributeSignup(data.user.id, aff);
   if (data.user) await followFromCookie(data.user.id, (await cookies()).get(FOLLOW_COOKIE)?.value);
+  if (data.user) await saveMatch(data.user.id, await matchFromRequest());
   if (data.user) after(() => sendTodaysTipsTo(data.user!.id, email, marketing));
   // Email confirmation off: signed in already. On: they need the link.
   if (data.session) {
     if (ref && data.user) await applyReferral(data.user.id, ref);
+    if (data.user) await sendMetaEvent("CompleteRegistration", data.user.id, { once: true, requireMatch: true, path: next });
     redirect(`${next}${next.includes("?") ? "&" : "?"}registered=1`);
   }
   return { notice: "Check your email for a link to confirm your account." };

@@ -2,6 +2,7 @@ import "server-only";
 
 import { after } from "next/server";
 
+import { matchFromRequest, saveMatch, sendMetaEvent } from "@/lib/ads/meta-capi";
 import { attributeSignup, followFromCookie } from "@/lib/affiliates";
 import type { Arrival } from "@/lib/arrival";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -56,5 +57,8 @@ export async function finishProviderSignup(userId: string, meta: Record<string, 
   if (stash.aff) await attributeSignup(userId, stash.aff);
   if (stash.follow) await followFromCookie(userId, stash.follow);
   if (stash.ref) await applyReferral(userId, stash.ref);
+  // Google sign-ups never land on ?registered=1, so the pixel missed every one; the server tells Meta.
+  await saveMatch(userId, await matchFromRequest());
+  await sendMetaEvent("CompleteRegistration", userId, { once: true, requireMatch: true, path: "/signup" });
   if (email) after(() => sendTodaysTipsTo(userId, email, Boolean(stash.marketing)));
 }

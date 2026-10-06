@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
+import { sendMetaEvent } from "@/lib/ads/meta-capi";
 import { applyReferral } from "@/lib/referrals";
 import { supabaseServer } from "@/lib/supabase/server";
 
@@ -20,6 +21,8 @@ export async function GET(request: NextRequest) {
     if (!error) {
       const ref = data.user?.user_metadata?.ref;
       if (data.user && type === "signup" && typeof ref === "string" && ref) await applyReferral(data.user.id, ref);
+      // Confirmed, so a real account: Meta hears of it with the click kept from the sign-up browser.
+      if (data.user && type === "signup") await sendMetaEvent("CompleteRegistration", data.user.id, { once: true, requireMatch: true, path: next });
       if (type === "recovery") return NextResponse.redirect(`${origin}/reset`);
       return NextResponse.redirect(`${origin}${type === "signup" ? withRegistered(next) : next}`);
     }

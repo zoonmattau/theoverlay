@@ -11,6 +11,8 @@ declare global {
 }
 
 const PIXEL = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+/** Sign-ups, trials and payments go from our server (src/lib/ads/meta-capi.ts) once this is on; the pixel keeps page views. */
+const SERVER_EVENTS = process.env.NEXT_PUBLIC_META_CAPI === "1";
 
 /** Fires a standard Meta event if the pixel is loaded, otherwise does nothing. */
 export function track(event: string, params?: Record<string, unknown>) {
@@ -29,6 +31,7 @@ export function MetaPixel() {
   useEffect(() => {
     if (!PIXEL || !window.fbq) return;
     window.fbq("track", "PageView");
+    if (SERVER_EVENTS) return;
     const checkout = search.get("checkout");
     const value = Number(search.get("amount") ?? 0);
     const plan = search.get("plan") ?? undefined;

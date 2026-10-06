@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { ARRIVAL_COOKIE, parseArrival } from "@/lib/arrival";
 import { finishProviderSignup, stampArrival, type ProviderStash } from "@/lib/provider-signup";
+import { sendMetaEvent } from "@/lib/ads/meta-capi";
 import { applyReferral } from "@/lib/referrals";
 import { OAUTH_COOKIE } from "@/lib/social";
 import { supabaseServer } from "@/lib/supabase/server";
@@ -22,6 +23,9 @@ export async function GET(request: NextRequest) {
       const ref = data.user?.user_metadata?.ref;
       if (data.user && typeof ref === "string" && ref) await applyReferral(data.user.id, ref);
       if (data.user) await finishFromCookie(data.user.id, data.user.user_metadata ?? {}, data.user.email);
+      // An email sign-up confirmed through Supabase's own link. Once per account, and only one with a
+      // click kept at sign-up, so a magic-link log-in never counts as a sign-up.
+      if (data.user) await sendMetaEvent("CompleteRegistration", data.user.id, { once: true, requireMatch: true, path: safe });
       return NextResponse.redirect(`${origin}${safe}`);
     }
   }
