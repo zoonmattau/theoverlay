@@ -15,12 +15,10 @@ export interface HubFilter {
   band?: string;
   /** A key from PERIODS, 7d to all. */
   period?: string;
-  /** The fewest runs a record needs to be listed; cut after the ranking, not part of the query. */
+  /** The fewest and most runs a record can have to be listed, typed in; cut after the ranking, not part of the query. */
   minRuns?: number;
+  maxRuns?: number;
 }
-
-/** The run counts to pick from, fewest first. */
-export const MIN_RUNS = [10, 30, 50, 100, 250, 500];
 
 export const STATES = ["NSW", "VIC", "QLD", "SA", "WA", "TAS", "ACT", "NT"];
 
@@ -67,11 +65,17 @@ export function filterFrom(sp: Record<string, string | string[] | undefined>): H
   return {
     states: list(sp.state), tracks: list(sp.track), goings: nums(sp.going), distances: nums(sp.distance),
     band: str(sp.band) || undefined, period: str(sp.period) || undefined,
-    minRuns: Number(str(sp.runs)) > 0 ? Number(str(sp.runs)) : undefined,
+    minRuns: count(sp.runs), maxRuns: count(sp.maxruns),
   };
 }
 
-export const filterActive = (f: HubFilter) => Boolean(f.states?.length || f.tracks?.length || f.goings?.length || f.distances?.length || f.band || (f.period && f.period !== "all") || f.minRuns);
+/** A whole number of runs from the query, or nothing. */
+const count = (v: string | string[] | undefined) => { const n = Math.floor(Number(str(v))); return n > 0 ? n : undefined; };
+
+/** Whether a record's run count sits inside the typed range. */
+export const inRuns = (f: HubFilter, runs: number) => (!f.minRuns || runs >= f.minRuns) && (!f.maxRuns || runs <= f.maxRuns);
+
+export const filterActive = (f: HubFilter) => Boolean(f.states?.length || f.tracks?.length || f.goings?.length || f.distances?.length || f.band || (f.period && f.period !== "all") || f.minRuns || f.maxRuns);
 
 /** A query string for the filter, for links between pages. */
 export function filterQuery(f: HubFilter, extra: Record<string, string | undefined> = {}): string {
@@ -83,6 +87,7 @@ export function filterQuery(f: HubFilter, extra: Record<string, string | undefin
   if (f.band) p.set("band", f.band);
   if (f.period && f.period !== "all") p.set("period", f.period);
   if (f.minRuns) p.set("runs", String(f.minRuns));
+  if (f.maxRuns) p.set("maxruns", String(f.maxRuns));
   for (const [k, v] of Object.entries(extra)) if (v) p.set(k, v);
   return p.size ? `?${p}` : "";
 }
@@ -97,6 +102,8 @@ export function filterWords(f: HubFilter): string {
   if (f.goings?.length) parts.push(f.goings.map((n) => GOINGS.find((g) => g.n === n)?.label ?? String(n)).join(", "));
   const period = PERIODS.find((p) => p.key === f.period);
   if (period?.days) parts.push(`last ${period.label.toLowerCase()}`);
-  if (f.minRuns) parts.push(`${f.minRuns}+ runs`);
+  if (f.minRuns && f.maxRuns) parts.push(`${f.minRuns} to ${f.maxRuns} runs`);
+  else if (f.minRuns) parts.push(`${f.minRuns}+ runs`);
+  else if (f.maxRuns) parts.push(`up to ${f.maxRuns} runs`);
   return parts.join(" · ");
 }

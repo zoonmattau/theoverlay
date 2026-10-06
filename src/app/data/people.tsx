@@ -4,7 +4,7 @@ import { personKey } from "@/lib/data/people";
 import { HubFilters } from "./HubFilters";
 import { HubLocked, HubPreview, hubViewer } from "./shared";
 import { PeopleTable, PersonRunsTable, BreakdownTable, UpcomingTable, type LinkedBreakdown } from "@/components/HubTables";
-import { DISTANCE_BANDS, GOINGS, filterActive, filterFrom, filterQuery, filterWords } from "@/lib/data/filters";
+import { DISTANCE_BANDS, GOINGS, filterActive, filterFrom, filterQuery, filterWords, inRuns } from "@/lib/data/filters";
 import { hubPeople, hubPerson, hubTracksList } from "@/lib/data/hub";
 import { upcomingFor } from "@/lib/data/upcoming";
 
@@ -24,9 +24,10 @@ export async function PeopleList({ kind, searchParams }: { kind: Kind; searchPar
   }
   const filter = filterFrom(sp);
   // The run cut is applied here, after the ranking, so it shares the ranking's cache.
-  const { minRuns, ...ranked } = filter;
+  const { minRuns, maxRuns, ...ranked } = filter;
   const [all, tracks] = await Promise.all([hubPeople(kind, ranked), hubTracksList()]);
-  const rows = minRuns ? all.filter((r) => r.rides >= minRuns) : all;
+  const cut = Boolean(minRuns || maxRuns);
+  const rows = cut ? all.filter((r) => inRuns(filter, r.rides)) : all;
   return (
     <section className="py-6">
       <p className="mb-3 text-sm text-ink-secondary">
@@ -34,7 +35,7 @@ export async function PeopleList({ kind, searchParams }: { kind: Kind; searchPar
       </p>
       <HubFilters base={`/data/${noun(kind)}`} filter={filter} tracks={tracks} find={str(sp.find) || undefined} />
       {filterActive(filter) && <p className="mb-2 text-sm font-semibold">{filterWords(filter)}</p>}
-      <PeopleTable rows={rows} find={str(sp.find) || undefined} what={kind === "jockey" ? "rider" : "stable"} filtered={filterActive(filter)} minRuns={minRuns} />
+      <PeopleTable rows={rows} find={str(sp.find) || undefined} what={kind === "jockey" ? "rider" : "stable"} filtered={filterActive(filter)} runsCut={cut} />
     </section>
   );
 }
