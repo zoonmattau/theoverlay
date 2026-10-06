@@ -95,7 +95,7 @@ export async function saveAvatar(form: FormData): Promise<void> {
   const viewer = await getViewer();
   const tipster = await tipsterForUser(viewer.id);
   if (!tipster) return;
-  const letter = String(form.get("letter") ?? "").replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase() || null;
+  const letter = String(form.get("letter") ?? "").replace(/[^a-z0-9]/gi, "").slice(0, 3).toUpperCase() || null;
   const patch: { avatar_letter: string | null; avatar_url?: string | null } = { avatar_letter: letter };
   if (form.get("remove") === "1") patch.avatar_url = null;
   const image = String(form.get("image") ?? "");

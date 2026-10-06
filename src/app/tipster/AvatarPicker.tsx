@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-import { TipsterAvatar } from "@/components/TipsterAvatar";
+import { initials, TipsterAvatar } from "@/components/TipsterAvatar";
 
 /**
  * Pick a letter or two, or upload a logo. The logo is cropped square from its
@@ -29,7 +29,7 @@ export function AvatarPicker({ name, letter, url, action }: { name: string; lett
   return (
     <form action={action} className="mt-3 flex flex-wrap items-end gap-4 text-sm">
       <TipsterAvatar tipster={preview} size={64} />
-      <label className="field"><span>Letter</span><input name="letter" value={typed} onChange={(e) => setTyped(e.target.value.replace(/[^a-z0-9]/gi, "").slice(0, 2).toUpperCase())} className="field-input w-20 text-center" placeholder={name.slice(0, 1).toUpperCase()} /></label>
+      <label className="field"><span>Letter</span><input name="letter" value={typed} onChange={(e) => setTyped(e.target.value.replace(/[^a-z0-9]/gi, "").slice(0, 3).toUpperCase())} className="field-input w-20 text-center" placeholder={initials(name)} /></label>
       <label className="field"><span>Or a logo</span><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => pick(e.target.files?.[0])} className="text-xs" /></label>
       {(url || image) && !remove && <button type="button" onClick={() => { setRemove(true); setImage(null); }} className="text-xs text-ink-soft underline pb-2">Remove logo</button>}
       <input type="hidden" name="image" value={image ?? ""} />
