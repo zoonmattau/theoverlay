@@ -39,6 +39,7 @@ import hamilton from "./hamilton.json";
 import hawkesbury from "./hawkesbury.json";
 import kalgoorlie from "./kalgoorlie.json";
 import kemblagrange from "./kemblagrange.json";
+import kilcoy from "./kilcoy.json";
 import kilmore from "./kilmore.json";
 import launceston from "./launceston.json";
 import leeton from "./leeton.json";
@@ -114,6 +115,7 @@ export const TRACKS: Record<string, Track> = {
   hawkesbury: hawkesbury as Track,
   kalgoorlie: kalgoorlie as Track,
   kemblagrange: kemblagrange as Track,
+  kilcoy: kilcoy as Track,
   kilmore: kilmore as Track,
   launceston: launceston as Track,
   leeton: leeton as Track,
