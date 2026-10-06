@@ -49,11 +49,11 @@ export default function Page({ searchParams }: PageProps<"/">) {
       </Suspense>
 
       <Suspense>
-        <Results />
+        <HomeTipsters />
       </Suspense>
 
       <Suspense>
-        <HomeTipsters />
+        <Results />
       </Suspense>
 
       <WhyUs />
