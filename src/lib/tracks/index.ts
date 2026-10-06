@@ -77,6 +77,7 @@ import rockhampton from "./rockhampton.json";
 import rosehill from "./rosehill.json";
 import sale from "./sale.json";
 import sandownhillside from "./sandownhillside.json";
+import sandownlakeside from "./sandownlakeside.json";
 import scone from "./scone.json";
 import seymour from "./seymour.json";
 import strathalbyn from "./strathalbyn.json";
@@ -175,6 +176,7 @@ export const TRACKS: Record<string, Track> = {
   rosehill: rosehill as Track,
   sale: sale as Track,
   sandownhillside: sandownhillside as Track,
+  sandownlakeside: sandownlakeside as Track,
   scone: scone as Track,
   seymour: seymour as Track,
   strathalbyn: strathalbyn as Track,
