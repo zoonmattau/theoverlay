@@ -360,7 +360,7 @@ export async function liveNow(minutes = 5): Promise<{ pages: LivePage[]; people:
     const path = v.meta?.path ?? "/";
     const page = byPath.get(path) ?? { path, label: pageLabel(path), people: [] };
     const p = id.startsWith("v:") ? undefined : profile.get(id);
-    const pages = `${count.get(id) ?? 1} ${count.get(id) === 1 ? "page" : "pages"} in ${minutes} min, last ${ago(v.created_at)}`;
+    const pages = `${count.get(id) ?? 1} ${count.get(id) === 1 ? "page" : "pages"}, last ${ago(v.created_at)}`;
     let tip: string;
     if (p) {
       const live = p.access_until && new Date(p.access_until).getTime() > now;
