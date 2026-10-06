@@ -1,0 +1,134 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #14161a; --ink2: #1d2025; --lime: #c6f24e; --accent: #6f9a12; --paper: #f5f7f2; --soft: #6b716a; --line: #2a2e34; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; background: var(--ink); }
+  .art { display: none; position: relative; overflow: hidden; }
+  body[data-show="banner"] #banner, body[data-show="safe"] #banner,
+  body[data-show="profile"] #profile, body[data-show="thumb-a"] #thumb-a, body[data-show="thumb-b"] #thumb-b { display: block; }
+  body[data-show="safe"] .safe-box { display: block; }
+
+  /* The logo is always the real file from public/brand, never redrawn. */
+  .mark { display: block; }
+
+  /* ---------- Banner 2048x1152 ---------- */
+  #banner { width: 2048px; height: 1152px; background: var(--ink); }
+  #banner .grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 64px 64px; opacity: .35;
+  }
+  #banner .glow { position: absolute; inset: 0; background: radial-gradient(ellipse 900px 380px at 50% 50%, rgba(198,242,78,.10), transparent 70%); }
+  #banner .rise { position: absolute; inset: 0; }
+  #banner .safe {
+    position: absolute; left: 50%; top: 50%; width: 1235px; height: 338px; transform: translate(-50%, -50%);
+    display: flex; align-items: center; justify-content: center; gap: 44px;
+  }
+  .lockup { display: flex; align-items: center; gap: 28px; }
+  .lockup .words { display: flex; flex-direction: column; line-height: 1; }
+  .lockup .the { color: var(--lime); font-weight: 800; letter-spacing: .5em; font-size: 26px; margin-bottom: 10px; }
+  .lockup .name { color: var(--paper); font-weight: 900; font-size: 84px; letter-spacing: -.01em; }
+  #banner .divider { width: 3px; height: 150px; background: var(--line); }
+  #banner .line { color: var(--paper); font-weight: 900; font-size: 52px; letter-spacing: -.02em; line-height: 1.15; white-space: nowrap; }
+  #banner .line em { font-style: normal; background: var(--lime); color: var(--ink); padding: 0 12px 4px; border-radius: 4px; display: inline-block; margin-top: 6px; }
+  #banner .url { margin-top: 16px; color: var(--soft); font-weight: 600; font-size: 24px; letter-spacing: .04em; }
+  .safe-box { display: none; position: absolute; left: 50%; top: 50%; width: 1235px; height: 338px; transform: translate(-50%, -50%); outline: 4px dashed #ff3b6b; }
+
+  /* ---------- Profile 800x800 ---------- */
+  #profile { width: 800px; height: 800px; background: var(--lime); }
+  #profile .mark { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+
+  /* ---------- Thumbnails 1280x720 ---------- */
+  .thumb { width: 1280px; height: 720px; }
+  #thumb-a { background: var(--ink); }
+  #thumb-a .grid {
+    position: absolute; inset: 0;
+    background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size: 48px 48px; opacity: .3;
+  }
+  #thumb-a .words { position: absolute; left: 64px; top: 70px; width: 600px; }
+  #thumb-a .big { color: var(--paper); font-weight: 900; font-size: 140px; line-height: .9; letter-spacing: -.03em; text-transform: uppercase; }
+  #thumb-a .big .hl { display: inline-block; background: var(--lime); color: var(--ink); padding: 4px 16px 10px; border-radius: 6px; margin-top: 12px; }
+  #thumb-a .sub { margin-top: 30px; color: #c9cec4; font-weight: 700; font-size: 34px; }
+  #thumb-a .shot {
+    position: absolute; right: 48px; top: 140px; width: 620px; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,.6); transform: rotate(-4deg); border: 6px solid var(--paper);
+  }
+  #thumb-a .shot img { display: block; width: 100%; }
+  #thumb-a .brand { position: absolute; left: 64px; bottom: 50px; }
+
+  #thumb-b { background: var(--paper); }
+  #thumb-b .band { position: absolute; left: 0; top: 0; bottom: 0; width: 600px; background: var(--lime); }
+  #thumb-b .words { position: absolute; left: 56px; top: 64px; width: 520px; }
+  #thumb-b .big { color: var(--ink); font-weight: 900; font-size: 102px; line-height: .9; letter-spacing: -.03em; text-transform: uppercase; }
+  #thumb-b .shot {
+    position: absolute; left: 610px; top: 170px; width: 630px; border-radius: 14px; overflow: hidden;
+    box-shadow: 0 24px 60px rgba(20,22,26,.35); border: 3px solid var(--ink);
+  }
+  #thumb-b .shot img { display: block; width: 100%; }
+  #thumb-b .callout {
+    position: absolute; left: 640px; top: 80px; background: var(--ink); color: var(--paper); font-weight: 800; font-size: 40px;
+    padding: 14px 24px; border-radius: 10px; letter-spacing: -.01em;
+  }
+  #thumb-b .callout b { color: var(--lime); }
+  #thumb-b .brand { position: absolute; left: 56px; bottom: 48px; }
+  .brand-sm { display: flex; align-items: center; gap: 14px; }
+  .brand-sm .t { font-weight: 900; font-size: 34px; letter-spacing: .01em; }
+</style>
+</head>
+<body data-show="banner">
+
+
+<!-- Banner -->
+<div class="art" id="banner">
+  <div class="grid"></div>
+  <div class="glow"></div>
+  <svg class="rise" viewBox="0 0 2048 1152" preserveAspectRatio="none">
+    <path d="M-20 1010 L380 760 L520 860 L900 560 L1040 650 L1500 330 L1640 410 L2080 120" stroke="#c6f24e" stroke-opacity=".14" stroke-width="10" fill="none"/>
+  </svg>
+  <div class="safe">
+    <img src="../../../public/brand/lockup-dark.png" style="height:150px;display:block">
+    <div class="divider"></div>
+    <div>
+      <div class="line">Know the price<br><em>before you bet.</em></div>
+      <div class="url">theoverlay.com.au</div>
+    </div>
+  </div>
+  <div class="safe-box"></div>
+</div>
+
+<!-- Profile -->
+<div class="art" id="profile">
+  <img class="mark" src="../../../public/brand/mark-mono-black.svg" width="560" height="560">
+</div>
+
+<!-- Thumbnail A: dark, KNOW THE PRICE -->
+<div class="art thumb" id="thumb-a">
+  <div class="grid"></div>
+  <div class="words">
+    <div class="big">Know<br>the<br><span class="hl">price</span></div>
+  </div>
+  <div class="shot"><img src="../2026-10-05-how-the-overlay-works/thumbnail/raw/table-narrow.png"></div>
+  <img class="brand" src="../../../public/brand/lockup-dark.png" style="height:60px">
+</div>
+
+<!-- Thumbnail B: light, SPOT THE OVERLAY -->
+<div class="art thumb" id="thumb-b">
+  <div class="band"></div>
+  <div class="words"><div class="big">Spot<br>the<br>overlay</div></div>
+  <div class="callout">$7.00 <b>vs</b> our $5.70</div>
+  <div class="shot"><img src="../2026-10-05-how-the-overlay-works/thumbnail/raw/table-narrow.png"></div>
+  <img class="brand" src="brand-light-stacked.png" style="height:120px;bottom:36px">
+</div>
+
+<script>
+  const show = new URLSearchParams(location.search).get("show");
+  if (show) document.body.dataset.show = show;
+</script>
+</body>
+</html>

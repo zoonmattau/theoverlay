@@ -1,0 +1,365 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Saturday graphics</title>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&family=IBM+Plex+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#14161a; --ink2:#1d2025; --line:#2a2e34; --paper:#f5f7f2; --surf:#eef0ea; --soft:#9aa094; --lime:#c6f24e; --accent:#6f9a12; --red:#d93636; --blue:#1f6fd6; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; background: #000; }
+  .s { width: 1920px; height: 1080px; position: relative; overflow: hidden; }
+  .ink { background: var(--ink); color: #fff; }
+  .ink::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 64px 64px; opacity: .28; }
+  .lime { background: var(--lime); color: var(--ink); }
+  .lime::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(20,22,26,.045) 0 16px, transparent 16px 32px); }
+  .abs { position: absolute; }
+  .eyebrow { font-size: 26px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; color: var(--soft); }
+  .lime .eyebrow { color: rgba(20,22,26,.6); }
+  h1 { font-weight: 900; letter-spacing: -.03em; line-height: 1.0; }
+  .num { font-variant-numeric: tabular-nums; }
+  .mono { font-family: "IBM Plex Mono", monospace; }
+
+  /* Brand: the real files from public/brand, never redrawn. */
+  .logo-d { position: absolute; left: 80px; bottom: 52px; height: 52px; }
+  .logo-l { position: absolute; left: 80px; bottom: 40px; height: 96px; }
+
+  /* A screenshot in a browser frame. */
+  .win { position: absolute; background: #fff; border-radius: 18px; overflow: hidden; box-shadow: 0 40px 90px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06); }
+  .lime .win { box-shadow: 0 34px 70px rgba(20,22,26,.35), 0 0 0 3px var(--ink); }
+  .bar { height: 44px; background: #e9ece5; display: flex; align-items: center; gap: 10px; padding: 0 18px; border-bottom: 1px solid #dfe3db; }
+  .bar i { width: 13px; height: 13px; border-radius: 50%; background: #c9cec4; display: inline-block; }
+  .bar span { margin-left: 14px; background: #fff; border-radius: 8px; padding: 5px 16px; font-size: 17px; color: #6b716a; font-weight: 600; }
+  .shot { position: relative; }
+  .shot img { display: block; width: 100%; }
+  /* A lime box on the thing to talk about, sized in % of the screenshot under it. */
+  .hl { position: absolute; border: 6px solid var(--lime); border-radius: 12px; box-shadow: 0 0 0 4px var(--ink), 0 0 30px rgba(198,242,78,.6); }
+  .lime .hl, .hl.dark { border-color: var(--ink); box-shadow: 0 0 0 4px var(--lime); }
+  .chip { position: absolute; background: var(--ink); color: #fff; font-weight: 800; font-size: 24px; letter-spacing: .04em; padding: 10px 20px; border-radius: 999px; border: 3px solid var(--lime); white-space: nowrap; }
+  .lime .chip { border-color: var(--ink); }
+  .call { position: absolute; background: var(--ink); color: #fff; font-weight: 800; font-size: 38px; padding: 16px 26px; border-radius: 14px; box-shadow: 0 16px 34px rgba(0,0,0,.45); white-space: nowrap; }
+  .call b { color: var(--lime); }
+  .call small { display: block; font-size: 22px; color: var(--soft); font-weight: 700; margin-top: 4px; letter-spacing: .02em; }
+  .stamp { position: absolute; background: var(--lime); color: var(--ink); font-weight: 900; font-size: 50px; letter-spacing: .02em; padding: 4px 24px 10px; border: 6px solid var(--ink); border-radius: 14px; transform: rotate(-10deg); box-shadow: 7px 7px 0 var(--ink); z-index: 9; }
+  .tile { background: var(--ink2); border: 2px solid var(--line); border-radius: 22px; padding: 34px 40px; }
+  .tile .lab { font-size: 24px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+  .tile .big { font-size: 110px; font-weight: 900; letter-spacing: -.04em; line-height: 1; margin-top: 16px; }
+  .tile .sub { font-size: 32px; color: #c9cec4; margin-top: 16px; }
+  table { border-collapse: collapse; width: 100%; }
+  th { text-align: right; font-size: 21px; letter-spacing: .12em; text-transform: uppercase; color: var(--soft); font-weight: 800; padding: 0 18px 14px; }
+  th:first-child, td:first-child { text-align: left; }
+  td { padding: 18px 18px; font-size: 36px; border-top: 2px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+  .t11 td { font-size: 30px; padding: 14px 14px; }
+  .t11 th { font-size: 19px; padding: 0 14px 12px; }
+</style>
+</head>
+<body>
+
+<!-- 01 Headline: +47.6, best day since launch, the tips page tiles -->
+<section class="s ink" id="g01">
+  <div class="abs" style="left:96px;top:110px;width:760px">
+    <div class="eyebrow">Saturday 3 October</div>
+    <h1 style="font-size:150px;margin-top:22px;color:var(--lime)">+47.6<br>units</h1>
+    <div style="font-size:54px;font-weight:800;margin-top:36px;letter-spacing:-.01em">Best day since launch.</div>
+    <div style="font-size:34px;color:#c9cec4;margin-top:16px">88 calls, every one settled.</div>
+  </div>
+  <div class="win" style="left:820px;top:330px;width:1040px;transform:rotate(-3deg)">
+    <div class="bar"><i></i><i></i><i></i><span>theoverlay.com.au/tips</span></div>
+    <div class="shot"><img src="raw/c-tips-head.png">
+      <div class="hl" style="left:72.6%;top:47%;width:25.6%;height:45%"></div>
+    </div>
+  </div>
+  <div class="chip" style="left:840px;top:250px;transform:rotate(-3deg)">Today's tips, Sat 3 Oct</div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 02 The day in numbers and the seven winners -->
+<section class="s ink" id="g02">
+  <div class="abs" style="left:96px;top:84px;right:96px">
+    <div class="eyebrow">Saturday 3 October, level stakes</div>
+    <h1 style="font-size:78px;margin-top:12px">The day in numbers</h1>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;margin-top:40px">
+      <div class="tile"><div class="lab"><span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:var(--blue);margin-right:12px"></span>Bets</div><div class="big num" style="color:var(--lime)">+31.5u</div><div class="sub">36 calls, 7 winners</div></div>
+      <div class="tile"><div class="lab"><span style="display:inline-block;width:18px;height:18px;border-radius:4px;background:var(--red);margin-right:12px"></span>Lays</div><div class="big num" style="color:var(--lime)">+16.1u</div><div class="sub">52 calls, 40 won</div></div>
+      <div class="tile" style="background:var(--lime);border-color:var(--lime);color:var(--ink)"><div class="lab" style="color:rgba(20,22,26,.65)">The day</div><div class="big num">+47.6u</div><div class="sub" style="color:var(--ink)">88 calls</div></div>
+    </div>
+    <div class="eyebrow" style="margin-top:48px">The winners</div>
+    <div id="winners" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:16px"></div>
+  </div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 03 The bets on the site: each winner's row, our price against the market, 29 others lost -->
+<section class="s lime" id="g03">
+  <div class="abs" style="left:96px;top:70px">
+    <div class="eyebrow">The bets, Saturday 3 October</div>
+    <h1 style="font-size:72px;margin-top:10px">Seven winners, all at $5 or longer</h1>
+  </div>
+  <div class="win" style="left:96px;top:250px;width:1340px">
+    <div class="bar"><i></i><i></i><i></i><span>theoverlay.com.au/tips</span></div>
+    <div class="shot"><img src="raw/c-bets-thead.png"></div>
+    <div id="rows"></div>
+  </div>
+  <div class="call" style="left:1320px;top:150px;transform:rotate(2deg);font-size:32px">Market <b class="mono">$17.56</b> vs ours <b class="mono">$7.30</b></div>
+  <div class="stamp" style="left:1520px;top:330px">WON</div>
+  <div class="abs" style="left:1500px;top:480px;width:300px;text-align:center">
+    <div style="font-size:76px;font-weight:900;letter-spacing:-.03em">7</div>
+    <div style="font-size:26px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">winners</div>
+    <div style="font-size:58px;font-weight:900;letter-spacing:-.03em;margin-top:24px">+31.5u</div>
+    <div style="font-size:26px;font-weight:800;letter-spacing:.06em;text-transform:uppercase">bets</div>
+  </div>
+  <div class="abs" style="left:96px;top:880px;width:1340px;background:var(--ink);color:#fff;border-radius:14px;padding:18px 28px;font-size:30px;font-weight:700;display:flex;justify-content:space-between">
+    <span>29 other bets lost, which is normal at these prices.</span><span style="color:var(--lime)">Average bet $7.73</span>
+  </div>
+</section>
+
+<!-- 04 Bodmin Moor's race page -->
+<section class="s ink" id="g04">
+  <div class="abs" style="left:96px;top:96px">
+    <div class="eyebrow">Gold Coast R1</div>
+    <h1 style="font-size:84px;margin-top:12px">Bodmin Moor at <span style="color:var(--lime)">$17.56</span></h1>
+  </div>
+  <div class="win" style="left:96px;top:290px;width:1300px;transform:rotate(-1.5deg)">
+    <div class="bar"><i></i><i></i><i></i><span>theoverlay.com.au/racing/2026-10-03/gold-coast</span></div>
+    <div class="shot"><img src="raw/bodmin-head.png"></div>
+    <div class="shot"><img src="raw/bodmin-results.png">
+      <div class="hl" style="left:.5%;top:12%;width:99%;height:22%"></div>
+    </div>
+  </div>
+  <div class="stamp" style="left:1340px;top:320px">WON</div>
+  <div class="call" style="left:1460px;top:470px">Rated <b class="mono">$7.30</b><small>won at $17.56</small></div>
+  <div class="call" style="left:1460px;top:620px;font-size:56px"><b>+16.6u</b><small>one unit, level stakes</small></div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 04b Why we had Bodmin Moor at $7.30: his rankings line, last three runs, sectionals, what to expect and the call. No factor chips on camera. -->
+<section class="s ink" id="g04b">
+  <div class="abs" style="left:96px;top:70px">
+    <div class="eyebrow">Gold Coast R1 &middot; Bodmin Moor</div>
+    <h1 style="font-size:76px;margin-top:10px">Why we had him at <span style="color:var(--lime)">$7.30</span></h1>
+  </div>
+  <div class="win" style="left:96px;top:250px;width:760px">
+    <div class="bar"><i></i><i></i><i></i><span>Rankings &middot; Today</span></div>
+    <div class="shot"><img src="raw/bodmin-rank-top.png">
+      <div class="hl" style="left:.5%;top:1%;width:99%;height:33%"></div>
+    </div>
+  </div>
+  <div class="chip" style="left:880px;top:300px;white-space:normal;width:380px;line-height:1.3">Top of our ratings. The only one close, Inzain Dragon, had never raced.</div>
+  <div class="win" style="left:96px;top:540px;width:1180px">
+    <div class="bar"><i></i><i></i><i></i><span>Last 3 runs</span></div>
+    <div class="shot"><img src="raw/bodmin-runs.png">
+      <div class="hl" style="left:.3%;top:38%;width:99.4%;height:21%"></div>
+    </div>
+  </div>
+  <div class="call" style="left:120px;top:800px;font-size:34px">Ran <b>8th</b> last start, but we rated the run <b class="mono">62.8</b><small>closing from the back, 35.11 for the last 600: that run put him top of this field</small></div>
+  <div class="win" style="left:1340px;top:250px;width:500px">
+    <div class="bar"><i></i><i></i><i></i><span>His runner panel</span></div>
+    <div class="shot"><img src="raw/bodmin-sect.png">
+      <div class="hl" style="left:0;top:45%;width:100%;height:12%"></div>
+    </div>
+    <div class="shot"><img src="raw/bodmin-expect.png"></div>
+    <div class="shot"><img src="raw/bodmin-call.png"></div>
+  </div>
+  <div class="chip" style="left:1440px;top:186px;transform:rotate(-3deg)">Best sprint home in the field &darr;</div>
+  <div class="call" style="left:1000px;top:948px;font-size:30px">Opened <b class="mono">$6.50</b>, drifted to <b class="mono">$9.50</b>. Won at <b class="mono">$17.56</b>.</div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 05 Shadow Eagle and Easy Love -->
+<section class="s ink" id="g05">
+  <div class="abs" style="left:96px;top:70px">
+    <div class="eyebrow">Two more at the top of the list</div>
+    <h1 style="font-size:72px;margin-top:10px">Shadow Eagle and Easy Love</h1>
+  </div>
+  <div class="win" style="left:96px;top:230px;width:1260px;transform:rotate(-1deg)">
+    <div class="bar"><i></i><i></i><i></i><span>Murray Bridge R4</span></div>
+    <div class="shot"><img src="raw/shadow-results.png"><div class="hl" style="left:.5%;top:12%;width:99%;height:22%"></div></div>
+  </div>
+  <div class="win" style="left:96px;top:625px;width:1260px;transform:rotate(1deg)">
+    <div class="bar"><i></i><i></i><i></i><span>Eagle Farm R6</span></div>
+    <div class="shot"><img src="raw/easylove-results.png"><div class="hl" style="left:.5%;top:12%;width:99%;height:22%"></div></div>
+  </div>
+  <div class="call" style="left:1420px;top:250px">Rated <b class="mono">$7.40</b><small>won at $11.00</small></div>
+  <div class="call" style="left:1420px;top:380px;font-size:56px"><b>+10.0u</b></div>
+  <div class="call" style="left:1420px;top:560px">Rated <b class="mono">$7.20</b><small>won at $9.63</small></div>
+  <div class="call" style="left:1420px;top:690px;font-size:56px"><b>+8.6u</b></div>
+</section>
+
+<!-- 06 The lays: the result, a dot per lay, the ones that hurt -->
+<section class="s ink" id="g06">
+  <div class="abs" style="left:96px;top:96px;width:820px">
+    <div class="eyebrow">The lays</div>
+    <div class="num" style="font-size:250px;font-weight:900;letter-spacing:-.05em;line-height:.9;margin-top:24px;color:var(--lime)">77%</div>
+    <div style="font-size:52px;font-weight:800;margin-top:20px">52 laid, <span style="color:var(--lime)">40 beaten</span></div>
+    <div style="font-size:32px;color:#c9cec4;margin-top:14px">+16.1u at an average of $3.16. The market said 17 or 18 would win. 12 did.</div>
+    <div class="tile" style="margin-top:44px;padding:26px 32px;border-color:#5a2a2a;background:#231a1c">
+      <div class="lab" style="color:#ff8a8a">The four that hurt</div>
+      <div style="display:grid;grid-template-columns:1fr auto;gap:8px 30px;margin-top:14px;font-size:32px;font-weight:700">
+        <span>In Three Dee</span><span class="num">$4.10</span><span>Moulin Miss</span><span class="num">$4.40</span><span>St Lawrence</span><span class="num">$4.00</span><span>Anotherhouse</span><span class="num">$3.80</span>
+      </div>
+    </div>
+  </div>
+  <div class="abs" style="left:1000px;top:150px;width:820px">
+    <div id="dots" style="display:grid;grid-template-columns:repeat(8,1fr);gap:22px"></div>
+    <div style="display:flex;gap:40px;margin-top:36px;font-size:28px;font-weight:700">
+      <span><span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--lime);vertical-align:-3px;margin-right:10px"></span>Beaten, lay held</span>
+      <span><span style="display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--red);vertical-align:-3px;margin-right:10px"></span>Won, lay lost</span>
+    </div>
+  </div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 07 Keep it honest -->
+<section class="s ink" id="g07">
+  <div class="abs" style="left:96px;top:96px;right:96px">
+    <div class="eyebrow">Keep it honest</div>
+    <h1 style="font-size:84px;margin-top:12px">Well above expected. <span style="color:var(--lime)">Not every week.</span></h1>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;margin-top:52px">
+      <div style="display:flex;flex-direction:column;gap:28px">
+        <div class="tile"><div class="lab">Bet winners</div><div style="display:flex;align-items:baseline;gap:26px;margin-top:10px"><span class="big num" style="margin:0">7</span><span style="font-size:36px;color:#c9cec4">vs about 6 expected</span></div></div>
+        <div class="tile"><div class="lab">Lays that won</div><div style="display:flex;align-items:baseline;gap:26px;margin-top:10px"><span class="big num" style="margin:0">12</span><span style="font-size:36px;color:#c9cec4">vs 17 or 18 expected</span></div></div>
+      </div>
+      <div class="tile" style="display:flex;flex-direction:column">
+        <div class="lab">The last four Saturdays, units</div>
+        <div id="bars" style="position:relative;margin-top:30px;height:340px"></div>
+      </div>
+    </div>
+  </div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 08 Tempted's race: the result -->
+<section class="s lime" id="g08">
+  <div class="abs" style="left:96px;top:80px">
+    <div class="eyebrow">Randwick R9, Group 2, 1200m</div>
+    <h1 style="font-size:84px;margin-top:10px">The Premiere Stakes</h1>
+  </div>
+  <div class="win" style="left:96px;top:270px;width:1300px;transform:rotate(-1.2deg)">
+    <div class="bar"><i></i><i></i><i></i><span>theoverlay.com.au/racing/2026-10-03/randwick</span></div>
+    <div class="shot"><img src="raw/tempted-head.png"></div>
+    <div class="shot"><img src="raw/tempted-results.png"><div class="hl dark" style="left:.5%;top:12%;width:99%;height:22%"></div></div>
+  </div>
+  <div class="stamp" style="left:1340px;top:290px">WON</div>
+  <div class="call" style="left:1440px;top:560px">Tempted<small>won by 2.98 lengths</small></div>
+  <img class="logo-l" src="raw/brand-light-stacked.png" style="height:130px;bottom:40px">
+</section>
+
+<!-- 09 The rating and the price -->
+<section class="s ink" id="g09">
+  <div class="abs" style="left:96px;top:80px">
+    <div class="eyebrow">Before the jump</div>
+    <h1 style="font-size:78px;margin-top:10px">The best rating we have ever given</h1>
+  </div>
+  <div class="win" style="left:96px;top:230px;width:1200px">
+    <div class="bar"><i></i><i></i><i></i><span>Rankings, Randwick R9</span></div>
+    <div class="shot"><img src="raw/c-rankings.png"><div class="hl" style="left:.4%;top:.3%;width:99.2%;height:8.4%"></div></div>
+  </div>
+  <div class="abs" style="left:96px;top:858px;width:1200px;background:var(--ink2);border:2px solid var(--line);border-radius:16px;padding:16px 28px;display:flex;align-items:center;gap:26px;font-size:34px;font-weight:800">
+    <span>Ours <span class="mono" style="color:var(--lime)">$1.60</span></span><span style="color:#5a5f66">|</span><span>Market <span class="mono">$1.65</span></span>
+    <span style="background:var(--lime);color:var(--ink);font-weight:900;font-size:22px;letter-spacing:.08em;padding:6px 16px;border-radius:999px">NO BET</span>
+    <span style="font-size:26px;font-weight:600;color:#c9cec4">Right isn't enough without a price.</span>
+  </div>
+  <div class="abs" style="left:1350px;top:230px;width:480px">
+    <div class="tile" style="border-color:var(--lime);background:#1f2410">
+      <div class="lab" style="color:var(--lime)">Tempted</div>
+      <div class="num" style="font-size:140px;font-weight:900;letter-spacing:-.04em;line-height:1;margin-top:10px">163.5</div>
+      <div style="font-size:30px;color:#c9cec4;margin-top:18px;line-height:1.35">Best since launch.</div>
+      <div style="font-size:30px;color:#c9cec4;margin-top:10px;line-height:1.35">Next best: Cormier, <b style="color:#fff">151.5</b>.</div>
+      <div style="font-size:26px;color:var(--soft);margin-top:10px;line-height:1.35">More than 10,000 runners rated.</div>
+    </div>
+  </div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png" style="height:40px;bottom:30px">
+</section>
+
+<!-- 10 The race shape: speed map and what to watch -->
+<section class="s ink" id="g10">
+  <div class="abs" style="left:96px;top:60px">
+    <div class="eyebrow">What we expected</div>
+    <h1 style="font-size:64px;margin-top:8px">A fast pace, and Tempted coming late</h1>
+  </div>
+  <div class="win" style="left:96px;top:200px;width:1280px">
+    <div class="bar"><i></i><i></i><i></i><span>Randwick R9, before the jump</span></div>
+    <div class="shot"><img src="raw/tempted-pace.png"><div class="hl" style="left:33.2%;top:34%;width:8.8%;height:20%"></div></div>
+    <div class="shot"><img src="raw/tempted-watch.png"><div class="hl" style="left:40.5%;top:30.5%;width:18.5%;height:15.5%"></div></div>
+  </div>
+  <div class="call" style="left:1420px;top:260px;white-space:normal;width:420px">Fast tempo<small>pressure 90% up front</small></div>
+  <div class="call" style="left:1420px;top:430px;white-space:normal;width:420px">Tempted, midfield<small>best closing sectionals in the field</small></div>
+  <div class="call" style="left:1420px;top:620px;white-space:normal;width:420px;font-size:30px">Could he settle close enough to hold off Marhoona?</div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 11 How he ran: the sectionals and the pace -->
+<section class="s ink" id="g11">
+  <div class="abs" style="left:96px;top:84px;right:96px">
+    <div class="eyebrow">How he ran</div>
+    <h1 style="font-size:80px;margin-top:12px">10th at the 400. <span style="color:var(--lime)">Won by 3 lengths.</span></h1>
+  </div>
+  <div class="abs" style="left:96px;top:270px;width:1240px">
+    <table class="t11">
+      <thead><tr><th>Horse</th><th>Settled</th><th>800</th><th>400</th><th>Finish</th><th>Margin</th><th>Last 600</th></tr></thead>
+      <tbody id="sect"></tbody>
+    </table>
+    <div style="font-size:22px;color:var(--soft);margin-top:16px">Last 600: lengths against the class standard. Plus is quicker.</div>
+  </div>
+  <div class="abs" style="left:1380px;top:270px;width:450px">
+    <div class="tile" style="border-color:var(--lime);background:#1f2410;padding:30px 32px">
+      <div class="lab" style="color:var(--lime);line-height:1.3">Pace: fast,<br>as we called it</div>
+      <div style="display:flex;flex-direction:column;gap:18px;margin-top:22px;font-size:29px;font-weight:700;line-height:1.25">
+        <div>Mazu led at the 800 and the 400, and faded to <span style="color:#ff7a7a">10th</span>.</div>
+        <div>Only Savvy Hallie held on from the front, <span style="color:var(--lime)">2nd</span>.</div>
+        <div>Tempted came from 10th at the 400 and won with the fastest last 600.</div>
+      </div>
+    </div>
+  </div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<!-- 12 Close -->
+<section class="s ink" id="g12">
+  <div class="abs" style="left:96px;top:190px;right:96px">
+    <div class="eyebrow">Spring carnival from here</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:32px;margin-top:36px">
+      <div class="tile"><div style="color:var(--lime);font-weight:900;font-size:30px;letter-spacing:.08em">SAT 10 OCT</div><div style="font-size:60px;font-weight:900;margin-top:10px;letter-spacing:-.02em">Caulfield Guineas</div></div>
+      <div class="tile"><div style="color:var(--lime);font-weight:900;font-size:30px;letter-spacing:.08em">SAT 17 OCT</div><div style="font-size:60px;font-weight:900;margin-top:10px;letter-spacing:-.02em">The Everest and the Caulfield Cup</div></div>
+    </div>
+    <h1 style="font-size:84px;margin-top:70px">Every call, won and lost, on the site.</h1>
+    <div style="font-size:48px;margin-top:28px;font-weight:700"><span style="background:var(--lime);color:var(--ink);padding:0 16px 4px;border-radius:6px;font-weight:900">7-day free trial</span>&nbsp; theoverlay.com.au</div>
+  </div>
+  <div class="abs" style="left:96px;top:860px;font-size:24px;color:var(--soft)">18+ only. Gamble responsibly. Gambling Help Online 1800 858 858.</div>
+  <img class="logo-d" src="../../../../public/brand/lockup-dark.png">
+</section>
+
+<script>
+  const winners = [["Bodmin Moor", "Gold Coast R1", "$7.30", "$17.56", "+16.6"], ["Shadow Eagle", "Murray Bridge R4", "$7.40", "$11.00", "+10.0"], ["Easy Love", "Eagle Farm R6", "$7.20", "$9.63", "+8.6"], ["Liberty Park", "Eagle Farm R4", "$6.20", "$8.85", "+7.9"], ["Aratiri", "Gold Coast R3", "$5.60", "$7.61", "+6.6"], ["Saintly Dancer", "Flemington R4", "$5.70", "$7.50", "+6.5"], ["Our Degree", "Moora R3", "$4.10", "$5.38", "+4.4"]];
+  document.getElementById("winners").innerHTML = winners.map(([h, r, ours, won, u]) => `
+    <div style="background:var(--ink2);border:2px solid var(--line);border-radius:16px;padding:18px 22px">
+      <div style="font-size:30px;font-weight:900">${h}</div>
+      <div style="font-size:22px;color:#9aa094;margin-top:2px">${r}</div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;margin-top:10px">
+        <span class="num" style="font-size:24px;color:#c9cec4">${ours} → <b style="color:#fff">${won}</b></span>
+        <span class="num" style="font-size:36px;font-weight:900;color:var(--lime)">${u}u</span>
+      </div>
+    </div>`).join("");
+  // Each winner's row from the tips page, with a lime box on the market and our price.
+  document.getElementById("rows").innerHTML = [1,2,3,4,5,6,7].map((i) => `<div class="shot" style="border-top:1px solid #ecefe8"><img src="raw/c-win-${i}.png">${i === 1 ? '<div class="hl" style="left:51.6%;top:4%;width:24.6%;height:92%;border-width:5px"></div>' : ""}</div>`).join("");
+  // 52 lays: 40 held, 12 lost.
+  document.getElementById("dots").innerHTML = Array.from({ length: 52 }, (_, i) => `<div style="aspect-ratio:1;border-radius:50%;background:${i < 40 ? "#c6f24e" : "#d93636"}"></div>`).join("");
+  // Last four Saturdays.
+  const sats = [["12 Sept", 19.6], ["19 Sept", -22.3], ["26 Sept", 23.0], ["3 Oct", 47.6]];
+  const H = 290, max = 55, min = 28, zero = H * max / (max + min);
+  document.getElementById("bars").innerHTML = `<div style="position:absolute;left:0;right:0;top:${zero}px;height:2px;background:#3a3f46"></div>` + sats.map(([d, v], i) => {
+    const px = Math.abs(v) / (max + min) * H, top = v >= 0 ? zero - px : zero, last = i === 3, x = i * 25;
+    return `<div style="position:absolute;left:${x + 4}%;width:17%;top:${top}px;height:${px}px;border-radius:8px;background:${v >= 0 ? (last ? "#c6f24e" : "#7d9a35") : "#d93636"}"></div>
+      <div class="num" style="position:absolute;left:${x}%;width:25%;text-align:center;font-weight:${last ? 900 : 700};font-size:${last ? 40 : 30}px;top:${v >= 0 ? top - 50 : top + px + 8}px;color:${last ? "#c6f24e" : "#fff"}">${v > 0 ? "+" : "−"}${Math.abs(v).toFixed(1)}</div>
+      <div style="position:absolute;left:${x}%;width:25%;text-align:center;top:${H + 30}px;font-size:26px;color:#9aa094;font-weight:700">${d}</div>`;
+  }).join("");
+  // Positions in running and the last 600, from the race data. The data has no 600 position.
+  const ord = (n) => n + (n % 10 === 1 && n !== 11 ? "st" : n % 10 === 2 && n !== 12 ? "nd" : n % 10 === 3 && n !== 13 ? "rd" : "th");
+  const sect = [["Tempted", 9, 9, 10, 1, "won by 2.98L", 7.2], ["Savvy Hallie", 1, 2, 2, 2, "2.98L", -1.3], ["Marhoona", 3, 3, 5, 3, "3.0L", 0.1], ["Grafterburners", 6, 6, 8, 4, "3.16L", 1.9], ["Caballus", 5, 5, 4, 5, "3.86L", -0.6], ["King Of Roseau", 12, 12, 11, 7, "4.27L", 4.1], ["Generosity", 11, 11, 12, 8, "4.33L", 4.0]];
+  document.getElementById("sect").innerHTML = sect.map(([n, s, a, b, f, m, l], i) => `<tr style="${i ? "" : "background:#1f2410"}">
+    <td style="font-weight:${i ? 600 : 900};color:${i ? "#fff" : "#c6f24e"}">${n}</td><td>${ord(s)}</td><td>${ord(a)}</td><td>${ord(b)}</td>
+    <td style="font-weight:800">${ord(f)}</td><td>${m}</td>
+    <td style="font-weight:${i ? 700 : 900};color:${l < 0 ? "#ff7a7a" : i ? "#fff" : "#c6f24e"}">${l > 0 ? "+" : "−"}${Math.abs(l).toFixed(1)}L</td></tr>`).join("");
+</script>
+</body>
+</html>

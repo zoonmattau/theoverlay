@@ -1,0 +1,67 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #14161a; --lime: #c6f24e; --red: #d93636; --paper: #f5f7f2; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 1920px; height: 1080px; overflow: hidden; background: transparent; font-family: Archivo, sans-serif; }
+  /* Two bands, lime above red, tilted like the logo's bars. Together they cover the frame at the cut. */
+  .band { position: absolute; left: -20%; width: 140%; height: 62%; transform-origin: center; }
+  .top { top: -12%; background: var(--ink); border-bottom: 18px solid var(--lime); transform: rotate(-3deg); }
+  .bottom { bottom: -12%; background: var(--ink); border-top: 18px solid var(--red); transform: rotate(-3deg); }
+  .seam { display: none; }
+  .logo { position: absolute; left: 50%; top: 50%; width: 1360px; transform: translate(-50%, -50%) rotate(-3deg); }
+  .bar { display: block; text-align: center; white-space: nowrap; font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -0.03em; line-height: .86; padding: 22px 46px 30px; }
+  .o { background: var(--lime); color: var(--ink); clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%); }
+  .u { background: var(--red); color: var(--paper); clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%); margin-top: 16px; }
+  .badge { position: absolute; right: -66px; top: 50%; width: 148px; height: 148px; margin-top: -74px; border-radius: 50%; background: var(--ink); border: 9px solid var(--paper); display: grid; place-items: center; }
+  .badge img { width: 80px; height: 80px; }
+</style>
+</head>
+<body>
+<div class="band top" id="top"></div>
+<div class="band bottom" id="bottom"></div>
+<div class="seam" id="seam"></div>
+<div class="logo" id="logo">
+  <div class="bar o fit" id="over">Overlays</div>
+  <div class="bar u fit" id="under">Underlays</div>
+  <div class="badge" id="badge"><img src="../../../public/brand/mark-mono-white.svg" alt=""></div>
+</div>
+<script>
+  // Words fill their bars exactly, the same as the logo.
+  const fit = () => {
+    for (const el of document.querySelectorAll(".fit")) {
+      const box = el.parentElement.getBoundingClientRect().width / Math.cos(3 * Math.PI / 180) - 92;
+      el.style.fontSize = "300px";
+      const probe = el.cloneNode(true); probe.style.cssText = "position:absolute;visibility:hidden;padding:0;font-size:300px;clip-path:none"; document.body.appendChild(probe);
+      el.style.fontSize = (300 * box / probe.getBoundingClientRect().width) + "px"; probe.remove();
+    }
+  };
+  // The timeline, in seconds: bands in by 0.35, logo lands by 0.55, hold, all out by 1.2. The cut sits at 0.6, under full cover.
+  const D = 1.2;
+  const ease = (t) => (t < 0 ? 0 : t > 1 ? 1 : 1 - Math.pow(1 - t, 3));
+  const easeIn = (t) => (t < 0 ? 0 : t > 1 ? 1 : t * t * t);
+  const seg = (t, a, b) => (t - a) / (b - a);
+  // Played at half speed: the timeline below is in its own seconds, the video runs 2.4s with the cut at 1.2s.
+  const SLOW = 2;
+  window.at = (t) => {
+    t = t / SLOW;
+    const inB = ease(seg(t, 0, 0.35)), outB = easeIn(seg(t, 0.85, 1.2));
+    // Lime from the left, red from the right; out the far side.
+    document.getElementById("top").style.translate = `${(-110 + 110 * inB + 110 * outB)}% 0`;
+    document.getElementById("bottom").style.translate = `${(110 - 110 * inB - 110 * outB)}% 0`;
+    document.getElementById("seam").style.translate = `${(-110 + 110 * inB + 110 * outB)}% 0`;
+    const inO = ease(seg(t, 0.12, 0.45)), inU = ease(seg(t, 0.18, 0.5)), outL = easeIn(seg(t, 0.8, 1.1));
+    document.getElementById("over").style.translate = `${-2200 + 2200 * inO + 2600 * outL}px 0`;
+    document.getElementById("under").style.translate = `${2200 - 2200 * inU - 2600 * outL}px 0`;
+    const pop = seg(t, 0.42, 0.58), sc = pop <= 0 ? 0 : pop >= 1 ? 1 : 1 + 0.25 * Math.sin(Math.PI * pop) ;
+    const b = document.getElementById("badge");
+    b.style.scale = String(t > 0.8 ? Math.max(0, 1 - easeIn(seg(t, 0.8, 0.95))) : sc);
+  };
+  document.fonts.ready.then(() => { fit(); window.at(0); document.body.dataset.ready = "1"; });
+</script>
+</body>
+</html>

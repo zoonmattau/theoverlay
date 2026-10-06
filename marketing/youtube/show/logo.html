@@ -1,0 +1,128 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,400;0,700;0,800;0,900;1,800;1,900&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #14161a; --lime: #c6f24e; --red: #d93636; --paper: #f5f7f2; --soft: #8b918a; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; background: transparent; }
+  body.dark { background: var(--ink); }
+  .frame { width: 1600px; height: 900px; display: grid; place-items: center; }
+  .word { font-weight: 900; font-style: italic; letter-spacing: -0.03em; line-height: .86; text-transform: uppercase; }
+
+  /* A: above and below the line. OVERLAYS sits on a white rail, UNDERLAYS hangs under it. */
+  .a { display: grid; justify-items: center; }
+  .a .over { font-size: 196px; color: var(--lime); }
+  .a .rail { width: 1180px; height: 14px; background: var(--paper); border-radius: 7px; margin: 22px 0 18px; position: relative; display: grid; place-items: center; }
+  .a .rail .chip { position: absolute; display: flex; align-items: center; gap: 14px; background: var(--ink); padding: 0 22px; height: 64px; border: 6px solid var(--paper); border-radius: 40px; }
+  .a .rail .chip img { width: 38px; height: 38px; }
+  .a .rail .chip span { color: var(--paper); font-weight: 800; font-size: 28px; letter-spacing: .3em; }
+  .a .under { font-size: 196px; color: var(--red); }
+
+  /* B: one line, arrows. */
+  .b { display: flex; align-items: center; gap: 34px; }
+  .b .mark { width: 150px; height: 150px; }
+  .b .stack { display: grid; gap: 10px; }
+  .b .row { display: flex; align-items: center; gap: 22px; }
+  .b .tri { width: 0; height: 0; border-left: 46px solid transparent; border-right: 46px solid transparent; }
+  .b .up { border-bottom: 74px solid var(--lime); }
+  .b .down { border-top: 74px solid var(--red); }
+  .b .word { font-size: 142px; }
+  .b .o { color: var(--lime); }
+  .b .u { color: var(--red); }
+
+  /* C: badge, split on the diagonal. */
+  .c { width: 1180px; height: 560px; border-radius: 48px; position: relative; overflow: hidden; background: linear-gradient(162deg, var(--lime) 0 50%, var(--red) 50% 100%); box-shadow: 0 0 0 12px var(--ink); }
+  .c .o, .c .u { position: absolute; font-size: 168px; }
+  .c .o { left: 70px; top: 70px; color: var(--ink); }
+  .c .u { right: 70px; bottom: 74px; color: var(--paper); }
+  .c .amp { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: 150px; height: 150px; border-radius: 50%; background: var(--ink); display: grid; place-items: center; border: 8px solid var(--paper); }
+  .c .amp img { width: 84px; height: 84px; }
+
+  /* D: A reworked. Both words the same width, a hard offset shadow, the line a running rail with posts, the mark on a lime saddlecloth. */
+  .d { display: grid; justify-items: stretch; width: 1240px; }
+  .d .word { display: block; text-align: center; white-space: nowrap; }
+  .d .over { color: var(--lime); text-shadow: 10px 10px 0 #0a0b0d; }
+  .d .under { color: var(--red); text-shadow: 10px 10px 0 #0a0b0d; }
+  .d .rail { position: relative; height: 92px; margin: 6px 0; }
+  .d .rail .bar { position: absolute; left: 0; right: 0; top: 30px; height: 16px; background: var(--paper); border-radius: 8px; }
+  .d .rail .post { position: absolute; top: 30px; width: 10px; height: 46px; background: var(--paper); border-radius: 3px; }
+  .d .cloth { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%) rotate(-4deg); width: 120px; height: 120px; background: var(--lime); border: 8px solid var(--ink); border-radius: 18px; display: grid; place-items: center; box-shadow: 0 0 0 8px var(--paper); }
+  .d .cloth span { font-weight: 900; font-size: 84px; color: var(--ink); line-height: 1; margin-top: -6px; }
+
+  /* E: tight stack, one block. OVERLAYS on a lime bar in ink, UNDERLAYS on a red bar in white, the mark where they meet. */
+  .e { display: grid; width: 1180px; transform: rotate(-3deg); }
+  .e .bar { display: block; text-align: center; padding: 18px 40px 26px; white-space: nowrap; }
+  .e .o { background: var(--lime); color: var(--ink); clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%); }
+  .e .u { background: var(--red); color: var(--paper); clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%); margin-top: 14px; }
+  .e .meet { position: relative; height: 0; }
+  .e .meet .badge { position: absolute; right: -58px; top: -64px; width: 128px; height: 128px; border-radius: 50%; background: var(--ink); border: 8px solid var(--paper); display: grid; place-items: center; z-index: 2; }
+  .e .meet .badge img { width: 70px; height: 70px; }
+</style>
+</head>
+<body>
+<div class="frame" id="a">
+  <div class="a">
+    <div class="word over">Overlays</div>
+    <div class="rail"><div class="chip"><img src="../../../public/brand/mark-mono-white.svg" alt=""><span>AND</span></div></div>
+    <div class="word under">Underlays</div>
+  </div>
+</div>
+
+<div class="frame" id="b">
+  <div class="b">
+    <img class="mark" src="../../../public/brand/mark-onlime-dark.svg" alt="">
+    <div class="stack">
+      <div class="row"><div class="tri up"></div><div class="word o">Overlays</div></div>
+      <div class="row"><div class="tri down"></div><div class="word u">Underlays</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="frame" id="c">
+  <div class="c">
+    <div class="word o">Overlays</div>
+    <div class="amp"><img src="../../../public/brand/mark-mono-white.svg" alt=""></div>
+    <div class="word u">Underlays</div>
+  </div>
+</div>
+
+<div class="frame" id="d">
+  <div class="d">
+    <div class="word over fit">Overlays</div>
+    <div class="rail"><div class="bar"></div>
+      <div class="post" style="left:6%"></div><div class="post" style="left:22%"></div><div class="post" style="left:74%"></div><div class="post" style="left:90%"></div>
+      <div class="cloth"><span>&amp;</span></div></div>
+    <div class="word under fit">Underlays</div>
+  </div>
+</div>
+
+<div class="frame" id="e">
+  <div class="e">
+    <div class="bar word o fit">Overlays</div>
+    <div class="meet"><div class="badge"><img src="../../../public/brand/mark-mono-white.svg" alt=""></div></div>
+    <div class="bar word u fit">Underlays</div>
+  </div>
+</div>
+<script>
+  // Each word set to fill its box exactly, so the two always match in width.
+  document.fonts.ready.then(() => {
+    for (const el of document.querySelectorAll(".fit")) {
+      const box = el.parentElement.getBoundingClientRect().width - (el.classList.contains("bar") ? 80 : 0);
+      let size = 300; el.style.fontSize = size + "px";
+      const probe = document.createElement("span"); probe.className = el.className.replace("fit", ""); probe.style.cssText = "position:absolute;visibility:hidden;padding:0;white-space:nowrap;font-size:300px"; probe.textContent = el.textContent; document.body.appendChild(probe);
+      size = 300 * box / probe.getBoundingClientRect().width; probe.remove();
+      el.style.fontSize = size + "px";
+    }
+    document.body.dataset.ready = "1";
+  });
+</script>
+<script>
+  const show = new URLSearchParams(location.search).get("show");
+  if (show) for (const f of document.querySelectorAll(".frame")) f.style.display = f.id === show ? "grid" : "none";
+  if (new URLSearchParams(location.search).get("bg") === "dark") document.body.classList.add("dark");
+</script>
+</body>
+</html>

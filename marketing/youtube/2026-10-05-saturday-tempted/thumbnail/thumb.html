@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #14161a; --lime: #c6f24e; --paper: #f5f7f2; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; }
+  .t { display: none; position: relative; width: 1280px; height: 720px; overflow: hidden; background: var(--ink); }
+  body[data-show="a"] #a, body[data-show="b"] #b { display: block; }
+  /* Lime half and the headline, the layout picked for the intro (thumb-b). */
+  .band { position: absolute; left: 0; top: 0; bottom: 0; width: 560px; background: var(--lime); }
+  .band::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(20,22,26,.05) 0 14px, transparent 14px 28px); }
+  .head { position: absolute; left: 48px; top: 40px; z-index: 5; }
+  .big { color: var(--ink); font-weight: 900; font-size: 116px; line-height: .86; letter-spacing: -.035em; text-transform: uppercase; }
+  .big .o { display: inline-block; background: var(--ink); color: var(--lime); padding: 2px 14px 10px; margin-top: 10px; border-radius: 8px; transform: rotate(-2deg); }
+  .shot { position: absolute; border-radius: 14px; overflow: hidden; background: #fff; }
+  .shot img { display: block; width: 100%; }
+  .front { border: 4px solid var(--ink); box-shadow: 0 30px 70px rgba(0,0,0,.55); z-index: 4; }
+  .back1 { z-index: 2; box-shadow: 0 20px 50px rgba(0,0,0,.6); border: 3px solid #2a2e34; }
+  .won { position: absolute; z-index: 7; background: var(--lime); color: var(--ink); font-weight: 900; font-size: 50px; letter-spacing: .02em; padding: 6px 22px 10px; border: 5px solid var(--ink); border-radius: 12px; transform: rotate(-10deg); box-shadow: 6px 6px 0 var(--ink); }
+  .badge { position: absolute; z-index: 6; background: var(--ink); color: var(--paper); border: 4px solid var(--lime); border-radius: 16px; padding: 14px 22px; box-shadow: 0 18px 40px rgba(0,0,0,.45); }
+  .badge .n { font-weight: 900; font-size: 72px; line-height: 1; color: var(--lime); letter-spacing: -.02em; }
+  .badge .l { font-weight: 800; font-size: 24px; letter-spacing: .06em; text-transform: uppercase; margin-top: 6px; }
+  .hl { position: absolute; border: 6px solid var(--lime); border-radius: 10px; box-shadow: 0 0 0 4px var(--ink), 0 0 26px rgba(198,242,78,.7); z-index: 5; }
+  .brand { position: absolute; left: 48px; bottom: 30px; height: 120px; z-index: 5; }
+</style>
+</head>
+<body data-show="a">
+
+<!-- a: +47.6 UNITS, the winners' rows from the tips page, WON stamp, Tempted 163.5 badge -->
+<div class="t" id="a">
+  <div class="band"></div>
+  <div class="head"><div class="big">+47.6<br><span class="o">units</span></div></div>
+  <div class="shot back1" style="left:600px; top:30px; width:640px; transform: rotate(3deg);"><img src="../graphics/raw/c-rankings.png"></div>
+  <div class="shot front" style="left:610px; top:330px; width:640px; transform: rotate(-2deg);">
+    <img src="../graphics/raw/c-win-1.png"><img src="../graphics/raw/c-win-2.png"><img src="../graphics/raw/c-win-3.png"><img src="../graphics/raw/c-win-4.png">
+  </div>
+  <div class="won" style="left:500px; top:350px;">WON</div>
+  <div class="badge" style="left:48px; top:345px; transform: rotate(-3deg);"><div class="n">163.5</div><div class="l">Tempted, best ever</div></div>
+  <img class="brand" src="../graphics/raw/brand-light-stacked.png">
+</div>
+
+<!-- b: BEST RATING EVER, the rankings with 163.5 boxed, result behind, WON stamp, +47.6u badge -->
+<div class="t" id="b">
+  <div class="band"></div>
+  <div class="head"><div class="big">Best<br>rating<br><span class="o">ever</span></div></div>
+  <div class="shot back1" style="left:640px; top:420px; width:600px; transform: rotate(-4deg);"><img src="../graphics/raw/tempted-results.png"></div>
+  <div class="shot front" style="left:600px; top:60px; width:660px; transform: rotate(2deg);">
+    <img src="../graphics/raw/c-rankings.png">
+    <div class="hl" style="left:.5%; top:.3%; width:99%; height:8.6%"></div>
+  </div>
+  <div class="badge" style="left:820px; top:250px; transform: rotate(-4deg); z-index:8"><div class="n" style="font-size:96px">163.5</div><div class="l">Tempted</div></div>
+  <div class="won" style="left:1060px; top:470px;">WON</div>
+  <div class="badge" style="left:48px; top:440px; transform: rotate(-3deg);"><div class="n" style="font-size:56px">+47.6u</div><div class="l">Saturday</div></div>
+  <img class="brand" src="../graphics/raw/brand-light-stacked.png" style="height:100px">
+</div>
+
+<script>const s = new URLSearchParams(location.search).get("show"); if (s) document.body.dataset.show = s;</script>
+</body>
+</html>

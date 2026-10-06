@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,900;1,900&display=swap" rel="stylesheet">
+<style>
+  :root { --ink:#14161a; --lime:#c6f24e; --red:#d93636; --paper:#f5f7f2; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #000; font-family: Archivo, sans-serif; }
+  /* A story-sized cover; Instagram shows the middle as the highlight circle. */
+  .c { width: 1080px; height: 1920px; background: var(--ink); position: relative; display: grid; place-items: center; overflow: hidden; }
+  .word { font-weight: 900; font-style: italic; text-transform: uppercase; letter-spacing: -.03em; line-height: .86; }
+
+  /* A: the show logo's two bars, big, filling the circle. */
+  .a { width: 580px; transform: translateX(-46px) rotate(-6deg) scale(1.2); display: grid; gap: 12px; position: relative; }
+  .a .badge { position: absolute; right: -92px; top: 50%; width: 104px; height: 104px; margin-top: -52px; border-radius: 50%; background: var(--ink); border: 7px solid var(--paper); display: grid; place-items: center; }
+  .a .badge img { width: 56px; height: 56px; }
+  .a .bar { text-align: center; padding: 16px 0 26px; clip-path: polygon(3% 0, 100% 0, 97% 100%, 0 100%); font-size: 84px; }
+  .a .o { background: var(--lime); color: var(--ink); }
+  .a .u { background: var(--red); color: var(--paper); }
+
+  /* B: monogram. O over U on a split lime and red disc. */
+  .b { width: 820px; height: 820px; border-radius: 50%; background: linear-gradient(170deg, var(--lime) 0 50%, var(--red) 50% 100%); display: grid; place-items: center; position: relative; }
+  .b .mono { font-size: 420px; color: var(--ink); line-height: 1; margin-top: -30px; letter-spacing: -.06em; }
+  .b .mono span { color: var(--paper); }
+</style>
+</head>
+<body>
+<section class="c" id="a"><div class="a"><div class="bar word o">Overlays</div><div class="bar word u">Underlays</div><div class="badge"><img src="../../../public/brand/mark-mono-white.svg" alt=""></div></div></section>
+<section class="c" id="b"><div class="b"><div class="word mono">O<span>U</span></div></div></section>
+</body>
+</html>

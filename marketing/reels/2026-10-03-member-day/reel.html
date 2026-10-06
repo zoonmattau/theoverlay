@@ -1,0 +1,33 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+html,body{margin:0;width:1080px;height:1920px;background:#111;overflow:hidden;font-family:Arial,Helvetica,sans-serif}
+.s{position:absolute;inset:0;opacity:0;transition:opacity .35s ease}
+.s.on{opacity:1}
+.s img{width:1080px;height:1920px;object-fit:cover;transform-origin:50% 40%}
+.s.on img{animation:push var(--d) linear forwards}
+.s.pull.on img{animation:pull var(--d) linear forwards}
+@keyframes push{from{transform:scale(1)}to{transform:scale(1.07)}}
+@keyframes pull{from{transform:scale(1.07)}to{transform:scale(1)}}
+.cap{position:absolute;left:60px;right:60px;bottom:170px;padding:30px 36px;border-radius:28px;background:rgba(17,17,17,.88);color:#fff;font-size:50px;font-weight:700;line-height:1.22;box-shadow:0 10px 40px rgba(0,0,0,.35);opacity:0;transform:translateY(40px)}
+.s.on .cap{animation:rise .45s .15s ease-out forwards}
+.cap b{color:#c6f24e}
+@keyframes rise{to{opacity:1;transform:none}}
+</style></head><body>
+<script>
+const BEATS=[
+ ["0-title.png",2.5,""],
+ ["home.png",3,"Every meeting, every race, coloured by our call: <b>green prime</b>, blue bet, red lay."],
+ ["tips.png",3,"Today: <b>3 primes, 19 bets, 22 lays</b>, out at 8am."],
+ ["tips-bets.png",3,"Every bet with the live price and <b>our rated price</b> beside it."],
+ ["tips-lays.png",2.5,"And every lay, with the most we'd lay it at."],
+ ["race.png",4,"Flight Stakes: <b>Bangkok Hottie</b> tops our ratings. We have her at <b>$2.55</b>, the market's $3.30."],
+ ["race-speed.png",3,"The speed map has her leading."],
+ ["tempted.png",2.5,"Every race gets the same treatment."],
+ ["tipsters.png",2.5,"Plus our tipsters' calls, at the prices they posted."],
+ ["results.png",3.5,"Since launch: <b>+49.4 units</b>. Bets and lays both up."],
+ ["9-close.png",2.5,""],
+];
+let t=0;
+BEATS.forEach(([src,d,cap],i)=>{const s=document.createElement("div");s.className="s"+(i%2?" pull":"");s.style.setProperty("--d",d+"s");s.innerHTML=`<img src="${src}">`+(cap?`<div class="cap">${cap}</div>`:"");document.body.appendChild(s);});
+window.TOTAL=BEATS.reduce((a,b)=>a+b[1],0);
+window.play=()=>{const ss=[...document.querySelectorAll(".s")];let at=0;BEATS.forEach(([, d],i)=>{setTimeout(()=>{ss.forEach(x=>x.classList.remove("on"));ss[i].classList.add("on");},at*1000);at+=d;});};
+</script></body></html>

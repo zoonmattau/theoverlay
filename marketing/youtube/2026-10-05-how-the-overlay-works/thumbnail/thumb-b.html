@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700;800;900&family=IBM+Plex+Mono:wght@600;700&display=swap" rel="stylesheet">
+<style>
+  :root { --ink: #14161a; --lime: #c6f24e; --paper: #f5f7f2; --blue: #1f6fd6; --red: #d93636; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Archivo, system-ui, sans-serif; }
+  .t { display: none; position: relative; width: 1280px; height: 720px; overflow: hidden; background: var(--ink); }
+  body[data-show="b2"] #b2, body[data-show="b3"] #b3, body[data-show="b4"] #b4 { display: block; }
+
+  /* Lime half and the headline, the B layout. */
+  .band { position: absolute; left: 0; top: 0; bottom: 0; width: 560px; background: var(--lime); }
+  .band::after { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(-45deg, rgba(20,22,26,.05) 0 14px, transparent 14px 28px); }
+  .head { position: absolute; left: 48px; top: 44px; z-index: 5; }
+  .big { color: var(--ink); font-weight: 900; font-size: 108px; line-height: .86; letter-spacing: -.035em; text-transform: uppercase; }
+  .big .o { display: inline-block; background: var(--ink); color: var(--lime); padding: 2px 12px 10px; margin-top: 8px; border-radius: 8px; transform: rotate(-2deg); }
+
+  .shot { position: absolute; border-radius: 14px; overflow: hidden; background: #fff; }
+  .shot img { display: block; width: 100%; }
+  .table { left: 680px; top: 380px; width: 560px; border: 4px solid var(--ink); box-shadow: 0 30px 70px rgba(0,0,0,.55), 0 0 0 6px rgba(198,242,78,.0); z-index: 4; }
+  .back1 { z-index: 2; box-shadow: 0 20px 50px rgba(0,0,0,.6); border: 3px solid #2a2e34; }
+
+  .won {
+    position: absolute; z-index: 7; background: var(--lime); color: var(--ink); font-weight: 900; font-size: 46px; letter-spacing: .02em;
+    padding: 6px 22px 10px; border: 5px solid var(--ink); border-radius: 12px; transform: rotate(-10deg); box-shadow: 6px 6px 0 var(--ink);
+  }
+  .price {
+    position: absolute; z-index: 6; background: var(--ink); color: #fff; font-weight: 800; font-size: 40px; padding: 12px 22px;
+    border-radius: 12px; box-shadow: 0 14px 30px rgba(0,0,0,.4); white-space: nowrap;
+  }
+  .price b { color: var(--lime); }
+  .price .x { font-family: "IBM Plex Mono", monospace; }
+  .badge {
+    position: absolute; z-index: 6; background: var(--ink); color: var(--paper); border: 4px solid var(--lime); border-radius: 16px;
+    padding: 14px 22px; box-shadow: 0 18px 40px rgba(0,0,0,.45);
+  }
+  .badge .n { font-weight: 900; font-size: 64px; line-height: 1; color: var(--lime); letter-spacing: -.02em; }
+  .badge .l { font-weight: 800; font-size: 22px; letter-spacing: .06em; text-transform: uppercase; margin-top: 6px; }
+  .brand { position: absolute; left: 48px; bottom: 38px; z-index: 5; display: flex; align-items: center; gap: 12px; }
+  .brand span { font-weight: 900; font-size: 30px; color: var(--ink); }
+  svg.arrow { position: absolute; z-index: 8; overflow: visible; }
+</style>
+</head>
+<body data-show="b2">
+<svg width="0" height="0" style="position:absolute"><defs>
+  <marker id="ah" viewBox="0 0 10 10" refX="5" refY="5" markerWidth="4" markerHeight="4" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 Z" fill="#c6f24e"/></marker>
+</defs></svg>
+
+<!-- b2: table, WON stamp, lime arrow from the live $7.00 to our $5.70, the record tile behind -->
+<div class="t" id="b2">
+  <div class="band"></div>
+  <div class="head"><div class="big">Spot<br>the<br><span class="o">overlay</span></div></div>
+  <div class="shot back1" style="left:640px; top:34px; width:560px; transform: rotate(4deg);"><img src="raw/rec-allcalls.png"></div>
+  <div class="shot table"><img src="raw/table-narrow.png"></div>
+  <div class="won" style="left:556px; top:408px;">WON</div>
+  <svg class="arrow" style="left:0; top:0;" width="1280" height="720">
+    <path d="M1100 428 C 1120 380, 1180 380, 1198 420" stroke="#14161a" stroke-width="15" fill="none" stroke-linecap="round"/>
+    <path d="M1100 428 C 1120 380, 1180 380, 1198 420" stroke="#c6f24e" stroke-width="8" fill="none" stroke-linecap="round" marker-end="url(#ah)"/>
+  </svg>
+  <div class="price" style="left:690px; top:270px; transform: rotate(-2deg);">Market <span class="x">$7.00</span> <b>vs</b> ours <span class="x">$5.70</span></div>
+  <img class="brand" src="../../channel/brand-light-stacked.png" style="height:110px;bottom:28px">
+</div>
+
+<!-- b3: rankings behind, the table in front, +96.6u badge -->
+<div class="t" id="b3">
+  <div class="band"></div>
+  <div class="head"><div class="big">Spot<br>the<br><span class="o">overlay</span></div></div>
+  <div class="shot back1" style="left:610px; top:24px; width:640px; transform: rotate(-3deg);"><img src="raw/rankings-top.png"></div>
+  <div class="shot table" style="transform: rotate(2deg);"><img src="raw/table-narrow.png"></div>
+  <div class="won" style="left:556px; top:408px;">WON</div>
+  <div class="price" style="left:720px; top:250px; transform: rotate(-2deg);">Won at <span class="x">$7.00</span></div>
+  <div class="badge" style="left:48px; top:400px; transform: rotate(-3deg);"><div class="n">+96.6u</div><div class="l">Since launch</div></div>
+  <img class="brand" src="../../channel/brand-light-stacked.png" style="height:110px;bottom:28px">
+</div>
+
+<!-- b4: speed map behind, the table in front, "every runner rated" badge, price callout -->
+<div class="t" id="b4">
+  <div class="band"></div>
+  <div class="head"><div class="big">Spot<br>the<br><span class="o">overlay</span></div></div>
+  <div class="shot back1" style="left:590px; top:40px; width:680px; transform: rotate(3deg);"><img src="raw/speedmap.png"></div>
+  <div class="shot table"><img src="raw/table-narrow.png"></div>
+  <div class="won" style="left:556px; top:408px;">WON</div>
+  <div class="price" style="left:760px; top:262px; transform: rotate(-3deg);">$7.00 <b>vs</b> our $5.70</div>
+  <div class="badge" style="left:48px; top:400px; transform: rotate(-3deg);"><div class="n" style="font-size:44px">Every runner</div><div class="l" style="font-size:30px; color: var(--lime)">rated and priced</div></div>
+  <img class="brand" src="../../channel/brand-light-stacked.png" style="height:110px;bottom:28px">
+</div>
+
+<script>const s = new URLSearchParams(location.search).get("show"); if (s) document.body.dataset.show = s;</script>
+</body>
+</html>

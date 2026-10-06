@@ -1,0 +1,48 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  /* End screen, 1920x1080. YouTube lays its own elements over the right half: one video at 16:9 and the
+     Subscribe circle. Those spots are left as quiet frames; the guide version labels them. */
+  :root { --ink: #14161a; --lime: #c6f24e; --paper: #f5f7f2; --soft: #8b918a; --line: #2a2e34; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { width: 1920px; height: 1080px; font-family: Archivo, system-ui, sans-serif; background: var(--ink); position: relative; overflow: hidden; }
+  .grid { position: absolute; inset: 0; background-image: linear-gradient(var(--line) 1px, transparent 1px), linear-gradient(90deg, var(--line) 1px, transparent 1px); background-size: 64px 64px; opacity: .3; }
+  .rise { position: absolute; inset: 0; }
+  .left { position: absolute; left: 120px; top: 150px; width: 760px; }
+  .lockup { display: flex; align-items: center; gap: 24px; }
+  .the { color: var(--lime); font-weight: 800; letter-spacing: .5em; font-size: 22px; display: block; margin-bottom: 8px; }
+  .name { color: var(--paper); font-weight: 900; font-size: 64px; line-height: 1; }
+  h1 { margin-top: 90px; color: var(--paper); font-weight: 900; font-size: 92px; line-height: 1.02; letter-spacing: -.03em; }
+  h1 em { font-style: normal; display: inline-block; background: var(--lime); color: var(--ink); padding: 0 18px 8px; border-radius: 6px; margin-top: 10px; }
+  .sub { margin-top: 34px; color: #c9cec4; font-size: 34px; font-weight: 600; line-height: 1.35; }
+  .url { margin-top: 40px; color: var(--lime); font-size: 40px; font-weight: 800; letter-spacing: .01em; }
+  .small { position: absolute; left: 120px; bottom: 70px; color: var(--soft); font-size: 22px; font-weight: 600; }
+  /* YouTube's spots: a video at 840x473 and the Subscribe circle at 300. */
+  /* No outline on the upload: the user drops the elements in place. The guide version still draws them. */
+  .slot { position: absolute; }
+  .video { left: 1000px; top: 150px; width: 800px; height: 450px; border-radius: 16px; }
+  .subscribe { left: 1250px; top: 680px; width: 300px; height: 300px; border-radius: 50%; }
+  .label { display: none; position: absolute; inset: 0; align-items: center; justify-content: center; color: #ff6b8b; font-size: 28px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
+  body.guide .label { display: flex; }
+  body.guide .slot { border: 4px dashed #ff3b6b; }
+</style>
+</head>
+<body>
+<div class="grid"></div>
+<svg class="rise" viewBox="0 0 1920 1080" preserveAspectRatio="none">
+  <path d="M-20 1000 L320 790 L450 880 L800 610 L930 690 L1360 400 L1500 470 L1960 160" stroke="#c6f24e" stroke-opacity=".10" stroke-width="10" fill="none"/>
+</svg>
+<div class="left">
+  <img src="../../../public/brand/lockup-dark.png" style="height:110px;display:block">
+  <h1>Know the price<br><em>before you bet.</em></h1>
+  <p class="sub">Every runner rated, our price beside the market,<br>and the bets and lays at 11am.</p>
+  <p class="url">7 days free at theoverlay.com.au</p>
+</div>
+<div class="slot video"><span class="label">Video goes here</span></div>
+<div class="slot subscribe"><span class="label">Subscribe</span></div>
+<p class="small">18+ only. Gamble responsibly. Chances are you're about to lose. 1800 858 858</p>
+</body>
+</html>
