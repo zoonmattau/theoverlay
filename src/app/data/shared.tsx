@@ -28,3 +28,20 @@ export function HubLocked({ what }: { what: string }) {
     </div>
   );
 }
+
+/**
+ * The first few rows of a members' table, fading out over the lock: a visitor sees what is
+ * behind it rather than a blank page with a box (6 Oct 2026).
+ */
+export function HubPreview({ what, children }: { what: string; children: React.ReactNode }) {
+  return (
+    <section className="py-6">
+      <div className="relative max-h-80 overflow-hidden pointer-events-none select-none" aria-hidden>
+        {children}
+        <div className="absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-bg to-transparent" />
+      </div>
+      <HubLocked what={what} />
+    </section>
+  );
+}
+

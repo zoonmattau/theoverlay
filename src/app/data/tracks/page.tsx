@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { TracksTable } from "@/components/HubTables";
 import { hubTracks, listedTrack } from "@/lib/data/hub";
-import { HubLocked, hubViewer, param } from "../shared";
+import { HubPreview, hubViewer, param } from "../shared";
 
 export default function Page({ searchParams }: PageProps<"/data/tracks">) {
   return (
@@ -14,7 +14,7 @@ export default function Page({ searchParams }: PageProps<"/data/tracks">) {
 
 async function Tracks({ searchParams }: { searchParams: PageProps<"/data/tracks">["searchParams"] }) {
   const [{ open }, find] = await Promise.all([hubViewer(), param(searchParams, "find")]);
-  if (!open) return <HubLocked what="The track and standard time tables" />;
+  if (!open) return <HubPreview what="The track and standard time tables"><TracksTable rows={(await hubTracks()).filter(listedTrack).slice(0, 6)} /></HubPreview>;
   const tracks = (await hubTracks()).filter(listedTrack);
   return (
     <section className="py-6">

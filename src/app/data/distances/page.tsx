@@ -2,7 +2,7 @@ import { Suspense } from "react";
 
 import { DistancesTable } from "@/components/HubTables";
 import { hubDistances, listedDistance } from "@/lib/data/hub";
-import { HubLocked, hubViewer, param } from "../shared";
+import { HubPreview, hubViewer, param } from "../shared";
 
 export default function Page({ searchParams }: PageProps<"/data/distances">) {
   return (
@@ -14,7 +14,7 @@ export default function Page({ searchParams }: PageProps<"/data/distances">) {
 
 async function Distances({ searchParams }: { searchParams: PageProps<"/data/distances">["searchParams"] }) {
   const [{ open }, find] = await Promise.all([hubViewer(), param(searchParams, "find")]);
-  if (!open) return <HubLocked what="The distance and record tables" />;
+  if (!open) return <HubPreview what="The distance and record tables"><DistancesTable rows={(await hubDistances()).filter(listedDistance).slice(0, 6)} /></HubPreview>;
   const distances = (await hubDistances()).filter(listedDistance);
   return (
     <section className="py-6">

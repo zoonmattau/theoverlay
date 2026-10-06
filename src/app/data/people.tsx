@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { personKey } from "@/lib/data/people";
 import { HubFilters } from "./HubFilters";
-import { HubLocked, hubViewer } from "./shared";
+import { HubLocked, HubPreview, hubViewer } from "./shared";
 import { PeopleTable, PersonRunsTable, BreakdownTable, UpcomingTable, type LinkedBreakdown } from "@/components/HubTables";
 import { DISTANCE_BANDS, GOINGS, filterActive, filterFrom, filterQuery, filterWords } from "@/lib/data/filters";
 import { hubPeople, hubPerson, hubTracksList } from "@/lib/data/hub";
@@ -18,7 +18,10 @@ const str = (v: string | string[] | undefined) => (typeof v === "string" ? v : "
 /** The ranking for jockeys or trainers, cut by the filters in the query. */
 export async function PeopleList({ kind, searchParams }: { kind: Kind; searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   const [{ open }, sp] = await Promise.all([hubViewer(), searchParams]);
-  if (!open) return <HubLocked what={`The ${kind} rankings`} />;
+  if (!open) {
+    const top = (await hubPeople(kind, filterFrom({}))).slice(0, 6);
+    return <HubPreview what={`The ${kind} rankings`}><PeopleTable rows={top} what={kind === "jockey" ? "rider" : "stable"} filtered={false} /></HubPreview>;
+  }
   const filter = filterFrom(sp);
   const [rows, tracks] = await Promise.all([hubPeople(kind, filter), hubTracksList()]);
   return (
