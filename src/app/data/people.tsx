@@ -23,7 +23,10 @@ export async function PeopleList({ kind, searchParams }: { kind: Kind; searchPar
     return <HubPreview what={`The ${kind} rankings`}><PeopleTable rows={top} what={kind === "jockey" ? "rider" : "stable"} filtered={false} /></HubPreview>;
   }
   const filter = filterFrom(sp);
-  const [rows, tracks] = await Promise.all([hubPeople(kind, filter), hubTracksList()]);
+  // The run cut is applied here, after the ranking, so it shares the ranking's cache.
+  const { minRuns, ...ranked } = filter;
+  const [all, tracks] = await Promise.all([hubPeople(kind, ranked), hubTracksList()]);
+  const rows = minRuns ? all.filter((r) => r.rides >= minRuns) : all;
   return (
     <section className="py-6">
       <p className="mb-3 text-sm text-ink-secondary">
@@ -31,7 +34,7 @@ export async function PeopleList({ kind, searchParams }: { kind: Kind; searchPar
       </p>
       <HubFilters base={`/data/${noun(kind)}`} filter={filter} tracks={tracks} find={str(sp.find) || undefined} />
       {filterActive(filter) && <p className="mb-2 text-sm font-semibold">{filterWords(filter)}</p>}
-      <PeopleTable rows={rows} find={str(sp.find) || undefined} what={kind === "jockey" ? "rider" : "stable"} filtered={filterActive(filter)} />
+      <PeopleTable rows={rows} find={str(sp.find) || undefined} what={kind === "jockey" ? "rider" : "stable"} filtered={filterActive(filter)} minRuns={minRuns} />
     </section>
   );
 }

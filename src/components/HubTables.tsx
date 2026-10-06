@@ -15,7 +15,7 @@ const signed = (v: number | null, unit = "") => (v === null ? "—" : `${v > 0 ?
 const tone = (v: number | null) => (v === null ? "" : v > 0 ? "text-accent" : v < 0 ? "text-red" : "");
 
 /** Jockeys or trainers, ranked on how they go against the market. */
-export function PeopleTable({ rows, find, what, filtered, compact }: { rows: Person[]; find?: string; what: "rider" | "stable"; filtered?: boolean; /** Fewer columns, for a track or distance page. */ compact?: boolean }) {
+export function PeopleTable({ rows, find, what, filtered, compact, minRuns }: { rows: Person[]; find?: string; what: "rider" | "stable"; filtered?: boolean; /** Fewer columns, for a track or distance page. */ compact?: boolean; /** A run cut picked in the filters: the rows are already cut, so nothing is hidden. */ minRuns?: number }) {
   const base = what === "rider" ? "/data/jockeys" : "/data/trainers";
   const all: Column<Person>[] = [
     { key: "name", label: what === "rider" ? "Jockey" : "Trainer", tip: "Click a name for the profile, a heading to sort.", value: (r) => r.name, strong: true, asc: true, render: (r) => <Link href={`${base}/${encodeURIComponent(r.key)}`} className="underline decoration-dotted underline-offset-2">{r.name}</Link> },
@@ -33,7 +33,7 @@ export function PeopleTable({ rows, find, what, filtered, compact }: { rows: Per
   const cols = compact ? all.filter((c) => ["name", "power", "rides", "wins", "winPct", "edge"].includes(c.key)) : all;
   return (
     <DataTable rows={rows} columns={cols} rowKey={(r) => r.name} find={find} searchKeys={["name"]} defaultSort="power" noun={what === "rider" ? "jockeys" : "trainers"}
-      minRows={{ key: "rides", min: filtered ? 10 : 30, label: `Show records under ${filtered ? 10 : 30} rides` }}
+      minRows={minRuns ? undefined : { key: "rides", min: filtered ? 10 : 30, label: `Show records under ${filtered ? 10 : 30} rides` }}
       note={compact ? undefined : "Built from every past run on the form of every horse we have rated, so a jockey's record here is their rides on those horses, not their whole book. Power is winners over the market's expectation per hundred rides, shrunk toward nought until the record is long enough to trust."} />
   );
 }
@@ -120,7 +120,7 @@ export function GoingsTable({ rows, find }: { rows: Going[]; find?: string }) {
 const ord = (n: number) => `${n}${["th", "st", "nd", "rd"][n % 100 > 10 && n % 100 < 14 ? 0 : n % 10 < 4 ? n % 10 : 0]}`;
 
 /** Jockey and trainer pairs. */
-export function CombosTable({ rows, find, note }: { rows: Combo[]; find?: string; note?: string }) {
+export function CombosTable({ rows, find, note, minRuns }: { rows: Combo[]; find?: string; note?: string; minRuns?: number }) {
   const cols: Column<Combo>[] = [
     { key: "jockey", label: "Jockey", tip: "", value: (r) => r.jockey, strong: true, asc: true, render: (r) => <Link href={`/data/jockeys/${encodeURIComponent(r.jockeyKey)}`} className="underline decoration-dotted underline-offset-2">{r.jockey}</Link> },
     { key: "trainer", label: "Trainer", tip: "", value: (r) => r.trainer, strong: true, asc: true, render: (r) => <Link href={`/data/trainers/${encodeURIComponent(r.trainerKey)}`} className="underline decoration-dotted underline-offset-2">{r.trainer}</Link> },
@@ -132,7 +132,7 @@ export function CombosTable({ rows, find, note }: { rows: Combo[]; find?: string
     { key: "edge", label: "+/−", tip: "Winners on priced runs over or under the market's expectation.", right: true, value: (r) => Math.round((r.winsPriced - r.expected) * 10) / 10, render: (r) => <span className={tone(r.winsPriced - r.expected)}>{signed(Math.round((r.winsPriced - r.expected) * 10) / 10)}</span> },
     { key: "lastRide", label: "Last", tip: "", value: (r) => r.lastRide, render: (r) => day(r.lastRide) },
   ];
-  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.jockey} / ${r.trainer}`} find={find} searchKeys={["jockey", "trainer"]} defaultSort="power" noun="pairs" note={note} minRows={{ key: "rides", min: 20, label: "Show pairs under 20 runs" }} />;
+  return <DataTable rows={rows} columns={cols} rowKey={(r) => `${r.jockey} / ${r.trainer}`} find={find} searchKeys={["jockey", "trainer"]} defaultSort="power" noun="pairs" note={note} minRows={minRuns ? undefined : { key: "rides", min: 20, label: "Show pairs under 20 runs" }} />;
 }
 
 /** A person's record cut one way: by track, trip, going, year, partner or horse. */

@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
-import { DISTANCES, GOINGS, PERIODS, STATES, filterQuery, type HubFilter } from "@/lib/data/filters";
+import { DISTANCES, GOINGS, MIN_RUNS, PERIODS, STATES, filterQuery, type HubFilter } from "@/lib/data/filters";
 
 /**
  * How a ranking is cut: any number of states, tracks (the list narrows to
@@ -19,6 +19,7 @@ export function HubFilters({ base, filter, tracks, find }: { base: string; filte
   const [goings, setGoings] = useState<number[]>(filter.goings ?? []);
   const [distances, setDistances] = useState<number[]>(filter.distances ?? []);
   const [period, setPeriod] = useState(filter.period ?? "all");
+  const [minRuns, setMinRuns] = useState<number | undefined>(filter.minRuns);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(Boolean(filter.tracks?.length));
 
@@ -28,8 +29,8 @@ export function HubFilters({ base, filter, tracks, find }: { base: string; filte
   }, [tracks, states, q]);
 
   const toggle = <T,>(list: T[], set: (v: T[]) => void, v: T) => set(list.includes(v) ? list.filter((x) => x !== v) : [...list, v]);
-  const apply = () => router.push(`${base}${filterQuery({ states, tracks: chosen, goings: [...goings].sort((a, b) => a - b), distances: [...distances].sort((a, b) => a - b), period }, { find })}`);
-  const active = states.length || chosen.length || goings.length || distances.length || (period && period !== "all");
+  const apply = () => router.push(`${base}${filterQuery({ states, tracks: chosen, goings: [...goings].sort((a, b) => a - b), distances: [...distances].sort((a, b) => a - b), period, minRuns }, { find })}`);
+  const active = states.length || chosen.length || goings.length || distances.length || (period && period !== "all") || minRuns;
   const chip = (on: boolean) => `px-2 py-0.5 rounded-full border text-xs cursor-pointer select-none ${on ? "bg-ink text-bg border-ink" : "border-line hover:border-ink-soft"}`;
 
   return (
@@ -66,6 +67,10 @@ export function HubFilters({ base, filter, tracks, find }: { base: string; filte
       </Row>
       <Row label="Trip" onClear={distances.length ? () => setDistances([]) : undefined}>
         {DISTANCES.map((d) => <button key={d} type="button" className={chip(distances.includes(d))} onClick={() => toggle(distances, setDistances, d)}>{d}</button>)}
+      </Row>
+      <Row label="Runs">
+        <button type="button" className={chip(!minRuns)} onClick={() => setMinRuns(undefined)}>Any</button>
+        {MIN_RUNS.map((n) => <button key={n} type="button" className={chip(minRuns === n)} onClick={() => setMinRuns(n)}>{n}+</button>)}
       </Row>
       <Row label="Period">
         {PERIODS.map((p) => <button key={p.key} type="button" className={chip(period === p.key)} onClick={() => setPeriod(p.key)}>{p.label}</button>)}

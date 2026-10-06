@@ -23,7 +23,9 @@ async function Combos({ searchParams }: { searchParams: PageProps<"/data/combos"
   const [{ open }, sp] = await Promise.all([hubViewer(), searchParams]);
   if (!open) return <HubLocked what="The jockey and trainer combinations" />;
   const filter = filterFrom(sp);
-  const [all, tracks] = await Promise.all([hubCombos(filter), hubTracksList()]);
+  const { minRuns, ...ranked } = filter;
+  const [every, tracks] = await Promise.all([hubCombos(ranked), hubTracksList()]);
+  const all = minRuns ? every.filter((r) => r.rides >= minRuns) : every;
   // Seventeen thousand pairings is too many to send: the top of the
   // ranking and every pairing with a record worth reading go, the rest is
   // reached by filtering to a track or a state.
@@ -33,7 +35,7 @@ async function Combos({ searchParams }: { searchParams: PageProps<"/data/combos"
       <p className="mb-3 text-sm text-ink-secondary">Jockey and trainer together, five runs or more as a pair, ranked on how the pairing goes against the market.</p>
       <HubFilters base="/data/combos" filter={filter} tracks={tracks} find={str(sp.find) || undefined} />
       {filterActive(filter) && <p className="mb-2 text-sm font-semibold">{filterWords(filter)}</p>}
-      <CombosTable rows={rows} find={str(sp.find) || undefined} note={rows.length < all.length ? `${rows.length.toLocaleString("en-AU")} of ${all.length.toLocaleString("en-AU")} pairings loaded: the top ${TOP.toLocaleString("en-AU")} and every pair with 20 runs. Filter by state or track for the rest.` : undefined} />
+      <CombosTable rows={rows} find={str(sp.find) || undefined} minRuns={minRuns} note={rows.length < all.length ? `${rows.length.toLocaleString("en-AU")} of ${all.length.toLocaleString("en-AU")} pairings loaded: the top ${TOP.toLocaleString("en-AU")} and every pair with 20 runs. Filter by state or track for the rest.` : undefined} />
     </section>
   );
 }
