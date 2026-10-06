@@ -37,7 +37,7 @@ CHUTE_STARTS = {"murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 140
 # Chutes the imagery or map draws longer than they are: the one measuring near "from" is cut back at its tip to start "to".
 CHUTE_CUT = {"murraybridge": [(1200, 900)]}  # the top chute is a short one, for 900m races only
 # Courses not in OpenStreetMap, traced from aerial imagery by scripts/out/tracks/trace.py.
-TRACED = {"murraybridge": "traced from Esri World Imagery"}
+TRACED = {"murraybridge": "traced from Esri World Imagery", "mildura": "traced from Esri World Imagery"}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
 NO_OUTER = {"newcastle"}
 ANTICLOCKWISE = {"VIC", "SA", "TAS", "NT", "WA"}

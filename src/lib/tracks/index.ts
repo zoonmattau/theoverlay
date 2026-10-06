@@ -45,6 +45,7 @@ import launceston from "./launceston.json";
 import leeton from "./leeton.json";
 import lismore from "./lismore.json";
 import mackay from "./mackay.json";
+import mildura from "./mildura.json";
 import moe from "./moe.json";
 import mornington from "./mornington.json";
 import morphettville from "./morphettville.json";
@@ -121,6 +122,7 @@ export const TRACKS: Record<string, Track> = {
   leeton: leeton as Track,
   lismore: lismore as Track,
   mackay: mackay as Track,
+  mildura: mildura as Track,
   moe: moe as Track,
   mornington: mornington as Track,
   morphettville: morphettville as Track,
