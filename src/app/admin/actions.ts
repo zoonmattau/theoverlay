@@ -107,6 +107,31 @@ export async function rebuildCard(): Promise<string> {
   return `Rebuilt ${date} in ${seconds}s: ${card.meetings.length} meetings, ${races} races, ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}.`;
 }
 
+/** The date after a yyyy-mm-dd date. */
+function nextDay(date: string): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * Tomorrow's card, built now rather than at the 9pm run: for a podcast preview recorded the evening before. It only
+ * stores the card (admins see it; members still wait for the release hour). Discord's early look and the roles stay
+ * with the 9pm run, which builds again and reuses the race form bought here.
+ */
+export async function buildTomorrow(): Promise<string> {
+  const admin = await requireAdmin();
+  const date = nextDay(racingToday());
+  const { card, seconds } = await buildCard(date);
+  const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
+  const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
+  const bets = calls.filter((x) => x.signal === "back").length;
+  const lays = calls.filter((x) => x.signal === "lay").length;
+  await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: null, meta: { action: "build_tomorrow", date, races, seconds, by: admin.email } });
+  revalidatePath("/admin");
+  return `Built ${date} in ${seconds}s: ${card.meetings.length} meetings, ${races} races, ${bets} ${bets === 1 ? "bet" : "bets"}, ${lays} ${lays === 1 ? "lay" : "lays"}.`;
+}
+
 /** Pin today's free race, or hand it back to the day's draw with an empty raceId. */
 export async function setFreeRace(form: FormData): Promise<void> {
   const admin = await requireAdmin();

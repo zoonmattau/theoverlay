@@ -3,11 +3,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
+import { buildTomorrow, rebuildCard, resendTips, setFreeRace } from "@/app/admin/actions";
 import { ActionButton } from "@/components/ActionButton";
 import { ActivityFeed } from "@/components/ActivityFeed";
 import { isAdmin, listMembers, now, overview, recentEvents, recentPassDays } from "@/lib/admin";
-import { getTodayCard } from "@/lib/model/source";
+import { getTodayCard, racingToday } from "@/lib/model/source";
 import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
@@ -16,6 +16,9 @@ import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 
 export const metadata: Metadata = { title: "Admin", robots: { index: false } };
+
+// Building a whole day from Form King runs past a server action's default limit.
+export const maxDuration = 300;
 
 export default function Page() {
   return (
@@ -27,6 +30,12 @@ export default function Page() {
   );
 }
 
+/** Tomorrow in Sydney racing terms, for the admin's preview link (the home page honours ?date for admins). */
+const tomorrow = () => {
+  const d = new Date(`${racingToday()}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString().slice(0, 10);
+};
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
 const jump = (iso?: string) => (iso ? new Date(iso).toLocaleTimeString("en-AU", { hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" }) : "");
 const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
@@ -68,6 +77,8 @@ async function Admin() {
         <div className="ml-auto flex gap-2">
           <ActionButton action={rebuildCard} busy="Rebuilding, about a minute">Rebuild today</ActionButton>
           <ActionButton action={resendTips} busy="Sending">Resend tips email</ActionButton>
+          <ActionButton action={buildTomorrow} busy="Building tomorrow, a few minutes">Build tomorrow now</ActionButton>
+          <Link href={`/?date=${tomorrow()}`} className="btn btn-secondary">Tomorrow&apos;s card</Link>
         </div>
         <form action={setFreeRace} className="basis-full flex flex-wrap items-center gap-2">
           <label htmlFor="free-race" className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Free race</label>
