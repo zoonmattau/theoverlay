@@ -15,6 +15,7 @@ export const BRAND_SOCIAL = {
   instagram: "theoverlay_au",
   twitter: "theoverlay_au",
   discord: "https://discord.gg/V6Ww8xUve8",
+  youtube: "https://www.youtube.com/@theoverlay_au",
 } as const;
 
 /** The results: every call settled, in the shared Google sheet. Linked from the footer only (2 Oct 2026). */

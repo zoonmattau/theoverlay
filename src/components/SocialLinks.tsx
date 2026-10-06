@@ -3,9 +3,11 @@
  * given. A tipster's, or ours. `discord` is an invite link, not a handle.
  * With `labels`, each icon carries its name too, for the footer.
  */
-export function SocialLinks({ instagram, twitter, tiktok, discord, labels, className = "" }: { instagram?: string | null; twitter?: string | null; tiktok?: string | null; discord?: string | null; labels?: boolean; className?: string }) {
+export function SocialLinks({ instagram, twitter, tiktok, discord, youtube, labels, className = "" }: { instagram?: string | null; twitter?: string | null; tiktok?: string | null; discord?: string | null; youtube?: string | null; labels?: boolean; className?: string }) {
   const links: { href: string; label: string; name: string; icon: React.ReactNode }[] = [];
   if (discord) links.push({ href: discord, label: "Join our Discord", name: "Discord", icon: <Discord /> });
+  // A channel link, not a handle, like Discord.
+  if (youtube) links.push({ href: youtube, label: "Our YouTube channel", name: "YouTube", icon: <YouTube /> });
   if (instagram) links.push({ href: `https://instagram.com/${clean(instagram)}`, label: `@${clean(instagram)} on Instagram`, name: "Instagram", icon: <Instagram /> });
   if (twitter) links.push({ href: `https://x.com/${clean(twitter)}`, label: `@${clean(twitter)} on X`, name: "X", icon: <XLogo /> });
   if (tiktok) links.push({ href: `https://tiktok.com/@${clean(tiktok)}`, label: `@${clean(tiktok)} on TikTok`, name: "TikTok", icon: <TikTok /> });
@@ -29,6 +31,14 @@ function Discord() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
       <path fill="currentColor" d="M20.3 4.4A19.6 19.6 0 0 0 15.4 3l-.2.4a18 18 0 0 1 4.6 1.8 15.9 15.9 0 0 0-15.6 0A18 18 0 0 1 8.8 3.4L8.6 3a19.6 19.6 0 0 0-4.9 1.4C.6 9.1-.2 13.7.2 18.2a19.7 19.7 0 0 0 6 3l1.3-2a12.7 12.7 0 0 1-2-1l.5-.4a14 14 0 0 0 12 0l.5.4a12.7 12.7 0 0 1-2 1l1.3 2a19.7 19.7 0 0 0 6-3c.5-5.2-.9-9.7-3.5-13.8zM8.5 15.4c-1.2 0-2.1-1.1-2.1-2.4s1-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4zm7 0c-1.2 0-2.1-1.1-2.1-2.4s1-2.4 2.1-2.4 2.2 1.1 2.1 2.4c0 1.3-.9 2.4-2.1 2.4z" />
+    </svg>
+  );
+}
+
+function YouTube() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" aria-hidden="true">
+      <path fill="currentColor" d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31.4 31.4 0 0 0 0 12a31.4 31.4 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31.4 31.4 0 0 0 24 12a31.4 31.4 0 0 0-.5-5.8zM9.6 15.6V8.4L15.8 12l-6.2 3.6z" />
     </svg>
   );
 }

@@ -119,7 +119,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             </div>
 
             <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-              <SocialLinks discord={BRAND_SOCIAL.discord} instagram={BRAND_SOCIAL.instagram} twitter={BRAND_SOCIAL.twitter} labels />
+              <SocialLinks discord={BRAND_SOCIAL.discord} youtube={BRAND_SOCIAL.youtube} instagram={BRAND_SOCIAL.instagram} twitter={BRAND_SOCIAL.twitter} labels />
               <span>
                 Contact{" "}
                 <a href="mailto:hello@theoverlay.com.au" className="text-ink hover:text-blue">
