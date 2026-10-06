@@ -41,7 +41,11 @@ const RACING_FROM = 10 * 3600_000;
 interface SubState { at: number; status: string; until: number; plan: string | null }
 interface Span { from: number; to: number }
 
-export async function accessHistory(from = "2026-09-11", to = sydneyDay(Date.now())): Promise<AccessDay[]> {
+/**
+ * `everyDay` counts a plan on every day it is live, not only the days it covers, for a
+ * line of members over time that does not dip midweek with the Saturday plans.
+ */
+export async function accessHistory(from = "2026-09-11", to = sydneyDay(Date.now()), opts: { everyDay?: boolean } = {}): Promise<AccessDay[]> {
   const db = supabaseAdmin();
   const [{ data: profs }, { data: affs }, { data: subs }, { data: gifts }, { data: igs }, { data: passes }, { data: graces }] = await Promise.all([
     db.from("profiles").select("id, email, is_admin"),
@@ -113,9 +117,11 @@ export async function accessHistory(from = "2026-09-11", to = sydneyDay(Date.now
       const before = list.filter((s) => s.at <= start).at(-1);
       const during = list.filter((s) => s.at > start && s.at < end);
       for (const s of [before, ...during]) {
-        if (!s || !LIVE.includes(s.status) || !planCovers(s.plan ?? undefined, d)) continue;
+        if (!s || !LIVE.includes(s.status) || (!opts.everyDay && !planCovers(s.plan ?? undefined, d))) continue;
         if ((s.status === "past_due" ? pastDueUntil(userId, s) : s.until) <= start) continue;
-        if (s.status !== "trialing") group.set(userId, "paying");
+        // A trial end set on a plan already paid for (a free week, a win-back) is a pushed bill, not a trial.
+        const pushed = s.status === "trialing" && list.some((x) => x.at < s.at && x.status === "active");
+        if (s.status !== "trialing" || pushed) group.set(userId, "paying");
         else if (group.get(userId) !== "paying") group.set(userId, "trial");
       }
     }

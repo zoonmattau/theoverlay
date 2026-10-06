@@ -297,7 +297,7 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
   );
 }
 
-/** Are we growing: new accounts and trial sign-ups a day, each with this week against last. */
+/** Are we growing: new accounts and trial sign-ups a day, each with this week against last, then all accounts and paying members over time. */
 function Growth({ g }: { g: MoneyReport["growth"] }) {
   return (
     <Fold title="Growth" className="mb-6" summary={
@@ -309,6 +309,8 @@ function Growth({ g }: { g: MoneyReport["growth"] }) {
       <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
         <DayChart s={g.accounts} />
         <DayChart s={g.trials} />
+        <DayChart s={g.allAccounts} />
+        <DayChart s={g.paying} />
       </div>
     </Fold>
   );

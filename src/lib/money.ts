@@ -1,5 +1,6 @@
 import "server-only";
 
+import { accessHistory } from "@/lib/access-history";
 import { foundUs } from "@/lib/arrival";
 
 import { listMembers, type Member } from "@/lib/admin";
@@ -71,7 +72,7 @@ export interface MoneyReport {
   /** Plan clicks by day of the week, Monday first. */
   byWeekday: number[];
   /** New accounts and trial sign-ups by day, and this week against last, to see if it is growing. */
-  growth: { accounts: Series; trials: Series; week: { accounts: [number, number]; trials: [number, number] } };
+  growth: { accounts: Series; trials: Series; allAccounts: Series; paying: Series; week: { accounts: [number, number]; trials: [number, number] } };
   /** The last 50 plan clicks and checkouts, newest first. */
   recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean; userId?: string }[];
 }
@@ -272,7 +273,15 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     const edge = (k: number) => sydneyDay(new Date(now - k * 86400_000).toISOString());
     return [dates.filter((d) => d > edge(7)).length, dates.filter((d) => d > edge(14) && d <= edge(7)).length];
   };
+  // Levels, not counts: every account made by the end of each day, and the members on a paid plan that day.
+  const sorted = [...accountDays].sort();
+  const allPoints = window.map((date) => ({ date, value: sorted.filter((d) => d <= date).length }));
+  const history = await accessHistory(window[0], window.at(-1), { everyDay: true });
+  const payingOn = new Map(history.map((h) => [h.date, h.counts.paying]));
+  const payingPoints = window.map((date) => ({ date, value: payingOn.get(date) ?? 0 }));
   const growth = {
+    allAccounts: { key: "allAccounts", title: "Accounts", format: "count" as const, points: allPoints, total: allPoints.at(-1)?.value ?? 0, totalLabel: "now" },
+    paying: { key: "paying", title: "Paying members", format: "count" as const, points: payingPoints, total: payingPoints.at(-1)?.value ?? 0, totalLabel: "now" },
     accounts: count("accounts", "New accounts", accountDays),
     trials: count("trials", "Trial sign-ups", trialDays),
     week: { accounts: weekOf(accountDays), trials: weekOf(trialDays) },
