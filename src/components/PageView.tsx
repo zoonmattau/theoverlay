@@ -3,16 +3,38 @@
 import { usePathname } from "next/navigation";
 import { useEffect, useRef } from "react";
 
-/** A visitor id that survives sign-out, so anonymous views string together. */
+/** The id for this tab, so a browser that refuses the cookie is still one person page to page. */
+let tabVid = "";
+
+/**
+ * A visitor id that survives sign-out, so anonymous views string together.
+ * The cookie first, then local storage, then this tab's memory: Facebook and
+ * Instagram's in-app browsers and private windows can refuse the cookie, and
+ * every page then read as a new person (12 Oct 2026: one visit to /, /tips
+ * and /tipsters counted as three).
+ */
 function visitorId(): string {
   try {
-    const m = document.cookie.match(/(?:^|; )ov_vid=([^;]+)/);
-    if (m) return m[1];
-    const id = crypto.randomUUID().replace(/-/g, "").slice(0, 20);
-    document.cookie = `ov_vid=${id}; max-age=${400 * 86400}; path=/; samesite=lax`;
+    const fromCookie = document.cookie.match(/(?:^|; )ov_vid=([^;]+)/)?.[1];
+    let fromStore = "";
+    try {
+      fromStore = localStorage.getItem("ov_vid") ?? "";
+    } catch {
+      // storage blocked too
+    }
+    const id = fromCookie || fromStore || tabVid || crypto.randomUUID().replace(/-/g, "").slice(0, 20);
+    tabVid = id;
+    if (!fromCookie) document.cookie = `ov_vid=${id}; max-age=${400 * 86400}; path=/; samesite=lax`;
+    if (!fromStore) {
+      try {
+        localStorage.setItem("ov_vid", id);
+      } catch {
+        // storage blocked: the tab's memory still holds it
+      }
+    }
     return id;
   } catch {
-    return "";
+    return tabVid;
   }
 }
 
@@ -41,13 +63,23 @@ export function PageView() {
       ...(Object.keys(utm).length ? { utm } : {}),
       ...(clid ? { clid } : {}),
     });
-    try {
-      if (!navigator.sendBeacon?.("/api/track", new Blob([body], { type: "application/json" }))) {
-        fetch("/api/track", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+    const send = () => {
+      try {
+        if (!navigator.sendBeacon?.("/api/track", new Blob([body], { type: "application/json" }))) {
+          fetch("/api/track", { method: "POST", headers: { "content-type": "application/json" }, body, keepalive: true }).catch(() => {});
+        }
+      } catch {
+        // a lost view is not an error
       }
-    } catch {
-      // a lost view is not an error
+    };
+    // Chrome loads the top Google results before anyone clicks; a page loaded that way counts only
+    // once it is shown (12 Oct 2026: seven "visitors" from Google in 50 seconds, one page each).
+    const doc = document as Document & { prerendering?: boolean };
+    if (doc.prerendering) {
+      doc.addEventListener("prerenderingchange", send, { once: true });
+      return () => doc.removeEventListener("prerenderingchange", send);
     }
+    send();
   }, [path]);
   return null;
 }

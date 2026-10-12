@@ -334,8 +334,13 @@ export async function liveNow(minutes = 5): Promise<{ pages: LivePage[]; people:
   const owners = new Map<string, string>();
   for (const k of (known ?? []) as { user_id: string; meta: { vid?: string } | null }[]) if (k.meta?.vid && !owners.has(k.meta.vid)) owners.set(k.meta.vid, k.user_id);
   const ids = [...new Set([...views.map((v) => v.user_id).filter((u): u is string => Boolean(u)), ...owners.values()])];
-  const { data: profiles } = ids.length ? await db.from("profiles").select("id, email, full_name, plan, subscription_status, access_until, source, landing, referrer, utm").in("id", ids) : { data: [] };
-  type P = { id: string; email: string | null; full_name: string | null; plan: string | null; subscription_status: string | null; access_until: string | null; source: string | null; landing: string | null; referrer: string | null; utm: Record<string, string> | null };
+  const [{ data: profiles }, { data: tipsterRows }] = await Promise.all([
+    ids.length ? db.from("profiles").select("id, email, full_name, plan, subscription_status, access_until, bonus_until, source, landing, referrer, utm").in("id", ids) : Promise.resolve({ data: [] }),
+    db.from("affiliates").select("user_id").not("user_id", "is", null),
+  ]);
+  // A tipster is invited by us and has the board through their account, not a plan (the user, 12 Oct 2026).
+  const tipsters = new Set(((tipsterRows ?? []) as { user_id: string }[]).map((t) => t.user_id));
+  type P = { id: string; email: string | null; full_name: string | null; plan: string | null; subscription_status: string | null; access_until: string | null; bonus_until: string | null; source: string | null; landing: string | null; referrer: string | null; utm: Record<string, string> | null };
   const profile = new Map(((profiles ?? []) as P[]).map((p) => [p.id, p]));
   const now = Date.now();
   const ago = (iso: string) => {
@@ -364,8 +369,10 @@ export async function liveNow(minutes = 5): Promise<{ pages: LivePage[]; people:
     let tip: string;
     if (p) {
       const live = p.access_until && new Date(p.access_until).getTime() > now;
-      const plan = live ? `${planById(p.plan ?? undefined)?.name ?? p.plan ?? "Plan"}${p.subscription_status === "trialing" ? ", on trial" : ""}` : "No plan";
-      const found = foundUs(p);
+      const tipster = tipsters.has(p.id);
+      const gift = p.bonus_until ? new Date(p.bonus_until).getTime() : 0;
+      const plan = tipster ? "Tipster" : live ? `${planById(p.plan ?? undefined)?.name ?? p.plan ?? "Plan"}${p.subscription_status === "trialing" ? ", on trial" : ""}` : gift > now ? (new Date(gift).getUTCFullYear() >= 2100 ? "Free for good" : "Gift days") : "No plan";
+      const found = tipster ? { group: "Invited", detail: undefined } : foundUs(p);
       tip = [p.full_name ? `${p.full_name}, ${p.email}` : (p.email ?? "Member"), `${plan}${v.user_id ? "" : ", signed out"}`, `Found us: ${found.group}${found.detail ? ` (${found.detail})` : ""}`, pages].join("\n");
     } else {
       tip = ["Visitor, not signed in", `Came from ${sourceOf(first.get(id)?.meta ?? null)}`, pages].join("\n");

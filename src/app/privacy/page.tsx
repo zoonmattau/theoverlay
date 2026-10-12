@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "How The Overlay collects, uses and stores your information.",
 };
 
-const UPDATED = "11 September 2026";
+const UPDATED = "12 October 2026";
 
 export default function Page() {
   return (
@@ -30,7 +30,7 @@ export default function Page() {
       </Clause>
 
       <Clause n="04" title="Who we share with">
-        Supabase hosts accounts, Stripe handles payments, Resend delivers email and Vercel hosts the site. Each sees only what it needs to do its job, and none of them may use your data for anything else.
+        Supabase hosts accounts, Stripe handles payments, Resend delivers email and Vercel hosts the site. Each sees only what it needs to do its job, and none of them may use your data for anything else. If you join through a tipster&apos;s or partner&apos;s link, they can see your name, email, when you joined and the plan you are on, never your payment details.
       </Clause>
 
       <Clause n="05" title="Cookies">

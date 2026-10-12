@@ -145,3 +145,35 @@ export async function metaAds(since: string, until: string): Promise<AdRow[] | {
     return { error: err instanceof Error ? err.message : String(err) };
   }
 }
+
+/**
+ * What the live campaigns are set to spend a day, dollars: a campaign's own
+ * budget, else its live ad sets' added up. Carries the month out on the Money
+ * page (the user, 12 Oct 2026: the budgets, $70 a day, not a day's actual spend,
+ * which Meta lets run up to 75% over and evens out across the week).
+ */
+export async function metaDailyBudget(): Promise<number | undefined> {
+  "use cache";
+  const token = process.env.META_ADS_TOKEN;
+  const account = process.env.META_AD_ACCOUNT;
+  if (!token || !account) return undefined;
+  cacheLife("minutes");
+  const act = account.startsWith("act_") ? account : `act_${account}`;
+  const get = async (path: string, fields: string) => {
+    const res = await fetch(`https://graph.facebook.com/${VERSION}/${act}/${path}?${new URLSearchParams({ fields, effective_status: JSON.stringify(["ACTIVE"]), limit: "500", access_token: token })}`);
+    const body = (await res.json()) as { data?: Record<string, string>[]; error?: { message: string } };
+    if (!res.ok || body.error) throw new Error(body.error?.message ?? `HTTP ${res.status}`);
+    return body.data ?? [];
+  };
+  try {
+    const [campaigns, adsets] = await Promise.all([get("campaigns", "id,name,daily_budget"), get("adsets", "campaign_id,daily_budget")]);
+    let cents = 0;
+    for (const c of campaigns) {
+      if (OTHER_PROJECTS.test(c.name ?? "")) continue;
+      cents += c.daily_budget ? Number(c.daily_budget) : adsets.filter((a) => a.campaign_id === c.id).reduce((s, a) => s + (Number(a.daily_budget) || 0), 0);
+    }
+    return Math.round(cents) / 100;
+  } catch {
+    return undefined;
+  }
+}

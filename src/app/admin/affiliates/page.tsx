@@ -3,307 +3,196 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { createAffiliate, deleteAffiliate, markPaid, toggleAffiliate, toggleListed, unmarkPaid, updateAffiliate } from "@/app/admin/affiliates/actions";
+import { createAffiliate, deleteAffiliate, markPaid, toggleAffiliate, toggleListed, updateAffiliate } from "@/app/admin/affiliates/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { CopyLink } from "@/components/CopyLink";
 import { isAdmin } from "@/lib/admin";
-import { affiliateStats, commissionByMonth } from "@/lib/affiliates";
+import { affiliateStats, type AffiliateMember, type AffiliateStats } from "@/lib/affiliates";
 import { getViewer } from "@/lib/auth";
+import { planById } from "@/lib/billing/plans";
+import { owedReport, type OwedMonth } from "@/lib/owed";
 
-export const metadata: Metadata = { title: "Affiliates", robots: { index: false } };
+export const metadata: Metadata = { title: "Tipsters and affiliates", robots: { index: false } };
 
-export default function Page({ searchParams }: PageProps<"/admin/affiliates">) {
+export default function Page() {
   return (
     <div className="page">
       <Suspense fallback={<div className="skeleton h-96 mt-6" />}>
-        <Affiliates searchParams={searchParams} />
+        <Affiliates />
       </Suspense>
     </div>
   );
 }
 
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
-const when = (iso: string) => new Date(iso).toLocaleString("en-AU", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit", timeZone: "Australia/Sydney" });
-const day = (ymd: string) => new Date(`${ymd}T12:00:00+10:00`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" });
-type Params = Record<string, string | string[] | undefined>;
-/** Which panel a card shows: ?show=<affiliate id>:<panel>, the last 14 days by default. */
-function show(sp: Params, id: string): string {
-  const v = typeof sp.show === "string" ? sp.show : "";
-  return v.startsWith(`${id}:`) ? v.slice(id.length + 1) : "days";
-}
-const host = (url: string) => { try { return new URL(url).hostname.replace(/^www\./, ""); } catch { return url; } };
+const dayOf = (ymd: string) => new Date(`${ymd}T12:00:00+10:00`).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+const TERM: Record<string, string> = { week: "weekly", month: "monthly", quarter: "quarterly", year: "yearly" };
 
-async function Affiliates({ searchParams }: { searchParams: PageProps<"/admin/affiliates">["searchParams"] }) {
+/**
+ * Tipsters and affiliates as a table (the user, 12 Oct 2026): what a partner
+ * is worth and what you owe them. One row each: paying people, what they
+ * brought in, their cut, and the money (owe, paid or a dash), owed first. A
+ * row opens to pay a month, their people, the link counts and settings.
+ */
+async function Affiliates() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const sp = await searchParams;
-  const tab = sp.tab === "payments" ? "payments" : "partners";
-  const rows = await affiliateStats();
+  const [rows, owed] = await Promise.all([affiliateStats(), owedReport()]);
+  const unpaidOf = new Map(owed.affiliates.map((o) => [o.affiliate.id, o.unpaid]));
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
-  const totals = rows.reduce(
-    (t, r) => ({
-      clicks: t.clicks + r.clicks,
-      signups: t.signups + r.signups,
-      paying: t.paying + r.paying,
-      revenue: t.revenue + r.revenue_cents,
-      commission: t.commission + r.commission_cents,
-    }),
-    { clicks: 0, signups: 0, paying: 0, revenue: 0, commission: 0 },
-  );
+  const owe = (a: AffiliateStats) => Math.max(0, a.commission_cents - a.paid_cents);
+  const totalOwe = rows.reduce((s, a) => s + owe(a), 0);
 
   return (
     <>
-      <section className="py-6">
-        <Link href="/admin" className="text-xs text-ink-soft hover:text-ink">← Overview</Link>
-        <h1 className="font-display text-3xl font-extrabold tracking-tight mt-1">Affiliates</h1>
-        <p className="mt-1 text-sm text-ink-soft">
-          Each partner gets a link, every click and sign-up through it is counted, and commission is worked out on what those members have paid.
-        </p>
+      <section className="py-6 flex flex-wrap items-end justify-between gap-3">
+        <h1 className="font-display text-3xl font-extrabold tracking-tight">Tipsters and affiliates</h1>
+        {totalOwe > 0 ? (
+          <Link href="/admin/owed" className="badge badge-lay text-sm">Owe {money(totalOwe)} · pay</Link>
+        ) : (
+          <span className="badge badge-prime text-sm">All paid</span>
+        )}
       </section>
 
-      <div className="tabs mb-5" role="tablist">
-        <Link href="/admin/affiliates" role="tab" aria-selected={tab === "partners"} className="tab">Partners</Link>
-        <Link href="/admin/affiliates?tab=payments" role="tab" aria-selected={tab === "payments"} className="tab">Payments</Link>
-      </div>
+      {rows.length === 0 ? <p className="text-sm text-ink-soft">No partners yet.</p> : (
+        <div className="card p-0 overflow-hidden">
+          <div className="hidden sm:grid grid-cols-[1fr_6rem_6rem_6rem_7rem] gap-2 px-4 py-2 text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft border-b border-line">
+            <span>Partner</span><span className="text-right">Paying</span><span className="text-right">Brought in</span><span className="text-right">Their cut</span><span className="text-right">Money</span>
+          </div>
+          {/* Whoever is owed first, then by what they bring in. */}
+          {[...rows].sort((x, y) => owe(y) - owe(x) || y.revenue_cents - x.revenue_cents).map((a) => <Partner key={a.id} a={a} owe={owe(a)} unpaid={unpaidOf.get(a.id) ?? []} site={site} />)}
+        </div>
+      )}
 
-      {tab === "payments" ? <Payments /> : (<>
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
-        <Tile n={totals.clicks} label="clicks" />
-        <Tile n={totals.signups} label="sign-ups" />
-        <Tile n={totals.paying} label="paying now" tone="prime" />
-        <Tile n={money(totals.revenue)} label="revenue attributed" tone="bet" />
-        <Tile n={money(totals.commission)} label="commission owed" />
-      </div>
-
-      <div className="card mb-6">
-        <h2 className="font-display font-extrabold">New affiliate</h2>
+      <details className="card mt-6">
+        <summary className="cursor-pointer font-display font-extrabold">Add a partner</summary>
         <form action={createAffiliate} className="mt-3 flex flex-wrap items-end gap-3 text-sm">
           <label className="field"><span>Name</span><input name="name" required className="field-input w-48" placeholder="Punters Podcast" /></label>
           <label className="field"><span>Code</span><input name="code" className="field-input w-36" placeholder="PODCAST" /></label>
           <label className="field"><span>Email</span><input name="email" type="email" required className="field-input w-56" placeholder="the email they log in with" /></label>
           <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={40} className="field-input w-24" /></label>
-          <button className="btn btn-primary btn-sm" type="submit">Create</button>
+          <button className="btn btn-primary btn-sm" type="submit">Add</button>
         </form>
-        <p className="mt-2 text-xs text-ink-soft">One step. If the email has no account yet they get an invite to set a password. Their link is {site}/go/CODE, which lands on today&apos;s board and remembers the code for 90 days, so sign-up fills it in whenever the visitor gets there; they post tips from Your Tips once they are in.</p>
-      </div>
-
-      <div className="space-y-4">
-        {rows.length === 0 && <p className="text-sm text-ink-soft">No affiliates yet.</p>}
-        {rows.map((a) => (
-          <details key={a.id} className={`card ${a.active ? "" : "opacity-60"}`} open={typeof sp.show === "string" && sp.show.startsWith(`${a.id}:`)}>
-            <summary className="cursor-pointer flex flex-wrap items-center justify-between gap-3">
-              <span className="font-display font-extrabold text-lg">
-                {a.name} <span className="badge badge-muted ml-1 nums">{a.code}</span>
-                {!a.active && <span className="badge badge-warn ml-1">Off</span>}
-                {(a as { user_id?: string | null }).user_id && !a.listed && <span className="badge badge-warn ml-1" title="Members cannot see this tipster; they still post">Hidden</span>}
-                {!(a as { user_id?: string | null }).user_id && <span className="badge badge-warn ml-1" title="No account linked, so they cannot post tips">No login</span>}
-              </span>
-              <span className="flex items-center gap-3">
-                <span className="nums text-sm text-ink-soft">
-                  {a.clicks7} {a.clicks7 === 1 ? "click" : "clicks"} this week · {a.signups} {a.signups === 1 ? "sign-up" : "sign-ups"}, {a.confirmed} confirmed · {a.paying} paying · {money(a.commission_cents)} commission
-                </span>
-                {(a as { user_id?: string | null }).user_id && (
-                  <>
-                    <Link href={`/admin/${(a as { user_id?: string | null }).user_id}`} className="text-xs underline text-ink-soft">Their account</Link>
-                    <Link href={`/t/${a.code}`} className="btn btn-secondary btn-sm">Their tips</Link>
-                  </>
-                )}
-              </span>
-            </summary>
-            <div className="mt-4 flex flex-wrap items-start justify-between gap-3">
-              <p className="text-xs text-ink-soft">
-                {a.email ?? "no email"} · {Number(a.commission_pct)}% commission · since{" "}
-                {new Date(a.created_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}
-              </p>
-              <div className="flex gap-2">
-                {(a as { user_id?: string | null }).user_id && (
-                  <form action={toggleListed.bind(null, a.id, !a.listed)}>
-                    <button className="btn btn-secondary btn-sm" type="submit" title="Hidden means no directory entry, no page and no calls next to the model's; they still post">
-                      {a.listed ? "Hide from members" : "Show to members"}
-                    </button>
-                  </form>
-                )}
-                <form action={toggleAffiliate.bind(null, a.id, !a.active)}>
-                  <button className="btn btn-secondary btn-sm" type="submit">{a.active ? "Turn off" : "Turn on"}</button>
-                </form>
-                <form action={deleteAffiliate.bind(null, a.id)}>
-                  <ConfirmButton message={`Delete ${a.name} (${a.code}) for good? Their clicks, payouts and login go with it.`} className="btn btn-secondary btn-sm text-red">Delete</ConfirmButton>
-                </form>
-              </div>
-            </div>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-[2fr_3fr]">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold mb-1.5">Clicks</div>
-                <div className="grid grid-cols-4 gap-2 text-center text-sm">
-                  <Stat n={a.clicksToday} label="today" />
-                  <Stat n={a.clicks7} label="7 days" />
-                  <Stat n={a.clicks30} label="30 days" />
-                  <Stat n={a.clicks} label="all" />
-                </div>
-              </div>
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold mb-1.5">Members</div>
-                <div className="grid grid-cols-4 sm:grid-cols-7 gap-2 text-center text-sm">
-                  <Stat n={a.signups} label="sign-ups" />
-                  <Stat n={a.signups30} label="30 days" />
-                  <Stat n={a.confirmed} label="confirmed" />
-                  <Stat n={`${a.conversion}%`} label="confirmed per click" />
-                  <Stat n={a.paying} label="paying" tone="prime" />
-                  <Stat n={money(a.revenue_cents)} label="revenue" tone="bet" />
-                  <Stat n={money(a.commission_cents)} label="commission" />
-                </div>
-              </div>
-            </div>
-            <p className="mt-2 text-xs text-ink-soft">{a.lastClickAt ? `Last click ${when(a.lastClickAt)}.` : "No clicks yet."}</p>
-
-            <div className="tabs mt-4 text-xs" role="tablist">
-              <Link href={`/admin/affiliates?show=${a.id}:days`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "days"} className="tab">Last 14 days</Link>
-              <Link href={`/admin/affiliates?show=${a.id}:clicks`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "clicks"} className="tab">Recent clicks ({a.recentClicks.length})</Link>
-              <Link href={`/admin/affiliates?show=${a.id}:members`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "members"} className="tab">Sign-ups ({a.members.length})</Link>
-              <Link href={`/admin/affiliates?show=${a.id}:settings`} scroll={false} role="tab" aria-selected={show(sp, a.id) === "settings"} className="tab">Link and terms</Link>
-            </div>
-            <div className="mt-3 overflow-x-auto">
-              {show(sp, a.id) === "days" && (
-                <table className="data-table text-xs">
-                  <thead><tr><th>Day</th><th className="text-right">Clicks</th><th className="text-right">Sign-ups</th></tr></thead>
-                  <tbody>
-                    {a.days.map((d) => (
-                      <tr key={d.date}><td className="nums">{day(d.date)}</td><td className="text-right nums">{d.clicks}</td><td className="text-right nums">{d.signups}</td></tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-              {show(sp, a.id) === "clicks" && (a.recentClicks.length === 0 ? <p className="text-xs text-ink-soft">No clicks yet.</p> : (
-                <table className="data-table text-xs">
-                  <thead><tr><th>When</th><th>Device</th><th>Landed on</th><th>Came from</th></tr></thead>
-                  <tbody>
-                    {a.recentClicks.map((c, i) => (
-                      <tr key={i}>
-                        <td className="nums whitespace-nowrap">{when(c.created_at)}</td>
-                        <td>{c.device}</td>
-                        <td className="text-ink-secondary">{c.landing ?? "/"}</td>
-                        <td className="text-ink-secondary">{c.referrer ? host(c.referrer) : "direct"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ))}
-              {show(sp, a.id) === "members" && (a.members.length === 0 ? <p className="text-xs text-ink-soft">No sign-ups yet.</p> : (
-                <table className="data-table text-xs">
-                  <thead><tr><th>Joined</th><th>Confirmed</th><th>Member</th><th>Status</th><th>Plan</th><th className="text-right">Spent</th><th>Last seen</th></tr></thead>
-                  <tbody>
-                    {a.members.map((m) => (
-                      <tr key={m.id}>
-                        <td className="nums whitespace-nowrap">{when(m.created_at)}</td>
-                        <td className="nums whitespace-nowrap text-ink-secondary">{m.confirmed_at ? when(m.confirmed_at) : "not yet"}</td>
-                        <td><Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.email ?? m.id}</Link></td>
-                        <td><span className={`badge ${m.status === "paying" ? "badge-prime" : m.status === "trial" ? "badge-ok" : m.status === "unconfirmed" ? "badge-warn" : "badge-muted"}`}>{m.status}</span></td>
-                        <td className="text-ink-secondary">{m.plan ?? "—"}</td>
-                        <td className="text-right nums">{m.spent_cents > 0 ? money(m.spent_cents) : "—"}</td>
-                        <td className="nums whitespace-nowrap text-ink-secondary">{m.last_seen_at ? when(m.last_seen_at) : "—"}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ))}
-              {show(sp, a.id) === "settings" && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div>
-                <div className="text-[10px] uppercase tracking-[0.1em] text-ink-soft font-bold">Link</div>
-                <CopyLink link={`${site}/go/${a.code}`} />
-              </div>
-              <form action={updateAffiliate.bind(null, a.id)} className="flex flex-wrap items-end gap-2 text-sm">
-                <label className="field"><span>Commission %</span><input name="pct" type="number" min={0} max={100} defaultValue={Number(a.commission_pct)} className="field-input w-24" /></label>
-                <label className="field flex-1 min-w-[160px]"><span>Notes</span><input name="notes" defaultValue={a.notes ?? ""} className="field-input w-full" placeholder="Paid to, agreed terms" /></label>
-                <button className="btn btn-secondary btn-sm" type="submit">Save</button>
-              </form>
-            </div>
-              )}
-            </div>
-          </details>
-        ))}
-      </div>
-      </>)}
+      </details>
     </>
   );
 }
 
-/** Commission owed by month, and what has been paid. */
-async function Payments() {
-  const rows = await commissionByMonth();
-  const owed = rows.filter((r) => r.paid_at === null).reduce((a, r) => a + r.commission_cents, 0);
-  const paid = rows.reduce((a, r) => a + (r.paid_cents ?? 0), 0);
-  const label = (m: string) => new Date(`${m}-15T12:00:00+10:00`).toLocaleDateString("en-AU", { month: "long", year: "numeric" });
+function Partner({ a, owe, unpaid, site }: { a: AffiliateStats; owe: number; unpaid: OwedMonth[]; site: string }) {
+  const userId = (a as { user_id?: string | null }).user_id;
   return (
-    <>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-        <Tile n={money(owed)} label="owed, unpaid months" tone="prime" />
-        <Tile n={money(paid)} label="paid out, all time" />
-        <Tile n={rows.filter((r) => r.paid_at === null && r.commission_cents > 0).length} label="months to pay" />
-        <Tile n={rows.length} label="affiliate months" />
-      </div>
-      <div className="card">
-        <p className="text-sm text-ink-soft mb-3">Commission is each affiliate&apos;s percentage of what their members paid in the month, on the amount charged. Mark a month paid once the transfer has gone; the amount defaults to what is owed.</p>
-        {rows.length === 0 ? (
-          <p className="text-sm text-ink-soft">No payments from referred members yet.</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="data-table text-sm">
-              <thead><tr><th>Month</th><th>Affiliate</th><th className="text-right">Payments</th><th className="text-right">Revenue</th><th className="text-right">Rate</th><th className="text-right">Owed</th><th>Paid</th><th></th></tr></thead>
+    <details className={`group border-b border-line last:border-b-0 ${a.active ? "" : "opacity-60"}`}>
+      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden grid grid-cols-[1fr_auto] sm:grid-cols-[1fr_6rem_6rem_6rem_7rem] items-center gap-x-2 gap-y-1 px-4 py-3 hover:bg-panel-alt">
+        <span className="font-semibold">
+          <span className="inline-block w-4 text-ink-soft transition-transform group-open:rotate-90" aria-hidden>▸</span>
+          {a.name} <span className="text-xs text-ink-soft nums">{a.code}</span>
+          {!a.active && <span className="badge badge-warn ml-1">Off</span>}
+          {userId && !a.listed && <span className="badge badge-warn ml-1">Hidden</span>}
+        </span>
+        <span className="hidden sm:block text-right nums">{a.paying}{a.trials ? <span className="text-xs text-ink-soft"> +{a.trials} trial</span> : null}</span>
+        <span className="hidden sm:block text-right nums">{money(a.revenue_cents)}</span>
+        <span className="hidden sm:block text-right nums text-ink-secondary">{money(a.commission_cents)}</span>
+        <span className="text-right nums">
+          {owe > 0 ? <span className="badge badge-lay">Owe {money(owe)}</span> : a.paid_cents > 0 ? <span className="badge badge-prime">Paid</span> : <span className="text-ink-soft">–</span>}
+        </span>
+        {/* On a phone the three counts sit under the name. */}
+        <span className="sm:hidden col-span-2 text-xs text-ink-soft nums">{a.paying} paying{a.trials ? ` +${a.trials} trial` : ""} · {money(a.revenue_cents)} in · {money(a.commission_cents)} theirs</span>
+      </summary>
+      <div className="px-4 pb-4 space-y-3 bg-panel-alt/40">
+        {unpaid.length > 0 && (
+          <Block title="Pay them">
+            {/* What it is for: each payment their people made, and their cut of it. Kept by calendar month
+                behind the scenes, so a month of payments is paid in one go. */}
+            {unpaid.map((m) => (
+              <div key={m.month} className="space-y-1">
+                {m.lines.map((l, i) => (
+                  <div key={i} className="flex flex-wrap items-baseline gap-x-2 text-sm">
+                    <span className="font-semibold">{l.who}</span>
+                    <span className="text-xs text-ink-soft">{l.what} · paid {money(l.amount_cents)} on {dayOf(l.date)}</span>
+                    <span className="ml-auto nums font-semibold">{money(l.commission_cents)}</span>
+                  </div>
+                ))}
+                <form action={markPaid.bind(null, a.id, m.month)} className="flex flex-wrap items-center justify-end gap-2 pt-1">
+                  <span className="text-ink-soft text-xs">$</span>
+                  <input name="amount" type="number" step="0.01" min={0} defaultValue={(m.commission_cents / 100).toFixed(2)} className="field-input w-24 py-1 text-xs" aria-label="Amount paid" />
+                  <input name="note" placeholder="Reference (optional)" className="field-input w-40 py-1 text-xs" aria-label="Reference" />
+                  <button className="btn btn-primary btn-sm" type="submit">Mark paid</button>
+                </form>
+              </div>
+            ))}
+          </Block>
+        )}
+
+        <Block title={`Their people (${a.members.length})`}>
+          {a.members.length === 0 ? <p className="text-xs text-ink-soft">Nobody yet.</p> : (
+            <table className="w-full text-sm">
+              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left font-bold pb-1">Name</th><th className="text-left font-bold pb-1">Plan</th><th className="text-right font-bold pb-1">Status</th></tr></thead>
               <tbody>
-                {rows.map((r) => (
-                  <tr key={`${r.affiliate.id}:${r.month}`}>
-                    <td className="nums">{label(r.month)}</td>
-                    <td className="font-semibold">{r.affiliate.name} <span className="badge badge-muted ml-1 nums">{r.affiliate.code}</span></td>
-                    <td className="text-right nums">{r.payments}</td>
-                    <td className="text-right nums">{money(r.revenue_cents)}</td>
-                    <td className="text-right nums">{Number(r.affiliate.commission_pct)}%</td>
-                    <td className="text-right nums font-semibold">{money(r.commission_cents)}</td>
-                    <td>
-                      {r.paid_at ? (
-                        <span className="badge badge-prime">{money(r.paid_cents ?? 0)} on {new Date(r.paid_at).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}{r.note ? `, ${r.note}` : ""}</span>
-                      ) : (
-                        <span className="badge badge-warn">Unpaid</span>
-                      )}
-                    </td>
-                    <td>
-                      {r.paid_at ? (
-                        <form action={unmarkPaid.bind(null, r.affiliate.id, r.month)}><button className="btn btn-secondary btn-sm" type="submit">Undo</button></form>
-                      ) : (
-                        <form action={markPaid.bind(null, r.affiliate.id, r.month)} className="flex items-center gap-2">
-                          <input name="amount" type="number" step="0.01" min={0} defaultValue={(r.commission_cents / 100).toFixed(2)} className="field-input w-24 py-1 text-xs" aria-label="Amount paid" />
-                          <input name="note" placeholder="Reference" className="field-input w-28 py-1 text-xs" aria-label="Reference" />
-                          <button className="btn btn-primary btn-sm" type="submit">Mark paid</button>
-                        </form>
-                      )}
-                    </td>
+                {a.members.map((m) => (
+                  <tr key={m.id} className="border-t border-line-soft">
+                    <td className="py-1.5 pr-2"><Link href={`/admin/${m.id}`} className="hover:text-blue">{m.name ?? m.email ?? "a member"}</Link></td>
+                    <td className="py-1.5 pr-2 text-xs text-ink-secondary">{planText(m) || "–"}</td>
+                    <td className="py-1.5 text-right"><span className={`badge ${STATUS[m.status]?.badge ?? "badge-muted"}`}>{STATUS[m.status]?.label ?? m.status}</span></td>
                   </tr>
                 ))}
               </tbody>
             </table>
+          )}
+        </Block>
+
+        <Block title="Their link">
+          <p className="text-sm nums">{a.clicks} clicks · {a.signups} signed up · they get {Number(a.commission_pct)}%</p>
+          <div className="mt-2"><CopyLink link={`${site}/go/${a.code}`} /></div>
+        </Block>
+
+        <Block title="Settings">
+          <div className="flex flex-wrap gap-2">
+            {userId && <Link href={`/t/${a.code}`} className="btn btn-secondary btn-sm">Their tips page</Link>}
+            {userId && <Link href={`/admin/${userId}`} className="btn btn-secondary btn-sm">Their account</Link>}
+            {userId && (
+              <form action={toggleListed.bind(null, a.id, !a.listed)}>
+                <button className="btn btn-secondary btn-sm" type="submit">{a.listed ? "Hide from members" : "Show to members"}</button>
+              </form>
+            )}
+            <form action={toggleAffiliate.bind(null, a.id, !a.active)}>
+              <button className="btn btn-secondary btn-sm" type="submit">{a.active ? "Turn off" : "Turn on"}</button>
+            </form>
+            <form action={deleteAffiliate.bind(null, a.id)}>
+              <ConfirmButton message={`Delete ${a.name} (${a.code}) for good? Their clicks, payouts and login go with it.`} className="btn btn-secondary btn-sm text-red">Delete</ConfirmButton>
+            </form>
           </div>
-        )}
+          <form action={updateAffiliate.bind(null, a.id)} className="mt-3 flex flex-wrap items-end gap-2 text-sm">
+            <label className="field"><span>Their %</span><input name="pct" type="number" min={0} max={100} defaultValue={Number(a.commission_pct)} className="field-input w-20" /></label>
+            <label className="field flex-1 min-w-[160px]"><span>Notes</span><input name="notes" defaultValue={a.notes ?? ""} className="field-input w-full" /></label>
+            <button className="btn btn-secondary btn-sm" type="submit">Save</button>
+          </form>
+        </Block>
       </div>
-    </>
+    </details>
   );
 }
 
-function Tile({ n, label, tone }: { n: number | string; label: string; tone?: "prime" | "bet" }) {
-  const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : "";
+/** One labelled part of an opened row. */
+function Block({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className={`card text-center ${cls}`}>
-      <div className="font-display text-2xl font-extrabold tracking-tight nums">{n}</div>
-      <div className="text-[10px] uppercase tracking-[0.08em] font-bold text-ink-soft mt-1">{label}</div>
-    </div>
+    <section className="rounded-md border border-line bg-panel p-3">
+      <h3 className="text-[10px] uppercase tracking-[0.1em] font-bold text-ink-soft mb-2">{title}</h3>
+      {children}
+    </section>
   );
 }
 
-function Stat({ n, label, tone }: { n: number | string; label: string; tone?: "prime" | "bet" }) {
-  const cls = tone === "prime" ? "bg-lime-soft" : tone === "bet" ? "bg-blue-soft" : "bg-panel-alt";
-  return (
-    <div className={`rounded-md py-2 ${cls}`}>
-      <div className="font-display font-extrabold nums">{n}</div>
-      <div className="text-[10px] uppercase tracking-[0.06em] text-ink-soft font-bold">{label}</div>
-    </div>
-  );
+const STATUS: Record<string, { label: string; badge: string }> = {
+  paying: { label: "Paying", badge: "badge-prime" },
+  trial: { label: "Free trial", badge: "badge-ok" },
+  unconfirmed: { label: "Not confirmed", badge: "badge-warn" },
+  free: { label: "No plan", badge: "badge-muted" },
+  lapsed: { label: "Left", badge: "badge-muted" },
+};
+
+/** "Every day, monthly", or a dash with no plan. */
+function planText(m: AffiliateMember): string {
+  const p = m.plan ? planById(m.plan) : undefined;
+  if (!p || m.status === "free" || m.status === "unconfirmed") return "";
+  return m.term && TERM[m.term] ? `${p.name}, ${TERM[m.term]}` : p.name;
 }

@@ -100,7 +100,7 @@ function daySeries(key: string, title: string, format: Series["format"], days: s
 type Ev = { user_id: string | null; kind: string; plan: string | null; amount_cents: number | null; meta: Record<string, unknown> | null; created_at: string };
 
 /** A trial beginning: the subscription made on trial, not a later change to one (a cancellation booked, a card added). */
-const trialStart = (e: Ev) => e.kind === "subscription" && e.meta?.status === "trialing" && (e.meta?.event === undefined || e.meta.event === "customer.subscription.created");
+const trialStart = (e: Ev) => e.kind === "subscription" && e.meta?.status === "trialing" && !e.meta?.rebill && (e.meta?.event === undefined || e.meta.event === "customer.subscription.created");
 
 const pct = (a: number, b: number) => (b ? Math.round((a / b) * 1000) / 10 : 0);
 

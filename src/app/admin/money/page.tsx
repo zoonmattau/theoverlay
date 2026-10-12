@@ -235,7 +235,7 @@ function ThisMonth({ m, costs, feeShare, charges, conversion, mrr, paying, today
               <span className="nums">${c.amount.toFixed(2)}</span>
             </div>
           ))}
-          <div className="panel-row text-xs"><span>Meta so far, then {whole(m.adsPerDay)} a day</span><span className="nums">{whole(ads)}</span></div>
+          <div className="panel-row text-xs"><span>Meta so far, then {whole(m.adsPerDay)} a day (budgets)</span><span className="nums">{whole(ads)}</span></div>
         </details>
       )}
     </Fold>
@@ -345,7 +345,12 @@ function Totals({ t }: { t: Invested }) {
       <p className="mt-1 text-xs text-ink-soft">Since {dayLabel(SINCE, { day: "numeric", month: "short" })}. Revenue after Stripe&apos;s fees; invested is Meta plus the costs below.</p>
       {t.adsMissing && <p className="mt-1 text-xs text-amber">{t.adsMissing}</p>}
       <div className="mt-3 grid grid-cols-3 gap-2">
-        <Mini n={whole(t.invested.total)} label="invested" sub={`ads ${whole(t.invested.ads)} · other ${whole(t.invested.other)}`} />
+        {/* Three lines at most (the user, 12 Oct 2026): the figure with its label, then the split. */}
+        <div className="rounded-md border border-line px-2 py-1.5 text-center min-w-0">
+          <div className="leading-tight"><span className="font-display text-lg font-extrabold tracking-tight nums">{whole(t.invested.total)}</span> <span className="text-[10px] uppercase tracking-[0.06em] font-bold text-ink-soft">invested</span></div>
+          <div className="text-[10px] text-ink-soft nums leading-snug">ads {whole(t.invested.ads)} · costs {whole(t.invested.other - t.invested.commission)}</div>
+          <div className="text-[10px] text-ink-soft nums leading-snug">commission {whole(t.invested.commission)}</div>
+        </div>
         <Mini n={whole(t.revenue.net)} label="revenue" sub={`${whole(t.revenue.fees)} fees`} tone="bet" />
         <Mini n={gap >= 0 ? `+${whole(gap)}` : `−${whole(-gap)}`} label={gap >= 0 ? "ahead" : "behind"} tone={gap >= 0 ? "prime" : undefined} />
       </div>
@@ -452,7 +457,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
 }
 
 /** A small stat for the half-width cards: the figure, a label, and an optional line under it. */
-function Mini({ n, label, sub, tone }: { n: string; label: string; sub?: string; tone?: "prime" | "bet" }) {
+function Mini({ n, label, sub, tone }: { n: string; label: string; sub?: React.ReactNode; tone?: "prime" | "bet" }) {
   const cls = tone === "prime" ? "border-lime bg-lime-soft" : tone === "bet" ? "border-blue bg-blue-soft" : "border-line";
   return (
     <div className={`rounded-md border px-2 py-1.5 text-center min-w-0 ${cls}`}>

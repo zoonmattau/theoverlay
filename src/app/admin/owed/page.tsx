@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { markPaid } from "@/app/admin/affiliates/actions";
+import { setBillPaid } from "./actions";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
 import { owedReport } from "@/lib/owed";
@@ -34,7 +35,8 @@ async function Owed() {
   if (!isAdmin(viewer)) notFound();
   const r = await owedReport();
   const owing = r.affiliates.filter((a) => a.owed_cents > 0);
-  const billsMonth = r.bills.reduce((s, b) => s + b.amount_cents, 0);
+  const billsMonth = r.bills.filter((b) => !b.paidAt).reduce((s, b) => s + b.amount_cents, 0);
+  const today = new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
   return (
     <>
       <h1 className="font-display text-2xl font-extrabold tracking-tight">Owed</h1>
@@ -43,7 +45,7 @@ async function Owed() {
       <div className="mt-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
         <div className="stat border-lime bg-lime-soft"><div className="font-display text-2xl font-extrabold nums">{money(r.owed_cents)}</div><div className="stat-label">commission owed</div></div>
         <div className="stat"><div className="font-display text-2xl font-extrabold nums">{owing.length}</div><div className="stat-label">{owing.length === 1 ? "affiliate to pay" : "affiliates to pay"}</div></div>
-        <div className="stat"><div className="font-display text-2xl font-extrabold nums">{money(billsMonth)}</div><div className="stat-label">monthly bills</div></div>
+        <div className="stat"><div className="font-display text-2xl font-extrabold nums">{money(billsMonth)}</div><div className="stat-label">bills unpaid this month</div></div>
       </div>
 
       <h2 className="mt-8 font-display text-lg font-extrabold">Affiliates</h2>
@@ -94,19 +96,54 @@ async function Owed() {
         <p className="mt-2 text-sm text-ink-soft">No monthly bills entered. Add them as monthly costs on the Money page.</p>
       ) : (
         <table className="data-table stack-sm text-sm mt-2">
-          <thead><tr><th>Next due</th><th>What</th><th className="text-right">Amount</th></tr></thead>
+          <thead><tr><th>Due</th><th>What</th><th className="text-right">Amount</th><th>This month</th></tr></thead>
           <tbody>
-            {r.bills.map((b, i) => (
-              <tr key={i}>
-                <td data-label="Next due" className="nums whitespace-nowrap">{day(b.next)}</td>
+            {r.bills.map((b) => (
+              <tr key={b.costId}>
+                <td data-label="Due" className="nums whitespace-nowrap">{day(b.due)}</td>
                 <td data-label="What">{b.what}</td>
                 <td data-label="Amount" className="text-right nums">{money(b.amount_cents)}</td>
+                <td data-label="This month">
+                  {b.paidAt ? (
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="badge badge-prime">Paid {day(b.paidAt)}</span>
+                      <span className="text-xs text-ink-soft">next {day(b.next)}</span>
+                      <form action={setBillPaid.bind(null, b.costId, b.month, false)}><button type="submit" className="text-xs underline text-ink-soft">Undo</button></form>
+                    </span>
+                  ) : (
+                    <form action={setBillPaid.bind(null, b.costId, b.month, true)} className="flex items-center gap-2">
+                      {b.due < today && <span className="badge badge-lay">Due</span>}
+                      <button type="submit" className="btn btn-primary btn-sm">Mark paid</button>
+                    </form>
+                  )}
+                </td>
               </tr>
             ))}
           </tbody>
         </table>
       )}
       <p className="mt-2 text-xs text-ink-soft">From the monthly costs on the <Link href="/admin/money" className="underline">Money</Link> page, each due on the same day of the month it started.</p>
+
+      {/* Everything marked paid, to whom and for what (the user, 12 Oct 2026). */}
+      <h2 className="mt-8 font-display text-lg font-extrabold">Paid <span className="text-sm font-normal text-ink-soft nums">{money(r.paid.reduce((s, p) => s + p.amount_cents, 0))} in all</span></h2>
+      {r.paid.length === 0 ? (
+        <p className="mt-2 text-sm text-ink-soft">Nothing marked paid yet.</p>
+      ) : (
+        <table className="data-table stack-sm text-sm mt-2">
+          <thead><tr><th>Paid on</th><th>To</th><th>For</th><th className="text-right">Amount</th><th>Reference</th></tr></thead>
+          <tbody>
+            {r.paid.map((p, i) => (
+              <tr key={i}>
+                <td data-label="Paid on" className="nums whitespace-nowrap">{day(p.at)}</td>
+                <td data-label="To" className="font-semibold">{p.to}</td>
+                <td data-label="For">{p.what}</td>
+                <td data-label="Amount" className="text-right nums">{money(p.amount_cents)}</td>
+                <td data-label="Reference" className="text-ink-soft">{p.note ?? ""}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
     </>
   );
 }

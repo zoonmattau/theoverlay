@@ -357,6 +357,9 @@ export async function settleCreatorTips(date: string, card: StoredCard): Promise
 export type TipsterMemberStatus = "unconfirmed" | "no_plan" | "trial" | "paying" | "cancelling" | "failed" | "pass" | "left";
 
 export interface TipsterMember {
+  /** Their name and email; the tipster who brought them in sees both (the user, 12 Oct 2026). */
+  name: string | null;
+  email: string | null;
   /** yyyy-mm-dd they signed up through the link. */
   since: string;
   /** Days since sign-up. */
@@ -371,17 +374,17 @@ export interface TipsterMember {
 }
 
 /**
- * The people a tipster's link has signed up: when, what they are on and
- * where they stand (the user, 12 Oct 2026: exactly what signed up). No names,
- * emails or dollars: the privacy policy shares members' details with no one
- * but our hosts, and affiliates never see earnings.
+ * The people a tipster's link has signed up: who, when, what they are on and
+ * where they stand (the user, 12 Oct 2026: names, emails and plans; the
+ * privacy policy says so), and what we have paid the tipster in all.
  */
-export async function tipsterMembers(affiliateId: string): Promise<{ members: TipsterMember[]; clicks30: number }> {
+export async function tipsterMembers(affiliateId: string): Promise<{ members: TipsterMember[]; clicks30: number; paidCents: number }> {
   const db = supabaseAdmin();
   const month = new Date(Date.now() - 30 * 86400_000).toISOString();
-  const [everyone, { count }] = await Promise.all([
+  const [everyone, { count }, { data: payouts }] = await Promise.all([
     listMembers(),
     db.from("affiliate_clicks").select("id", { count: "exact", head: true }).eq("affiliate_id", affiliateId).gte("created_at", month),
+    db.from("affiliate_payouts").select("amount_cents").eq("affiliate_id", affiliateId),
   ]);
   const now = Date.now();
   const day = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -404,9 +407,9 @@ export async function tipsterMembers(affiliateId: string): Promise<{ members: Ti
       else if ((m.pass_credits ?? 0) > 0 || (!planName && (m.total_spent_cents ?? 0) > 0)) status = "pass";
       else if (m.plan || m.access_until) [status, until] = ["left", m.access_until && new Date(m.access_until).getTime() > 86400_000 ? day(m.access_until) : null];
       else status = "no_plan";
-      return { at, since: day(new Date(at).toISOString()), days: Math.floor((now - at) / 86400_000), status, plan: status === "no_plan" || status === "unconfirmed" || status === "pass" ? null : plan, until, paying: ["trial", "paying", "cancelling", "failed", "pass"].includes(status) };
+      return { at, name: m.full_name?.trim() || null, email: m.email ?? null, since: day(new Date(at).toISOString()), days: Math.floor((now - at) / 86400_000), status, plan: status === "no_plan" || status === "unconfirmed" || status === "pass" ? null : plan, until, paying: ["trial", "paying", "cancelling", "failed", "pass"].includes(status) };
     })
     .sort((a, b) => b.at - a.at)
-    .map((m) => ({ since: m.since, days: m.days, status: m.status, plan: m.plan, until: m.until, paying: m.paying }));
-  return { members, clicks30: count ?? 0 };
+    .map((m) => ({ name: m.name, email: m.email, since: m.since, days: m.days, status: m.status, plan: m.plan, until: m.until, paying: m.paying }));
+  return { members, clicks30: count ?? 0, paidCents: ((payouts ?? []) as { amount_cents: number }[]).reduce((s, p) => s + p.amount_cents, 0) };
 }

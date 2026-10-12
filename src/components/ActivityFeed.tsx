@@ -47,7 +47,7 @@ function describe(e: Event, member?: Member): Line | null {
       }
       // A trial begins when the subscription is made on one. A later update while Stripe says "trialing" is not
       // a new trial: a bill pushed back on a paying member read as one (Josh Sear's free week, 6 Oct 2026).
-      if (m.status === "trialing" && (m.event === undefined || m.event === "customer.subscription.created")) {
+      if (m.status === "trialing" && !m.rebill && (m.event === undefined || m.event === "customer.subscription.created")) {
         const term = TERM[str(m.term) || (member?.billing_term ?? "")];
         return { tone: "prime", text: `started a free trial of ${plan(e.plan)}${term ? `, ${term}` : ""}` };
       }
@@ -63,6 +63,8 @@ function describe(e: Event, member?: Member): Line | null {
     case "pass_used":
       return { tone: "prime", text: `used a day pass on ${new Date(`${str(m.date)}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" })}` };
     case "payment_grace":
+      // No grace at all is a rebill's lock (12 Oct 2026), not news: everyone else gets three days.
+      if (m.until && new Date(str(m.until)).getTime() - new Date(e.created_at).getTime() < 60_000) return null;
       return { tone: "lay", text: `payment failed, access held until ${m.until ? short(str(m.until)) : "it is paid"}` };
     case "comeback":
       return { tone: "prime", text: `came back on ${plan(e.plan)}` };

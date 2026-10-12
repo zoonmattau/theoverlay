@@ -81,6 +81,9 @@ export interface AffiliateClick {
 export interface AffiliateMember {
   id: string;
   email: string | null;
+  name: string | null;
+  /** week, month, quarter or year while on a plan. */
+  term: string | null;
   created_at: string;
   /** When they confirmed their email, null if they never did. */
   confirmed_at: string | null;
@@ -109,9 +112,13 @@ export interface AffiliateStats extends Affiliate {
   confirmed: number;
   /** Confirmed sign-ups per hundred clicks. */
   conversion: number;
+  /** On a plan now and charged for it; a trial is not paying yet (12 Oct 2026). */
   paying: number;
+  trials: number;
   revenue_cents: number;
   commission_cents: number;
+  /** What we have sent them, from the payouts marked paid. */
+  paid_cents: number;
   /** The last 14 days, newest first. */
   days: AffiliateDay[];
   /** The last 30 clicks, newest first. */
@@ -129,12 +136,15 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
   const today = sydneyDay(new Date(now).toISOString());
   const week = new Date(now - 7 * 86400_000).toISOString();
   const month = new Date(now - 30 * 86400_000).toISOString();
-  const [{ data: affs }, { data: clicks }, everyone] = await Promise.all([
+  const [{ data: affs }, { data: clicks }, everyone, { data: payouts }] = await Promise.all([
     db.from("affiliates").select("*").order("created_at", { ascending: false }),
     db.from("affiliate_clicks").select("affiliate_id, created_at, landing, referrer, user_agent").order("created_at", { ascending: false }),
     listMembers(),
+    db.from("affiliate_payouts").select("affiliate_id, amount_cents"),
   ]);
   const members = everyone.filter((m) => m.affiliate_id);
+  const sent = new Map<string, number>();
+  for (const p of (payouts ?? []) as { affiliate_id: string; amount_cents: number }[]) sent.set(p.affiliate_id, (sent.get(p.affiliate_id) ?? 0) + p.amount_cents);
   const window: string[] = [];
   for (let i = 0; i < 14; i++) window.push(sydneyDay(new Date(now - i * 86400_000).toISOString()));
   type Click = { affiliate_id: string; created_at: string; landing: string | null; referrer: string | null; user_agent: string | null };
@@ -161,9 +171,11 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
       signups30: people.filter((m) => m.created_at >= month).length,
       confirmed: confirmed.length,
       conversion: mine.length ? Math.round((confirmed.length / mine.length) * 1000) / 10 : 0,
-      paying: people.filter(live).length,
+      paying: people.filter((m) => live(m) && m.subscription_status !== "trialing" && (m.total_spent_cents ?? 0) > 0).length,
+      trials: people.filter((m) => live(m) && m.subscription_status === "trialing").length,
       revenue_cents: revenue,
       commission_cents: Math.round((revenue * Number(a.commission_pct)) / 100),
+      paid_cents: sent.get(a.id) ?? 0,
       days: window.map((date) => ({ date, clicks: clickDays.get(date) ?? 0, signups: signupDays.get(date) ?? 0 })),
       recentClicks: mine.slice(0, 30).map((c) => ({
         created_at: c.created_at,
@@ -174,6 +186,8 @@ export async function affiliateStats(): Promise<AffiliateStats[]> {
       members: people.map((m) => ({
         id: m.id,
         email: m.email,
+        name: m.full_name?.trim() || null,
+        term: m.billing_term ?? null,
         created_at: m.created_at,
         confirmed_at: m.confirmed_at ?? null,
         status: status(m),

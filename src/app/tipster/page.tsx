@@ -68,13 +68,15 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
   const card = wantTomorrow ? await getCard(tomorrow, true) : await getTodayCard(true);
   const date = wantTomorrow ? tomorrow : today;
   const { meetings } = card;
-  const [mine, record, { members, clicks30 }, { count: followers }] = await Promise.all([
+  const [mine, record, { members, clicks30, paidCents }, { count: followers }] = await Promise.all([
     creatorTips(tipster.id, date),
     tipsterRecord(tipster.id),
     tipsterMembers(tipster.id),
     supabaseAdmin().from("follows").select("user_id", { count: "exact", head: true }).eq("tipster_id", tipster.id),
   ]);
-  const paying = members.filter((m) => m.paying);
+  // Paying is charged for a plan now; a trial shows on its own (12 Oct 2026).
+  const paying = members.filter((m) => m.status === "paying" || m.status === "cancelling" || m.status === "failed");
+  const trials = members.filter((m) => m.status === "trial");
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "https://theoverlay.com.au";
   // The day as a grid, with what the tipster has on each race.
   const grid: MatrixMeeting[] = meetings.map((m) => ({
@@ -130,21 +132,24 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
       <div className="section mb-4">
         <div className="section-bar"><span className="section-letter">M</span><h2>Your members</h2><span className="aside">{clicks30} clicks on your link in the last 30 days</span></div>
         <div className="section-body">
-          <div className="grid grid-cols-3 gap-3 mb-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
             <Stat n={members.length} label="signed up" sub="through your link" />
-            <Stat n={paying.length} label="paying now" tone={paying.length ? "prime" : undefined} />
+            <Stat n={paying.length} label="paying now" sub={trials.length ? `${trials.length} more on a free trial` : undefined} tone={paying.length ? "prime" : undefined} />
             <Stat n={members.length ? `${Math.round(members.reduce((a, m) => a + m.days, 0) / members.length)}d` : "—"} label="average time on" sub="days since sign-up" />
+            {/* What we have paid them in all (the user, 12 Oct 2026); never the rate or what is owed. */}
+            <Stat n={`$${(paidCents / 100).toLocaleString("en-AU", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`} label="paid to you" sub="in total so far" />
           </div>
           {members.length === 0 ? (
             <p className="text-sm text-ink-soft">Nobody yet. Share your link and they show up here as they sign up.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left py-1">Signed up</th><th className="text-left">Plan</th><th className="text-left">Where they are</th></tr></thead>
+              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left py-1">Member</th><th className="text-left">Signed up</th><th className="text-left">Plan</th><th className="text-left">Where they are</th></tr></thead>
               <tbody>
                 {members.map((m, i) => {
                   const s = MEMBER_STATUS[m.status];
                   return (
                     <tr key={i} className="border-t border-line align-top">
+                      <td className="py-1.5 pr-2"><div className="font-semibold">{m.name ?? <span className="font-normal text-ink-soft">Name not given</span>}</div>{m.email && <div className="text-[11px] text-ink-soft break-all">{m.email}</div>}</td>
                       <td className="py-1.5 nums whitespace-nowrap pr-2">{longDate(m.since)}<div className="text-[11px] text-ink-soft">{m.days === 0 ? "today" : `${m.days} ${m.days === 1 ? "day" : "days"} ago`}</div></td>
                       <td className="py-1.5 pr-2">{m.plan ?? <span className="text-ink-soft">None</span>}</td>
                       <td className="py-1.5">
@@ -157,7 +162,7 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
               </tbody>
             </table>
           )}
-          <p className="mt-2 text-xs text-ink-soft">Everyone who signed up on your link, newest first. Names and emails stay private to each member.</p>
+          <p className="mt-2 text-xs text-ink-soft">Everyone who signed up on your link, newest first. Keep their details to yourself.</p>
         </div>
       </div>
 

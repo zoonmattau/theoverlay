@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { isAdmin, listMembers, memberStatus, type MemberStatus, now } from "@/lib/admin";
+import { supabaseAdmin } from "@/lib/billing/access";
 import { getViewer } from "@/lib/auth";
 import { type Area, activityReport, AREA_LABEL, daysOfViews } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
@@ -47,9 +48,11 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   // What links carry to keep the window: "all" stays all as the days go by.
   const param = all ? "all" : String(days);
   const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
-  const [r, money, members] = await Promise.all([activityReport(days, cut, !all), moneyReport(days), listMembers()]);
+  const [r, money, members, { data: tipsterRows }] = await Promise.all([activityReport(days, cut, !all), moneyReport(days), listMembers(), supabaseAdmin().from("affiliates").select("user_id").not("user_id", "is", null)]);
   const at = now();
-  const statusOf = new Map(members.map((m) => [m.id, memberStatus(m, at)]));
+  // A tipster reads as Tipster, invited by us, never "no plan" (the user, 12 Oct 2026).
+  const tipsterIds = new Set(((tipsterRows ?? []) as { user_id: string }[]).map((t) => t.user_id));
+  const statusOf = new Map<string, Status>(members.map((m) => [m.id, tipsterIds.has(m.id) ? "tipster" : memberStatus(m, at)]));
   // Every day in the window, oldest first, a quiet day as nought, for the charts.
   const window = Array.from({ length: days }, (_, i) => new Date(now() - (days - 1 - i) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
   const perDay = new Map(r.byDay.map((d) => [d.day, d]));
@@ -208,7 +211,9 @@ function Tile({ n, was, label, versus }: { n: number; was?: number; label: strin
 }
 
 /** A member's status as the Members page names it, coloured by what it means for money. */
-const STATUS: Record<MemberStatus, { label: string; cls: string }> = {
+type Status = MemberStatus | "tipster";
+const STATUS: Record<Status, { label: string; cls: string }> = {
+  tipster: { label: "Tipster", cls: "text-ink-soft font-semibold" },
   paying: { label: "Live", cls: "text-accent font-semibold" },
   trial: { label: "On trial", cls: "text-blue font-semibold" },
   gift: { label: "Gift days", cls: "text-blue" },
@@ -220,7 +225,7 @@ const STATUS: Record<MemberStatus, { label: string; cls: string }> = {
   admin: { label: "Admin", cls: "text-ink-soft" },
 };
 
-function People({ people, statusOf }: { people: Awaited<ReturnType<typeof activityReport>>["people"]; statusOf: Map<string, MemberStatus> }) {
+function People({ people, statusOf }: { people: Awaited<ReturnType<typeof activityReport>>["people"]; statusOf: Map<string, Status> }) {
   return (
     <table className="data-table stack-sm w-full text-sm whitespace-nowrap">
       <thead><tr><th>Who</th><th>Status</th><th>From</th><th className="text-right">Views</th><th className="text-right">Races opened</th><th>Mostly</th><th>Last seen</th></tr></thead>
@@ -229,7 +234,7 @@ function People({ people, statusOf }: { people: Awaited<ReturnType<typeof activi
           <tr key={p.id}>
             <td>{p.email ? <Link href={`/admin/${p.id}`} className="underline">{p.email}</Link> : <span className="text-ink-soft">visitor {p.id.slice(2, 8)}</span>}</td>
             <td data-label="Status" className={`text-xs ${p.email ? STATUS[statusOf.get(p.id) ?? "none"].cls : "text-ink-soft"}`}>{p.email ? STATUS[statusOf.get(p.id) ?? "none"].label : "Visitor"}</td>
-            <td data-label="From" className="text-xs text-ink-soft">{p.from ?? "direct"}</td>
+            <td data-label="From" className="text-xs text-ink-soft">{statusOf.get(p.id) === "tipster" ? "invited" : (p.from ?? "direct")}</td>
             <td data-label="Views" className="text-right nums">{p.views}</td>
             <td data-label="Races opened" className="text-right nums">{p.races}</td>
             <td data-label="Mostly" className="text-xs">{p.areas}</td>

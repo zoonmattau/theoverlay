@@ -2,15 +2,17 @@ import "server-only";
 
 import { cacheLife } from "next/cache";
 
-import { metaSpend } from "@/lib/ads/meta-spend";
+import { metaDailyBudget, metaSpend } from "@/lib/ads/meta-spend";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { stripe } from "@/lib/billing/stripe";
+import { commissionByDay } from "@/lib/owed";
 
 /**
  * Money in against money out since the first day: revenue from Stripe's
  * balance (charges less refunds, less Stripe's card and Billing fees),
  * against Meta's ad spend plus the costs typed in on the Money tab (a
- * monthly line counts on its day each month until stopped). Both as running
+ * monthly line counts on its day each month until stopped) and affiliates'
+ * commission, a cost the day the payment it comes from lands. Both as running
  * totals by Sydney day, so the page can show where they cross.
  */
 export const SINCE = "2026-09-01";
@@ -28,7 +30,8 @@ export interface Invested {
   /** Running totals by day, dollars. */
   days: { date: string; invested: number; revenue: number }[];
   revenue: { gross: number; fees: number; net: number };
-  invested: { ads: number; other: number; total: number };
+  /** other includes commission; commission is also given on its own. */
+  invested: { ads: number; other: number; commission: number; total: number };
   costs: Cost[];
   /** The calendar month so far, Sydney time, dollars. */
   month: {
@@ -37,7 +40,7 @@ export interface Invested {
     /** Every cost other than Meta that falls in the month, the whole month's, not just to today. */
     fixed: { date: string; what: string; amount: number }[];
     adsSoFar: number;
-    /** Meta's spend a day over the last 7 days, to carry the month out. */
+    /** What the live Meta campaigns are budgeted a day, to carry the month out. */
     adsPerDay: number;
     /** Days after today left in the month. */
     daysLeft: number;
@@ -89,10 +92,12 @@ function costDays(c: Cost, to: string): string[] {
 
 export async function invested(): Promise<Invested> {
   const today = sydneyDay(Date.now());
-  const [ads, byDay, { data }] = await Promise.all([
+  const [ads, byDay, { data }, commission, budget] = await Promise.all([
     metaSpend(SINCE, today),
     stripeByDay().catch(() => ({}) as Record<string, { gross: number; fees: number }>),
     supabaseAdmin().from("costs").select("id, date, amount_cents, what, monthly, stopped").order("date", { ascending: false }),
+    commissionByDay().catch(() => []),
+    metaDailyBudget(),
   ]);
   const costs = (data ?? []) as Cost[];
   const spend = new Map<string, number>();
@@ -102,6 +107,9 @@ export async function invested(): Promise<Invested> {
   else for (const s of ads) spend.set(s.date, s.spend);
   const other = new Map<string, number>();
   for (const c of costs) for (const d of costDays(c, today)) other.set(d, (other.get(d) ?? 0) + c.amount_cents / 100);
+  // The affiliate's share of a payment is theirs, not ours: a cost the day it lands.
+  const owedOut = commission.filter((c) => c.date >= SINCE && c.date <= today);
+  for (const c of owedOut) other.set(c.date, (other.get(c.date) ?? 0) + c.amount);
 
   const days: Invested["days"] = [];
   let inv = 0, rev = 0, adsTotal = 0, otherTotal = 0, gross = 0, fees = 0;
@@ -121,16 +129,25 @@ export async function invested(): Promise<Invested> {
   const [y, m] = month.split("-").map(Number);
   const monthEnd = new Date(Date.UTC(y, m, 0)).toISOString().slice(0, 10);
   const fixed = costs.flatMap((c) => costDays(c, monthEnd).filter((d) => d.startsWith(month)).map((date) => ({ date, what: c.what, amount: c.amount_cents / 100 })));
+  // Commission so far this month, one line per affiliate, on the day of its latest payment.
+  const monthCommission = new Map<string, { date: string; amount: number }>();
+  for (const c of owedOut.filter((c) => c.date.startsWith(month))) {
+    const cur = monthCommission.get(c.code) ?? { date: c.date, amount: 0 };
+    monthCommission.set(c.code, { date: c.date > cur.date ? c.date : cur.date, amount: cur.amount + c.amount });
+  }
+  for (const [code, v] of monthCommission) fixed.push({ date: v.date, what: `Affiliate commission (${code})`, amount: r2(v.amount) });
   const inMonth = (d: string) => d.startsWith(month) && d <= today;
   const adsSoFar = [...spend].filter(([d]) => inMonth(d)).reduce((a, [, v]) => a + v, 0);
-  const lastWeek = days.slice(-7).map((d) => d.date);
-  const adsPerDay = lastWeek.reduce((a, d) => a + (spend.get(d) ?? 0), 0) / Math.max(1, lastWeek.length);
+  // The live budgets carry the month out (the user, 12 Oct 2026), not a day's actual spend, which
+  // Meta runs up to 75% over and evens out across the week; yesterday's spend if Meta did not answer.
+  const yesterday = days.at(-2)?.date;
+  const adsPerDay = budget ?? (yesterday ? (spend.get(yesterday) ?? 0) : 0);
   const inSoFar = Object.entries(byDay).filter(([d]) => inMonth(d)).reduce((a, [, v]) => a + v.gross - v.fees, 0);
   return {
     month: { month, fixed: fixed.sort((a, b) => a.date.localeCompare(b.date)), adsSoFar: r2(adsSoFar), adsPerDay: r2(adsPerDay), daysLeft: Number(monthEnd.slice(8)) - Number(today.slice(8)), inSoFar: r2(inSoFar) },
     days,
     revenue: { gross: r2(gross), fees: r2(fees), net: r2(gross - fees) },
-    invested: { ads: r2(adsTotal), other: r2(otherTotal), total: r2(adsTotal + otherTotal) },
+    invested: { ads: r2(adsTotal), other: r2(otherTotal), commission: r2(owedOut.reduce((a, c) => a + c.amount, 0)), total: r2(adsTotal + otherTotal) },
     costs,
     adsMissing,
   };

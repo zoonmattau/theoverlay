@@ -120,7 +120,10 @@ export async function POST(request: NextRequest) {
         await logEvent({ user_id: userId, kind: "comeback", plan: sub.metadata?.plan ?? null, amount_cents: null, meta: { days: extra, nextBill: new Date(trialEnd * 1000).toISOString() } });
         period = new Date(trialEnd * 1000);
       }
-      const until = sub.status === "past_due" ? new Date(Math.min(period.getTime(), (await graceUntil(userId)).getTime())) : period;
+      // A rebill (metadata rebill=1, 12 Oct 2026) replaces a subscription whose bill went wrong: it is
+      // no new trial, no grace when it fails, and none of the welcome that a new member gets.
+      const rebill = sub.metadata?.rebill === "1";
+      const until = sub.status === "past_due" ? new Date(Math.min(period.getTime(), (await graceUntil(userId, rebill ? 0 : undefined)).getTime())) : period;
       await grantAccess({
         userId,
         plan: planId,
@@ -145,7 +148,7 @@ export async function POST(request: NextRequest) {
           billing_term: sub.status === "canceled" ? null : billingTerm(sub.items.data[0]?.price.recurring),
           cancel_at: cancelAt?.toISOString() ?? null,
           cancel_reason: cancelReason,
-          ...(event.type === "customer.subscription.created" ? { subscribed_since: new Date(sub.created * 1000).toISOString() } : {}),
+          ...(event.type === "customer.subscription.created" && !rebill ? { subscribed_since: new Date(sub.created * 1000).toISOString() } : {}),
         })
         .eq("id", userId);
       // The Member role in Discord follows access.
@@ -155,7 +158,7 @@ export async function POST(request: NextRequest) {
         kind: "subscription",
         plan: planId,
         amount_cents: null,
-        meta: { status: sub.status, term: billingTerm(sub.items.data[0]?.price.recurring), event: event.type, cancelAtPeriodEnd: sub.cancel_at_period_end, cancelAt: cancelAt?.toISOString() ?? null, cancelReason, until: until.toISOString() },
+        meta: { status: sub.status, term: billingTerm(sub.items.data[0]?.price.recurring), event: event.type, ...(rebill ? { rebill: true } : {}), cancelAtPeriodEnd: sub.cancel_at_period_end, cancelAt: cancelAt?.toISOString() ?? null, cancelReason, until: until.toISOString() },
       });
 
       // One email per state change, never one per Stripe retry.
@@ -163,7 +166,7 @@ export async function POST(request: NextRequest) {
       const to = await emailForUser(userId);
       if (to) {
         const when = longDate(until.toISOString().slice(0, 10));
-        if (event.type === "customer.subscription.created") {
+        if (event.type === "customer.subscription.created" && !rebill) {
           await sendEmail(to, sub.status === "trialing" ? EMAILS.trialStarted(planName, when, await firstBill(sub)) : EMAILS.planActive(planName, when));
           // Meta hears of the trial here, once, as the browser pixel only did when the checkout page came back.
           if (sub.status === "trialing") await sendMetaEvent("StartTrial", userId, { once: true, value: (sub.items.data[0]?.price.unit_amount ?? 0) / 100, plan: planId, path: "/pricing" });
