@@ -360,6 +360,19 @@ const JUVENILE_DROP = Number(process.env.OVERLAY_JUVENILE_DROP ?? 0);
 const TIME_ONLY_WEIGHT = 0.5;
 /** Recency weights over the last runs, most recent first. */
 export const RUN_WEIGHTS = [0.35, 0.25, 0.2, 0.12, 0.08];
+/**
+ * Young horses improve between runs, so their older runs drag the rating
+ * below where they are now (the Guineas field ran 15 to 30 above its ratings,
+ * 10 Oct 2026). For a horse aged three or under: recency weights of their own
+ * (OVERLAY_YOUNG_WEIGHTS, comma separated, most recent first) and a lift of
+ * OVERLAY_YOUNG_TREND times how far the latest run sits above the ones before,
+ * capped at OVERLAY_YOUNG_CAP points. Off unless set; scripts/sweep-young.ts
+ * scores the choices over the cache.
+ */
+const YOUNG_WEIGHTS = (process.env.OVERLAY_YOUNG_WEIGHTS ?? "").split(",").map(Number).filter((v) => v > 0);
+const YOUNG_TREND = Number(process.env.OVERLAY_YOUNG_TREND ?? 0);
+const YOUNG_CAP = Number(process.env.OVERLAY_YOUNG_CAP ?? 10);
+export const isYoung = (age?: number) => age !== undefined && age <= 3;
 /** Share of the class rating from the peak (the mean of the best two of the last three runs); the rest is the recency-weighted average. Sweep with scripts/sweep-caps.ts. */
 const PEAK_SHARE = Number(process.env.OVERLAY_PEAK_SHARE ?? 0.4);
 /** Prior weight, in runs, that pulls a thin category back toward class. */
@@ -667,7 +680,7 @@ export function recentRuns(e: RaceEntry, asOf?: number) {
     .map(cleanClock)
     .filter((p) => !blindRun(p))
     .sort((a, b) => b.date - a.date)
-    .slice(0, RUN_WEIGHTS.length);
+    .slice(0, Math.max(RUN_WEIGHTS.length, isYoung(e.horse?.age) ? YOUNG_WEIGHTS.length : 0));
 }
 
 function rateOne(
@@ -694,9 +707,15 @@ function rateOne(
   }
 
   const points = runs.map((r) => runPoints(r, race.classPoints, e.horse.age, race.date));
-  const weighted =
-    points.reduce((a, p, i) => a + p * RUN_WEIGHTS[i], 0) /
-    RUN_WEIGHTS.slice(0, points.length).reduce((a, b) => a + b, 0);
+  const young = isYoung(e.horse.age);
+  const w = young && YOUNG_WEIGHTS.length ? YOUNG_WEIGHTS : RUN_WEIGHTS;
+  const used = points.slice(0, w.length);
+  let weighted = used.reduce((a, p, i) => a + p * w[i], 0) / w.slice(0, used.length).reduce((a, b) => a + b, 0);
+  // An improving young horse: its latest run above the mean of the ones before lifts it a share of the way on.
+  if (young && YOUNG_TREND > 0 && points.length >= 2) {
+    const before = points.slice(1, 4).reduce((a, b) => a + b, 0) / Math.min(3, points.length - 1);
+    weighted += clamp(YOUNG_TREND * (points[0] - before), 0, YOUNG_CAP);
+  }
   // Its best form: the mean of the best two of the last three, so one big
   // run lifts the rating but cannot carry it on its own.
   const best = [...points.slice(0, 3)].sort((a, b) => b - a);
