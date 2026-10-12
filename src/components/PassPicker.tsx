@@ -22,7 +22,7 @@ export function PassPicker({ bundles, single, signedIn }: { bundles: { qty: numb
         <div>
           <h2 className="font-display text-lg font-extrabold tracking-tight">Just a day here and there?</h2>
           <p className="mt-0.5 text-sm text-ink-secondary text-balance">
-            A day pass opens every race on one race day, any day you choose. No subscription, and they never expire.
+            A day pass opens every race on one race day, any day you choose. Use one after 4pm and you get tomorrow too. No subscription, and they never expire.
           </p>
         </div>
 

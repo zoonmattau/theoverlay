@@ -26,7 +26,7 @@ export const RATINGS_FAQ: Faq[] = [
 export const PLANS_FAQ: Faq[] = [
   { q: "How do I sign up?", a: "Create a free account with your email or Google, then start a 7-day free trial or buy a day pass to open every race.", links: [{ label: "Create an account", href: "/signup" }, { label: "Plans and passes", href: "/pricing" }] },
   { q: "Is there a free trial?", a: "Yes, every subscription starts with a 7-day free trial and nothing is charged if you cancel before it ends, and on a 3-month or yearly plan the first bill is the whole term.", links: [{ label: "Start a free trial", href: "/pricing" }] },
-  { q: "What does a day pass do?", a: "A day pass opens every race and our Discord for one race day, costs $10, never expires, gets cheaper in bundles of 3, 5 or 10, and you use it on the day from the home page, Today's tips or any race.", links: [{ label: "Buy day passes", href: "/pricing#passes" }] },
+  { q: "What does a day pass do?", a: "A day pass opens every race and our Discord for one race day, costs $10, never expires, gets cheaper in bundles of 3, 5 or 10, and you use it on the day from the home page, Today's tips or any race. Use one after 4pm and it opens tomorrow too.", links: [{ label: "Buy day passes", href: "/pricing#passes" }] },
   { q: "Can I cancel any time?", a: "Yes, cancel from your account and the board stays open until the end of the period you have paid for.", links: [{ label: "Your account", href: "/account" }] },
   { q: "What is free without a plan?", a: "The race board, jump times, results, the live market and one free race every day.", links: [{ label: "Today's board", href: "/" }] },
 ];
