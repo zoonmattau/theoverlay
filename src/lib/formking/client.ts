@@ -10,6 +10,7 @@ import type {
   RaceSummary,
   Speedmap,
 } from "./types";
+import { keepRaw, readRawToday } from "./raw";
 
 /**
  * Form King Modellers API client.
@@ -138,10 +139,11 @@ interface Spend {
   capped?: boolean;
 }
 
-const spendKey = () => `spend:${new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}`;
+/** The site's own meter is spend:<day>; local scripts write spend-local:<day>, counted for the month but never capped (12 Oct 2026). */
+const spendKey = (local = false) => `${local ? "spend-local" : "spend"}:${new Date().toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" })}`;
 
-async function readSpend(): Promise<Spend> {
-  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache?select=data&key=eq.${encodeURIComponent(spendKey())}`, {
+async function readSpend(local = false): Promise<Spend> {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache?select=data&key=eq.${encodeURIComponent(spendKey(local))}`, {
     headers: { apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!, authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}` },
     cache: "no-store",
     signal: AbortSignal.timeout(10_000),
@@ -152,7 +154,7 @@ async function readSpend(): Promise<Spend> {
   return rows[0]?.data ?? { credits: 0, calls: 0 };
 }
 
-async function writeSpend(spend: Spend): Promise<void> {
+async function writeSpend(spend: Spend, local = false): Promise<void> {
   await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/rest/v1/fk_cache`, {
     method: "POST",
     headers: {
@@ -161,7 +163,7 @@ async function writeSpend(spend: Spend): Promise<void> {
       "content-type": "application/json",
       prefer: "resolution=merge-duplicates",
     },
-    body: JSON.stringify({ key: spendKey(), kind: "spend", data: spend, at: new Date().toISOString() }),
+    body: JSON.stringify({ key: spendKey(local), kind: "spend", data: spend, at: new Date().toISOString() }),
   }).catch(() => undefined);
 }
 
@@ -199,7 +201,15 @@ async function checkSpend(cost: number): Promise<void> {
 
 /** Adds a call that went through to the day's spend, and warns once past the warning line. */
 function recordSpend(cost: number): Promise<unknown> {
-  if (!dbCache()) return Promise.resolve();
+  // A script on this machine: counted for the month's total, no warning, no cap.
+  if (!dbCache()) {
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) return Promise.resolve();
+    metering = metering.then(async () => {
+      const spend = await readSpend(true).catch(() => undefined);
+      if (spend) await writeSpend({ ...spend, credits: spend.credits + cost, calls: spend.calls + 1 }, true);
+    });
+    return metering;
+  }
   metering = metering.then(async () => {
     const spend = await readSpend().catch(() => undefined);
     if (!spend) return;
@@ -287,7 +297,10 @@ async function request<T>(
   }
 
   await recordSpend(cost);
-  return (await res.json()) as T;
+  const body = (await res.json()) as T;
+  // Every response we pay for is kept for good, gzipped in Storage (raw.ts, 12 Oct 2026).
+  await keepRaw(path, body);
+  return body;
 }
 
 /** Meetings across the next 7 days. 1 credit. */
@@ -358,7 +371,10 @@ export function getMeetingSpeedmaps(meetingId: string, opts: { cacheOnly?: boole
  * benchmarks, however many past runs: so ask for the lot (the user, 12 Oct
  * 2026: always keep every run). Not cached: whoever buys it stores it.
  */
-export function getHorse(horseId: string, opts: { numPastRaces?: number; numBenchmarks?: number } = {}) {
+export async function getHorse(horseId: string, opts: { numPastRaces?: number; numBenchmarks?: number } = {}): Promise<HorseForm> {
+  // Bought once a day at most: today's kept copy answers a second ask (Caulfield was bought twice on 12 Oct 2026).
+  const kept = await readRawToday<HorseForm>(`/b2c/horses/${encodeURIComponent(horseId)}`);
+  if (kept) return kept;
   return request<HorseForm>(
     `/b2c/horses/${encodeURIComponent(horseId)}`,
     {

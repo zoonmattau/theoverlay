@@ -8,6 +8,7 @@ import { nudgeCheckouts } from "@/lib/email/checkout-nudge";
 import { winBack } from "@/lib/email/winback";
 import { notifyFollowers, TIP_EMAIL_HOUR } from "@/lib/email/tipster";
 import { sydneyHour } from "@/lib/model/source";
+import { remindCredits } from "@/lib/credits";
 
 export const maxDuration = 120;
 
@@ -50,6 +51,8 @@ export async function GET(request: NextRequest) {
   const nudged = await nudgeLongTermTrials();
   // And a plan checkout opened yesterday and never finished: 25% off the first month, today only.
   const checkouts = await nudgeCheckouts();
+  // And on the 11th, before Form King renews: what is left, and the command to spend it on careers.
+  const credits = await remindCredits().catch((e) => { console.error("[credits]", e); return false; });
   const tipsters = [...new Set((data ?? []).map((r) => r.affiliate_id as string))];
   const sent: Record<string, number> = {};
   for (const id of tipsters) sent[id] = await notifyFollowers(id, { force });
@@ -64,5 +67,6 @@ export async function GET(request: NextRequest) {
     wonBack,
     nudged,
     checkouts,
+    credits,
   });
 }

@@ -12,6 +12,7 @@ import { getViewer } from "@/lib/auth";
 import { planById } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
 import { todayFacts } from "@/lib/today";
+import { creditsThisPeriod, lastDayOfPeriod, spendCommand } from "@/lib/credits";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 
@@ -44,7 +45,7 @@ async function Admin() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const members = await listMembers();
-  const [stats, events, card, facts, passDays] = await Promise.all([overview(members), recentEvents(undefined, 300), getTodayCard(), todayFacts(), recentPassDays()]);
+  const [stats, events, card, facts, passDays, credits] = await Promise.all([overview(members), recentEvents(undefined, 300), getTodayCard(), todayFacts(), recentPassDays(), lastDayOfPeriod() ? creditsThisPeriod() : Promise.resolve(undefined)]);
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const calls = card.meetings.flatMap((m) => m.races.flatMap((r) => r.runners.filter((x) => x.signal && !x.scratched)));
   const nextCall = card.meetings
@@ -65,6 +66,14 @@ async function Admin() {
           <p className="mt-1 text-sm text-ink-soft">The day at a glance. Every number opens the page behind it.</p>
         </div>
       </section>
+      {/* The 11th: Form King renews tomorrow, so what is left goes on full careers today. */}
+      {credits && (
+        <div className="mb-4 rounded-[var(--radius-lg)] border-2 border-amber bg-panel p-4 text-sm">
+          <div className="font-display font-extrabold">Form King renews tomorrow: about {credits.left.toLocaleString("en-AU")} credits left</div>
+          <div className="mt-1 text-ink-secondary">Spend them on full careers today, every run kept. From the project folder:</div>
+          <code className="mt-2 block break-all text-xs">{spendCommand(Math.max(0, credits.left - 200))}</code>
+        </div>
+      )}
 
       <div className="card mb-6 flex flex-wrap items-center gap-3 text-sm">
         <div>
