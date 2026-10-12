@@ -111,49 +111,12 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
         </span>
       </div>
 
-      <Section id="by-day" letter="D" title="By day" aside={`${days.length} ${days.length === 1 ? "day" : "days"}`}>
-        <div className="section-body">
-          {days.length === 0 ? (
-            <p className="text-sm text-ink-soft">No settled calls in this window.</p>
-          ) : (
-            <table className="data-table text-sm w-full [&_th]:px-2 [&_td]:px-2">
-              <thead>
-                <tr>
-                  <th>Day</th>
-                  <th className="text-right">Calls</th>
-                  <th className="text-right hidden sm:table-cell">Won</th>
-                  <th className="text-right">Units</th>
-                  <th className="text-right">Running</th>
-                </tr>
-              </thead>
-                <tbody>
-                {days.map((d) => {
-                  const cs = byDay.get(d)!;
-                  const u = cs.reduce((a, c) => a + Number(c.units), 0);
-                  return (
-                    <tr key={d}>
-                      <td className="whitespace-nowrap">
-                        <a href={`#day-${d}`} className="hover:text-blue">{dayName(d)}</a>
-                      </td>
-                      <td className="text-right nums">{cs.length}</td>
-                      <td className="text-right nums hidden sm:table-cell">{cs.filter((c) => Number(c.units) > 0).length}</td>
-                      <td className={`text-right nums font-semibold ${tone(u)}`}>{units(u)}</td>
-                      <td className={`text-right nums ${tone(totals.get(d)!)}`}>{units(totals.get(d)!)}</td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </Section>
-
       <Section id="calls" letter="C" title="Every call" aside={older ? `${days.length} days` : `Last ${Math.min(DAYS_SHOWN, days.length)} days`}>
         <div className="p-3 sm:p-4">
           <ResultsFilters filter={filter} tracks={tracks} count={calls.length} />
           {calls.length === 0 && <p className="text-sm text-ink-soft">No calls match. Clear a filter to see more.</p>}
           <table className="sheet">
-            {listed.map((d, i) => {
+            {listed.map((d) => {
               const cs = byDay.get(d)!;
               const u = cs.reduce((a, c) => a + Number(c.units), 0);
               // Running totals inside the day, counting up to each call from the day before's close.
@@ -163,7 +126,8 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
                 <SheetDay
                   key={d}
                   id={`day-${d}`}
-                  foldOnPhone={i >= 2}
+                  // Every day folded to its line, so the daily results read first (the user, 12 Oct 2026).
+                  startShut
                   head={
                     <>
                       <th className="sheet-wide">Race</th>
@@ -195,8 +159,9 @@ async function Results({ searchParams }: { searchParams: PageProps<"/results">["
                     </>
                   }
                 >
-                  {cs.map((c, i) => (
-                    <SheetRow key={`${c.race_id}:${c.tab_number}:${c.side}`} c={c} running={runs[i]} />
+                  {/* Newest first inside the day too, as the days run, so the running total reads on down the page (12 Oct 2026). */}
+                  {cs.map((c, i) => ({ c, running: runs[i] })).reverse().map(({ c, running }) => (
+                    <SheetRow key={`${c.race_id}:${c.tab_number}:${c.side}`} c={c} running={running} />
                   ))}
                 </SheetDay>
               );

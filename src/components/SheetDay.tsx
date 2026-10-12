@@ -10,8 +10,8 @@ import { useEffect, useState, type ReactNode } from "react";
  * starts folded (seven days of calls ran 15,000px tall, 4 Oct 2026), and a
  * link to the day (#day-yyyy-mm-dd) opens it.
  */
-export function SheetDay({ id, cells, head, children, foldOnPhone = false }: { id: string; cells: ReactNode; head: ReactNode; children: ReactNode; foldOnPhone?: boolean }) {
-  const [open, setOpen] = useState(true);
+export function SheetDay({ id, cells, head, children, foldOnPhone = false, startShut = false }: { id: string; cells: ReactNode; head: ReactNode; children: ReactNode; foldOnPhone?: boolean; /** Folded to its summary line until clicked. */ startShut?: boolean }) {
+  const [open, setOpen] = useState(!startShut);
   useEffect(() => {
     // The screen width is only known in the browser, so the phone fold happens once on mount.
     // eslint-disable-next-line react-hooks/set-state-in-effect

@@ -34,9 +34,11 @@ POST = {
     "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
 }
 # Chute starts known from the club: each built chute takes the nearest.
-CHUTE_STARTS = {"murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
+CHUTE_STARTS = {"bairnsdale": [1200, 1600, 2200], "murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
 # Chutes the imagery or map draws longer than they are: the one measuring near "from" is cut back at its tip to start "to".
-CHUTE_CUT = {"murraybridge": [(1200, 900)]}  # the top chute is a short one, for 900m races only
+CHUTE_CUT = {"murraybridge": [(1200, 900)], "bairnsdale": [(1291, 1200), (1705, 1600), (2298, 2200)]}
+# Tracks whose OSM chutes run long or sit close in: how far a chute may measure from its start, and how clear of the course it must stand.
+CHUTE_LOOSE = {"bairnsdale": {"tolerance": 120, "clear": 50}}  # 1200, 1600 and the 2200 off the top of the home straight (the user, 12 Oct 2026)  # the top chute is a short one, for 900m races only
 # Courses not in OpenStreetMap, traced from aerial imagery by scripts/out/tracks/trace.py.
 TRACED = {"murraybridge": "traced from Esri World Imagery", "mildura": "traced from Esri World Imagery", "belmont": "traced from Esri World Imagery", "muswellbrook": "traced from Esri World Imagery", "narromine": "traced from Esri World Imagery", "alicesprings": "traced from Esri World Imagery", "pakenhamsynthetic": "traced from Esri World Imagery", "sandownhillside": "traced from Esri World Imagery", "sale": "traced from Esri World Imagery"}
 # Where the ring round the course in OSM is a property fence, not the outer rail.
@@ -358,7 +360,12 @@ def build(slug, path, state, venue=None):
         c["startDistance"] = round(c["length"] + (post_along - c["joinAlong"]) % total)
         c["measured"] = c["startDistance"]
         if slug in CHUTE_STARTS:
-            c["startDistance"] = min(CHUTE_STARTS[slug], key=lambda d: abs(d - c["startDistance"]))
+            # A start longer than the lap comes out of the chute and goes round once more: count the lap.
+            m = c["measured"]
+            best = min(CHUTE_STARTS[slug], key=lambda d: min(abs(d - m), abs(d - m - round(total))))
+            if abs(best - m - round(total)) < abs(best - m):
+                c["measured"] = m + round(total)
+            c["startDistance"] = best
     # A chute stands well clear of the course and starts a distance they race; a bulge in the outer rail on a turn does neither.
     dense = tg.resample(run, max(200, int(total / 5)))
     if os.environ.get("ATLAS_DEBUG") == slug:
@@ -366,12 +373,13 @@ def build(slug, path, state, venue=None):
             print(f"  raw {slug} {c['measured']} clear {c['clear']:.0f} tip {[round(v) for v in c['line'][0]]}", file=sys.stderr)
     # A chute never crosses the infield: a line through the middle of the course is a training strip or a road.
     chutes = [c for c in chutes if not any(inside(p, loop) for p in tg.resample(c["line"], 40)[2:-6])]
-    chutes = [c for c in chutes if c["clear"] >= 70 and abs(c["measured"] - c["startDistance"]) <= 80 and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
+    loose = CHUTE_LOOSE.get(slug, {})
+    chutes = [c for c in chutes if c["clear"] >= loose.get("clear", 70) and abs(c["measured"] - c["startDistance"]) <= loose.get("tolerance", 80) and (slug in CHUTE_STARTS or min(abs(c["startDistance"] - d) for d in STARTS) <= 25)]
     # One chute to a start: the one that measures closest.
     chutes = [c for c in chutes if c is min((o for o in chutes if o["startDistance"] == c["startDistance"]), key=lambda o: abs(o["measured"] - o["startDistance"]))]
     for frm, to in CHUTE_CUT.get(slug, []):
         for c in chutes:
-            if abs(c["measured"] - frm) <= 80 and c["measured"] - to < c["length"] - 10:
+            if abs(c["measured"] - frm) <= loose.get("tolerance", 80) and c["measured"] - to < c["length"] - 10:
                 cut = c["measured"] - to
                 line = tg.resample(c["line"], 200)
                 keep = [p for p, a in zip(line, [length(line[: i + 1]) for i in range(len(line))]) if a >= cut]
