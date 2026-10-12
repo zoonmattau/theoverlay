@@ -22,6 +22,7 @@ spec.loader.exec_module(tg)
 # Posts placed by hand, in rail metres round the loop, where the stand or straight finder gets it wrong.
 POST = {
     "doomben": 1675,  # on the straight just before the turn; the chute then comes out near the 1350
+    "bairnsdale": 1350,  # right-hand end of the long straight down the bottom left, not the short right-side straight (the user, 12 Oct 2026)
     "carnarvon": 1955,  # foot of the home straight down the left side, before the turn the stand finder put it on
     "gawler": 1485,  # on the straight just before the turn (the user)
     "goldcoast": 1870,
