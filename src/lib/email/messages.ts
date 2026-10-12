@@ -340,6 +340,18 @@ export const EMAILS = {
     cta: { label: "Open admin", url: `${SITE}/admin` },
   }),
 
+  /** Prices up for every member from the next bill (12 Oct 2026); `bill` reads "$69 a month". */
+  priceChange: (plan: string, bill: string): EmailSpec => ({
+    subject: "Your Overlay price is changing",
+    preheader: `Your next ${plan} bill will be ${bill}.`,
+    heading: "New prices at The Overlay.",
+    paragraphs: [
+      `Our prices have gone up. Your next <strong>${plan}</strong> bill will be <strong>${bill}</strong>.`,
+      "Nothing else changes: every runner rated and priced, the bets and lays at 11am, and the Data Hub.",
+      "You can change plan or cancel any time from your account.",
+    ],
+    cta: { label: "Your account", url: `${SITE}/account` },
+  }),
   passesAdded: (qty: number, total: number): EmailSpec => ({
     subject: `${qty} day ${qty === 1 ? "pass" : "passes"} added`,
     preheader: "Use them on any race day you like.",

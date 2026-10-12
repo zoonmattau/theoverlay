@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Terms of use for The Overlay.",
 };
 
-const UPDATED = "2 October 2026";
+const UPDATED = "12 October 2026";
 
 export default function Page() {
   return (
@@ -43,7 +43,9 @@ export default function Page() {
         starts, and if you do not cancel before then your plan begins and your card is
         charged for the term you chose. Plans renew automatically until you cancel, and
         you can cancel any time from your account, keeping access to the end of the
-        period you have paid for.
+        period you have paid for. We may change plan prices. When we do, we email you
+        the new price before it applies to your plan, and you can cancel any time
+        before your next bill.
       </Clause>
 
       <Clause n="05" title="Prices and data">

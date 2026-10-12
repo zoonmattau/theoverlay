@@ -10,6 +10,11 @@ const nextConfig: NextConfig = {
   // The dev server is also opened over 127.0.0.1 and the LAN address; without
   // this Next blocks its own client bundle and HMR from those origins.
   allowedDevOrigins: ["127.0.0.1", "192.168.0.11"],
+  // /welcome, the ad landing page (6 Oct 2026), is gone: 9% of its visitors went on to a
+  // second page against 52% from home (12 Oct). Old ad links land on home with their tags.
+  async redirects() {
+    return [{ source: "/welcome", destination: "/", permanent: false }];
+  },
 };
 
 export default nextConfig;

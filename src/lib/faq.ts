@@ -1,5 +1,8 @@
 import type { Faq } from "@/components/JsonLd";
+import { PASS_PRICE, planById, TRIAL_DAYS, weeklyLabel } from "@/lib/billing/plans";
 import { BRAND_SOCIAL } from "@/lib/social";
+
+const [SAT, MID, DAY] = (["saturday", "midweek", "everyday"] as const).map((id) => planById(id)!);
 
 /** Every question on the site, in one place, so the FAQ page and the pages that cite them agree. */
 export const ABOUT_FAQ: Faq[] = [
@@ -9,7 +12,7 @@ export const ABOUT_FAQ: Faq[] = [
   { q: "Which races are covered?", a: "Every TAB flat meeting in Australia, every state, with one race a day free and the rest open to members.", links: [{ label: "Today's board", href: "/" }] },
   { q: "Where can I see your results?", a: "Every settled call, won and lost, is on our results page, day by day, and it updates through the day.", links: [{ label: "Results", href: "/results" }] },
   { q: "Is there a Discord?", a: "Yes, members get every call and every lay in our Discord before the jump, and the free race, winners and Saturday review are open to everyone.", links: [{ label: "Join the Discord", href: `${BRAND_SOCIAL.discord}` }, { label: "Link it to your account", href: "/account" }] },
-  { q: "How much does it cost?", a: "Saturday tips are $4.40 a week, Saturday plus Wednesday $6.70, every day $11.30, billed monthly at $19, $29 and $49, all with a 7-day free trial. Pay quarterly for 10% off or yearly for 20% off, or weekly from $5 with no trial. Or buy day passes from $10 each.", links: [{ label: "See the plans", href: "/pricing" }] },
+  { q: "How much does it cost?", a: `Saturday tips are ${weeklyLabel(SAT.price)} a week, Saturday plus Wednesday ${weeklyLabel(MID.price)}, every day ${weeklyLabel(DAY.price)}, billed monthly at $${SAT.price}, $${MID.price} and $${DAY.price}, all with a ${TRIAL_DAYS}-day free trial. Pay quarterly for 10% off or yearly for 20% off, or weekly from $${SAT.weekPrice} with no trial. Or buy day passes from $${PASS_PRICE} each.`, links: [{ label: "See the plans", href: "/pricing" }] },
 ];
 
 export const RATINGS_FAQ: Faq[] = [

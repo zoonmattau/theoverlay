@@ -10,9 +10,9 @@ export type PlanId = "saturday" | "midweek" | "everyday";
 export interface Plan {
   id: PlanId;
   name: string;
-  /** AUD per month. No GST is charged while the business is not registered (30 Sep 2026). */
+  /** AUD per month. No GST is charged while the business is not registered (30 Sep 2026). Raised 12 Oct 2026 for everyone, members included. */
   price: number;
-  /** AUD per week on the weekly term, no trial; set by hand (5 Oct 2026), dearer than monthly over a year. */
+  /** AUD per week on the weekly term, no trial; set by hand (12 Oct 2026), dearer than monthly over a year. */
   weekPrice: number;
   blurb: string;
   features: string[];
@@ -31,8 +31,8 @@ export const PLANS: Plan[] = [
   {
     id: "saturday",
     name: "Saturday",
-    price: 19,
-    weekPrice: 5,
+    price: 25,
+    weekPrice: 7,
     blurb: "The big day, every week.",
     features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls", "7-day free trial"],
     days: [6],
@@ -42,8 +42,8 @@ export const PLANS: Plan[] = [
   {
     id: "midweek",
     name: "Saturday + Wednesday",
-    price: 29,
-    weekPrice: 10,
+    price: 39,
+    weekPrice: 12,
     blurb: "The two metro days.",
     features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls", "7-day free trial"],
     days: [3, 6],
@@ -55,8 +55,8 @@ export const PLANS: Plan[] = [
     // The plan most people take (33 of 37 plan checkouts by 4 Oct 2026); the badge has to be true.
     highlight: true,
     name: "Every day",
-    price: 49,
-    weekPrice: 15,
+    price: 69,
+    weekPrice: 20,
     blurb: "The full board, seven days a week.",
     features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls", "7-day free trial"],
     days: [],
@@ -106,7 +106,7 @@ export const termPriceId = (plan: Plan, term: Term) => (term.id === "month" ? pl
 /** What a plan works out to a month on a term, for the weekly figure. */
 export const termMonthly = (plan: Plan, term: Term) => termPrice(plan, term) / term.months;
 
-/** The monthly price said by the week, the way a punter counts: $49 a month is $11.30 a week. */
+/** The monthly price said by the week, the way a punter counts: $69 a month is $15.90 a week. */
 export const weekly = (monthly: number) => Math.round(((monthly * 12) / 52) * 10) / 10;
 /** "$11.30" or "$4.40", never "$11.3". */
 export const weeklyLabel = (monthly: number) => `$${weekly(monthly).toFixed(2).replace(/0$/, "0")}`;

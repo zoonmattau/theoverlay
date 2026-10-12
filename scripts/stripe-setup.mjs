@@ -25,32 +25,34 @@ async function price(lookupKey, params) {
 
 const out = {};
 
+// Prices from 13 Oct 2026 (the user, 12 Oct): Saturday $25, Saturday + Wednesday $39,
+// Every day $69 a month; quarterly 10% off, yearly 20% off; weekly $7, $12, $20.
+// A Stripe price can't change, so each amount has its own lookup key ("_v2").
+// Every member moved onto these at their next bill (scripts/reprice.ts).
+const TERMS = [
+  { id: "monthly", env: "", recurring: { interval: "month" } },
+  { id: "weekly", env: "_WEEK", recurring: { interval: "week" }, nickname: "Weekly" },
+  { id: "quarterly", env: "_QUARTER", recurring: { interval: "month", interval_count: 3 }, nickname: "Every 3 months" },
+  { id: "yearly", env: "_YEAR", recurring: { interval: "year" }, nickname: "Yearly" },
+];
 for (const p of [
-  { key: "SATURDAY", overlay: "saturday", name: "The Overlay: Saturday", desc: "Every Saturday meeting we cover: top four, ratings, rated prices, bet and lay calls.", amount: 1900, week: 500, weekKey: "weekly" },
-  { key: "MIDWEEK", overlay: "midweek", name: "The Overlay: Saturday + Wednesday", desc: "Saturday and Wednesday metro meetings: top four, ratings, rated prices, bet and lay calls.", amount: 2900, week: 1000, weekKey: "weekly_10" },
-  { key: "EVERYDAY", overlay: "everyday", name: "The Overlay: Every day", desc: "Every meeting we cover, every day: top four, ratings, rated prices, bet and lay calls.", amount: 4900, week: 1500, weekKey: "weekly_15" },
+  { key: "SATURDAY", overlay: "saturday", name: "The Overlay: Saturday", desc: "Every Saturday meeting we cover: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 2500, weekly: 700, quarterly: 6800, yearly: 24000 } },
+  { key: "MIDWEEK", overlay: "midweek", name: "The Overlay: Saturday + Wednesday", desc: "Saturday and Wednesday metro meetings: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 3900, weekly: 1200, quarterly: 10500, yearly: 37400 } },
+  { key: "EVERYDAY", overlay: "everyday", name: "The Overlay: Every day", desc: "Every meeting we cover, every day: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 6900, weekly: 2000, quarterly: 18600, yearly: 66200 } },
 ]) {
   const prod = await product(p.name, p.desc, { overlay: p.overlay });
-  const pr = await price(`overlay_${p.overlay}_monthly`, {
-    product: prod.id,
-    currency: "aud",
-    unit_amount: p.amount,
-    recurring: { interval: "month" },
-    tax_behavior: "exclusive",
-  });
-  out[`STRIPE_PRICE_${p.key}`] = pr.id;
-  console.log(p.name, prod.id, pr.id);
-  // Weekly, no trial: $5, $10, $15 (5 Oct 2026), weekPrice in plans.ts. A price can't change, so a new amount gets a new lookup key.
-  const week = await price(`overlay_${p.overlay}_${p.weekKey}`, {
-    product: prod.id,
-    currency: "aud",
-    unit_amount: p.week,
-    recurring: { interval: "week" },
-    nickname: "Weekly",
-    tax_behavior: "exclusive",
-  });
-  out[`STRIPE_PRICE_${p.key}_WEEK`] = week.id;
-  console.log(p.name, "weekly", week.id);
+  for (const t of TERMS) {
+    const pr = await price(`overlay_${p.overlay}_${t.id}_v2`, {
+      product: prod.id,
+      currency: "aud",
+      unit_amount: p.amounts[t.id],
+      recurring: t.recurring,
+      ...(t.nickname ? { nickname: t.nickname } : {}),
+      tax_behavior: "exclusive",
+    });
+    out[`STRIPE_PRICE_${p.key}${t.env}`] = pr.id;
+    console.log(p.name, t.id, pr.id, `$${p.amounts[t.id] / 100}`);
+  }
 }
 
 const pass = await product(
