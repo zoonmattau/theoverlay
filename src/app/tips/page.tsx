@@ -78,6 +78,8 @@ interface Call {
   /** The rated price and edge the call was made on, from the ledger: once a race has run the card's own have melded into the jump price. */
   calledRated?: number;
   calledEdge?: number;
+  /** Who held that price and when: "Sportsbet 9:42am" (kept from 12 Oct 2026). */
+  seen?: string;
 }
 
 async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["searchParams"] }) {
@@ -128,6 +130,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined, stakeOf(x)),
               calledRated: row?.rated,
               calledEdge: row?.edge,
+              seen: row?.seen,
             };
           }),
       ),
@@ -290,7 +293,7 @@ function PhoneCall({ call: c, side }: { call: Call; side: Signal }) {
         <div className="tp-line">
           {horse}
           <span className="tp-sub nums">
-            {placed} · {lay ? "laid" : "bet"} {price(c.price)}
+            {placed} · {lay ? "laid" : "bet"} {price(c.price)}{c.seen ? `, ${c.seen}` : ""}
           </span>
         </div>
       </div>
@@ -345,12 +348,24 @@ function CallTable({
   admin?: CallAdmin;
 }) {
   const total = calls.reduce((a, x) => a + (x.profit ?? 0), 0);
+  // The bar keeps the day's tally when the table is folded: hits over the calls settled, the running units, what is left (12 Oct 2026).
+  const settled = calls.filter((x) => x.profit !== undefined);
+  const hits = settled.filter((x) => (x.profit ?? 0) > 0).length;
+  const left = calls.length - settled.length;
+  const tally = settled.length ? (
+    <span className="nums whitespace-nowrap">
+      {hits}/{settled.length} {side === "lay" ? "held" : "won"} · <span className={`font-extrabold ${total > 0 ? "text-lime" : total < 0 ? "text-[#ff8a8a]" : ""}`}>{units(total)}</span>
+      {left > 0 && <span className="opacity-70"> · {left} to run</span>}
+    </span>
+  ) : (
+    <span className="nums">{calls.length}</span>
+  );
   // Calls stay in jump order so the running sum reads down; a divider marks where the races without a result begin.
   const firstToRun = calls.findIndex((c) => !c.resulted);
   const toRun = firstToRun < 0 ? 0 : calls.length - firstToRun;
   const cols = callAdmin ? 10 : 9;
   return (
-    <Section id={id} letter={letter} title={title} aside={<span className="nums">{calls.length}</span>}>
+    <Section id={id} letter={letter} title={title} aside={tally}>
       {calls.length === 0 ? (
         <p className="section-body text-sm text-ink-soft">None on today&apos;s card.</p>
       ) : (
@@ -408,7 +423,7 @@ function CallTable({
                     <MarketHover r={c.runner} className="market-right">
                       <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : callPrice(c.runner) ?? c.runner.marketPrice)}</span>
                     </MarketHover>
-                    {side === "lay" || c.resulted || !takeable(c.runner) ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
+                    {c.resulted ? (c.seen ? <span className="block text-[10px] mt-0.5 text-ink-soft whitespace-nowrap">{c.seen}</span> : null) : side === "lay" || !takeable(c.runner) ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
                   </td>
                   <td data-col="rated" className="text-right nums font-semibold whitespace-nowrap">
                     {/* A run race shows what the call was made on; the card's numbers there are the jump's. */}

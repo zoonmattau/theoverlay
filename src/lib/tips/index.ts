@@ -5,6 +5,7 @@ import { deducted, keptAfter } from "@/lib/model/deductions";
 import { CALL_LOCK_MS } from "@/lib/model/publish";
 
 import { supabaseAdmin } from "@/lib/billing/access";
+import { bookieName } from "@/lib/bookies";
 import type { StoredCard } from "@/lib/model/store";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
 import { EXCLUDED_CALLS } from "./excluded";
@@ -49,7 +50,16 @@ export interface TipRow {
   stake: number;
   units?: number | null;
   settled_at?: string | null;
+  /** Who held the recorded price: bookie codes, "betfair" for a lay, or "jump", "sp", "bsp" at settlement (12 Oct 2026). */
+  best_bookies?: string[] | null;
+  /** When that price was seen. */
+  best_at?: string | null;
 }
+
+/** Until the migration adding best_bookies and best_at has run, the ledger is written and read without them. */
+let bestColumns = true;
+const missingBest = (msg: string) => /best_(bookies|at)/.test(msg);
+const withoutBest = <T extends object>(r: T) => Object.fromEntries(Object.entries(r).filter(([k]) => k !== "best_bookies" && k !== "best_at"));
 
 /**
  * What a call settles at, from the price the ledger recorded for it. A bet at
@@ -101,6 +111,8 @@ export function rowsFor(date: string, card: StoredCard, source: TipSource = "mod
           edge: callEdge(x) ?? null,
           source,
           stake,
+          best_bookies: x.signal === "lay" ? ["betfair"] : x.bookies?.length ? x.bookies : null,
+          best_at: new Date().toISOString(),
         });
       }
     }
@@ -121,6 +133,8 @@ interface Held {
   settled_at: string | null;
   /** When the call joined the ledger: a scratching after it takes the deduction. */
   published_at?: string | null;
+  best_bookies?: string[] | null;
+  best_at?: string | null;
 }
 
 /**
@@ -133,16 +147,26 @@ export async function recordTips(date: string, card: StoredCard, source: TipSour
   if (!card.meetings.length) return;
   const db = supabaseAdmin();
   const rows = rowsFor(date, card, source).filter((r) => !EXCLUDED_CALLS.has(`${r.race_id}:${r.tab_number}`));
-  const { data: existing, error } = await db.from("tips").select("race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at, published_at").eq("date", date).eq("source", source);
+  const cols = "race_id, tab_number, side, market_price, stake, tag, finish_position, sp, units, settled_at, published_at";
+  const read = (c: string) => db.from("tips").select(c).eq("date", date).eq("source", source);
+  let { data: existing, error } = await read(bestColumns ? `${cols}, best_bookies, best_at` : cols);
+  if (error && missingBest(error.message)) {
+    bestColumns = false;
+    ({ data: existing, error } = await read(cols));
+  }
   if (error) {
     console.error("[tips]", error.message);
     return;
   }
   const key = (r: { race_id: string; tab_number: number }) => `${r.race_id}:${r.tab_number}`;
-  const held = new Map(((existing ?? []) as Held[]).map((e) => [key(e), e]));
+  const held = new Map(((existing ?? []) as unknown as Held[]).map((e) => [key(e), e]));
   const fresh = rows.filter((r) => !held.has(key(r)));
   if (fresh.length) {
-    const { error: e } = await db.from("tips").insert(fresh);
+    let { error: e } = await db.from("tips").insert(bestColumns ? fresh : fresh.map(withoutBest));
+    if (e && missingBest(e.message)) {
+      bestColumns = false;
+      ({ error: e } = await db.from("tips").insert(fresh.map(withoutBest)));
+    }
     if (e) console.error("[tips] insert", e.message);
     for (const r of fresh) held.set(key(r), { ...r, finish_position: null, sp: null, units: null, settled_at: null });
   }
@@ -161,12 +185,15 @@ export async function recordTips(date: string, card: StoredCard, source: TipSour
     const price = Number(was.market_price);
     const voided = Boolean(was.settled_at) && was.finish_position === null;
     let target: Pick<Held, "market_price" | "finish_position" | "sp" | "units" | "settled_at">;
+    // Who held the recorded price and when: moved on only when a better price replaces it.
+    let best: Pick<Held, "best_bookies" | "best_at"> = { best_bookies: was.best_bookies ?? null, best_at: was.best_at ?? null };
     if (race.abandoned || !x || x.scratched) {
       // A race called off or a scratching voids either side, as a bookie settles it.
       target = { market_price: price, ...voidSettlement(), settled_at: voided ? was.settled_at : now };
     } else {
       // The recorded price: a bet's longest while it was a bet, a lay's shortest while it was a lay.
       const recorded = cents(!live ? price : was.side === "back" ? Math.max(price, live.market_price) : Math.min(price, live.market_price));
+      if (live && !was.settled_at && (recorded !== price || !was.best_at) && cents(live.market_price) === recorded) best = { best_bookies: live.best_bookies ?? null, best_at: now };
       if (race.result?.length) {
         const placing = race.placings?.find((p) => p.tabNumber === was.tab_number);
         // A price taken before a late scratching pays less by the official deductions; the jump and starting prices come after it.
@@ -174,6 +201,11 @@ export async function recordTips(date: string, card: StoredCard, source: TipSour
         const calledAt = was.side === "lay" && race.jumpTime ? new Date(Math.max(new Date(race.jumpTime).getTime() - CALL_LOCK_MS, new Date(was.published_at ?? 0).getTime())).toISOString() : was.published_at ?? undefined;
         const kept = keptAfter(race.runners.filter((y) => y.scratched), calledAt);
         const at = settlePrice(was.side, deducted(recorded, kept), placing, x.marketPrice);
+        // A price at the jump or a starting price that beat the recorded one is where the call settled.
+        if (!was.settled_at && at !== cents(deducted(recorded, kept))) {
+          const from = placing?.bsp && cents(placing.bsp) === at ? "bsp" : placing?.sp && cents(placing.sp) === at ? "sp" : "jump";
+          best = { best_bookies: [from], best_at: race.jumpTime ?? now };
+        }
         const finish = x.finishPosition ?? 0;
         target = { market_price: at, finish_position: finish, sp: placing?.sp ?? null, units: cents(settle(was.side, at, finish, stake)), settled_at: was.settled_at && !voided ? was.settled_at : now };
       } else {
@@ -187,9 +219,10 @@ export async function recordTips(date: string, card: StoredCard, source: TipSour
       was.finish_position === target.finish_position &&
       (was.units === null ? null : Number(was.units)) === target.units &&
       Boolean(was.settled_at) === Boolean(target.settled_at) &&
+      (!bestColumns || (was.best_at ?? null) === best.best_at) &&
       !prime.tag;
     if (same) continue;
-    const { error: e } = await db.from("tips").update({ ...target, ...prime }).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", source);
+    const { error: e } = await db.from("tips").update({ ...target, ...prime, ...(bestColumns ? best : {}) }).eq("race_id", was.race_id).eq("tab_number", was.tab_number).eq("source", source);
     if (e) console.error("[tips] update", e.message);
   }
 }
@@ -252,14 +285,37 @@ export function holdBetRatedUnder(card: Pick<StoredCard, "meetings">, calls: Map
   }
 }
 
-/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen, the units once settled, and the rated price and edge the call was made on. */
-export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number; rated?: number; edge?: number }>> {
-  const { data, error } = await supabaseAdmin().from("tips").select("race_id, tab_number, market_price, units, settled_at, rated_price, edge").eq("date", date).eq("source", "model");
+/**
+ * Who held a call's price and when, for under the price: "Sportsbet 9:42am", "Betfair 1:10pm",
+ * "SP", "BSP", "at the jump". Undefined for calls from before it was kept (12 Oct 2026).
+ */
+export function bestLabel(bookies?: string[] | null, at?: string | null): string | undefined {
+  if (!bookies?.length) return undefined;
+  const [first] = bookies;
+  if (first === "sp") return "SP";
+  if (first === "bsp") return "BSP";
+  if (first === "jump") return "at the jump";
+  const names = bookies.map((c) => (c === "betfair" ? "Betfair" : bookieName(c))).filter(Boolean);
+  if (!names.length) return undefined;
+  const who = names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
+  const when = at ? new Date(at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase() : "";
+  return when ? `${who} ${when}` : who;
+}
+
+/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen and who held it, the units once settled, and the rated price and edge the call was made on. */
+export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number; rated?: number; edge?: number; seen?: string }>> {
+  const cols = "race_id, tab_number, market_price, units, settled_at, rated_price, edge";
+  const read = (c: string) => supabaseAdmin().from("tips").select(c).eq("date", date).eq("source", "model");
+  let { data, error } = await read(bestColumns ? `${cols}, best_bookies, best_at` : cols);
+  if (error && missingBest(error.message)) {
+    bestColumns = false;
+    ({ data, error } = await read(cols));
+  }
   if (error) console.error("[tips]", error.message);
   return new Map(
-    ((data ?? []) as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null; rated_price: number | null; edge: number | null }[]).map((r) => [
+    ((data ?? []) as unknown as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null; rated_price: number | null; edge: number | null; best_bookies?: string[] | null; best_at?: string | null }[]).map((r) => [
       `${r.race_id}:${r.tab_number}`,
-      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined, rated: r.rated_price === null ? undefined : Number(r.rated_price), edge: r.edge === null ? undefined : Number(r.edge) },
+      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined, rated: r.rated_price === null ? undefined : Number(r.rated_price), edge: r.edge === null ? undefined : Number(r.edge), seen: bestLabel(r.best_bookies, r.best_at) },
     ]),
   );
 }
@@ -382,6 +438,9 @@ export interface ResultCall {
   finish_position: number;
   units: number;
   stake: number | null;
+  /** Who held the settled price and when (from 12 Oct 2026; empty before). */
+  best_bookies?: string[] | null;
+  best_at?: string | null;
 }
 
 /**
@@ -393,10 +452,12 @@ export async function resultCalls(): Promise<ResultCall[]> {
   "use cache";
   cacheLife({ stale: 300, revalidate: 900, expire: 3600 });
   const rows: ResultCall[] = [];
+  const cols = "date, meeting_id, race_id, race_number, track, tab_number, horse_name, side, tag, market_price, finish_position, units, stake";
+  let withBest = true;
   for (let from = 0; from < 1_000_000; from += 1000) {
     const { data, error } = await supabaseAdmin()
       .from("tips")
-      .select("date, meeting_id, race_id, race_number, track, tab_number, horse_name, side, tag, market_price, finish_position, units, stake")
+      .select((withBest ? `${cols}, best_bookies, best_at` : cols) as string)
       .eq("source", "model")
       .not("settled_at", "is", null)
       .not("finish_position", "is", null)
@@ -404,11 +465,16 @@ export async function resultCalls(): Promise<ResultCall[]> {
       .order("published_at")
       .order("id")
       .range(from, from + 999);
+    if (error && withBest && missingBest(error.message)) {
+      withBest = false;
+      from -= 1000;
+      continue;
+    }
     if (error) {
       console.error("[tips] results", error.message);
       break;
     }
-    rows.push(...((data ?? []) as ResultCall[]));
+    rows.push(...((data ?? []) as unknown as ResultCall[]));
     if ((data ?? []).length < 1000) break;
   }
   return rows;
