@@ -10,7 +10,7 @@ import { planCovers } from "@/lib/billing/plans";
  * day passes, and gifted time (admin days, invites, Instagram-follow days).
  * A plan counts only on the days it covers, so a Saturday member counts on
  * Saturdays. Each person counts once a day, in the first group that fits:
- * paying, trial, day pass, gift. A day counts access from 10am Sydney, so
+ * paying, trial, day pass, gift (gifted days, invites, Instagram days, Free for good). A day counts access from 10am Sydney, so
  * access that ran out overnight does not. Admins, tipsters and our own
  * addresses are left out. Subscriptions are logged from 15 Sep 2026.
  */
@@ -51,7 +51,7 @@ export async function accessHistory(from = "2026-09-11", to = sydneyDay(Date.now
     db.from("profiles").select("id, email, is_admin"),
     db.from("affiliates").select("user_id").not("user_id", "is", null),
     db.from("events").select("user_id, created_at, plan, meta").eq("kind", "subscription").order("created_at"),
-    db.from("events").select("user_id, created_at, meta").eq("kind", "admin").in("meta->>action", ["add_days", "invite"]).order("created_at"),
+    db.from("events").select("user_id, created_at, meta").eq("kind", "admin").in("meta->>action", ["add_days", "invite", "free_for_good", "free_for_good_ended"]).order("created_at"),
     db.from("events").select("user_id, created_at, meta").eq("kind", "ig_follow_claim").order("created_at"),
     db.from("day_passes").select("user_id, date").gte("date", from).lte("date", to),
     db.from("events").select("user_id, created_at, meta").eq("kind", "payment_grace"),
@@ -89,7 +89,19 @@ export async function accessHistory(from = "2026-09-11", to = sydneyDay(Date.now
     if (left.has(userId) || to <= from) return;
     giftSpans.set(userId, [...(giftSpans.get(userId) ?? []), { from, to }]);
   };
+  // Free for good runs from the day it was given until it is taken back (12 Oct 2026: they were missing from the board).
+  const forGood = new Map<string, number>();
+  for (const e of (gifts ?? []) as { user_id: string; created_at: string; meta: { action?: string } | null }[]) {
+    const at = new Date(e.created_at).getTime();
+    if (e.meta?.action === "free_for_good") forGood.set(e.user_id, forGood.get(e.user_id) ?? at);
+    else if (e.meta?.action === "free_for_good_ended" && forGood.has(e.user_id)) {
+      addGift(e.user_id, forGood.get(e.user_id)!, at);
+      forGood.delete(e.user_id);
+    }
+  }
+  for (const [userId, at] of forGood) addGift(userId, at, Date.parse("2100-01-01T00:00:00Z"));
   for (const e of (gifts ?? []) as { user_id: string; created_at: string; meta: { action?: string; days?: number; admin?: boolean } | null }[]) {
+    if (e.meta?.action?.startsWith("free_for_good")) continue;
     const days = Number(e.meta?.days ?? 0);
     if (!days || e.meta?.admin) continue;
     const at = new Date(e.created_at).getTime();
