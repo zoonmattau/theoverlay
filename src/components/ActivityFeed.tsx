@@ -19,7 +19,9 @@ const plan = (id: string | null) => (id ? (planById(id)?.name ?? id) : "a plan")
 const str = (v: unknown) => (typeof v === "string" ? v : "");
 /** How often the plan bills: the event's own term, else the member's current one for events logged before it was. */
 const TERM: Record<string, string> = { week: "weekly", month: "monthly", quarter: "quarterly", year: "yearly" };
-const short = (iso: string) => new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" });
+// The year only when it is not this one: a yearly plan cancelled today runs to next October.
+const short = (iso: string) =>
+  new Date(iso).toLocaleDateString("en-AU", { day: "numeric", month: "short", ...(new Date(iso).getFullYear() !== new Date().getFullYear() ? { year: "numeric" } : {}), timeZone: "Australia/Sydney" });
 
 /**
  * One event as a sentence and a colour, or nothing when it is not worth
@@ -117,10 +119,15 @@ export function ActivityFeed({ events, members, passDays = [] }: { events: Event
     .map((p) => ({ id: -new Date(p.created_at).getTime() - 1, user_id: p.user_id, kind: "pass_used", plan: null, amount_cents: null, meta: { date: p.date }, created_at: p.created_at }));
   // Stripe says the same thing several times; each person's news shows once, in the newest
   // wording, at the time it first happened: any later update to a subscription repeats a
-  // booked cancel (the price change at 12:17pm, 12 Oct 2026, moved seven old cancels to then).
+  // booked cancel (the price change at 12:17pm, 12 Oct 2026, moved seven old cancels to then; reprice echoes are dropped below).
+  // A repricing touches every subscription, and Stripe answers with an update that repeats any booked
+  // cancel; when the cancel itself is older than the events loaded, that echo is all the feed sees.
+  const repriced = events.filter((e) => e.kind === "reprice" && e.user_id).map((e) => ({ user: e.user_id!, t: Date.parse(e.created_at) }));
+  const echo = (e: Event) => repriced.some((r) => r.user === e.user_id && Date.parse(e.created_at) - r.t >= 0 && Date.parse(e.created_at) - r.t < 60_000);
   const described = [...events, ...joined, ...used]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .flatMap((e) => {
+      if (e.kind === "subscription" && echo(e)) return [];
       const line = describe(e, e.user_id ? who.get(e.user_id) : undefined);
       return line ? [{ e, line, key: `${e.user_id}|${line.key ?? line.text}` }] : [];
     });
