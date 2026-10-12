@@ -23,6 +23,8 @@ export interface PickerPlan {
   highlight?: boolean;
   /** Whole AUD per bill on each term, where the term is on sale. */
   prices: { month: number; quarter?: number; year?: number; week?: number };
+  /** Percent saved on paying weekly, by the week, to the nearest 5 (termSave). */
+  saves: Partial<Record<TermId, number>>;
 }
 
 type TermId = "month" | "quarter" | "year" | "week";
@@ -72,7 +74,7 @@ export function DayStrip({ days }: { days: number[] }) {
 export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savings }: { plans: PickerPlan[]; signedIn: boolean; pro: boolean; currentPlan?: string; trialDays: number; savings: Partial<Record<TermId, number>> }) {
   const [term, setTerm] = useState<TermId>("month");
   const t = TERMS.find((x) => x.id === term)!;
-  // The term's own discount (10%, 20%): read off a card, rounding the $19 plan's bill made 10% look like 11%.
+  // The switch says what a term saves on weekly (TERM_SAVES, set by hand); each card says its own.
   const saving = (id: TermId) => savings[id] ?? 0;
 
   return (
@@ -104,7 +106,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3 items-stretch">
         {plans.map((p, i) => {
           const bill = p.prices[term];
-          const saved = bill !== undefined && term !== "month" ? p.prices.month * t.months - bill : 0;
+          const saved = p.saves[term] ?? 0;
           const yours = pro && currentPlan === p.id;
           return (
             <article
@@ -132,7 +134,7 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                     <div className="mt-0.5 text-sm text-ink-secondary tabular-nums">
                       {/* The bill spread over the weeks it covers, to the cent, then what the term saves. */}
                       {t.id === "week" ? "Week to week. Cancel any time." : <>${(bill / ((t.months * 52) / 12)).toFixed(2)} a week</>}
-                      {saved > 0 && <>, <span className="font-semibold text-accent">save ${saved}</span></>}
+                      {saved > 0 && <>, <span className="font-semibold text-accent">save {saved}% on weekly</span></>}
                     </div>
                   </>
                 ) : (

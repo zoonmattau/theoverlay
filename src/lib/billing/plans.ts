@@ -10,10 +10,13 @@ export type PlanId = "saturday" | "midweek" | "everyday";
 export interface Plan {
   id: PlanId;
   name: string;
-  /** AUD per month. No GST is charged while the business is not registered (30 Sep 2026). Raised 12 Oct 2026 for everyone, members included. */
+  /** AUD per month. No GST is charged while the business is not registered (30 Sep 2026). Set by the user 12 Oct 2026. */
   price: number;
-  /** AUD per week on the weekly term, no trial; set by hand (12 Oct 2026), dearer than monthly over a year. */
+  /** AUD per week on the weekly term, no trial: the full price every other term is a saving on. */
   weekPrice: number;
+  /** AUD per bill paying three months or a year up front, each set by hand. */
+  quarterPrice: number;
+  yearPrice: number;
   blurb: string;
   features: string[];
   /** Days of the week the plan covers, 0 = Sunday. Empty means every day. */
@@ -31,8 +34,10 @@ export const PLANS: Plan[] = [
   {
     id: "saturday",
     name: "Saturday",
-    price: 25,
-    weekPrice: 7,
+    price: 29,
+    weekPrice: 10,
+    quarterPrice: 79,
+    yearPrice: 259,
     blurb: "The big day, every week.",
     features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls", "7-day free trial"],
     days: [6],
@@ -42,8 +47,10 @@ export const PLANS: Plan[] = [
   {
     id: "midweek",
     name: "Saturday + Wednesday",
-    price: 39,
-    weekPrice: 12,
+    price: 45,
+    weekPrice: 15,
+    quarterPrice: 119,
+    yearPrice: 389,
     blurb: "The two metro days.",
     features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls", "7-day free trial"],
     days: [3, 6],
@@ -56,7 +63,9 @@ export const PLANS: Plan[] = [
     highlight: true,
     name: "Every day",
     price: 69,
-    weekPrice: 20,
+    weekPrice: 25,
+    quarterPrice: 199,
+    yearPrice: 649,
     blurb: "The full board, seven days a week.",
     features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls", "7-day free trial"],
     days: [],
@@ -68,9 +77,9 @@ export const PLANS: Plan[] = [
 export const planById = (id: string | undefined) => PLANS.find((p) => p.id === id);
 
 /**
- * How often a plan is billed. Paying up front is cheaper: 10% off three
- * months, 20% off a year. Same plan, same days, same trial; the term only
- * changes the Stripe Price, and it rides on the subscription's metadata.
+ * How often a plan is billed. Weekly is the full price; monthly, quarterly and
+ * yearly are each cheaper by the week. Same plan, same days, same trial; the
+ * term only changes the Stripe Price, and it rides on the subscription's metadata.
  */
 export type TermId = "week" | "month" | "quarter" | "year";
 
@@ -78,8 +87,6 @@ export interface Term {
   id: TermId;
   name: string;
   months: number;
-  /** Fraction off the monthly price. */
-  off: number;
   /** "a month", "a quarter", "a year". */
   every: string;
   /** Paid from today, no free trial: weekly is for trying it without one (5 Oct 2026). */
@@ -87,18 +94,25 @@ export interface Term {
 }
 
 export const TERMS: Term[] = [
-  // Each plan's own weekly price (weekPrice), more than monthly over a year.
-  { id: "week", name: "Weekly", months: 12 / 52, off: 0, every: "a week", noTrial: true },
-  { id: "month", name: "Monthly", months: 1, off: 0, every: "a month" },
-  { id: "quarter", name: "Quarterly", months: 3, off: 0.1, every: "a quarter" },
-  { id: "year", name: "Yearly", months: 12, off: 0.2, every: "a year" },
+  { id: "week", name: "Weekly", months: 12 / 52, every: "a week", noTrial: true },
+  { id: "month", name: "Monthly", months: 1, every: "a month" },
+  { id: "quarter", name: "Quarterly", months: 3, every: "a quarter" },
+  { id: "year", name: "Yearly", months: 12, every: "a year" },
 ];
 
 // Monthly when no term is given, whatever order the list is in (Weekly sits first, 5 Oct 2026).
 export const termById = (id: string | undefined): Term => TERMS.find((t) => t.id === id) ?? TERMS.find((t) => t.id === "month")!;
 
 /** What a plan costs per bill on a term, whole AUD, matching the Stripe Price. */
-export const termPrice = (plan: Plan, term: Term) => (term.id === "week" ? plan.weekPrice : Math.round(plan.price * term.months * (1 - term.off)));
+export const termPrice = (plan: Plan, term: Term) =>
+  ({ week: plan.weekPrice, month: plan.price, quarter: plan.quarterPrice, year: plan.yearPrice })[term.id];
+
+/** What the term switch says each term saves on weekly (the user, 12 Oct 2026): every plan saves at least this. */
+export const TERM_SAVES: Partial<Record<TermId, number>> = { month: 30, quarter: 40, year: 50 };
+
+/** What a term saves on paying weekly, by the week, to the nearest 5%: Every day monthly is 35%. 0 for weekly. */
+export const termSave = (plan: Plan, term: Term) =>
+  term.id === "week" ? 0 : Math.round((1 - termPrice(plan, term) / ((term.months * 52) / 12) / plan.weekPrice) * 20) * 5;
 
 /** The Stripe Price for a plan on a term. */
 export const termPriceId = (plan: Plan, term: Term) => (term.id === "month" ? plan.priceId : plan.termPriceIds[term.id]);

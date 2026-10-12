@@ -25,10 +25,9 @@ async function price(lookupKey, params) {
 
 const out = {};
 
-// Prices from 13 Oct 2026 (the user, 12 Oct): Saturday $25, Saturday + Wednesday $39,
-// Every day $69 a month; quarterly 10% off, yearly 20% off; weekly $7, $12, $20.
-// A Stripe price can't change, so each amount has its own lookup key ("_v2").
-// Every member moved onto these at their next bill (scripts/reprice.ts).
+// Prices set by the user 12 Oct 2026, weekly the full price: weekly $10, $15, $25; monthly $29, $45, $69
+// (30% or more off weekly); quarterly $79, $119, $199 (40% off); yearly $259, $389, $649 (50% off).
+// A Stripe price can't change, so each amount has its own lookup key ("_v3"; "_v2" was the 12 Oct rise).
 const TERMS = [
   { id: "monthly", env: "", recurring: { interval: "month" } },
   { id: "weekly", env: "_WEEK", recurring: { interval: "week" }, nickname: "Weekly" },
@@ -36,13 +35,13 @@ const TERMS = [
   { id: "yearly", env: "_YEAR", recurring: { interval: "year" }, nickname: "Yearly" },
 ];
 for (const p of [
-  { key: "SATURDAY", overlay: "saturday", name: "The Overlay: Saturday", desc: "Every Saturday meeting we cover: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 2500, weekly: 700, quarterly: 6800, yearly: 24000 } },
-  { key: "MIDWEEK", overlay: "midweek", name: "The Overlay: Saturday + Wednesday", desc: "Saturday and Wednesday metro meetings: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 3900, weekly: 1200, quarterly: 10500, yearly: 37400 } },
-  { key: "EVERYDAY", overlay: "everyday", name: "The Overlay: Every day", desc: "Every meeting we cover, every day: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 6900, weekly: 2000, quarterly: 18600, yearly: 66200 } },
+  { key: "SATURDAY", overlay: "saturday", name: "The Overlay: Saturday", desc: "Every Saturday meeting we cover: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 2900, weekly: 1000, quarterly: 7900, yearly: 25900 } },
+  { key: "MIDWEEK", overlay: "midweek", name: "The Overlay: Saturday + Wednesday", desc: "Saturday and Wednesday metro meetings: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 4500, weekly: 1500, quarterly: 11900, yearly: 38900 } },
+  { key: "EVERYDAY", overlay: "everyday", name: "The Overlay: Every day", desc: "Every meeting we cover, every day: top four, ratings, rated prices, bet and lay calls.", amounts: { monthly: 6900, weekly: 2500, quarterly: 19900, yearly: 64900 } },
 ]) {
   const prod = await product(p.name, p.desc, { overlay: p.overlay });
   for (const t of TERMS) {
-    const pr = await price(`overlay_${p.overlay}_${t.id}_v2`, {
+    const pr = await price(`overlay_${p.overlay}_${t.id}_v3`, {
       product: prod.id,
       currency: "aud",
       unit_amount: p.amounts[t.id],

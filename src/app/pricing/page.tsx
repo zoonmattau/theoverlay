@@ -8,7 +8,7 @@ import { getViewer } from "@/lib/auth";
 import { PassPicker } from "@/components/PassPicker";
 import { PlanPicker, type PickerPlan } from "@/components/PlanPicker";
 import { firstMonthOfferUntil } from "@/lib/billing/first-month";
-import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS, termById, termPrice, termPriceId } from "@/lib/billing/plans";
+import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS, termById, termPrice, termPriceId, termSave, TERM_SAVES } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
@@ -84,6 +84,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
       ...(termPriceId(p, termById("year")) ? { year: termPrice(p, termById("year")) } : {}),
       ...(termPriceId(p, termById("week")) ? { week: termPrice(p, termById("week")) } : {}),
     },
+    saves: { month: termSave(p, termById("month")), quarter: termSave(p, termById("quarter")), year: termSave(p, termById("year")) },
   }));
 
   return (
@@ -94,7 +95,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
           <strong>25% off your first month</strong> on any plan, applied at checkout. Today only, until midnight.
         </div>
       )}
-      <PlanPicker plans={plans} signedIn={signedIn} pro={Boolean(viewer.pro)} currentPlan={viewer.plan ?? undefined} trialDays={TRIAL_DAYS} savings={{ quarter: Math.round(termById("quarter").off * 100), year: Math.round(termById("year").off * 100) }} />
+      <PlanPicker plans={plans} signedIn={signedIn} pro={Boolean(viewer.pro)} currentPlan={viewer.plan ?? undefined} trialDays={TRIAL_DAYS} savings={TERM_SAVES} />
 
       <PassPicker bundles={PASS_BUNDLES.map(({ qty, price }) => ({ qty, price }))} single={PASS_PRICE} signedIn={signedIn} />
       <p className="mt-6 text-center text-sm text-ink-secondary">
