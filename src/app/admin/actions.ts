@@ -3,7 +3,7 @@
 import { revalidatePath, revalidateTag } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { isAdmin, logEvent } from "@/lib/admin";
+import { FREE_FOR_GOOD, isAdmin, logEvent } from "@/lib/admin";
 import { cleanCode } from "@/lib/affiliates";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -12,6 +12,7 @@ import { syncDiscordMember } from "@/lib/discord";
 import { EMAILS } from "@/lib/email/messages";
 import { sendEmail } from "@/lib/email/send";
 import { sendMorningTips } from "@/lib/email/tips";
+import { revokeInstagramDay } from "@/lib/instagram-day";
 import { pickFreeRace } from "@/lib/model/publish";
 import { buildCard, racingToday } from "@/lib/model/source";
 import { pinFreeRace, readStoredCard, setMute } from "@/lib/model/store";
@@ -35,6 +36,25 @@ export async function addDays(userId: string, days: number): Promise<void> {
   await syncDiscordMember(userId);
   // A gift is worth telling them about; taking days away is not.
   if (days > 0 && data?.email) await sendEmail(data.email, EMAILS.daysAdded(days, until.toISOString()));
+  revalidatePath(`/admin/${userId}`);
+}
+
+/** Takes back an Instagram free day from someone who does not follow us. */
+export async function takeBackInstagramDay(userId: string): Promise<void> {
+  const admin = await requireAdmin();
+  await revokeInstagramDay(userId, admin.email ?? "admin");
+  revalidatePath("/admin/members");
+}
+
+/** Free for good: the full board with no end date, without a tipster account. Ending it closes the gift now. */
+export async function setFreeForGood(userId: string, on: boolean): Promise<void> {
+  const admin = await requireAdmin();
+  const db = supabaseAdmin();
+  const { data } = await db.from("profiles").select("email").eq("id", userId).maybeSingle();
+  await db.from("profiles").update({ bonus_until: on ? FREE_FOR_GOOD : null }).eq("id", userId);
+  await logEvent({ user_id: userId, kind: "admin", plan: null, amount_cents: null, meta: { action: on ? "free_for_good" : "free_for_good_ended", by: admin.email } });
+  await syncDiscordMember(userId);
+  if (on && data?.email) await sendEmail(data.email, EMAILS.freeForGood());
   revalidatePath(`/admin/${userId}`);
 }
 

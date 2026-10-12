@@ -14,7 +14,7 @@ export interface MemberRow {
   /** Everything searchable, lower case: name, email, phone, suburb, code. */
   haystack: string;
   /** Cancelled: the account is live but a cancellation is booked; access runs to its date and no more. */
-  account: "active" | "cancelled" | "invited" | "unconfirmed";
+  account: "active" | "invited" | "unconfirmed";
   admin: boolean;
   tipster: boolean;
   plan: string;
@@ -93,7 +93,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "live" | "paused" | "none">("all");
   const [plan, setPlan] = useState("all");
-  const [account, setAccount] = useState<"all" | "active" | "cancelled" | "invited" | "unconfirmed">("all");
+  const [account, setAccount] = useState<"all" | "active" | "invited" | "unconfirmed">("all");
   const [emails, setEmails] = useState<"all" | "on" | "off">("all");
   const [discord, setDiscord] = useState<"all" | MemberRow["discordState"]>("all");
   const [api, setApi] = useState<"all" | MemberRow["api"]>("all");
@@ -152,7 +152,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
           <Pill id="members-plan" label="Plan" value={plan} set={setPlan} options={[...plans.map((p) => [p, p] as [string, string]), ["tipster", "Tipster"]]} />
           <Pill id="members-term" label="Billing" value={term} set={setTerm} options={["Monthly", "Quarterly", "Yearly"].map((t) => [t, `${t} (${rows.filter((r) => r.term === t).length})`] as [string, string])} />
           <Pill id="members-found" label="Found us" value={found} set={setFound} options={foundGroups.map((g) => [g, `${g} (${rows.filter((r) => r.found === g).length})`] as [string, string])} />
-          <Pill id="members-account" label="Account" value={account} set={(v) => setAccount(v as typeof account)} options={[["active", "Active"], ["cancelled", "Cancelled"], ["invited", "Invited"], ["unconfirmed", "Unconfirmed"]]} />
+          <Pill id="members-account" label="Account" value={account} set={(v) => setAccount(v as typeof account)} options={[["active", "Confirmed"], ["invited", "Invited"], ["unconfirmed", "Unconfirmed"]]} />
           <Pill id="members-emails" label="Emails" value={emails} set={(v) => setEmails(v as typeof emails)} options={[["on", "On"], ["off", "Off"]]} />
           <Pill id="members-discord" label="Discord" value={discord} set={(v) => setDiscord(v as typeof discord)} options={[["member", "Member role"], ["joined", "In server, no role"], ["linked", "Linked, not in server"], ["none", "Not linked"]]} />
           <Pill id="members-api" label="API" value={api} set={(v) => setApi(v as typeof api)} options={[["live", "Key live"], ["revoked", "Revoked"], ["none", "No key"]]} />
@@ -220,7 +220,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                   {m.name !== m.email && <span className="text-ink-soft"> · {m.email}</span>}
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
                 </td>
-                <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted">Active</span> : m.account === "cancelled" ? <span className="text-xs font-semibold text-amber" title="Booked to cancel; access runs to the end of what they paid for">Cancelling</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
+                <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted" title="Email confirmed, can log in; says nothing about a plan">Confirmed</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
                 <td data-label="Plan">
                   {m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}
                   {m.term && <span className="text-ink-soft"> · {m.term}</span>}
@@ -229,7 +229,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                   {m.found}
                   {m.foundDetail && <span className="text-ink-soft"> · {m.foundDetail}</span>}
                 </td>
-                <td data-label="Status">{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? <span className="badge badge-prime">{m.statusLabel}</span> : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
+                <td data-label="Status">{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? (m.statusLabel === "cancelling" ? <span className="badge badge-muted" title="Booked to cancel; access runs to the end of what they paid for">cancelling</span> : <span className="badge badge-prime">{m.statusLabel}</span>) : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
                 <td data-label="Access until" className="nums">{day(m.accessUntil)}</td>
                 <td data-label="Since" className="nums">{day(m.since)}</td>
                 <td data-label="Spent" className="text-right nums">{money(m.spent)}</td>

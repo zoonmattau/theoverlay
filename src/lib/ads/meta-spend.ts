@@ -101,12 +101,20 @@ export async function metaAds(since: string, until: string): Promise<AdRow[] | {
     }
     return rows;
   };
+  // Every status, deleted and archived included: insights leaves those out by default, so a
+  // deleted ad's spend vanished from the totals (the text ad, deleted 12 Oct 2026).
+  const statuses = ["ACTIVE", "PAUSED", "ARCHIVED", "DELETED", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "DISAPPROVED", "WITH_ISSUES", "IN_PROCESS", "PENDING_REVIEW"];
   try {
     const [insights, ads] = await Promise.all([
-      get("insights", { level: "ad", time_range: JSON.stringify({ since, until }), fields: "ad_id,ad_name,campaign_name,spend,impressions,inline_link_clicks" }),
+      get("insights", {
+        level: "ad",
+        time_range: JSON.stringify({ since, until }),
+        fields: "ad_id,ad_name,campaign_name,spend,impressions,inline_link_clicks",
+        filtering: JSON.stringify([{ field: "ad.effective_status", operator: "IN", value: statuses }]),
+      }),
       get("ads", {
         fields: "name,adset_id,effective_status,creative{url_tags,object_story_spec{link_data{link},video_data{call_to_action}},asset_feed_spec{link_urls}}",
-        filtering: JSON.stringify([{ field: "effective_status", operator: "IN", value: ["ACTIVE", "PAUSED", "ARCHIVED", "DELETED", "CAMPAIGN_PAUSED", "ADSET_PAUSED", "DISAPPROVED", "WITH_ISSUES", "IN_PROCESS", "PENDING_REVIEW"] }]),
+        filtering: JSON.stringify([{ field: "effective_status", operator: "IN", value: statuses }]),
       }),
     ]);
     const info = new Map<string, { status: string; tag?: string; adset?: string }>();

@@ -1,6 +1,7 @@
 import { MatrixCell } from "./Countdown";
 import { jumpTime } from "@/lib/format";
 import { raceMix, raceTip, raceUnits, type PublishedMeeting, type Selection } from "@/lib/model/types";
+import type { TipsterFace } from "./TipsterAvatar";
 
 /**
  * The day at a glance: one row per track, one column per race number. A race
@@ -28,9 +29,10 @@ export function RaceMatrix({
   /** Marked in the grid for viewers who cannot open the rest. */
   freeRaceId?: string;
   /** The tipsters the viewer follows, each with the races they have called. */
-  tipsters?: { name: string; raceIds: string[] }[];
+  tipsters?: (TipsterFace & { raceIds: string[] })[];
 }) {
-  const initialsFor = (raceId: string) => (tipsters ?? []).filter((t) => t.raceIds.includes(raceId)).map((t) => t.name.trim()[0]?.toUpperCase() ?? "?");
+  // Their avatars, the letters or logo they picked, not the first letter of a name ("The Grey Wolf" read T, 12 Oct 2026).
+  const facesFor = (raceId: string) => (tipsters ?? []).filter((t) => t.raceIds.includes(raceId));
   const cols = Math.max(0, ...meetings.map((m) => m.races.length));
   const prime = new Set(selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => s.raceId));
 
@@ -88,7 +90,7 @@ export function RaceMatrix({
                       mix={raceMix(race.runners, prime.has(race.raceId))}
                       group={groupOf(race.className, race.name)}
                       free={race.raceId === freeRaceId}
-                      tipsters={initialsFor(race.raceId)}
+                      tipsters={facesFor(race.raceId)}
                     />
                   </td>
                 );

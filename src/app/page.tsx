@@ -23,6 +23,7 @@ import { getCardFor, keepFresh, keepPrices, racingToday, RELEASE_HOUR } from "@/
 import { dailyUnits, publicRecord } from "@/lib/tips";
 import { jumpTime, longDate } from "@/lib/format";
 import { BRAND_SOCIAL } from "@/lib/social";
+import { faceOf } from "@/components/TipsterAvatar";
 
 export const metadata: Metadata = {
   title: { absolute: "The Overlay: Australian horse racing tips today, a rated price for every runner" },
@@ -183,7 +184,7 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
   keepFresh(date, card);
   keepPrices(date, card);
   // The tipsters this viewer follows, and which races each has called today.
-  const tipsters = (await followedCalls(viewer, date)).map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }));
+  const tipsters = (await followedCalls(viewer, date)).map(({ tipster, tips }) => ({ ...faceOf(tipster), raceIds: tips.map((t) => t.race_id) }));
   const access = hasAccess(viewer, date);
   const free = access ? undefined : freeRaceOf(card);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);

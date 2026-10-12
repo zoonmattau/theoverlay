@@ -27,6 +27,7 @@ const GROUPS: { title: string; items: { href: string; label: string; hint?: stri
     title: "Money",
     items: [
       { href: "/admin/money", label: "Money", hint: "funnel, plans, revenue" },
+      { href: "/admin/owed", label: "Owed", hint: "commission and bills to pay" },
       { href: "/admin/bets", label: "My bets", hint: "your own bets, settled from the results" },
     ],
   },

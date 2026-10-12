@@ -3,7 +3,9 @@ import { cookies } from "next/headers";
 
 import { AFF_COOKIE, FOLLOW_COOKIE, affiliateByCode, type Affiliate } from "@/lib/affiliates";
 import type { Viewer } from "@/lib/auth";
+import { listMembers } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
+import { planById } from "@/lib/billing/plans";
 import type { StoredCard } from "@/lib/model/store";
 import type { Signal } from "@/lib/model/types";
 import { settle, voidSettlement } from "@/lib/tips";
@@ -351,32 +353,60 @@ export async function settleCreatorTips(date: string, card: StoredCard): Promise
   }
 }
 
+/** Where someone from a tipster's link stands, in the order the list explains them. */
+export type TipsterMemberStatus = "unconfirmed" | "no_plan" | "trial" | "paying" | "cancelling" | "failed" | "pass" | "left";
+
 export interface TipsterMember {
   /** yyyy-mm-dd they signed up through the link. */
   since: string;
   /** Days since sign-up. */
   days: number;
-  /** A plan or pass is live now. */
-  paying: boolean;
+  status: TipsterMemberStatus;
+  /** "Every day, monthly" while on a plan, or the plan they left. */
   plan: string | null;
+  /** The date that goes with the status: the trial's end, the cancel date, when access ended. */
+  until: string | null;
+  /** On a plan or a pass now, so it counts as paying. */
+  paying: boolean;
 }
 
 /**
- * The people a tipster's link has signed up: when, and whether they are
- * paying now. No names or emails, those are the members' own.
+ * The people a tipster's link has signed up: when, what they are on and
+ * where they stand (the user, 12 Oct 2026: exactly what signed up). No names,
+ * emails or dollars: the privacy policy shares members' details with no one
+ * but our hosts, and affiliates never see earnings.
  */
 export async function tipsterMembers(affiliateId: string): Promise<{ members: TipsterMember[]; clicks30: number }> {
   const db = supabaseAdmin();
   const month = new Date(Date.now() - 30 * 86400_000).toISOString();
-  const [{ data: rows }, { count }] = await Promise.all([
-    db.from("profiles").select("affiliate_attributed_at, created_at, access_until, plan").eq("affiliate_id", affiliateId).order("affiliate_attributed_at", { ascending: false }),
+  const [everyone, { count }] = await Promise.all([
+    listMembers(),
     db.from("affiliate_clicks").select("id", { count: "exact", head: true }).eq("affiliate_id", affiliateId).gte("created_at", month),
   ]);
   const now = Date.now();
-  const members = ((rows ?? []) as { affiliate_attributed_at: string | null; created_at: string; access_until: string | null; plan: string | null }[]).map((r) => {
-    const at = new Date(r.affiliate_attributed_at ?? r.created_at);
-    const paying = Boolean(r.access_until && new Date(r.access_until).getTime() > now);
-    return { since: at.toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }), days: Math.floor((now - at.getTime()) / 86400_000), paying, plan: paying ? r.plan : null };
-  });
+  const day = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+  const TERM: Record<string, string> = { week: "weekly", month: "monthly", quarter: "quarterly", year: "yearly" };
+  const members = everyone
+    .filter((m) => m.affiliate_id === affiliateId)
+    .map((m): TipsterMember & { at: number } => {
+      const at = new Date(m.affiliate_attributed_at ?? m.created_at).getTime();
+      const live = Boolean(m.access_until && new Date(m.access_until).getTime() > now);
+      const planName = m.plan ? (planById(m.plan)?.name ?? null) : null;
+      const plan = planName ? `${planName}${m.billing_term && TERM[m.billing_term] ? `, ${TERM[m.billing_term]}` : ""}` : null;
+      const sub = m.subscription_status;
+      let status: TipsterMemberStatus;
+      let until: string | null = null;
+      if (!m.confirmed_at && !m.invited_at) status = "unconfirmed";
+      else if (live && sub === "past_due") status = "failed";
+      else if (live && m.cancel_at) [status, until] = ["cancelling", day(m.cancel_at)];
+      else if (live && sub === "trialing") [status, until] = ["trial", day(m.access_until!)];
+      else if (live && planName) status = "paying";
+      else if ((m.pass_credits ?? 0) > 0 || (!planName && (m.total_spent_cents ?? 0) > 0)) status = "pass";
+      else if (m.plan || m.access_until) [status, until] = ["left", m.access_until && new Date(m.access_until).getTime() > 86400_000 ? day(m.access_until) : null];
+      else status = "no_plan";
+      return { at, since: day(new Date(at).toISOString()), days: Math.floor((now - at) / 86400_000), status, plan: status === "no_plan" || status === "unconfirmed" || status === "pass" ? null : plan, until, paying: ["trial", "paying", "cancelling", "failed", "pass"].includes(status) };
+    })
+    .sort((a, b) => b.at - a.at)
+    .map((m) => ({ since: m.since, days: m.days, status: m.status, plan: m.plan, until: m.until, paying: m.paying }));
   return { members, clicks30: count ?? 0 };
 }

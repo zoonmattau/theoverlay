@@ -8,6 +8,7 @@ import { SignalBadge, MAP_LABEL } from "./Ratings";
 import { bestBookie } from "@/lib/bookies";
 import { percent, price } from "@/lib/format";
 import type { PublishedRace, PublishedRunner } from "@/lib/model/types";
+import { TipsterAvatar, type TipsterFace } from "./TipsterAvatar";
 
 /**
  * Our top four, side by side. Live price against the rated price, one
@@ -24,10 +25,10 @@ export interface TipsterCall {
   comment?: string | null;
 }
 
-export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; tipsters?: { name: string; calls: TipsterCall[] }[] }) {
+export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; tipsters?: (TipsterFace & { calls: TipsterCall[] })[] }) {
   // Every followed tipster's call on each runner, in follow order.
-  const theirs = new Map<number, { name: string; call: TipsterCall }[]>();
-  for (const t of tipsters) for (const c of t.calls) theirs.set(c.tabNumber, [...(theirs.get(c.tabNumber) ?? []), { name: t.name, call: c }]);
+  const theirs = new Map<number, { name: string; face: TipsterFace; call: TipsterCall }[]>();
+  for (const t of tipsters) for (const c of t.calls) theirs.set(c.tabNumber, [...(theirs.get(c.tabNumber) ?? []), { name: t.name, face: t, call: c }]);
   const tip = (name: string, c: TipsterCall) =>
     `${name}: ${c.side === "back" ? "Bet" : "Lay"}${c.stake ? ` ${c.stake}` : ""} at ${price(c.price)}${c.bookiePrice ? `, ${price(c.bookiePrice)}${c.bookie ? ` at ${c.bookie}` : ""}` : c.bookie ? ` at ${c.bookie}` : ""}.${c.comment ? ` ${c.comment}` : ""}`;
   const picks = race.runners
@@ -48,9 +49,9 @@ export function SelectionCards({ race, tipsters = [] }: { race: PublishedRace; t
               {r.tabNumber}. {r.horseName}
             </span>
             <span className="pick-marks">
-              {(theirs.get(r.tabNumber) ?? []).map(({ name, call }) => (
-                <span key={name} className="tipster-mark tip tip-right" data-tip={tip(name, call)}>
-                  {name.trim()[0]?.toUpperCase()}
+              {(theirs.get(r.tabNumber) ?? []).map(({ name, face, call }) => (
+                <span key={name} className="tip tip-right inline-flex" data-tip={tip(name, call)}>
+                  <TipsterAvatar tipster={face} size={16} />
                 </span>
               ))}
               <SignalBadge signal={r.signal} prime={r.prime} />

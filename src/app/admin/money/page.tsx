@@ -407,11 +407,12 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
     <Fold title="Meta ads" className="min-w-0">
       <p className="mt-1 text-xs text-ink-soft">Last {n} days, against accounts from our own ad-link tags. A boost with no link counts as Instagram.</p>
       {r.missing && <p className="mt-1 text-xs text-amber">{r.missing}</p>}
-      <div className="mt-3 grid grid-cols-4 gap-2">
+      {/* Two by two on a phone, so every figure and its line reads in full. */}
+      <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Mini n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label="spent" />
         <Mini n={cost(t.perSignup)} label="per account" sub={`${t.signups} accounts`} />
         <Mini n={cost(t.perTrial)} label="per trial" sub={`${t.trials} trials`} tone="prime" />
-        <Mini n={t.backPerDollar !== undefined ? `$${t.backPerDollar.toFixed(2)}` : "–"} label="back per $1" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
+        <Mini n={t.backPerDollar !== undefined ? `${t.backPerDollar.toFixed(2)}x` : "–"} label="ROAS" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
       </div>
       {r.byAd.length > 0 && (
         <details className="mt-4 group">
@@ -419,11 +420,8 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             <span className="inline-block transition-transform group-open:rotate-90" aria-hidden>▸</span>
             By ad
           </summary>
-          <p className="mt-1 text-xs text-ink-soft">Visits, accounts, trials and members (Mbr) from each ad&apos;s own link, what they paid (Rev), and dollars back per $1. Meta&apos;s review bots are left out of visits. Click a heading to sort.</p>
-          <div className="overflow-x-auto -mx-1 px-1">
-          {/* Tight: ten columns in half a page. Short headings, little padding, whole dollars where cents add nothing. */}
+          <p className="mt-1 text-xs text-ink-soft">What each ad&apos;s own link brought, Meta&apos;s review bots left out, and ROAS (revenue over spend).</p>
           <ByAd rows={r.byAd} />
-          </div>
         </details>
       )}
       {days.length > 0 && (
@@ -460,7 +458,7 @@ function Mini({ n, label, sub, tone }: { n: string; label: string; sub?: string;
     <div className={`rounded-md border px-2 py-1.5 text-center min-w-0 ${cls}`}>
       <div className="font-display text-lg font-extrabold tracking-tight nums leading-tight">{n}</div>
       <div className="text-[10px] uppercase tracking-[0.06em] font-bold text-ink-soft">{label}</div>
-      {sub && <div className="text-[10px] text-ink-soft nums truncate">{sub}</div>}
+      {sub && <div className="text-[10px] text-ink-soft nums leading-snug">{sub}</div>}
     </div>
   );
 }

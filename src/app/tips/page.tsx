@@ -26,6 +26,7 @@ import { CallOffButton } from "@/components/CallOffButton";
 import type { CallAdmin } from "@/components/RunnerTable";
 import { stakeOf, type PublishedMeeting, type PublishedRunner, type Signal } from "@/lib/model/types";
 import { callPrice } from "@/lib/model/types";
+import { faceOf } from "@/components/TipsterAvatar";
 
 export const metadata: Metadata = {
   title: "Today's tips",
@@ -162,7 +163,7 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   return (
     <>
       {list && <JsonLd data={list} />}
-      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }))} />
+      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ ...faceOf(tipster), raceIds: tips.map((t) => t.race_id) }))} />
       <section className="py-6">
         <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight">Today&apos;s tips</h1>
         <p className="mt-2 text-ink-secondary">

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { accountState, now, type Event, type Member, type PassDay } from "@/lib/admin";
 import { planById } from "@/lib/billing/plans";
 
-/** prime joined or paid, bet money in, lay money at risk or broken, wait signed up and not confirmed. */
-type Tone = "prime" | "bet" | "lay" | "wait";
+/** prime joined or paid, bet money in, lay money at risk or broken, wait signed up and not confirmed, gone cancelled. */
+type Tone = "prime" | "bet" | "lay" | "wait" | "gone";
 
 interface Line {
   tone: Tone;
@@ -42,7 +42,8 @@ function describe(e: Event, member?: Member): Line | null {
         const ends = str(m.cancelAt) || str(m.until);
         // Stripe sends a cancellation twice, a second apart: "cancellation_requested", then the reason the member picked. One line, the newest.
         const reason = str(m.cancelReason) === "cancellation_requested" ? "" : str(m.cancelReason);
-        return { tone: "lay", key: `cancel|${ends}`, text: `cancelled ${plan(e.plan)}, on until ${ends ? short(ends) : "the period ends"}${reason ? ` (${reason.replace(/_/g, " ")})` : ""}` };
+        // Grey, not red: a cancel is someone leaving, a failed payment is money at risk (the user, 12 Oct 2026).
+        return { tone: "gone", key: `cancel|${ends}`, text: `cancelled ${plan(e.plan)}, on until ${ends ? short(ends) : "the period ends"}${reason ? ` (${reason.replace(/_/g, " ")})` : ""}` };
       }
       // A trial begins when the subscription is made on one. A later update while Stripe says "trialing" is not
       // a new trial: a bill pushed back on a paying member read as one (Josh Sear's free week, 6 Oct 2026).
@@ -57,6 +58,8 @@ function describe(e: Event, member?: Member): Line | null {
       if (m.nextBill) return { tone: "prime", text: `followed on Instagram${handle}, next bill moved to ${short(str(m.nextBill))}` };
       return { tone: "prime", text: `followed on Instagram${handle} for a free day, ${m.until ? short(new Date(new Date(str(m.until)).getTime() - 1).toISOString()) : "today"}` };
     }
+    case "ig_follow_revoked":
+      return { tone: "lay", text: "had the Instagram free day taken back, not following" };
     case "pass_used":
       return { tone: "prime", text: `used a day pass on ${new Date(`${str(m.date)}T12:00:00Z`).toLocaleDateString("en-AU", { weekday: "short", day: "numeric", month: "short", timeZone: "Australia/Sydney" })}` };
     case "payment_grace":
@@ -71,6 +74,7 @@ function describe(e: Event, member?: Member): Line | null {
     case "signup_chase":
       return m.emailed === false ? { tone: "lay", text: "was not sent an email that should have gone: it failed" } : null;
     case "admin":
+      if (m.action === "free_for_good") return { tone: "prime", text: "given free access for good" };
       if (m.action === "free_week") return { tone: "prime", text: `given a free week, next bill moved to ${m.nextBill ? short(str(m.nextBill)) : "a week later"}` };
       return str(m.action).endsWith("failed") ? { tone: "lay", text: `${str(m.action).replace(/_failed$/, "").replace(/_/g, " ")} failed: ${str(m.error)}` } : null;
     default:
@@ -78,7 +82,7 @@ function describe(e: Event, member?: Member): Line | null {
   }
 }
 
-const DOT: Record<Tone, string> = { prime: "bg-lime", bet: "bg-blue", lay: "bg-red", wait: "bg-amber" };
+const DOT: Record<Tone, string> = { prime: "bg-lime", bet: "bg-blue", lay: "bg-red", wait: "bg-amber", gone: "bg-ink-soft" };
 
 function dayLabel(iso: string, today: string, yesterday: string): string {
   const d = new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -92,7 +96,8 @@ const clock = (iso: string) => new Date(iso).toLocaleTimeString("en-AU", { hour:
 /**
  * What has happened that is worth knowing, newest first, grouped by day: who
  * did what in a sentence, a dot in the colour of the news. Green is someone
- * joining or staying, blue is money in, red is money at risk or something broken.
+ * joining or staying, blue is money in, red is money at risk or something broken,
+ * grey is someone cancelling.
  */
 export function ActivityFeed({ events, members, passDays = [] }: { events: Event[]; members: Member[]; passDays?: PassDay[] }) {
   const who = new Map(members.map((m) => [m.id, m]));
@@ -108,20 +113,28 @@ export function ActivityFeed({ events, members, passDays = [] }: { events: Event
   const used: Event[] = passDays
     .filter((p) => p.created_at >= oldest)
     .map((p) => ({ id: -new Date(p.created_at).getTime() - 1, user_id: p.user_id, kind: "pass_used", plan: null, amount_cents: null, meta: { date: p.date }, created_at: p.created_at }));
-  // Stripe says the same thing several times; each person's news shows once, newest.
-  const seen = new Set<string>();
-  const rows = [...events, ...joined, ...used]
+  // Stripe says the same thing several times; each person's news shows once, in the newest
+  // wording, at the time it first happened: any later update to a subscription repeats a
+  // booked cancel (the price change at 12:17pm, 12 Oct 2026, moved seven old cancels to then).
+  const described = [...events, ...joined, ...used]
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
     .flatMap((e) => {
       const line = describe(e, e.user_id ? who.get(e.user_id) : undefined);
-      const key = `${e.user_id}|${line?.key ?? line?.text}`;
-      if (!line || (e.user_id && seen.has(key))) return [];
-      seen.add(key);
-      return [{ e, line }];
+      return line ? [{ e, line, key: `${e.user_id}|${line.key ?? line.text}` }] : [];
     });
+  const first = new Map<string, string>();
+  for (const d of described) first.set(d.key, d.e.created_at);
+  const seen = new Set<string>();
+  const rows = described
+    .flatMap(({ e, line, key }) => {
+      if (e.user_id && seen.has(key)) return [];
+      seen.add(key);
+      return [{ e, line, at: e.user_id ? (first.get(key) ?? e.created_at) : e.created_at }];
+    })
+    .sort((a, b) => b.at.localeCompare(a.at));
   const days: { label: string; rows: typeof rows }[] = [];
   for (const r of rows) {
-    const label = dayLabel(r.e.created_at, today, yesterday);
+    const label = dayLabel(r.at, today, yesterday);
     const last = days[days.length - 1];
     if (last && last.label === label) last.rows.push(r);
     else days.push({ label, rows: [r] });
@@ -137,12 +150,12 @@ export function ActivityFeed({ events, members, passDays = [] }: { events: Event
         <div key={d.label}>
           <div className="px-4 py-1.5 text-[10px] uppercase tracking-[0.1em] font-bold text-ink-soft bg-panel-alt border-y border-line-soft">{d.label}</div>
           <ul className="divide-y divide-line-soft">
-            {d.rows.map(({ e, line }) => {
+            {d.rows.map(({ e, line, at }) => {
               const m = e.user_id ? who.get(e.user_id) : undefined;
               const name = m?.full_name || m?.email || (e.user_id ? "a member" : "");
               return (
                 <li key={e.id} className="flex items-baseline gap-3 px-4 py-2 text-sm">
-                  <span className="nums text-xs text-ink-soft w-16 shrink-0">{clock(e.created_at)}</span>
+                  <span className="nums text-xs text-ink-soft w-16 shrink-0">{clock(at)}</span>
                   <span className={`legend-dot ${DOT[line.tone]} shrink-0`} />
                   <span className="min-w-0">
                     {m ? <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{name}</Link> : name ? <span className="font-semibold">{name}</span> : null}

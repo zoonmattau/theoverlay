@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
       const active = sub.status === "active" || sub.status === "trialing" || sub.status === "past_due";
       const periodEnd = sub.items.data[0]?.current_period_end;
       const planId = sub.metadata?.plan ?? "subscription";
-      // A payment that failed leaves a week's grace, not the rest of the period Stripe opened.
+      // A payment that failed leaves three days' grace (GRACE_DAYS), not the rest of the period Stripe opened.
       let period = active && periodEnd ? new Date(periodEnd * 1000) : new Date(0);
       // The win-back offer: the first bill is paid, so the next one moves out a
       // week. A trial end on the paid subscription, with no proration, is the
@@ -183,7 +183,7 @@ export async function POST(request: NextRequest) {
       const userId = customerId ? await userIdForCustomer(customerId) : undefined;
       const to = userId ? await emailForUser(userId) : undefined;
       // Stripe's first failed attempt only: each retry fires this event again, and the
-      // reminders on days three and six do the rest (one member had five of these, Sep 2026).
+      // reminder on day two does the rest (one member had five of these, Sep 2026).
       if (to && userId && invoice.attempt_count === 1) {
         const ok = await sendEmail(to, await failedPaymentEmail(userId, 1));
         if (ok) await supabaseAdmin().from("events").insert({ user_id: userId, kind: "payment_reminder", plan: null, amount_cents: null, meta: { n: 1 } });

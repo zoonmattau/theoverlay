@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { deleteMember, inviteMember } from "@/app/admin/actions";
-import { accountState, isAdmin, listMembers, memberStatus, now as clock } from "@/lib/admin";
+import { accountState, freeForGood, isAdmin, listMembers, memberStatus, now as clock } from "@/lib/admin";
 import { keysByUser } from "@/lib/api-keys";
 import { foundUs, FOUND_US } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
@@ -14,6 +14,8 @@ import { discordRoster } from "@/lib/discord";
 import { MembersTable, type Category, type MemberRow } from "../MembersTable";
 import { AccessChart } from "@/components/AccessChart";
 import { accessHistory } from "@/lib/access-history";
+import { instagramClaims } from "@/lib/instagram-day";
+import { InstagramClaims } from "../InstagramClaims";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
 
@@ -37,7 +39,7 @@ async function removeFromList(id: string) {
 async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [members, tipsters, { data: affiliates }, keys, access] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser(), accessHistory()]);
+  const [members, tipsters, { data: affiliates }, keys, access, claims] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser(), accessHistory(), instagramClaims()]);
   // Discord asked one linked account at a time, so the page knows who is really in the server.
   const { presence, serverMembers } = await discordRoster(members.map((m) => m.discord_id).filter((id): id is string => Boolean(id)));
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
@@ -59,7 +61,8 @@ async function Members() {
       name: m.full_name || m.email || m.id,
       email: m.email ?? "",
       haystack: [m.full_name, m.email, m.phone, m.suburb, m.postcode, m.referral_code, code, m.source, found.group, found.detail].filter(Boolean).join(" ").toLowerCase(),
-      account: state === "active" && m.cancel_at ? "cancelled" : state,
+      // Account is only whether they can log in; a booked cancel is a status (the user, 12 Oct 2026).
+      account: state,
       admin: Boolean(m.is_admin),
       tipster: tipsterIds.has(m.id),
       plan: m.plan ? (planById(m.plan)?.name ?? m.plan) : "",
@@ -69,7 +72,8 @@ async function Members() {
       foundDetail: found.detail ?? "",
       source: (m.source ?? "signup").replace(/^affiliate:.*/, "affiliate"),
       status: m.paused_at ? "paused" : live ? "live" : "none",
-      statusLabel: m.paused_at ? "Paused" : live ? (m.subscription_status ?? "active") : (m.subscription_status ?? "none"),
+      // Without access, Stripe's last word ("active" on a plan that has run out) reads as live: say ended (12 Oct 2026).
+      statusLabel: m.paused_at ? "Paused" : live ? (m.cancel_at ? "cancelling" : (m.subscription_status ?? "active").replace(/_/g, " ")) : freeForGood(m.bonus_until) ? "free for good" : m.bonus_until && new Date(m.bonus_until).getTime() > now ? "gift days" : m.plan || m.access_until ? "ended" : "none",
       // The day their access ends, whichever of the plan and the gift days runs longer.
       accessUntil: Math.max(ms(m.access_until), m.bonus_until && new Date(m.bonus_until).getTime() > now ? ms(m.bonus_until) : 0),
       since: ms(m.subscribed_since) || ms(m.created_at),
@@ -108,6 +112,8 @@ async function Members() {
         </summary>
         <div className="mt-3"><AccessChart days={access.map(({ date, counts, total }) => ({ date, counts, total }))} /></div>
       </details>
+
+      <InstagramClaims claims={claims} />
 
       <MembersTable rows={rows} plans={PLANS.map((p) => p.name)} found={FOUND_US.filter((g) => rows.some((r) => r.found === g))} remove={removeFromList} self={viewer.id} />
 

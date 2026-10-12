@@ -95,7 +95,7 @@ export const EMAILS = {
     cta: { label: "Pay and get a month free", url: `${SITE}/account/pay` },
   }),
 
-  /** Reminders two and three in the week after a failed payment; never says when access ends. */
+  /** The reminder the day before the grace after a failed payment runs out; never says when access ends. */
   paymentReminder: (plan: string, last: boolean, weekly?: number): EmailSpec => ({
     subject: last ? "A last reminder about your Overlay payment" : "A reminder about your Overlay payment",
     preheader: "Pay now and your board stays open.",
@@ -108,7 +108,7 @@ export const EMAILS = {
     cta: { label: "Keep my board open", url: `${SITE}/account/pay` },
   }),
 
-  /** The day the grace week runs out with the payment still owed: the board is closed, and how to open it. */
+  /** The day the grace runs out with the payment still owed: the board is closed, and how to open it. */
   paymentClosed: (plan: string): EmailSpec => ({
     subject: "Your Overlay board is closed",
     preheader: "Pay now and it opens again straight away.",
@@ -154,6 +154,19 @@ export const EMAILS = {
       "You joined on an invite and started a plan, so the full board is open to you for two weeks, every race day, on top of your trial.",
       until ? `It runs until <strong>${fmt(until)}</strong>.` : "It starts now.",
       "Your own invite link is on your account page, and every friend who joins adds a fortnight for you both.",
+    ],
+    cta: { label: "Open today's board", url: `${SITE}/` },
+  }),
+
+  /** Free access with no end date, given from the admin panel (12 Oct 2026). */
+  freeForGood: (): EmailSpec => ({
+    subject: "The Overlay is on us",
+    preheader: "The full board is open to you, every race day.",
+    heading: "You are in, on us.",
+    paragraphs: [
+      "We have opened the full board on your account, every race day, with no end date and nothing to pay.",
+      "Every runner rated and priced, the bets and lays at 11am, and the Data Hub.",
+      DISCORD,
     ],
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),

@@ -9,8 +9,7 @@ import { CopyLink } from "@/components/CopyLink";
 import { TipsterMatrix, type MatrixMeeting } from "@/components/TipsterMatrix";
 import { getViewer } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
-import { planById } from "@/lib/billing/plans";
-import { creatorTips, priceFlagged, stakeLabel, tipsterForUser, tipsterMembers, tipsterRecord } from "@/lib/creators";
+import { creatorTips, priceFlagged, stakeLabel, tipsterForUser, tipsterMembers, tipsterRecord, type TipsterMemberStatus } from "@/lib/creators";
 import { jumpTime, longDate, price } from "@/lib/format";
 import { getCard, getTodayCard, racingToday } from "@/lib/model/source";
 
@@ -18,6 +17,18 @@ export const metadata: Metadata = { title: "Your Tips", robots: { index: false }
 
 /** Posting waits 90 seconds before emailing followers, so the function has to live that long. */
 export const maxDuration = 150;
+
+/** How each status reads to the tipster, and the date that goes with it. */
+const MEMBER_STATUS: Record<TipsterMemberStatus, { label: string; badge: string; until: string }> = {
+  unconfirmed: { label: "Email not confirmed", badge: "badge-muted", until: "" },
+  no_plan: { label: "Free account, no plan", badge: "badge-muted", until: "" },
+  trial: { label: "Free trial", badge: "badge-back", until: "Trial ends" },
+  paying: { label: "Paying", badge: "badge-prime", until: "" },
+  cancelling: { label: "Cancelled, still on", badge: "badge-muted", until: "Ends" },
+  failed: { label: "Payment failed", badge: "badge-lay", until: "" },
+  pass: { label: "Day passes", badge: "badge-back", until: "" },
+  left: { label: "Left", badge: "badge-muted", until: "Ended" },
+};
 
 export default function Page({ searchParams }: PageProps<"/tipster">) {
   return (
@@ -128,19 +139,25 @@ async function Portal({ searchParams }: { searchParams: PageProps<"/tipster">["s
             <p className="text-sm text-ink-soft">Nobody yet. Share your link and they show up here as they sign up.</p>
           ) : (
             <table className="w-full text-sm">
-              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left py-1">Signed up</th><th className="text-left">On for</th><th className="text-left">Status</th></tr></thead>
+              <thead><tr className="text-[10px] uppercase tracking-[0.08em] text-ink-soft"><th className="text-left py-1">Signed up</th><th className="text-left">Plan</th><th className="text-left">Where they are</th></tr></thead>
               <tbody>
-                {members.map((m, i) => (
-                  <tr key={i} className="border-t border-line">
-                    <td className="py-1.5 nums">{longDate(m.since)}</td>
-                    <td className="nums">{m.days === 0 ? "today" : `${m.days} ${m.days === 1 ? "day" : "days"}`}</td>
-                    <td>{m.paying ? <span className="badge badge-prime">{planById(m.plan ?? undefined)?.name ?? "Paying"}</span> : <span className="badge badge-muted">Free</span>}</td>
-                  </tr>
-                ))}
+                {members.map((m, i) => {
+                  const s = MEMBER_STATUS[m.status];
+                  return (
+                    <tr key={i} className="border-t border-line align-top">
+                      <td className="py-1.5 nums whitespace-nowrap pr-2">{longDate(m.since)}<div className="text-[11px] text-ink-soft">{m.days === 0 ? "today" : `${m.days} ${m.days === 1 ? "day" : "days"} ago`}</div></td>
+                      <td className="py-1.5 pr-2">{m.plan ?? <span className="text-ink-soft">None</span>}</td>
+                      <td className="py-1.5">
+                        <span className={`badge ${s.badge}`}>{s.label}</span>
+                        {m.until && <div className="text-[11px] text-ink-soft mt-0.5">{s.until} {longDate(m.until)}</div>}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           )}
-          <p className="mt-2 text-xs text-ink-soft">Members are listed without names or emails. Commission is worked out on what they pay.</p>
+          <p className="mt-2 text-xs text-ink-soft">Everyone who signed up on your link, newest first. Names and emails stay private to each member.</p>
         </div>
       </div>
 

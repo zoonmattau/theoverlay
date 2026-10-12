@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 
 import { mixClass, mixStyle, mixTag, mixed } from "./mix";
+import { TipsterAvatar, type TipsterFace } from "./TipsterAvatar";
 
 /**
  * One matrix cell. Time to the jump ticks on the client; the server paints the
@@ -46,12 +47,12 @@ export function MatrixCell({
   group?: 1 | 2 | 3;
   /** Today's free race, for a viewer who cannot open the others. */
   free?: boolean;
-  /** Initials of the tipsters the viewer follows who have a call in this race. */
-  tipsters?: string[];
+  /** The tipsters the viewer follows who have a call in this race, as their avatars. */
+  tipsters?: TipsterFace[];
 }) {
   const medal = group ? <span className={`medal medal-${group}`} title={`Group ${group}`}>G{group}</span> : null;
   const freeTag = free ? <span className="matrix-free">Free</span> : null;
-  const tipsterTag = tipsters && tipsters.length > 0 ? <span className="matrix-tipsters">{tipsters.slice(0, 3).map((t, i) => <span key={i} className="matrix-tipster">{t}</span>)}</span> : null;
+  const tipsterTag = tipsters && tipsters.length > 0 ? <span className="matrix-tipsters">{tipsters.slice(0, 3).map((t, i) => <TipsterAvatar key={i} tipster={t} size={16} className="matrix-tipster-face" />)}</span> : null;
   const [state, setState] = useState<{ label: string; status: string }>({
     label: clock,
     status: "",
@@ -150,8 +151,8 @@ export function NtgCountdown({
   /** Every kind of call in the race; more than one and the pill is striped like the board. */
   mix?: RaceMix;
   tag?: string;
-  /** Initials of the tipsters the viewer follows who have a call in this race, badged like the board. */
-  tipsters?: string[];
+  /** The tipsters the viewer follows who have a call in this race, as their avatars, badged like the board. */
+  tipsters?: TipsterFace[];
 }) {
   const [state, setState] = useState<{ label: string; status: string; gone: boolean }>({
     label: clock,
@@ -176,7 +177,7 @@ export function NtgCountdown({
   return (
     <Link href={href} className={`ntg-item ${state.status} ${tip ? `tip-${tip}` : ""} ${mixClass(mix)}`} style={mixStyle(mix)}>
       {tipsters && tipsters.length > 0 && (
-        <span className="matrix-tipsters" title="A tipster you follow has a call in this race">{tipsters.slice(0, 3).map((t, i) => <span key={i} className="matrix-tipster">{t}</span>)}</span>
+        <span className="matrix-tipsters" title="A tipster you follow has a call in this race">{tipsters.slice(0, 3).map((t, i) => <TipsterAvatar key={i} tipster={t} size={16} className="matrix-tipster-face" />)}</span>
       )}
       <span className="ntg-head">
         <span className="ntg-track">{label}</span>

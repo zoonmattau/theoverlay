@@ -3,6 +3,7 @@ import { Section } from "./Section";
 import { TipsterCallTable } from "./TipsterCallTable";
 import { SocialLinks } from "./SocialLinks";
 import type { CreatorTip, Tipster, TipsterRecord } from "@/lib/creators";
+import { initials } from "./TipsterAvatar";
 
 const units = (n: number) => `${n > 0 ? "+" : n < 0 ? "−" : ""}${Math.abs(n).toFixed(2)}u`;
 
@@ -19,7 +20,7 @@ export async function TipsterTips({ tipster, tips, record, date, compact, jumps 
   return (
     <Section
       id={`tipster-${tipster.code}`}
-      letter={tipster.name.slice(0, 1).toUpperCase()}
+      letter={(tipster.avatar_letter || initials(tipster.name)).toUpperCase()}
       title={`${tipster.name}'s tips`}
       controls={<SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} className="social-links-bar" />}
       aside={

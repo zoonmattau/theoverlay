@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 
 import type { RaceMix, RaceTip } from "@/lib/model/types";
 import { mixClass, mixStyle } from "./mix";
+import { TipsterAvatar, type TipsterFace } from "./TipsterAvatar";
 
 export interface MiniRace {
   raceId: string;
@@ -16,7 +17,8 @@ export interface MiniRace {
   mix?: RaceMix;
   group?: 1 | 2 | 3;
   /** The tipster the viewer follows has a call in this race: their initial. */
-  tipster?: string;
+  /** The followed tipsters with a call in the race, as their avatars. */
+  tipsters?: TipsterFace[];
 }
 
 export interface MiniMeeting {
@@ -111,7 +113,7 @@ export function TrackMenu({
                           role="menuitem"
                         >
                           {r.group && <span className={`medal medal-${r.group}`} title={`Group ${r.group}`}>G{r.group}</span>}
-                          {r.tipster && <span className="matrix-tipster mini-tipster">{r.tipster}</span>}
+                          {r.tipsters && r.tipsters.length > 0 && <TipsterAvatar tipster={r.tipsters[0]} size={14} className="mini-tipster" />}
                           <span className="mini-r">R{r.raceNumber}</span>
                           <span className="mini-t nums">{r.resulted ? "Run" : r.clock}</span>
                         </Link>

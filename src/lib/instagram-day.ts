@@ -61,3 +61,74 @@ export async function claimInstagramDay(userId: string, handle: string): Promise
   await syncDiscordMember(userId).catch(() => {});
   return { ok: true, until };
 }
+
+export interface InstagramClaim {
+  userId: string;
+  who: string;
+  handle: string | null;
+  at: string;
+  /** The free day's end, or the bill it moved back. */
+  until?: string;
+  nextBill?: string;
+  takenBack: boolean;
+}
+
+/** Claims from the last `days` days, newest first, for the spot check on the admin overview. */
+export async function instagramClaims(days = 30): Promise<InstagramClaim[]> {
+  const db = supabaseAdmin();
+  const since = new Date(Date.now() - days * 86400_000).toISOString();
+  const [{ data: claims }, { data: revoked }] = await Promise.all([
+    db.from("events").select("user_id, created_at, meta").eq("kind", "ig_follow_claim").gte("created_at", since).order("created_at", { ascending: false }),
+    db.from("events").select("user_id").eq("kind", "ig_follow_revoked"),
+  ]);
+  const ids = [...new Set((claims ?? []).map((c) => c.user_id as string))];
+  const { data: profs } = ids.length ? await db.from("profiles").select("id, email, full_name").in("id", ids) : { data: [] };
+  const who = new Map((profs ?? []).map((p) => [p.id as string, (p.full_name || p.email || "a member") as string]));
+  const gone = new Set((revoked ?? []).map((r) => r.user_id as string));
+  return ((claims ?? []) as { user_id: string; created_at: string; meta: { handle?: string | null; until?: string; nextBill?: string } | null }[]).map((c) => ({
+    userId: c.user_id,
+    who: who.get(c.user_id) ?? "a member",
+    handle: c.meta?.handle ?? null,
+    at: c.created_at,
+    until: c.meta?.until,
+    nextBill: c.meta?.nextBill,
+    takenBack: gone.has(c.user_id),
+  }));
+}
+
+/**
+ * Takes the free day back from someone who does not follow us after all
+ * (the user, 12 Oct 2026): a gift day comes off the end of their gift, a
+ * moved bill moves back a day (or bills now if that day has passed). The
+ * claim stands, so they cannot claim again.
+ */
+export async function revokeInstagramDay(userId: string, by: string): Promise<boolean> {
+  const db = supabaseAdmin();
+  const [{ data: claim }, { data: done }] = await Promise.all([
+    db.from("events").select("meta").eq("kind", "ig_follow_claim").eq("user_id", userId).order("created_at", { ascending: false }).limit(1).maybeSingle(),
+    db.from("events").select("id").eq("kind", "ig_follow_revoked").eq("user_id", userId).limit(1),
+  ]);
+  if (!claim || (done ?? []).length) return false;
+  const meta = (claim.meta ?? {}) as { until?: string; nextBill?: string };
+  if (meta.nextBill) {
+    const { data: p } = await db.from("profiles").select("stripe_subscription_id").eq("id", userId).maybeSingle();
+    if (p?.stripe_subscription_id) {
+      const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
+      const moved = Math.floor(new Date(meta.nextBill).getTime() / 1000);
+      // Only while the bill is still where the claim put it; anything since (a payment, a plan change) stands.
+      if (sub.status === "trialing" && sub.trial_end === moved) {
+        const back = moved - 86400;
+        await stripe().subscriptions.update(sub.id, { trial_end: back > Date.now() / 1000 + 60 ? back : "now", proration_behavior: "none" });
+      }
+    }
+  } else if (meta.until) {
+    const { data: p } = await db.from("profiles").select("bonus_until").eq("id", userId).maybeSingle();
+    if (p?.bonus_until && Math.abs(new Date(p.bonus_until).getTime() - new Date(meta.until).getTime()) < 60_000) {
+      const back = new Date(meta.until).getTime() - 86400_000;
+      await db.from("profiles").update({ bonus_until: back > Date.now() ? new Date(back).toISOString() : null }).eq("id", userId);
+    }
+  }
+  await logEvent({ user_id: userId, kind: "ig_follow_revoked", plan: null, amount_cents: null, meta: { by } });
+  await syncDiscordMember(userId).catch(() => {});
+  return true;
+}

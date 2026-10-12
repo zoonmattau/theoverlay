@@ -4,10 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, unmakeTipster } from "@/app/admin/actions";
+import { addDays, addPasses, cancelMember, deleteMember, makeTipster, pauseMember, resendInvite, resumeMember, saveNote, setAdmin, setFreeForGood, unmakeTipster } from "@/app/admin/actions";
 import { ConfirmButton } from "@/components/ConfirmButton";
 import { AREA_LABEL, memberViews } from "@/lib/activity";
-import { accountState, getMember, isAdmin, memberEvents, now as clock, referralsMade, subscriptionEnded } from "@/lib/admin";
+import { accountState, freeForGood, getMember, isAdmin, memberEvents, now as clock, referralsMade, subscriptionEnded } from "@/lib/admin";
 import { keysByUser, revokeKeys } from "@/lib/api-keys";
 import { arrivalSource, foundUs } from "@/lib/arrival";
 import { getViewer } from "@/lib/auth";
@@ -165,7 +165,7 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
           <Row k="Access until" v={accessUntil ? stamp(accessUntil) : "—"} />
           <Row k="Cancels" v={m.cancel_at ? `${stamp(m.cancel_at)}${m.cancel_reason ? ` (${m.cancel_reason.replace(/_/g, " ")})` : ""}` : "no"} />
           <Row k="Paused" v={m.paused_at ? stamp(m.paused_at) : "no"} />
-          <Row k="Gift until" v={giftLive ? stamp(m.bonus_until) : "—"} />
+          <Row k="Gift until" v={freeForGood(m.bonus_until) ? "Free for good" : giftLive ? stamp(m.bonus_until) : "—"} />
           <Row k="Stripe customer" v={m.stripe_customer_id ? <a className="text-blue" href={`https://dashboard.stripe.com/customers/${m.stripe_customer_id}`} target="_blank" rel="noreferrer">{m.stripe_customer_id}</a> : "—"} />
         </div>
 
@@ -224,6 +224,17 @@ async function Member({ params }: { params: PageProps<"/admin/[id]">["params"] }
               <input name="code" placeholder="CODE" className="field-input w-28 uppercase" />
               <button className="btn btn-primary btn-sm" type="submit">Make affiliate</button>
               <span className="text-ink-soft">40% commission, their link is /go/CODE</span>
+            </form>
+          )}
+          {freeForGood(m.bonus_until) ? (
+            <form action={setFreeForGood.bind(null, m.id, false)} className="flex items-center gap-2">
+              <button className="btn btn-secondary btn-sm text-red" type="submit">End free access</button>
+              <span className="text-ink-soft">free for good now, the board closes unless they pay</span>
+            </form>
+          ) : (
+            <form action={setFreeForGood.bind(null, m.id, true)} className="flex items-center gap-2">
+              <button className="btn btn-primary btn-sm" type="submit">Free for good</button>
+              <span className="text-ink-soft">full board, no end date, no tipster account</span>
             </form>
           )}
           <form action={addDays.bind(null, m.id, 14)} className="flex items-center gap-2">

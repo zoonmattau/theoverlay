@@ -109,6 +109,7 @@ export async function markPaid(affiliateId: string, month: string, form: FormDat
   await supabaseAdmin().from("affiliate_payouts").upsert({ affiliate_id: affiliateId, month, amount_cents: cents, note, paid_at: new Date().toISOString() }, { onConflict: "affiliate_id,month" });
   await logEvent({ user_id: null, kind: "admin", plan: null, amount_cents: cents, meta: { action: "affiliate_paid", affiliate: affiliateId, month, by: admin.email } });
   revalidatePath("/admin/affiliates");
+  revalidatePath("/admin/owed");
 }
 
 export async function unmarkPaid(affiliateId: string, month: string): Promise<void> {

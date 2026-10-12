@@ -4,6 +4,7 @@ import { jumpTime } from "@/lib/format";
 import { now as clock } from "@/lib/admin";
 import { raceMix, raceTip, type PublishedMeeting, type RaceTip, type Selection } from "@/lib/model/types";
 import { mixTag, mixed } from "./mix";
+import type { TipsterFace } from "./TipsterAvatar";
 
 export type NtgTip = RaceTip;
 
@@ -21,9 +22,10 @@ export function NextToGo({
   selections: Selection[];
   date: string;
   /** The tipsters the viewer follows, each with the races they have called, for the badge the board carries. */
-  tipsters?: { name: string; raceIds: string[] }[];
+  tipsters?: (TipsterFace & { raceIds: string[] })[];
 }) {
-  const initialsFor = (raceId: string) => (tipsters ?? []).filter((t) => t.raceIds.includes(raceId)).map((t) => t.name.trim()[0]?.toUpperCase() ?? "?");
+  // Their avatars, the letters or logo they picked, not the first letter of a name ("The Grey Wolf" read T, 12 Oct 2026).
+  const facesFor = (raceId: string) => (tipsters ?? []).filter((t) => t.raceIds.includes(raceId));
   const prime = new Map(
     selections.filter((s) => s.tag === "prime_overlay" || s.tag === "top_overlay").map((s) => [s.raceId, s]),
   );
@@ -66,7 +68,7 @@ export function NextToGo({
             tip={tip}
             mix={mix}
             tag={tag}
-            tipsters={initialsFor(r.raceId)}
+            tipsters={facesFor(r.raceId)}
           />
         );
       })}

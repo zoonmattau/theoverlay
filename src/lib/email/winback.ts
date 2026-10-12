@@ -60,7 +60,7 @@ export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promi
     db.from("events").select("user_id, created_at").eq("kind", "subscription").eq("meta->>status", "canceled"),
     db.from("events").select("user_id, created_at").eq("kind", "payment_grace"),
   ]);
-  // A lapse that follows a failed payment: their board closed when the grace week ran out, days before Stripe gives up.
+  // A lapse that follows a failed payment: their board closed when the grace ran out, while Stripe kept trying.
   const unpaid = new Map<string, number[]>();
   for (const g of (graces ?? []) as { user_id: string; created_at: string }[]) unpaid.set(g.user_id, [...(unpaid.get(g.user_id) ?? []), new Date(g.created_at).getTime()]);
   const cancelledAt = new Map<string, number>();

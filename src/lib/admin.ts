@@ -55,6 +55,7 @@ export interface Member {
   referrer: string | null;
   utm: Record<string, string> | null;
   affiliate_id: string | null;
+  affiliate_attributed_at?: string | null;
   /** The Discord account they linked from Account, if any. */
   discord_id: string | null;
   discord_name: string | null;
@@ -105,7 +106,7 @@ export interface Event {
 }
 
 const MEMBER_COLS =
-  "id, email, plan, billing_term, access_until, subscription_status, cancel_at, cancel_reason, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, landing, referrer, utm, affiliate_id, discord_id, discord_name, discord_linked_at, created_at";
+  "id, email, plan, billing_term, access_until, subscription_status, cancel_at, cancel_reason, subscribed_since, stripe_customer_id, stripe_subscription_id, total_spent_cents, pass_credits, bonus_until, paused_at, marketing_opt_in, referral_code, admin_note, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, source, landing, referrer, utm, affiliate_id, affiliate_attributed_at, discord_id, discord_name, discord_linked_at, created_at";
 
 export async function listMembers(search?: string): Promise<Member[]> {
   let q = supabaseAdmin().from("profiles").select(MEMBER_COLS).order("created_at", { ascending: false }).limit(500);
@@ -141,6 +142,14 @@ export async function subscriptionEnded(id: string): Promise<string | undefined>
 }
 
 export type MemberStatus = "admin" | "invited" | "unconfirmed" | "paused" | "trial" | "paying" | "gift" | "lapsed" | "none";
+
+/**
+ * Free for good: gift days that never run out, for anyone the admin chooses
+ * without making them a tipster (12 Oct 2026). The board, Discord and the
+ * Members page already follow bonus_until, so the far date is all it takes.
+ */
+export const FREE_FOR_GOOD = "2100-01-01T00:00:00.000Z";
+export const freeForGood = (bonusUntil: string | null | undefined) => Boolean(bonusUntil && new Date(bonusUntil).getUTCFullYear() >= 2100);
 
 /** Where a member stands now, the first that fits. The Members page groups by it and Activity shows it beside each person. */
 export function memberStatus(m: Member, at: number): MemberStatus {

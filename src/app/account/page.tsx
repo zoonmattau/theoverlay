@@ -99,6 +99,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
       {sp.paid === "1" && <Notice>Paid, thank you. Your board is open again.</Notice>}
       {sp.ig === "added" && <Notice>Thanks for the follow. The full board is yours{viewer.bonusUntil ? ` until ${new Date(viewer.bonusUntil).toLocaleString("en-AU", { timeZone: "Australia/Sydney", weekday: "long", hour: "numeric", minute: "2-digit" })}` : ""}.</Notice>}
       {sp.ig === "bill" && <Notice>Thanks for the follow. A free day has been added to your plan.</Notice>}
+      {sp.ig === "handle" && <Notice>Enter your Instagram username so we can see the follow, then claim your day.</Notice>}
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}.</Notice>}
       {sp.switched === "paid-now" && <Notice>Paid, thank you. Your first month runs 5 weeks.</Notice>}
@@ -310,7 +311,7 @@ function InstagramDay({ member }: { member: boolean }) {
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <a href={`https://instagram.com/${BRAND_SOCIAL.instagram}`} target="_blank" rel="noopener" className="btn btn-secondary btn-sm">1. Follow @{BRAND_SOCIAL.instagram}</a>
         <form action={claimInstagram} className="flex flex-wrap items-end gap-2">
-          <label className="field"><span>Your Instagram</span><input name="handle" placeholder="@yourhandle" className="field-input w-40" /></label>
+          <label className="field"><span>Your Instagram</span><input name="handle" placeholder="@yourhandle" required pattern="@?[A-Za-z0-9._]{1,30}" title="Your Instagram username: letters, numbers, dots and underscores" className="field-input w-40" /></label>
           <button type="submit" className="btn btn-primary btn-sm">2. I followed, give me my day</button>
         </form>
       </div>

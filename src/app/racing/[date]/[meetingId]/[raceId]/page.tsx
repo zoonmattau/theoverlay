@@ -40,6 +40,7 @@ import { racePeople } from "@/lib/data/race-facts";
 import { raceMix, raceTip } from "@/lib/model/types";
 import { mixClass, mixStyle } from "@/components/mix";
 import { TrackMap, trackMapFor } from "@/components/TrackMap";
+import { faceOf } from "@/components/TipsterAvatar";
 
 type Props = PageProps<"/racing/[date]/[meetingId]/[raceId]">;
 
@@ -126,7 +127,7 @@ async function Race({ params }: { params: Props["params"] }) {
   const others = (await callsOn(date, (await allTipsters()).filter((t) => !followedIds.has(t.id)))).filter((t) => t.race_id === raceId);
   const otherProfiles = new Map((await tipsterProfiles([...new Map(others.map((t) => [t.tipster.id, t.tipster])).values()])).map((p) => [p.tipster.id, p]));
   const othersOnRace = others.map((tip) => ({ profile: otherProfiles.get(tip.affiliate_id)!, tip })).filter((x) => x.profile);
-  const initialsFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => f.tipster.name.trim()[0]?.toUpperCase() ?? "?").join("");
+  const facesFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => faceOf(f.tipster));
 
   // The mini matrix behind the track name: every race on the day, coloured
   // like the board.
@@ -144,7 +145,7 @@ async function Race({ params }: { params: Props["params"] }) {
         tip: raceTip(r.runners, prime.has(r.raceId)),
         mix: raceMix(r.runners, prime.has(r.raceId)),
         group: groupOf(r.className, r.name),
-        tipster: initialsFor(r.raceId) || undefined,
+        tipsters: facesFor(r.raceId),
       };
     }),
   }));
@@ -191,7 +192,7 @@ async function Race({ params }: { params: Props["params"] }) {
           runners={race.runners.filter((x) => !x.scratched).map((x) => ({ tab: x.tabNumber, name: x.horseName }))}
         />
       )}
-      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ name: tipster.name, raceIds: tips.map((t) => t.race_id) }))} />
+      <NextToGo meetings={meetings} selections={selections} date={date} tipsters={followed.map(({ tipster, tips }) => ({ ...faceOf(tipster), raceIds: tips.map((t) => t.race_id) }))} />
       {/* Header strip: where we are, the conditions, and every race on the card. */}
       <header className="section !overflow-visible">
         <div className="section-body race-head">
@@ -293,7 +294,7 @@ async function Race({ params }: { params: Props["params"] }) {
       ) : open ? (
         <Section id="selections" letter="O" title="Our selections" aside="Live price against our rated price, top four">
           <div className="section-body">
-            <SelectionCards race={race} tipsters={inRace.map((f) => ({ name: f.tipster.name, calls: f.tips.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), stake: stakeLabel(t), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) }))} />
+            <SelectionCards race={race} tipsters={inRace.map((f) => ({ ...faceOf(f.tipster), calls: f.tips.map((t) => ({ tabNumber: t.tab_number, side: t.side, price: Number(t.price), stake: stakeLabel(t), bookie: t.bookie, bookiePrice: t.bookie_price ? Number(t.bookie_price) : null, comment: t.comment })) }))} />
           </div>
         </Section>
       ) : (

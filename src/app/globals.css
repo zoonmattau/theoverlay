@@ -1264,15 +1264,19 @@ body {
   position: relative;
 }
 .mini-tipster {
+  position: absolute;
   top: -6px;
   left: -5px;
-  width: 14px;
-  height: 14px;
-  line-height: 14px;
-  font-size: 0.55rem;
+}
+/* A followed tipster's avatar on a board cell: their letters or logo, ringed so it reads on any colour. */
+.matrix-tipster-face {
+  box-shadow: 0 0 0 1.5px var(--color-panel);
+}
+.mini-tipster {
+  box-shadow: 0 0 0 1.5px var(--color-panel);
 }
 .legend-dot-tipster {
-  background: var(--color-amber);
+  background: var(--color-lime);
 }
 .matrix-btn:hover {
   border-color: var(--color-ink-soft);

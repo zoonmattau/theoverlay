@@ -8,11 +8,21 @@ export function initials(name: string): string {
   return (words.slice(0, 2).map((w) => w[0]).join("") || name.slice(0, 1)).toUpperCase();
 }
 
+/** What a tipster's face needs: their name, and the letters or logo they picked. */
+export interface TipsterFace {
+  name: string;
+  avatar_letter?: string | null;
+  avatar_url?: string | null;
+}
+
+/** Just the face fields, for passing a tipster down to a client component. */
+export const faceOf = (t: TipsterFace): TipsterFace => ({ name: t.name, avatar_letter: t.avatar_letter ?? null, avatar_url: t.avatar_url ?? null });
+
 /**
  * A tipster's face wherever they show: the logo they uploaded, else the
  * letters they picked, else their initials, on lime.
  */
-export function TipsterAvatar({ tipster, size = 36, className = "" }: { tipster: { name: string; avatar_letter?: string | null; avatar_url?: string | null }; size?: number; className?: string }) {
+export function TipsterAvatar({ tipster, size = 36, className = "" }: { tipster: TipsterFace; size?: number; className?: string }) {
   const letter = (tipster.avatar_letter || initials(tipster.name)).toUpperCase();
   const style = { width: size, height: size, fontSize: Math.round(size * (letter.length > 2 ? 0.3 : letter.length > 1 ? 0.38 : 0.46)) };
   if (tipster.avatar_url) {

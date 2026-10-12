@@ -7,16 +7,19 @@ import { sendEmail } from "@/lib/email/send";
 import { monthlyFor, weeklyFor } from "./retention";
 
 /**
- * A member whose payment fails keeps the board for a week while Stripe
- * retries, then loses it, and is reminded to pay three times in that week
- * without being told when (the user, 26 Sep 2026). The week is an event,
+ * A member whose payment fails keeps the board for three days, then loses it,
+ * and is reminded to pay twice in that time without being told when. Nothing
+ * is cancelled for not paying: Stripe keeps retrying the card (Billing
+ * settings, leave the subscription past due when retries run out) and a
+ * payment that goes through opens the board again (the user, 12 Oct 2026; a
+ * week until then). The grace is an event,
  * payment_grace, written the first time the subscription is seen past due;
  * one written before the subscription was last active belongs to an earlier
  * failure and does not count.
  */
-export const GRACE_DAYS = 7;
-/** Days into the grace week that each reminder goes out. */
-export const REMINDER_DAYS = [0, 3, 6];
+export const GRACE_DAYS = 3;
+/** Days into the grace that each reminder goes out: the failure itself, then the day before it closes. */
+export const REMINDER_DAYS = [0, 2];
 
 const DAY = 24 * 60 * 60_000;
 
@@ -51,10 +54,10 @@ export async function graceUntil(userId: string, days = GRACE_DAYS): Promise<Dat
 
 /**
  * Sends each past-due member the reminder now due, once: the first on the day
- * the grace week starts, then on day three and day six. The first is normally
- * the webhook's, on Stripe's first failed attempt (logged as reminder 1 just
- * before the grace week opens, hence the day's slack), so this sends the
- * other two. The day the week runs out, one more says the board is closed.
+ * the grace starts, then on day two. The first is normally the webhook's, on
+ * Stripe's first failed attempt (logged as reminder 1 just before the grace
+ * opens, hence the day's slack), so this sends the other. The day the grace
+ * runs out, one more says the board is closed; Stripe keeps trying the card.
  * Run from the midday cron. Returns the emails sent.
  */
 export async function remindUnpaid(): Promise<number> {
@@ -68,8 +71,8 @@ export async function remindUnpaid(): Promise<number> {
   for (const m of members ?? []) {
     const grace = await currentGrace(m.id);
     if (!grace || !m.email) continue;
-    // The week is up and the payment still owed: one email that the board is closed, then
-    // nothing until Stripe gives up and the win-back series takes over.
+    // The grace is up and the payment still owed: one email that the board is closed. Stripe
+    // keeps retrying, and a payment that goes through opens the board again.
     if (Date.now() >= grace.until.getTime()) {
       const { data: closed } = await db.from("events").select("id").eq("user_id", m.id).eq("kind", "payment_closed").gte("created_at", grace.since).limit(1);
       if ((closed ?? []).length > 0) continue;
@@ -94,8 +97,8 @@ export async function remindUnpaid(): Promise<number> {
 }
 
 /**
- * Email n of the three for a failed payment: the first from the webhook on
- * Stripe's first failed attempt, the other two from remindUnpaid. A yearly or
+ * Email n of the two for a failed payment: the first from the webhook on
+ * Stripe's first failed attempt, the other from remindUnpaid. A yearly or
  * 3-month first bill gets the month-free and pay-monthly offers instead.
  */
 export async function failedPaymentEmail(userId: string, n: number) {
