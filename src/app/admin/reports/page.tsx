@@ -6,14 +6,14 @@ import { Suspense } from "react";
 import { DayChart, DayTable } from "@/components/DayChart";
 import { isAdmin } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { daysSinceLaunch, growthSeries, modelTipSeries, tipsterTipSeries, windowStart, type Series } from "@/lib/reports";
+import { daysSinceLaunch, modelTipSeries, tipsterTipSeries, windowStart, type Series } from "@/lib/reports";
 import { windowStats } from "@/lib/tips";
 import type { SideStats } from "@/lib/tips/stats";
 
 export const metadata: Metadata = { title: "Reports", robots: { index: false } };
 
+// Sign-ups and money were here too; they live on Members and Money, so the record is only the record (12 Oct 2026).
 const TABS = [
-  { id: "growth", label: "Sign-ups and money" },
   { id: "tips", label: "Model tips" },
   { id: "tipsters", label: "Tipsters" },
 ] as const;
@@ -34,7 +34,7 @@ async function Reports({ searchParams }: { searchParams: PageProps<"/admin/repor
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
-  const tab: Tab = TABS.some((t) => t.id === sp.tab) ? (sp.tab as Tab) : "growth";
+  const tab: Tab = TABS.some((t) => t.id === sp.tab) ? (sp.tab as Tab) : "tips";
   // A window in days, or every day since the first account ("all").
   const all = sp.days === "all";
   const n = all ? await daysSinceLaunch() : WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
@@ -62,7 +62,6 @@ async function Reports({ searchParams }: { searchParams: PageProps<"/admin/repor
         ))}
       </div>
 
-      {tab === "growth" && <Growth n={n} />}
       {tab === "tips" && <ModelTips n={n} all={all} />}
       {tab === "tipsters" && <Tipsters n={n} />}
     </>
@@ -103,11 +102,6 @@ function Group({ title, series, cumulativeKeys = [], collapsible }: { title?: st
       {body}
     </div>
   );
-}
-
-async function Growth({ n }: { n: number }) {
-  const series = await growthSeries(n);
-  return <Group series={series} />;
 }
 
 async function ModelTips({ n, all }: { n: number; all: boolean }) {

@@ -26,8 +26,6 @@ export interface Series {
   totalLabel?: string;
 }
 
-const sydneyDay = (iso: string) => new Date(iso).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
-
 function days(n: number): string[] {
   const out: string[] = [];
   const end = new Date(new Date().toLocaleString("en-US", { timeZone: "Australia/Sydney" }));
@@ -53,32 +51,6 @@ export async function daysSinceLaunch(): Promise<number> {
   const { data } = await supabaseAdmin().from("profiles").select("created_at").order("created_at").limit(1).maybeSingle();
   const first = data?.created_at ? new Date(data.created_at).getTime() : Date.now();
   return Math.max(1, Math.ceil((Date.now() - first) / 86400_000) + 1);
-}
-
-/** Sign-ups, payments and emails by day. */
-export async function growthSeries(n: number): Promise<Series[]> {
-  const db = supabaseAdmin();
-  const window = days(n);
-  const since = new Date(Date.now() - (n + 1) * 86400_000).toISOString();
-  const [{ data: profiles }, { data: events }] = await Promise.all([
-    db.from("profiles").select("created_at").gte("created_at", since),
-    db.from("events").select("kind, amount_cents, meta, created_at").in("kind", ["payment", "tips_email", "tipster_email"]).gte("created_at", since),
-  ]);
-  const signups = new Map<string, number>(), money = new Map<string, number>(), payments = new Map<string, number>(), emails = new Map<string, number>();
-  for (const p of (profiles ?? []) as { created_at: string }[]) add(signups, sydneyDay(p.created_at), 1);
-  for (const e of (events ?? []) as { kind: string; amount_cents: number | null; meta: { sent?: number } | null; created_at: string }[]) {
-    const d = sydneyDay(e.created_at);
-    if (e.kind === "payment") {
-      add(money, d, (e.amount_cents ?? 0) / 100);
-      add(payments, d, 1);
-    } else add(emails, d, Number(e.meta?.sent ?? 0));
-  }
-  return [
-    series("signups", "Sign-ups", "count", window, signups),
-    series("payments", "Payments", "count", window, payments),
-    series("revenue", "Revenue", "money", window, money),
-    series("emails", "Emails sent", "count", window, emails),
-  ];
 }
 
 /** The model's calls by day: how many, and units at level stakes once settled. */
