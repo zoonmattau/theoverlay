@@ -6,10 +6,10 @@ import { HotAndNot } from "@/components/HotAndNot";
 import { Section } from "@/components/Section";
 import { TipsterCallTable } from "@/components/TipsterCallTable";
 import { TipsterHead, TipsterRow } from "@/components/TipsterRow";
-import { getViewer } from "@/lib/auth";
+import { getViewer, hasAccess } from "@/lib/auth";
 import Link from "next/link";
 
-import { allTipsters, callsOn, followedTipsters, rankProfiles, TIPSTER_PERIODS, tipsterPeriod, tipsterProfiles } from "@/lib/creators";
+import { allTipsters, callsOn, followedTipsters, rankProfiles, TIPSTER_PERIODS, tipsterPeriod, tipsterProfiles, tipVisible } from "@/lib/creators";
 import { getTodayCard } from "@/lib/model/source";
 
 export const metadata: Metadata = {
@@ -47,7 +47,10 @@ async function Marketplace({ searchParams }: { searchParams: PageProps<"/tipster
   const ranked = rankProfiles(profiles.filter((p) => p.posted > 0), period);
   // Today's calls in jump order across every track, not race number within each.
   const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime ?? ""] as const)));
-  const today = [...posted].sort((a, b) => (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
+  // Calls still to run are for members only (tipVisible); a settled call is on the record for everyone.
+  const open = hasAccess(viewer, date);
+  const hidden = posted.filter((t) => !tipVisible(open)(t)).length;
+  const today = posted.filter(tipVisible(open)).sort((a, b) => (jumps.get(a.race_id) ?? "").localeCompare(jumps.get(b.race_id) ?? "") || a.race_number - b.race_number);
   // A call is live until its race jumps; the card's build stamp is the clock, as on the account page.
   const now = new Date(builtAt).getTime() || 0;
   const isLive = (t: (typeof today)[number]) => !t.settled_at && new Date(jumps.get(t.race_id) || 0).getTime() > now;
@@ -110,9 +113,16 @@ async function Marketplace({ searchParams }: { searchParams: PageProps<"/tipster
 
       {/* Every call posted for the day, across every tipster, in jump order: the one place to see them all. */}
       <div className="mt-4">
-        <Section id="today" letter="T" title="Today's calls" aside={today.length ? `${today.length} ${today.length === 1 ? "call" : "calls"} from ${new Set(today.map((t) => t.affiliate_id)).size} ${new Set(today.map((t) => t.affiliate_id)).size === 1 ? "tipster" : "tipsters"}${today.filter(isLive).length ? `, ${today.filter(isLive).length} still to run` : ""}` : "Nothing posted yet"}>
+        <Section id="today" letter="T" title="Today's calls" aside={today.length + hidden ? `${today.length + hidden} ${today.length === 1 ? "call" : "calls"} from ${new Set(today.map((t) => t.affiliate_id)).size} ${new Set(today.map((t) => t.affiliate_id)).size === 1 ? "tipster" : "tipsters"}${today.filter(isLive).length + hidden ? `, ${today.filter(isLive).length + hidden} still to run` : ""}` : "Nothing posted yet"}>
+          {hidden > 0 && (
+            <div className="section-body border-b border-line">
+              <p className="text-sm">
+                <strong>{hidden} {hidden === 1 ? "call" : "calls"} still to run</strong>, for members only. <Link href="/pricing" className="font-semibold text-blue hover:underline">See the plans</Link>
+              </p>
+            </div>
+          )}
           {today.length === 0 ? (
-            <div className="section-body"><p className="text-sm text-ink-soft">No tipster has posted a call today. Calls land here as they are posted, and on your race pages for the tipsters you follow.</p></div>
+            hidden > 0 ? null : <div className="section-body"><p className="text-sm text-ink-soft">No tipster has posted a call today. Calls land here as they are posted, and on your race pages for the tipsters you follow.</p></div>
           ) : (
             <>
               <TipsterCallTable tips={today} jumps={new Map([...jumps].map(([k, v]) => [k, v || undefined]))} showWho />

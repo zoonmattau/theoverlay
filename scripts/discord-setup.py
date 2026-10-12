@@ -74,7 +74,8 @@ def setup():
     OPEN = [ov(everyone, TALK)]
     ADMIN_ONLY = [ov(everyone, 0, VIEW), ov(admin["id"], VIEW | SEND | HISTORY)]
     MEMBERS_ONLY = [ov(everyone, 0, VIEW), ov(member["id"], TALK), ov(tipster["id"], TALK), ov(admin["id"], TALK)]
-    TIPSTER_POSTS = [ov(everyone, VIEW | HISTORY | REACT | SEND_IN_THREADS, SEND | THREADS_PUB), ov(tipster["id"], SEND | THREADS_PUB), ov(admin["id"], SEND | THREADS_PUB)]
+    # Members read, tipsters post: a call still to run is for people with access that day (12 Oct 2026).
+    TIPSTER_POSTS = [ov(everyone, 0, VIEW | SEND | THREADS_PUB), ov(member["id"], VIEW | HISTORY | REACT | SEND_IN_THREADS, SEND | THREADS_PUB), ov(tipster["id"], VIEW | HISTORY | REACT | SEND | THREADS_PUB | SEND_IN_THREADS), ov(admin["id"], VIEW | HISTORY | REACT | SEND | THREADS_PUB | SEND_IN_THREADS)]
     TIPSTER_ONLY = [ov(everyone, 0, VIEW), ov(tipster["id"], TALK), ov(admin["id"], TALK)]
     # The calls themselves: members read, admin (and the bot) posts. Same rule as the site.
     MEMBERS_READ = [ov(everyone, 0, VIEW), ov(member["id"], VIEW | HISTORY | REACT), ov(tipster["id"], VIEW | HISTORY | REACT), ov(admin["id"], VIEW | HISTORY | SEND)]
@@ -152,7 +153,7 @@ def setup():
         if n not in chans:
             channel(n, talk, OPEN, 15, t, {"default_sort_order": 1})
 
-    channel("tipster-calls", tipsters, TIPSTER_POSTS, 0, "Our tipsters' own calls. Tipsters post, everyone reads.")
+    channel("tipster-calls", tipsters, TIPSTER_POSTS, 0, "Our tipsters' own calls. Tipsters post, members read.")
     channel("tipster-lounge", tipsters, TIPSTER_ONLY, 0, "Tipsters and admin only.")
     channel("members-lounge", members, MEMBERS_ONLY, 0, "Members only.")
     channel("early-look", members, MEMBERS_READ, 0, "Tomorrow's card the night before, members only.")

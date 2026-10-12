@@ -28,6 +28,12 @@ export interface Tipster extends Affiliate {
   avatar_url?: string | null;
 }
 
+/**
+ * A tipster's call is for people with access that day: before its race is settled it shows only to
+ * a member, a pass holder or a tipster (hasAccess); once settled it is on the record for everyone (12 Oct 2026).
+ */
+export const tipVisible = (open: boolean) => (t: { settled_at?: string | null }) => open || Boolean(t.settled_at);
+
 export interface CreatorTip {
   id: number;
   affiliate_id: string;

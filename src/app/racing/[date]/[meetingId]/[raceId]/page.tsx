@@ -20,7 +20,7 @@ import { TipsterTips } from "@/components/TipsterTips";
 import { TipstersOnRace } from "@/components/TipstersOnRace";
 import { WhatToWatch } from "@/components/WhatToWatch";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { allTipsters, callsOn, creatorTips, followedCalls, stakeLabel, struckAt, tipsterForUser, tipsterProfiles } from "@/lib/creators";
+import { allTipsters, callsOn, creatorTips, followedCalls, tipVisible, stakeLabel, struckAt, tipsterForUser, tipsterProfiles } from "@/lib/creators";
 import { postTip, removeTip } from "@/app/tipster/actions";
 import type { Tipping } from "@/components/RunnerTable";
 import { planById, planFor } from "@/lib/billing/plans";
@@ -121,10 +121,11 @@ async function Race({ params }: { params: Props["params"] }) {
   // Admin: the calls already taken off today's card, so each can be put back.
   const offKeys = viewer.admin ? await readMutes(date).catch(() => new Set<string>()) : undefined;
   const calls: CallAdmin | undefined = offKeys ? { date, off: [...offKeys], setOff: setCallOff } : undefined;
-  const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId) })).filter((f) => f.tips.length > 0);
+  // A tipster's call on a race still to run is for members only (tipVisible).
+  const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId).filter(tipVisible(open)) })).filter((f) => f.tips.length > 0);
   // Every other listed tipster's calls on this race, with their records: where people first meet a tipster.
   const followedIds = new Set(followed.map((f) => f.tipster.id));
-  const others = (await callsOn(date, (await allTipsters()).filter((t) => !followedIds.has(t.id)))).filter((t) => t.race_id === raceId);
+  const others = (await callsOn(date, (await allTipsters()).filter((t) => !followedIds.has(t.id)))).filter((t) => t.race_id === raceId).filter(tipVisible(open));
   const otherProfiles = new Map((await tipsterProfiles([...new Map(others.map((t) => [t.tipster.id, t.tipster])).values()])).map((p) => [p.tipster.id, p]));
   const othersOnRace = others.map((tip) => ({ profile: otherProfiles.get(tip.affiliate_id)!, tip })).filter((x) => x.profile);
   const facesFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => faceOf(f.tipster));

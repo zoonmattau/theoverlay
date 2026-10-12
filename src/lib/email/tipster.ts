@@ -1,6 +1,7 @@
 import "server-only";
 
 import { logEvent } from "@/lib/admin";
+import { hasAccess, viewerById } from "@/lib/auth";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { followerIds, priceFlagged, stakeLabel, struckAt, tipsterById, type CreatorTip, type Tipster } from "@/lib/creators";
 import { longDate, price } from "@/lib/format";
@@ -87,10 +88,13 @@ export async function notifyFollowers(tipsterId: string, opts: { force?: boolean
         .not("email", "is", null)
         .neq("id", tipster.user_id ?? "")
     : { data: [] };
-  let sent = 0;
+  let sent = 0, eligible = 0;
   for (const date of [...new Set(tips.map((t) => t.date))]) {
     const batch = tips.filter((t) => t.date === date);
     for (const f of (followers ?? []) as { id: string; email: string }[]) {
+      // A follower without access that day does not get the calls: they are for members until the race is run (12 Oct 2026).
+      if (!hasAccess(await viewerById(f.id), date)) continue;
+      eligible++;
       if (await sendEmail(f.email, newTipsEmail(tipster, batch, f.id), { "List-Unsubscribe": `<${unsubscribeUrl(f.id)}>`, "List-Unsubscribe-Post": "List-Unsubscribe=One-Click" })) sent++;
       await new Promise((r) => setTimeout(r, 600));
     }
@@ -99,9 +103,9 @@ export async function notifyFollowers(tipsterId: string, opts: { force?: boolean
   // notification and no retry would ever find them again. If there was someone
   // to email and not one got through, put them back. 23 Sep 2026, when an
   // unverified sending domain quietly ate a day of tipster email.
-  if (!sent && (followers ?? []).length) {
+  if (!sent && eligible) {
     const { error } = await db.from("creator_tips").update({ emailed_at: null }).in("id", tips.map((t) => t.id));
-    console.error(`[tipster-email] ${tipster.code}: ${tips.length} tips to ${followers!.length} followers all failed, claim released${error ? ` (release failed: ${error.message})` : ""}`);
+    console.error(`[tipster-email] ${tipster.code}: ${tips.length} tips to ${eligible} followers all failed, claim released${error ? ` (release failed: ${error.message})` : ""}`);
   }
   if (sent) await logEvent({ user_id: null, kind: "tipster_email", plan: null, amount_cents: null, meta: { tipster: tipster.code, sent, tips: tips.length } });
   return sent;

@@ -15,7 +15,7 @@ import { TipsterAvatar } from "@/components/TipsterAvatar";
 import { FormDots, pct, perWeek, units } from "@/components/TipsterCard";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { creatorTips, followedTipsters, stakeLabel, struckAt, TIPSTER_PERIODS, tipsterByCode, tipsterHistory, tipsterPeriod, tipsterProfiles, type CreatorTip } from "@/lib/creators";
+import { creatorTips, followedTipsters, tipVisible, stakeLabel, struckAt, TIPSTER_PERIODS, tipsterByCode, tipsterHistory, tipsterPeriod, tipsterProfiles, type CreatorTip } from "@/lib/creators";
 import { jumpTime, longDate, price } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 import { reactionsFor } from "@/lib/reactions";
@@ -63,11 +63,14 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
   if (!tipster || (!tipster.listed && !viewer.admin && tipster.user_id !== viewer.id)) notFound();
   const card = await getTodayCard(viewer.admin);
   const date = card.date;
-  const [today, [p], history, followingList] = await Promise.all([creatorTips(tipster.id, date), tipsterProfiles([tipster]), tipsterHistory(tipster.id, date, 2000), followedTipsters(viewer)]);
+  const [todayAll, [p], history, followingList] = await Promise.all([creatorTips(tipster.id, date), tipsterProfiles([tipster]), tipsterHistory(tipster.id, date, 2000), followedTipsters(viewer)]);
+  const member = hasAccess(viewer, date);
+  // Calls still to run are for members only; their own page always shows a tipster everything.
+  const today = todayAll.filter(tipVisible(member || tipster.user_id === viewer.id));
+  const todayHidden = todayAll.length - today.length;
   const reactions = await reactionsFor(today.map((t) => t.id), viewer.id);
   const following = followingList.some((t) => t.id === tipster.id);
   const you = tipster.user_id === viewer.id;
-  const member = hasAccess(viewer, date);
 
   // The window the record shows, and the calls in it, oldest first for the line.
   const period = tipsterPeriod(sp.p);
@@ -150,8 +153,13 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
 
       {/* Today, as cards. */}
       <Fold title={<>Today <span className="font-sans text-xs font-normal text-ink-soft ml-1">{longDate(date)}</span></>} className="mb-4">
+        {todayHidden > 0 && (
+          <p className="text-sm mb-3">
+            <strong>{todayHidden} {todayHidden === 1 ? "call" : "calls"} still to run</strong>, for members only. <Link href="/pricing" className="font-semibold text-blue hover:underline">See the plans</Link>
+          </p>
+        )}
         {today.length === 0 ? (
-          <p className="text-sm text-ink-soft">{tipster.name} has not posted today{following ? ". You will get an email when they do." : "."}</p>
+          todayHidden > 0 ? null : <p className="text-sm text-ink-soft">{tipster.name} has not posted today{following ? ". You will get an email when they do." : "."}</p>
         ) : (
           <ul className="divide-y divide-line">
             {[...today].sort((a, b) => (runner.get(`${a.race_id}:${a.tab_number}`)?.jump ?? "").localeCompare(runner.get(`${b.race_id}:${b.tab_number}`)?.jump ?? "")).map((t) => {

@@ -16,7 +16,7 @@ import { TipsterCallTable } from "@/components/TipsterCallTable";
 import { dailyUnits, ledgerFor } from "@/lib/tips";
 import { UsePassButton } from "@/components/UsePassButton";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { allTipsters, callsOn, followedCalls } from "@/lib/creators";
+import { allTipsters, callsOn, followedCalls, tipVisible } from "@/lib/creators";
 import { jumpTime, longDate, percent, price, signedPercent } from "@/lib/format";
 import { getCardFor, keepFresh, keepPrices, RELEASE_HOUR } from "@/lib/model/source";
 import { callLimit, hasJumped, MIN_EDGE, takeable } from "@/lib/model/publish";
@@ -95,7 +95,10 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   // A follower sees their tipsters' calls above ours, whether or not they have paid.
   const followed = await followedCalls(viewer, date);
   const jumps = new Map(meetings.flatMap((m) => m.races.map((r) => [r.raceId, r.jumpTime] as const)));
-  const theirs = followed.flatMap((f) => f.tips.map((t) => ({ ...t, tipster: f.tipster })));
+  // Calls still to run are for members only; the rest show as the tipster's record.
+  const theirsAll = followed.flatMap((f) => f.tips.map((t) => ({ ...t, tipster: f.tipster })));
+  const theirs = theirsAll.filter(tipVisible(open));
+  const theirsHidden = theirsAll.length - theirs.length;
   const theirsSettled = theirs.filter((t) => t.settled_at);
   const theirsUnits = theirsSettled.reduce((a, t) => a + Number(t.units), 0);
   // Locked out: something real to look at. The record lately, when it is up, and every tipster's
@@ -106,7 +109,9 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
   const weekUnits = week.reduce((a, d) => a + d.units, 0);
   // bets and lays in a day are units by side, not counts.
   const lately = yesterday && yesterday.units > 0 ? { n: yesterday.units, label: "units yesterday", sub: "level stakes, one unit a call" } : weekUnits > 0 ? { n: weekUnits, label: "units, last 7 days", sub: "level stakes, one unit a call" } : undefined;
-  const everyTipster = !open && theirs.length === 0 ? await callsOn(date, await allTipsters()) : [];
+  const everyTipsterAll = !open && theirsAll.length === 0 ? await callsOn(date, await allTipsters()) : [];
+  const everyTipster = everyTipsterAll.filter(tipVisible(open));
+  const everyHidden = everyTipsterAll.length - everyTipster.length;
 
   const calls: Call[] = meetings
     .flatMap((m) =>
@@ -223,9 +228,16 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
 
       {everyTipster.length > 0 && (
         <div className="mb-4">
-          <Section id="tipsters-today" letter="T" title="Tipsters today" aside={<Link href="/tipsters" className="text-lime">Free to see, follow one &rarr;</Link>}>
+          <Section id="tipsters-today" letter="T" title="Tipsters today" aside={<Link href="/tipsters" className="text-lime">Follow one &rarr;</Link>}>
             <TipsterCallTable tips={everyTipster} jumps={jumps} showWho />
           </Section>
+        </div>
+      )}
+
+      {/* Tipster calls still to run are members only: the count shows, the horses do not. */}
+      {theirsHidden + everyHidden > 0 && (
+        <div className="mb-4">
+          <Locked id="tipsters-locked" title={`Tipster calls still to run (${theirsHidden + everyHidden})`} letter="T" lines={Math.min(6, Math.max(3, theirsHidden + everyHidden))} heading="Unlock today's tips" brief />
         </div>
       )}
 
