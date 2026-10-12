@@ -355,15 +355,16 @@ export function getMeetingSpeedmaps(meetingId: string, opts: { cacheOnly?: boole
 
 /**
  * A horse's career with benchmarks, by breeding id. 2 credits at five
- * benchmarks. Not cached: the review stores what it needs.
+ * benchmarks, however many past runs: so ask for the lot (the user, 12 Oct
+ * 2026: always keep every run). Not cached: whoever buys it stores it.
  */
 export function getHorse(horseId: string, opts: { numPastRaces?: number; numBenchmarks?: number } = {}) {
   return request<HorseForm>(
     `/b2c/horses/${encodeURIComponent(horseId)}`,
     {
       racesOnly: true,
-      numPastRaces: opts.numPastRaces ?? 3,
-      numBenchmarks: opts.numBenchmarks ?? 3,
+      numPastRaces: opts.numPastRaces ?? 100,
+      numBenchmarks: opts.numBenchmarks ?? 5,
     },
     2,
   );

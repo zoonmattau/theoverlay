@@ -30,15 +30,16 @@ POST = {
     "murraybridge": 734,  # foot of the home straight down the left side, in front of the stands; chutes then 1200, 1800, 2000
     "rosehill": 1807,  # where the stand finder first put it, with the 1400 chute measuring 1400 on the back straight  # end of the long straight by the owners and trainers car park, not the Bundall Road offices
     "murtoa": 380,  # near the end of the straight; the chutes then come out at 1200 and 1600
+    "tamworth": 1110,  # end of the long straight across the top as OSM draws it, the left end turned the user's way up; clockwise (12 Oct 2026)
     "toowoomba": 1485,  # about 400m before the stand finder's guess, placed by eye
     "waggariverside": 1300,  # just before the corner, where its chutes come out at 1100 and 1600
 }
 # Chute starts known from the club: each built chute takes the nearest.
-CHUTE_STARTS = {"bairnsdale": [1200, 1600, 2200], "murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
+CHUTE_STARTS = {"bairnsdale": [1200, 1600, 2200], "tamworth": [1000, 1200, 1400, 1600], "murraybridge": [1200, 1800, 2000], "waggariverside": [1100, 1400, 1600], "randwick": [1200, 1400, 1600]}
 # Chutes the imagery or map draws longer than they are: the one measuring near "from" is cut back at its tip to start "to".
 CHUTE_CUT = {"murraybridge": [(1200, 900)], "bairnsdale": [(1291, 1200), (1705, 1600), (2298, 2200)]}
 # Tracks whose OSM chutes run long or sit close in: how far a chute may measure from its start, and how clear of the course it must stand.
-CHUTE_LOOSE = {"bairnsdale": {"tolerance": 120, "clear": 50}}  # 1200, 1600 and the 2200 off the top of the home straight (the user, 12 Oct 2026)  # the top chute is a short one, for 900m races only
+CHUTE_LOOSE = {"bairnsdale": {"tolerance": 120, "clear": 50}, "tamworth": {"tolerance": 120, "clear": 40}}  # 1200, 1600 and the 2200 off the top of the home straight (the user, 12 Oct 2026)  # the top chute is a short one, for 900m races only
 # Courses not in OpenStreetMap, traced from aerial imagery by scripts/out/tracks/trace.py.
 TRACED = {"murraybridge": "traced from Esri World Imagery", "mildura": "traced from Esri World Imagery", "belmont": "traced from Esri World Imagery", "muswellbrook": "traced from Esri World Imagery", "narromine": "traced from Esri World Imagery", "alicesprings": "traced from Esri World Imagery", "pakenhamsynthetic": "traced from Esri World Imagery", "sandownhillside": "traced from Esri World Imagery", "sale": "traced from Esri World Imagery"}
 # Where the ring round the course in OSM is a property fence, not the outer rail.

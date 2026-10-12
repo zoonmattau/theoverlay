@@ -1,6 +1,8 @@
 import "server-only";
 
 import { getHorse } from "@/lib/formking/client";
+import type { RaceEntry } from "@/lib/formking/types";
+import { rememberRuns, runRowsOf } from "@/lib/model/runs";
 import { bmGap } from "./display";
 import type { PastEvent, SectionKey } from "@/lib/formking/types";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -244,6 +246,8 @@ export async function fetchReviewBatch(date: string, opts: { budgetMs?: number; 
       const form = await getHorse(w.horseId);
       credits += 2;
       run = runOf(form.pastEvents ?? [], date, w.raceId) ?? { stage: "NOT_FOUND" };
+      // The whole career came with it for the same 2 credits: every run goes in the runs table (12 Oct 2026).
+      await rememberRuns(runRowsOf({ horse: form.horse, pastEvents: form.pastEvents } as unknown as RaceEntry, w.horseId)).catch((e) => console.error("[review] runs", e));
     } catch (err) {
       console.error("[review] horse fetch failed", w.horseId, err);
       // Credits gone means stop now, anything else moves on to the next horse.
