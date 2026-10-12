@@ -53,12 +53,22 @@ export async function daysSinceLaunch(): Promise<number> {
   return Math.max(1, Math.ceil((Date.now() - first) / 86400_000) + 1);
 }
 
+/** Every row a query returns, a thousand at a time: one read stops at 1,000 and a month of calls is more (12 Oct 2026, the 30-day line read +82.5u against +110.1u). */
+async function every<T>(page: (from: number, to: number) => PromiseLike<{ data: unknown[] | null }>): Promise<T[]> {
+  const out: T[] = [];
+  for (let from = 0; ; from += 1000) {
+    const { data } = await page(from, from + 999);
+    out.push(...((data ?? []) as T[]));
+    if ((data ?? []).length < 1000) return out;
+  }
+}
+
 /** The model's calls by day: how many, and units at level stakes once settled. */
 export async function modelTipSeries(n: number): Promise<Series[]> {
   const window = days(n);
-  const { data } = await supabaseAdmin().from("tips").select("date, side, units, settled_at, finish_position").eq("source", "model").gte("date", window[0]);
+  const data = await every((a, b) => supabaseAdmin().from("tips").select("date, side, units, settled_at, finish_position").eq("source", "model").gte("date", window[0]).order("id").range(a, b));
   const count = new Map<string, number>(), bets = new Map<string, number>(), lays = new Map<string, number>(), units = new Map<string, number>();
-  for (const t of (data ?? []) as { date: string; side: "back" | "lay"; units: number | null; settled_at: string | null; finish_position: number | null }[]) {
+  for (const t of data as { date: string; side: "back" | "lay"; units: number | null; settled_at: string | null; finish_position: number | null }[]) {
     // A void (off the card, or scratched) was never a call on Today's tips.
     if (t.settled_at && t.finish_position === null) continue;
     add(count, t.date, 1);
@@ -77,11 +87,11 @@ export async function modelTipSeries(n: number): Promise<Series[]> {
 export async function tipsterTipSeries(n: number): Promise<{ all: Series[]; byTipster: { name: string; code: string; series: Series[] }[] }> {
   const db = supabaseAdmin();
   const window = days(n);
-  const [{ data: tips }, { data: affs }] = await Promise.all([
-    db.from("creator_tips").select("affiliate_id, date, units, settled_at").gte("date", window[0]),
+  const [tips, { data: affs }] = await Promise.all([
+    every((a, b) => db.from("creator_tips").select("affiliate_id, date, units, settled_at").gte("date", window[0]).order("id").range(a, b)),
     db.from("affiliates").select("id, name, code").not("user_id", "is", null),
   ]);
-  const rows = (tips ?? []) as { affiliate_id: string; date: string; units: number | null; settled_at: string | null }[];
+  const rows = tips as { affiliate_id: string; date: string; units: number | null; settled_at: string | null }[];
   const build = (xs: typeof rows) => {
     const count = new Map<string, number>(), units = new Map<string, number>();
     for (const t of xs) {
