@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { after } from "next/server";
 import { redirect } from "next/navigation";
 
-import { AFF_COOKIE, FOLLOW_COOKIE, attributeSignup, codeFromInput, followFromCookie } from "@/lib/affiliates";
+import { AFF_COOKIE, FOLLOW_COOKIE, attributeSignup, followFromCookie, signupAffiliate } from "@/lib/affiliates";
 import { ARRIVAL_COOKIE, parseArrival } from "@/lib/arrival";
 import { OAUTH_COOKIE, PROVIDERS, type Provider } from "@/lib/social";
 
@@ -51,7 +51,7 @@ export async function signInWithProvider(provider: Provider, _prev: AuthState, f
   if (signup && form.get("privacy") !== "on") return { error: "Please accept the terms and privacy policy." };
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   const jar = await cookies();
-  const aff = codeFromInput(String(form.get("aff") ?? "")) || jar.get(AFF_COOKIE)?.value || "";
+  const aff = await signupAffiliate(String(form.get("aff") ?? ""), jar.get(AFF_COOKIE)?.value);
   const ref = String(form.get("ref") ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   const wanted = safeNext(form.get("next"));
   const next = wanted === "/" && aff ? "/pricing" : wanted;
@@ -91,7 +91,7 @@ export async function signInWithGoogleToken(input: {
   if (signup && !input.age) return { error: "You need to be 18 or over." };
   if (signup && !input.privacy) return { error: "Please accept the terms and privacy policy." };
   const jar = await cookies();
-  const aff = codeFromInput(input.aff) || jar.get(AFF_COOKIE)?.value || "";
+  const aff = await signupAffiliate(input.aff ?? "", jar.get(AFF_COOKIE)?.value);
   const ref = String(input.ref ?? "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   const wanted = safeNext(input.next);
   const next = wanted === "/" && aff ? "/pricing" : wanted;
@@ -136,7 +136,7 @@ export async function signUp(_prev: AuthState, form: FormData): Promise<AuthStat
 
   const site = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
   // The affiliate field wins over the cookie an earlier click left behind.
-  const aff = codeFromInput(String(form.get("aff") ?? "")) || (await cookies()).get(AFF_COOKIE)?.value;
+  const aff = (await signupAffiliate(String(form.get("aff") ?? ""), (await cookies()).get(AFF_COOKIE)?.value)) || undefined;
   // Someone an affiliate sent lands on the plans once their email is confirmed.
   const wanted = safeNext(form.get("next"));
   const next = wanted === "/" && aff ? "/pricing" : wanted;

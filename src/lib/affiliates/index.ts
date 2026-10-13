@@ -28,8 +28,28 @@ export interface Affiliate {
 
 export const cleanCode = (code: string) => code.toUpperCase().replace(/[^A-Z0-9_-]/g, "").slice(0, 32);
 
-/** The code from whatever someone typed: a bare code or the whole /go/CODE link. */
-export const codeFromInput = (value: string) => cleanCode(value.trim().replace(/^.*\/go\//i, "").split(/[?#/]/)[0] ?? "");
+/**
+ * The code from whatever someone typed: a bare code, a /go/CODE or /t/CODE link, or one of those
+ * wrapped by an app (Instagram's l.instagram.com/?u=https%3A%2F%2F...%2Fgo%2FCHAZ, 13 Oct 2026, read
+ * as the code "HTTPS"). A link with no code in it gives nothing, so the cookie can speak instead.
+ */
+export function codeFromInput(value: string): string {
+  let v = value.trim();
+  for (let i = 0; i < 3 && /%[0-9a-f]{2}/i.test(v); i++) {
+    try { v = decodeURIComponent(v); } catch { break; }
+  }
+  const linked = v.match(/\/(?:go|t)\/([A-Za-z0-9_-]+)/);
+  if (linked) return cleanCode(linked[1]);
+  if (/:\/\/|^www\.|\.[a-z]{2,}\//i.test(v)) return "";
+  return cleanCode(v.split(/[?#/\s]/)[0] ?? "");
+}
+
+/** The affiliate a sign-up goes to: the code typed if it is a real one, else the code their link click left. */
+export async function signupAffiliate(typed: string, cookie: string | undefined): Promise<string> {
+  const code = codeFromInput(typed);
+  if (code && (await affiliateByCode(code))) return code;
+  return cookie ?? "";
+}
 
 export async function affiliateByCode(code: string): Promise<Affiliate | undefined> {
   const clean = cleanCode(code);
