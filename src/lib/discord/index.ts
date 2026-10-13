@@ -104,6 +104,17 @@ async function send(channelName: string, text: string): Promise<string | undefin
   return first;
 }
 
+/** One embed to a channel: the tipster calls, which carry the tipster's avatar. */
+async function sendEmbed(channelName: string, embed: Record<string, unknown>): Promise<string | undefined> {
+  const id = (await channels()).get(channelName);
+  if (!id) {
+    console.error("[discord] no channel named", channelName);
+    return undefined;
+  }
+  const m = await api<{ id: string }>("POST", `/channels/${id}/messages`, { embeds: [embed], allowed_mentions: { parse: [] } });
+  return m.id;
+}
+
 /** Whether this kind of post has gone out for the date, and remembers it once it has. */
 async function once(date: string, kind: string, post: () => Promise<string | undefined>): Promise<boolean> {
   const { data } = await supabaseAdmin().from("discord_posts").select("kind").eq("date", date).eq("kind", kind).maybeSingle();
@@ -396,15 +407,21 @@ const ran = (c: Call) => (c.x.finishPosition! > (c.r.placings?.length ?? 4) && c
  * on Discord get it without the tipster posting twice. A call edited
  * before the jump posts again as an update.
  */
-export async function postTipsterCall(tipster: { name: string; code: string }, tip: { track: string; race_number: number; tab_number: number; horse_name: string; side: "back" | "lay"; price: number; stake?: number; bookie_price?: number | null; comment: string | null; bookie: string | null }, opts: { date: string; meetingId: string; raceId: string; jumpTime?: string; update?: boolean }): Promise<void> {
+export async function postTipsterCall(tipster: { name: string; code: string; avatar_url?: string | null }, tip: { track: string; race_number: number; tab_number: number; horse_name: string; side: "back" | "lay"; price: number; stake?: number; bookie_price?: number | null; comment: string | null; bookie: string | null }, opts: { date: string; meetingId: string; raceId: string; jumpTime?: string; update?: boolean }): Promise<void> {
   if (!discordConfigured()) return;
   try {
-    const square = tip.side === "lay" ? "🟥" : "🟦";
+    // An embed, so the tipster's own avatar heads the post (13 Oct 2026): blue edge for a bet, red for a lay.
     const stake = tip.stake && tip.stake !== 1 ? ` ${tip.stake}u` : "";
     const side = `${tip.side === "lay" ? "Lay" : "Bet"}${stake}`;
-    const head = `${square} **${tipster.name}**${opts.update ? " (updated)" : ""}: ${tip.track} R${tip.race_number} ${clock(opts.jumpTime)}  **${tip.tab_number}. ${tip.horse_name}**  ${side} ${price(tip.bookie_price && tip.bookie_price > 1 ? tip.bookie_price : tip.price)}${tip.bookie ? ` at ${tip.bookie}` : ""}`;
-    const body = [head, ...(tip.comment ? [`> ${tip.comment}`] : []), `${SITE}/t/${tipster.code}`];
-    await send(CHANNELS.tipsters, body.join("\n"));
+    const at = `${price(tip.bookie_price && tip.bookie_price > 1 ? tip.bookie_price : tip.price)}${tip.bookie ? ` at ${tip.bookie}` : ""}`;
+    const url = `${SITE}/t/${tipster.code}`;
+    await sendEmbed(CHANNELS.tipsters, {
+      author: { name: `${tipster.name}${opts.update ? " (updated)" : ""}`, url, ...(tipster.avatar_url ? { icon_url: tipster.avatar_url } : {}) },
+      title: `${tip.track} R${tip.race_number} ${clock(opts.jumpTime)} · ${tip.tab_number}. ${tip.horse_name}`,
+      url,
+      description: [`**${side} ${at}**`, ...(tip.comment ? [`> ${tip.comment}`] : [])].join("\n"),
+      color: tip.side === "lay" ? 0xd93636 : 0x1f6fd6,
+    });
   } catch (err) {
     console.error("[discord] tipster call", err);
   }

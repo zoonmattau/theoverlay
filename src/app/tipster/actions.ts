@@ -57,7 +57,7 @@ export async function postTip(form: FormData): Promise<void> {
   if (!tipster.listed) return;
   after(() =>
     postTipsterCall(
-      { name: tipster.name, code: tipster.code },
+      { name: tipster.name, code: tipster.code, avatar_url: (tipster as { avatar_url?: string | null }).avatar_url ?? null },
       { track: meeting.track, race_number: race.raceNumber, tab_number: tab, horse_name: runner.horseName, side, price, stake, bookie_price, comment, bookie },
       { date, meetingId: meeting.meetingId, raceId, jumpTime: race.jumpTime, update: Boolean(existing) },
     ),
