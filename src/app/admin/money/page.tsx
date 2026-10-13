@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
 import { DayChart, DayTable } from "@/components/DayChart";
+import { BUCKETS, bucketed, type Bucket } from "@/lib/reports";
 import type { MoneyReport } from "@/lib/money";
 import { isAdmin, now } from "@/lib/admin";
 import { adsReport, type AdsReport } from "@/lib/ads/report";
@@ -21,7 +22,9 @@ import { moneyReport, upcomingCharges, type PlanFunnel, type UpcomingCharge } fr
 
 export const metadata: Metadata = { title: "Money", robots: { index: false } };
 
-const WINDOWS = [7, 14, 30, 90] as const;
+const WINDOWS = [7, 14, 30, 90, "all"] as const;
+/** All time runs from the first day of the business (SINCE). */
+const allDays = (today: string) => Math.round((Date.parse(`${today}T12:00:00Z`) - Date.parse(`${SINCE}T12:00:00Z`)) / 86400_000) + 1;
 /** How far ahead Coming up looks, in days. */
 const AHEAD = 7;
 const money = (cents: number) => `$${(cents / 100).toFixed(2)}`;
@@ -41,9 +44,14 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
   const sp = await searchParams;
-  const n = WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? Number(sp.days) : 30;
   // Stripe's charges are read once, far enough out for both Coming up and the rest of the month.
   const today = sydney(Math.floor(now() / 1000));
+  const win: (typeof WINDOWS)[number] = sp.days === "all" ? "all" : WINDOWS.includes(Number(sp.days) as (typeof WINDOWS)[number]) ? (Number(sp.days) as 7 | 14 | 30 | 90) : 30;
+  const n = win === "all" ? allDays(today) : win;
+  // Each chart's bars: a day each, or rolled into weeks, months or years.
+  const by: Bucket = BUCKETS.includes(sp.by as Bucket) ? (sp.by as Bucket) : "day";
+  const span = win === "all" ? "all time" : `the last ${n} days`;
+  const href = (d: (typeof WINDOWS)[number], b: Bucket) => `/admin/money?days=${d}${b === "day" ? "" : `&by=${b}`}`;
   const [y, m] = today.split("-").map(Number);
   const leftInMonth = new Date(Date.UTC(y, m, 0)).getUTCDate() - Number(today.slice(8));
   const [r, prices, upcoming, ads, totals, cash] = await Promise.all([moneyReport(n), priceBook(), upcomingCharges(Math.max(AHEAD + 1, leftInMonth + 1)), adsReport(n), invested(), bank()]);
@@ -57,12 +65,20 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
       <section className="py-6 flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-extrabold tracking-tight">Money</h1>
-          <p className="mt-1 text-sm text-ink-soft">This month, where the money is, and the last {n} days from a click to money in.</p>
+          <p className="mt-1 text-sm text-ink-soft">This month, where the money is, and {span} from a click to money in.</p>
         </div>
-        <div className="flex gap-1" role="group" aria-label="Window">
-          {WINDOWS.map((d) => (
-            <Link key={d} href={`/admin/money?days=${d}`} className={`btn btn-sm ${d === n ? "btn-primary" : "btn-secondary"}`}>{d} days</Link>
-          ))}
+        <div className="flex flex-col items-end gap-1.5">
+          <div className="flex gap-1" role="group" aria-label="Window">
+            {WINDOWS.map((d) => (
+              <Link key={d} href={href(d, by)} className={`btn btn-sm ${d === win ? "btn-primary" : "btn-secondary"}`}>{d === "all" ? "All time" : `${d} days`}</Link>
+            ))}
+          </div>
+          <div className="flex items-center gap-1" role="group" aria-label="Chart bars">
+            <span className="mr-1 text-xs text-ink-soft">Bars by</span>
+            {BUCKETS.map((b) => (
+              <Link key={b} href={href(win, b)} className={`btn btn-sm ${b === by ? "btn-primary" : "btn-secondary"}`}>{b[0].toUpperCase() + b.slice(1)}</Link>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -70,7 +86,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6">
         <PeopleTile n={money(r.mrr_cents)} label="monthly recurring" tone="bet" title={`Paying now, ${r.payingNow.length}`} people={r.payingNow} sum="A month's worth each: a yearly or quarterly bill spread over its months." />
-        <PeopleTile n={money(t.revenue_cents)} label={`paid, ${n} days`} tone="prime" title={`Paid in the last ${n} days, ${r.paidPeople.length}`} people={r.paidPeople} sum={`${money(r.paidPeople.reduce((a, p) => a + (p.cents ?? 0), 0))} in all`} />
+        <PeopleTile n={money(t.revenue_cents)} label={win === "all" ? "paid, all time" : `paid, ${n} days`} tone="prime" title={`Paid in ${span}, ${r.paidPeople.length}`} people={r.paidPeople} sum={`${money(r.paidPeople.reduce((a, p) => a + (p.cents ?? 0), 0))} in all`} />
         <Tile n={r.signups.made} label="accounts made" />
         <Tile n={t.starts} label="trials and passes" />
         <Tile n={t.cancelled} label="cancelled" />
@@ -86,7 +102,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           <Totals t={totals} />
           <ComingUp {...soon} />
           <Fold title="By plan" className="min-w-0">
-            <p className="text-xs text-ink-soft mb-3">Over the last {n} days: trials started, members who paid and what they paid. Active now is today.</p>
+            <p className="text-xs text-ink-soft mb-3">Over {span}: trials started, members who paid and what they paid. Active now is today.</p>
             <div className="overflow-x-auto">
               <table className="data-table stack-sm text-sm">
                 <thead>
@@ -111,7 +127,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           <Bank b={cash} />
           <Ads r={ads} n={n} />
           <Fold title="New accounts" className="min-w-0">
-            <p className="text-xs text-ink-soft mb-3">Everyone who signed up in the last {n} days, and how far they got. Click a piece for who.</p>
+            <p className="text-xs text-ink-soft mb-3">Everyone who signed up in {span}, and how far they got. Click a piece for who.</p>
             <Funnel people={r.signups.people} />
           </Fold>
           <Fold title="Trials">
@@ -137,11 +153,11 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
 
       <Fold title="When" className="mb-6">
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-          {r.byDay.map((s) => <DayChart key={s.key} s={s} />)}
+          {r.byDay.map((s) => <DayChart key={s.key} s={bucketed(s, by)} />)}
         </div>
         <details className="mt-4">
           <summary className="cursor-pointer text-xs font-semibold text-ink-soft">The numbers</summary>
-          <div className="mt-2"><DayTable series={r.byDay} /></div>
+          <div className="mt-2"><DayTable series={r.byDay.map((s) => bucketed(s, by))} /></div>
         </details>
         <details className="mt-4">
           <summary className="cursor-pointer text-xs font-semibold text-ink-soft">Last {r.recent.length} clicks and checkouts</summary>
@@ -161,8 +177,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </details>
       </Fold>
 
-      <Toward t={r.toward} />
-      <Growth g={r.growth} />
+      <Growth g={r.growth} by={by} toward={r.toward} />
     </>
   );
 }
@@ -305,9 +320,8 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
 function Toward({ t }: { t: MoneyReport["toward"] }) {
   const pctLost = Math.round(t.lossRate * 100);
   return (
-    <div className="card mb-6">
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <h2 className="font-display text-lg font-extrabold">Toward {t.goal} paying</h2>
+    <Fold title={`Toward ${t.goal} paying`} className="mt-6 shadow-none" summary={
+      <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
         <span className="text-sm nums"><strong>{t.paying}</strong> paying now</span>
         <span className="text-sm nums text-accent font-semibold">+{t.added} new</span>
         <span className="text-sm nums text-red font-semibold">&minus;{t.lost} lost ({pctLost}%)</span>
@@ -315,15 +329,52 @@ function Toward({ t }: { t: MoneyReport["toward"] }) {
           {t.level !== undefined ? <>Levels off near <strong className={t.level >= t.goal ? "text-accent" : ""}>{t.level}</strong></> : "Nobody lost yet"}
         </span>
       </div>
-      <p className="mt-1 text-xs text-ink-soft">
+    }>
+      <GoalMeter paying={t.paying} renewed={t.renewed} goal={t.goal} level={t.level} />
+      <p className="mt-2 text-xs text-ink-soft">
         Last 30 days. New had never paid before, lost paid in the month and not today. {t.goal} needs about 15 new a month losing 15%, or 20 losing 20%.
       </p>
+    </Fold>
+  );
+}
+
+/**
+ * The goal as a bar: paying now filled from zero, renewed members first in the darker green and
+ * first-bill members after them in lime, quarter ticks, and where the month's pace levels off as
+ * a marker. The scale runs past the goal when the level does, so the marker never pins to the
+ * edge; the goal keeps its own tick.
+ */
+function GoalMeter({ paying, renewed, goal, level }: { paying: number; renewed: number; goal: number; level?: number }) {
+  const max = Math.max(goal, paying, level ?? 0) * (level !== undefined && level > goal ? 1.1 : 1);
+  const at = (n: number) => `${Math.min(100, (n / max) * 100)}%`;
+  const ticks = [0.25, 0.5, 0.75].map((f) => Math.round(goal * f));
+  return (
+    <div className="mt-4" role="img" aria-label={`${paying} of ${goal} paying${level !== undefined ? `, levels off near ${level}` : ""}`}>
+      <div className="relative h-4 rounded bg-surface-alt">
+        <div className="absolute inset-y-0 left-0 rounded bg-lime" style={{ width: at(paying) }} title={`${paying - renewed} on their first bill, ${paying} paying in all (${Math.round((paying / goal) * 100)}% of ${goal})`} />
+        {renewed > 0 && <div className="absolute inset-y-0 left-0 rounded bg-accent border-r-2 border-panel" style={{ width: at(renewed) }} title={`${renewed} renewed: paid a second bill or more`} />}
+        {ticks.map((n) => <div key={n} className="absolute inset-y-0 w-0.5 bg-panel" style={{ left: at(n) }} aria-hidden />)}
+        {level !== undefined && (
+          <div className="absolute -inset-y-1.5 w-0.5 bg-ink" style={{ left: at(level) }} title={`At this month's pace, levels off near ${level}`} />
+        )}
+      </div>
+      <div className="relative mt-1 h-4 text-[11px] text-ink-soft nums">
+        <span className="absolute left-0">0</span>
+        {ticks.map((n) => <span key={n} className="absolute -translate-x-1/2" style={{ left: at(n) }}>{n}</span>)}
+        <span className={`absolute font-semibold text-ink ${goal / max >= 0.97 ? "right-0" : "-translate-x-1/2"}`} style={goal / max >= 0.97 ? undefined : { left: at(goal) }}>{goal}</span>
+        {level !== undefined && <span className="absolute -translate-x-1/2 whitespace-nowrap font-semibold text-ink" style={{ left: at(level), top: "1rem" }}>levels off ~{level}</span>}
+      </div>
+      {level !== undefined && <div className="h-4" aria-hidden />}
+      <div className="mt-1 flex flex-wrap gap-x-4 text-xs text-ink-secondary nums">
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-accent" aria-hidden />Renewed <strong>{renewed}</strong></span>
+        <span className="flex items-center gap-1.5"><span className="h-2.5 w-2.5 rounded-sm bg-lime" aria-hidden />First bill <strong>{paying - renewed}</strong></span>
+      </div>
     </div>
   );
 }
 
 /** Are we growing: new accounts and trial sign-ups a day, each with this week against last, then all accounts and paying members over time. */
-function Growth({ g }: { g: MoneyReport["growth"] }) {
+function Growth({ g, by, toward }: { g: MoneyReport["growth"]; by: Bucket; toward: MoneyReport["toward"] }) {
   return (
     <Fold title="Growth" className="mb-6" summary={
       <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
@@ -332,11 +383,12 @@ function Growth({ g }: { g: MoneyReport["growth"] }) {
       </div>
     }>
       <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
-        <DayChart s={g.accounts} />
-        <DayChart s={g.trials} />
-        <DayChart s={g.allAccounts} />
-        <DayChart s={g.paying} />
+        <DayChart s={bucketed(g.accounts, by)} />
+        <DayChart s={bucketed(g.trials, by)} />
+        <DayChart s={bucketed(g.allAccounts, by)} />
+        <DayChart s={bucketed(g.paying, by)} />
       </div>
+      <Toward t={toward} />
     </Fold>
   );
 }

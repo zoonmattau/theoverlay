@@ -24,6 +24,45 @@ export interface Series {
   total: number;
   /** What the total is, after the figure; "in the window" when unset. */
   totalLabel?: string;
+  /** A level (members, accounts) rather than a flow: a bucket shows its last day, not a sum. */
+  level?: boolean;
+  /** What each point covers; a day when unset. */
+  by?: Bucket;
+  /** The value split into kinds, stacked in this order, each lined up with points; they add up to the value. */
+  parts?: { label: string; colour: string; values: number[] }[];
+}
+
+export type Bucket = "day" | "week" | "month" | "year";
+export const BUCKETS: Bucket[] = ["day", "week", "month", "year"];
+
+/** The first day of the bucket a yyyy-mm-dd falls in: the Monday, the 1st, or 1 January. */
+function bucketStart(date: string, by: Bucket): string {
+  if (by === "month") return `${date.slice(0, 7)}-01`;
+  if (by === "year") return `${date.slice(0, 4)}-01-01`;
+  if (by === "week") {
+    const d = new Date(`${date}T12:00:00Z`);
+    d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
+    return d.toISOString().slice(0, 10);
+  }
+  return date;
+}
+
+/**
+ * A day series rolled into weeks, months or years, each point dated by its bucket's first day:
+ * a flow adds up, a level keeps the bucket's last day. The total is unchanged.
+ */
+export function bucketed(s: Series, by: Bucket): Series {
+  if (by === "day") return s;
+  const out = new Map<string, number>();
+  const at = new Map<string, number[]>();
+  s.points.forEach((p, i) => {
+    const k = bucketStart(p.date, by);
+    out.set(k, s.level ? p.value : Math.round(((out.get(k) ?? 0) + p.value) * 100) / 100);
+    at.set(k, [...(at.get(k) ?? []), i]);
+  });
+  const keys = [...out.keys()];
+  const roll = (values: number[]) => keys.map((k) => (s.level ? values[at.get(k)!.at(-1)!] : at.get(k)!.reduce((a, i) => a + values[i], 0)));
+  return { ...s, by, points: keys.map((date) => ({ date, value: out.get(date)! })), parts: s.parts?.map((p) => ({ ...p, values: roll(p.values) })) };
 }
 
 function days(n: number): string[] {

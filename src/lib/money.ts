@@ -145,6 +145,8 @@ export const PAYING_GOAL = 100;
 export interface Toward {
   goal: number;
   paying: number;
+  /** Of those paying now, how many have paid a second bill: renewed, not on their first. */
+  renewed: number;
   added: number;
   lost: number;
   /** Lost over the month's average paying count, 0 to 1. */
@@ -156,12 +158,18 @@ export interface Toward {
 async function towardGoal(): Promise<Toward> {
   const [all, { data: pays }] = await Promise.all([
     accessHistory(undefined, undefined, { everyDay: true }),
-    supabaseAdmin().from("events").select("user_id, created_at").eq("kind", "payment").gt("amount_cents", 0).order("created_at").limit(20000),
+    supabaseAdmin().from("events").select("user_id, created_at, meta").eq("kind", "payment").gt("amount_cents", 0).order("created_at").limit(20000),
   ]);
   // Paying means money taken by then: a plan Stripe calls active with nothing paid is not a member
   // gained or lost (the five 12 Oct 2026 rebills that never paid read as both).
   const firstPaid = new Map<string, string>();
-  for (const e of (pays ?? []) as { user_id: string | null; created_at: string }[]) if (e.user_id && !firstPaid.has(e.user_id)) firstPaid.set(e.user_id, sydneyDay(e.created_at));
+  // Plan bills carry their invoice; a day pass bought at checkout does not, so it is never a renewal.
+  const bills = new Map<string, number>();
+  for (const e of (pays ?? []) as { user_id: string | null; created_at: string; meta: { invoice?: string } | null }[]) {
+    if (!e.user_id) continue;
+    if (!firstPaid.has(e.user_id)) firstPaid.set(e.user_id, sydneyDay(e.created_at));
+    if (e.meta?.invoice) bills.set(e.user_id, (bills.get(e.user_id) ?? 0) + 1);
+  }
   const ids = (h?: AccessDay) => (h?.who?.paying ?? []).filter((id) => (firstPaid.get(id) ?? "9999") <= h!.date);
   const month = all.slice(-30);
   const start = new Set(ids(all.at(-31)));
@@ -173,7 +181,8 @@ async function towardGoal(): Promise<Toward> {
   // Over the members there were to lose: those at the start, and half of those who joined in the month.
   const exposed = start.size + added / 2;
   const lossRate = exposed ? lost / exposed : 0;
-  return { goal: PAYING_GOAL, paying: today.size, added, lost, lossRate, level: lossRate ? Math.round(added / lossRate) : undefined };
+  const renewed = [...today].filter((id) => (bills.get(id) ?? 0) >= 2).length;
+  return { goal: PAYING_GOAL, paying: today.size, renewed, added, lost, lossRate, level: lossRate ? Math.round(added / lossRate) : undefined };
 }
 
 export async function moneyReport(days: number): Promise<MoneyReport> {
@@ -311,6 +320,19 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     return { key, title, format: "count" as const, points, total: points.reduce((a, p) => a + p.value, 0) };
   };
   const accountDays = people.map((m) => sydneyDay(m.created_at));
+  // New accounts split by kind: tipsters, and anyone the admin gave access (days, an invite, free for good).
+  const [{ data: affs }, { data: gifts }] = await Promise.all([
+    supabaseAdmin().from("affiliates").select("user_id").not("user_id", "is", null),
+    supabaseAdmin().from("events").select("user_id").eq("kind", "admin").in("meta->>action", ["add_days", "invite", "free_for_good"]),
+  ]);
+  const tipsterIds = new Set((affs ?? []).map((a) => a.user_id as string));
+  const grantedIds = new Set((gifts ?? []).map((g) => g.user_id as string));
+  const kindOf = (m: Member) => (tipsterIds.has(m.id) ? "tipster" : grantedIds.has(m.id) ? "granted" : "member");
+  const accountsSplit = (kind: string) => {
+    const by = new Map<string, number>();
+    for (const m of people) if (kindOf(m) === kind) by.set(sydneyDay(m.created_at), (by.get(sydneyDay(m.created_at)) ?? 0) + 1);
+    return window.map((date) => by.get(date) ?? 0);
+  };
   const trialDays = people.filter((m) => m.subscribed_since).map((m) => sydneyDay(m.subscribed_since!));
   // The last 7 whole-or-part days against the 7 before them.
   const weekOf = (dates: string[]): [number, number] => {
@@ -324,9 +346,16 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const payingOn = new Map(history.map((h) => [h.date, h.counts.paying]));
   const payingPoints = window.map((date) => ({ date, value: payingOn.get(date) ?? 0 }));
   const growth = {
-    allAccounts: { key: "allAccounts", title: "Accounts", format: "count" as const, points: allPoints, total: allPoints.at(-1)?.value ?? 0, totalLabel: "now" },
-    paying: { key: "paying", title: "Paying members", format: "count" as const, points: payingPoints, total: payingPoints.at(-1)?.value ?? 0, totalLabel: "now" },
-    accounts: count("accounts", "New accounts", accountDays),
+    allAccounts: { key: "allAccounts", title: "Accounts", format: "count" as const, points: allPoints, total: allPoints.at(-1)?.value ?? 0, totalLabel: "now", level: true },
+    paying: { key: "paying", title: "Paying members", format: "count" as const, points: payingPoints, total: payingPoints.at(-1)?.value ?? 0, totalLabel: "now", level: true },
+    accounts: {
+      ...count("accounts", "New accounts", accountDays),
+      parts: [
+        { label: "Members", colour: "#14161a", values: accountsSplit("member") },
+        { label: "Tipsters", colour: "#1f6fd6", values: accountsSplit("tipster") },
+        { label: "Granted access", colour: "#6f9a12", values: accountsSplit("granted") },
+      ],
+    },
     trials: count("trials", "Trial sign-ups", trialDays),
     week: { accounts: weekOf(accountDays), trials: weekOf(trialDays) },
   };
