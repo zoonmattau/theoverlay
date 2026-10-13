@@ -333,7 +333,7 @@ function Toward({ t }: { t: MoneyReport["toward"] }) {
     }>
       <GoalMeter paying={t.paying} renewed={t.renewed} goal={t.goal} level={t.level} />
       <p className="mt-2 text-xs text-ink-soft">
-        Last 30 days. New had never paid before, lost paid in the month and not today. {t.goal} needs about 15 new a month losing 15%, or 20 losing 20%.
+        Last 30 days. New had never paid before, lost paid in the month and not today.
       </p>
     </Fold>
   );
