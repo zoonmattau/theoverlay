@@ -28,8 +28,6 @@ export interface Series {
   level?: boolean;
   /** What each point covers; a day when unset. */
   by?: Bucket;
-  /** The value split into kinds, stacked in this order, each lined up with points; they add up to the value. */
-  parts?: { label: string; colour: string; values: number[] }[];
 }
 
 export type Bucket = "day" | "week" | "month" | "year";
@@ -54,15 +52,11 @@ function bucketStart(date: string, by: Bucket): string {
 export function bucketed(s: Series, by: Bucket): Series {
   if (by === "day") return s;
   const out = new Map<string, number>();
-  const at = new Map<string, number[]>();
-  s.points.forEach((p, i) => {
+  for (const p of s.points) {
     const k = bucketStart(p.date, by);
     out.set(k, s.level ? p.value : Math.round(((out.get(k) ?? 0) + p.value) * 100) / 100);
-    at.set(k, [...(at.get(k) ?? []), i]);
-  });
-  const keys = [...out.keys()];
-  const roll = (values: number[]) => keys.map((k) => (s.level ? values[at.get(k)!.at(-1)!] : at.get(k)!.reduce((a, i) => a + values[i], 0)));
-  return { ...s, by, points: keys.map((date) => ({ date, value: out.get(date)! })), parts: s.parts?.map((p) => ({ ...p, values: roll(p.values) })) };
+  }
+  return { ...s, by, points: [...out].map(([date, value]) => ({ date, value })) };
 }
 
 function days(n: number): string[] {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, type ReactNode } from "react";
+import { useId, useState } from "react";
 
 import type { Bucket, Series } from "@/lib/reports";
 
@@ -66,15 +66,8 @@ export function DayChart({ s, cumulative, hrefBase }: { s: Series; cumulative?: 
     <figure className="m-0">
       <figcaption className="flex items-baseline justify-between gap-3 mb-1">
         <span className="text-[11px] uppercase tracking-[0.08em] font-extrabold text-ink-soft">{s.title}{cumulative ? ", running total" : ""}</span>
-        <span className="nums text-sm font-semibold">{h ? `${short(h.date, by)}: ${fmt(h.value, s.format)}${s.parts ? ` (${s.parts.filter((p) => p.values[hover!]).map((p) => `${p.values[hover!]} ${p.label.toLowerCase()}`).join(", ")})` : ""}` : `${fmt(s.total, s.format)} ${s.totalLabel ?? "in the window"}`}</span>
+        <span className="nums text-sm font-semibold">{h ? `${short(h.date, by)}: ${fmt(h.value, s.format)}` : `${fmt(s.total, s.format)} ${s.totalLabel ?? "in the window"}`}</span>
       </figcaption>
-      {s.parts && (
-        <div className="mb-1 flex flex-wrap gap-x-3 text-[11px] text-ink-secondary">
-          {s.parts.map((p) => (
-            <span key={p.label} className="flex items-center gap-1"><span className="h-2 w-2 rounded-sm" style={{ background: p.colour }} aria-hidden />{p.label} <span className="nums font-semibold">{p.values.reduce((a, v) => a + v, 0)}</span></span>
-          ))}
-        </div>
-      )}
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full h-auto block" role="img" aria-labelledby={`${id}-t`} onMouseLeave={() => setHover(null)}>
         <title id={`${id}-t`}>{`${s.title} by ${by}`}</title>
         {tk.map((v) => (
@@ -90,16 +83,7 @@ export function DayChart({ s, cumulative, hrefBase }: { s: Series; cumulative?: 
           return (
             <g key={p.date} onMouseEnter={() => setHover(i)} onClick={hrefBase && by === "day" ? () => router.push(`${hrefBase}${p.date}`) : undefined} className={hrefBase && by === "day" ? "cursor-pointer" : undefined}>
               <rect x={PAD.l + i * slot} y={PAD.t} width={slot} height={plotH} fill="transparent" />
-              {hh > 0 && !s.parts && <rect x={x} y={yy} width={bw} height={Math.max(1, hh)} rx={Math.min(2, bw / 2)} fill={colour(p.value)} opacity={hover === null || hover === i ? 1 : 0.45} />}
-              {/* Stacked kinds from the baseline up, a 2px surface gap between them. */}
-              {s.parts && s.parts.reduce<{ base: number; out: ReactNode[] }>((acc, part) => {
-                const v = part.values[i] ?? 0;
-                if (v <= 0) return acc;
-                const y0 = y(acc.base), y1 = y(acc.base + v);
-                acc.out.push(<rect key={part.label} x={x} y={y1} width={bw} height={Math.max(1, y0 - y1 - (acc.base > 0 ? 2 : 0))} rx={Math.min(2, bw / 2)} fill={part.colour} opacity={hover === null || hover === i ? 1 : 0.45} />);
-                acc.base += v;
-                return acc;
-              }, { base: 0, out: [] }).out}
+              {hh > 0 && <rect x={x} y={yy} width={bw} height={Math.max(1, hh)} rx={Math.min(2, bw / 2)} fill={colour(p.value)} opacity={hover === null || hover === i ? 1 : 0.45} />}
               {i % labelEvery === 0 && (
                 <text x={PAD.l + i * slot + slot / 2} y={H - 8} textAnchor="middle" fontSize={10} fill="#8b918a" fontFamily="var(--font-mono)">{short(p.date, by)}</text>
               )}

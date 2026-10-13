@@ -54,6 +54,9 @@ const PARTS: { stage: Stage; label: string; cls: string }[] = [
   { stage: "ended", label: "plan ended", cls: "bg-ink-soft" },
   { stage: "trial", label: "on a trial now", cls: "bg-blue" },
   { stage: "paying", label: "paying now", cls: "bg-lime" },
+  // Not customers on the way in, so after the run of stages, in colours of their own.
+  { stage: "tipster", label: "tipsters", cls: "bg-[#7b4fd0]" },
+  { stage: "granted", label: "given access by you", cls: "bg-ink" },
 ];
 
 /**

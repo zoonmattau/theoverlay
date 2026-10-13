@@ -46,7 +46,7 @@ export interface Person {
 }
 
 /** Where a new account got to, furthest first. */
-export type Stage = "paying" | "trial" | "ended" | "confirmed" | "unconfirmed";
+export type Stage = "paying" | "trial" | "ended" | "confirmed" | "unconfirmed" | "tipster" | "granted";
 
 export interface MoneyReport {
   days: number;
@@ -244,6 +244,14 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     return { id, who: m?.full_name || m?.email || "a member", email: m?.email ?? null, plan, cents: v.cents };
   }).sort((a, b) => b.cents - a.cents);
 
+  // New accounts split by kind: tipsters, and anyone the admin gave access (days, an invite, free for good).
+  const [{ data: affs }, { data: gifts }] = await Promise.all([
+    supabaseAdmin().from("affiliates").select("user_id").not("user_id", "is", null),
+    supabaseAdmin().from("events").select("user_id").eq("kind", "admin").in("meta->>action", ["add_days", "invite", "free_for_good"]),
+  ]);
+  const tipsterIds = new Set((affs ?? []).map((a) => a.user_id as string));
+  const grantedIds = new Set((gifts ?? []).map((g) => g.user_id as string));
+  const kindOf = (m: Member) => (tipsterIds.has(m.id) ? "tipster" : grantedIds.has(m.id) ? "granted" : "member");
   const joined = members.filter((m) => m.created_at >= since);
   const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && paidUp(m));
   const signups = {
@@ -255,7 +263,10 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     // Each person once, at the furthest place they got; the bar's pieces are these counts.
     people: joined.map((m) => {
       const live = Boolean(m.access_until && new Date(m.access_until).getTime() > now);
-      const stage: Stage = paying(m) ? "paying"
+      // Tipsters and accounts given access are not customers on the way in: they get their own pieces.
+      const kind = kindOf(m);
+      const stage: Stage = kind !== "member" ? kind
+        : paying(m) ? "paying"
         : live && (m.subscription_status === "trialing" || m.subscription_status === "active") ? "trial"
         : m.subscribed_since ? "ended"
         : m.confirmed_at ? "confirmed" : "unconfirmed";
@@ -320,19 +331,6 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     return { key, title, format: "count" as const, points, total: points.reduce((a, p) => a + p.value, 0) };
   };
   const accountDays = people.map((m) => sydneyDay(m.created_at));
-  // New accounts split by kind: tipsters, and anyone the admin gave access (days, an invite, free for good).
-  const [{ data: affs }, { data: gifts }] = await Promise.all([
-    supabaseAdmin().from("affiliates").select("user_id").not("user_id", "is", null),
-    supabaseAdmin().from("events").select("user_id").eq("kind", "admin").in("meta->>action", ["add_days", "invite", "free_for_good"]),
-  ]);
-  const tipsterIds = new Set((affs ?? []).map((a) => a.user_id as string));
-  const grantedIds = new Set((gifts ?? []).map((g) => g.user_id as string));
-  const kindOf = (m: Member) => (tipsterIds.has(m.id) ? "tipster" : grantedIds.has(m.id) ? "granted" : "member");
-  const accountsSplit = (kind: string) => {
-    const by = new Map<string, number>();
-    for (const m of people) if (kindOf(m) === kind) by.set(sydneyDay(m.created_at), (by.get(sydneyDay(m.created_at)) ?? 0) + 1);
-    return window.map((date) => by.get(date) ?? 0);
-  };
   const trialDays = people.filter((m) => m.subscribed_since).map((m) => sydneyDay(m.subscribed_since!));
   // The last 7 whole-or-part days against the 7 before them.
   const weekOf = (dates: string[]): [number, number] => {
@@ -348,14 +346,7 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
   const growth = {
     allAccounts: { key: "allAccounts", title: "Accounts", format: "count" as const, points: allPoints, total: allPoints.at(-1)?.value ?? 0, totalLabel: "now", level: true },
     paying: { key: "paying", title: "Paying members", format: "count" as const, points: payingPoints, total: payingPoints.at(-1)?.value ?? 0, totalLabel: "now", level: true },
-    accounts: {
-      ...count("accounts", "New accounts", accountDays),
-      parts: [
-        { label: "Members", colour: "#14161a", values: accountsSplit("member") },
-        { label: "Tipsters", colour: "#1f6fd6", values: accountsSplit("tipster") },
-        { label: "Granted access", colour: "#6f9a12", values: accountsSplit("granted") },
-      ],
-    },
+    accounts: count("accounts", "New accounts", accountDays),
     trials: count("trials", "Trial sign-ups", trialDays),
     week: { accounts: weekOf(accountDays), trials: weekOf(trialDays) },
   };

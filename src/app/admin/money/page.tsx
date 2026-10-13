@@ -129,6 +129,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
           <Fold title="New accounts" className="min-w-0">
             <p className="text-xs text-ink-soft mb-3">Everyone who signed up in {span}, and how far they got. Click a piece for who.</p>
             <Funnel people={r.signups.people} />
+            <Toward t={r.toward} />
           </Fold>
           <Fold title="Trials">
             <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
@@ -177,7 +178,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </details>
       </Fold>
 
-      <Growth g={r.growth} by={by} toward={r.toward} />
+      <Growth g={r.growth} by={by} />
     </>
   );
 }
@@ -320,7 +321,7 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
 function Toward({ t }: { t: MoneyReport["toward"] }) {
   const pctLost = Math.round(t.lossRate * 100);
   return (
-    <Fold title={`Toward ${t.goal} paying`} className="mt-6 shadow-none" summary={
+    <Fold title={`Toward ${t.goal} paying`} className="mt-3 shadow-none" summary={
       <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
         <span className="text-sm nums"><strong>{t.paying}</strong> paying now</span>
         <span className="text-sm nums text-accent font-semibold">+{t.added} new</span>
@@ -374,7 +375,7 @@ function GoalMeter({ paying, renewed, goal, level }: { paying: number; renewed: 
 }
 
 /** Are we growing: new accounts and trial sign-ups a day, each with this week against last, then all accounts and paying members over time. */
-function Growth({ g, by, toward }: { g: MoneyReport["growth"]; by: Bucket; toward: MoneyReport["toward"] }) {
+function Growth({ g, by }: { g: MoneyReport["growth"]; by: Bucket }) {
   return (
     <Fold title="Growth" className="mb-6" summary={
       <div className="mt-2 flex flex-col gap-1 sm:flex-row sm:gap-8">
@@ -388,7 +389,6 @@ function Growth({ g, by, toward }: { g: MoneyReport["growth"]; by: Bucket; towar
         <DayChart s={bucketed(g.allAccounts, by)} />
         <DayChart s={bucketed(g.paying, by)} />
       </div>
-      <Toward t={toward} />
     </Fold>
   );
 }
