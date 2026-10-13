@@ -24,7 +24,7 @@ import { execFileSync } from "node:child_process";
 import { readStoredCard } from "../src/lib/model/store";
 import { KNOWN_BOOKIES } from "../src/lib/bookies";
 import { supabaseAdmin } from "../src/lib/billing/access";
-import { PLANS, TRIAL_DAYS } from "../src/lib/billing/plans";
+import { PLANS } from "../src/lib/billing/plans";
 
 void (async () => {
   const [date, ...raceIds] = process.argv.slice(2);
@@ -352,7 +352,7 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
       : // The card above names the horse; down here is only how to spot it: the saddlecloth and who is riding.
         `<div class="panel bottom"><div class="watch"><div class="cloth">${r.tab}</div><div><i>WATCH THE ${r.tab}</i><b>${r.jockey}</b>` +
         `<span>${[r.barrier ? `barrier ${r.barrier}` : "", r.distance ? `${r.distance}m` : ""].filter(Boolean).join(" · ")}</span></div></div>`) +
-    `<div class="trial"><b>${LAYS || BETS ? "Every call" : "Every Prime bet"}, ${TRIAL_DAYS} days free</b><span>then from $${Math.min(...PLANS.map((p) => p.price))} a month <em>theoverlay.com.au</em></span></div></div>`;
+    `<div class="trial"><b>${LAYS || BETS ? "Every call" : "Every Prime bet"}, 5 weeks for the price of 4</b><span>then from $${Math.min(...PLANS.map((p) => p.price))} a month <em>theoverlay.com.au</em></span></div></div>`;
   // The opening for BETS=1 goes over the presenter's own footage: the date and
   // the day's profit counting up across the top third, a fade behind them so
   // they read over any shot, and the rest left clear for the face.

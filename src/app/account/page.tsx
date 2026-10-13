@@ -152,8 +152,8 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
                 <PlanTab viewer={viewer} plan={plan ?? planById("everyday")!} preview={as ? previewOf(sp) : undefined} />
               ) : (
                 <>
-                  <p className="text-sm text-ink-secondary">No plan yet. Pick the days you bet and try it free for seven days.{viewer.bonusLive ? ` Your gift access runs until ${longDate(viewer.bonusUntil!.slice(0, 10))}.` : ""}</p>
-                  <Link href="/pricing" className="btn btn-primary btn-sm mt-3">Start free trial</Link>
+                  <p className="text-sm text-ink-secondary">No plan yet. Pick the days you bet and your first month runs 5 weeks.{viewer.bonusLive ? ` Your gift access runs until ${longDate(viewer.bonusUntil!.slice(0, 10))}.` : ""}</p>
+                  <Link href="/pricing" className="btn btn-primary btn-sm mt-3">See the plans</Link>
                 </>
               )}
             </Panel>
@@ -323,7 +323,7 @@ function InstagramDay({ member }: { member: boolean }) {
 function Overview({ viewer, following, invited, runs }: { viewer: Viewer; following: number; invited: number; runs: boolean }) {
   // The nudge: the thing most worth doing from here, if anything.
   const nudge = !viewer.pro && !viewer.admin && !viewer.bonusLive
-    ? { text: "No plan yet. Seven days free to start.", href: "/pricing", cta: "Start free trial" }
+    ? { text: "No plan yet. Your first month runs 5 weeks.", href: "/pricing", cta: "See the plans" }
     : viewer.paused
       ? { text: "Your plan is paused, so the board is closed.", href: "/account?tab=plan", cta: "Resume it" }
       : !viewer.discordName

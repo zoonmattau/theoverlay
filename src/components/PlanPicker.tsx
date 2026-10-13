@@ -29,12 +29,12 @@ export interface PickerPlan {
 
 type TermId = "month" | "quarter" | "year" | "week";
 
-const TERMS: { id: TermId; label: string; short: string; months: number; per: string; billed: string; noTrial?: boolean }[] = [
-  // No free trial: paid from today, for anyone who wants in without one (5 Oct 2026). Shortest first, left of Monthly.
-  { id: "week", label: "Weekly", short: "Weekly", months: 12 / 52, per: "/week", billed: "billed weekly", noTrial: true },
-  { id: "month", label: "Monthly", short: "Monthly", months: 1, per: "/month", billed: "billed monthly" },
-  { id: "quarter", label: "Quarterly", short: "Quarterly", months: 3, per: "/quarter", billed: "billed quarterly" },
-  { id: "year", label: "Yearly", short: "Yearly", months: 12, per: "/year", billed: "billed yearly" },
+// Every term is paid from today; all but weekly run a week longer on the first bill (13 Oct 2026). Weekly first, left of Monthly.
+const TERMS: { id: TermId; label: string; short: string; months: number; per: string; billed: string; first?: string }[] = [
+  { id: "week", label: "Weekly", short: "Weekly", months: 12 / 52, per: "/week", billed: "billed weekly" },
+  { id: "month", label: "Monthly", short: "Monthly", months: 1, per: "/month", billed: "billed monthly", first: "first month" },
+  { id: "quarter", label: "Quarterly", short: "Quarterly", months: 3, per: "/quarter", billed: "billed quarterly", first: "first 3 months" },
+  { id: "year", label: "Yearly", short: "Yearly", months: 12, per: "/year", billed: "billed yearly", first: "first year" },
 ];
 
 /**
@@ -71,7 +71,7 @@ export function DayStrip({ days }: { days: number[] }) {
   );
 }
 
-export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savings }: { plans: PickerPlan[]; signedIn: boolean; pro: boolean; currentPlan?: string; trialDays: number; savings: Partial<Record<TermId, number>> }) {
+export function PlanPicker({ plans, signedIn, pro, currentPlan, savings, freeWeek }: { plans: PickerPlan[]; signedIn: boolean; pro: boolean; currentPlan?: string; savings: Partial<Record<TermId, number>>; freeWeek: boolean }) {
   const [term, setTerm] = useState<TermId>("month");
   const t = TERMS.find((x) => x.id === term)!;
   // The switch says what a term saves on weekly (TERM_SAVES, set by hand); each card says its own.
@@ -130,6 +130,8 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                     <div className="flex items-baseline gap-1">
                       <span className="font-display text-4xl font-extrabold tracking-tight tabular-nums">${bill}</span>
                       <span className="text-sm text-ink-soft">{t.per}</span>
+                      {/* The free week on the first bill: the offer, so it sits on the price, not under the button. */}
+                      {freeWeek && t.first && <span className="ml-auto self-center rounded-full bg-lime px-2.5 py-0.5 text-xs font-extrabold text-ink">+1 week free</span>}
                     </div>
                     <div className="mt-0.5 text-sm text-ink-secondary tabular-nums">
                       {/* The bill spread over the weeks it covers, to the cent, then what the term saves. */}
@@ -159,12 +161,12 @@ export function PlanPicker({ plans, signedIn, pro, currentPlan, trialDays, savin
                     plan={p.id}
                     term={term}
                     signedIn={signedIn}
-                    label={pro ? "Switch to this plan" : t.noTrial ? `Start for $${bill}` : `Try free for ${trialDays} days`}
+                    label={pro ? "Switch to this plan" : `Start for $${bill}`}
                     className={`btn w-full ${p.highlight ? "btn-primary" : "btn-secondary"}`}
                   />
                   {!pro && (
                     <p className="mt-2 text-center text-xs text-ink-soft tabular-nums">
-                      {t.noTrial ? <>${bill} today, then {t.billed}.</> : <>Nothing today. Then ${bill} {t.billed}.</>}
+                      {freeWeek && t.first ? <>${bill} today for your {t.first} plus a free week, then {t.billed}.</> : <>${bill} today, then {t.billed}.</>}
                     </p>
                   )}
                 </div>

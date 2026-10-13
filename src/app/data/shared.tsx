@@ -22,7 +22,7 @@ export function HubLocked({ what }: { what: string }) {
       <div className="font-display font-extrabold text-lg">Members only</div>
       <p className="mt-2 text-sm text-ink-secondary">{what} are part of a plan, with today&apos;s calls and every race page.</p>
       <div className="mt-4 flex justify-center gap-2">
-        <Link href="/pricing" className="btn btn-primary btn-sm">Start free trial</Link>
+        <Link href="/pricing" className="btn btn-primary btn-sm">See the plans</Link>
         <Link href="/login?next=/data/jockeys" className="btn btn-secondary btn-sm">Log in</Link>
       </div>
     </div>

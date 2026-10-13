@@ -182,29 +182,29 @@ export const EMAILS = {
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),
 
-  /** Someone who signed up and never pressed the confirm link: a fresh one, and a longer trial for the trouble. */
-  finishSignup: (link: string, days: number): EmailSpec => ({
+  /** Someone who signed up and never pressed the confirm link: a fresh one. */
+  finishSignup: (link: string): EmailSpec => ({
     subject: "Your Overlay account is one click away",
-    preheader: `Confirm your email and take ${days} days of the full board free.`,
+    preheader: "Confirm your email and the free race is open to you every day.",
     heading: "You never finished signing up.",
     paragraphs: [
       "Your account is there, it just needs the email confirmed. Press the button and you are in.",
-      `When you pick a plan the free trial runs <strong>${days} days</strong> instead of seven: every runner rated, a price for every horse, and the bet or lay calls on every race we cover.`,
+      "Pick a plan and your first month runs <strong>5 weeks</strong>: every runner rated, a price for every horse, and the bet or lay calls on every race we cover.",
       "One race is free every day even without a plan, so have a look before you decide.",
     ],
     cta: { label: "Confirm my email", url: link },
     note: "The link works once and expires in 24 hours. If you did not sign up to The Overlay, ignore this and nothing happens.",
   }),
 
-  /** A day after an unfinished checkout: finish today and the first month is 25% off. `trial` when they would still get one. */
-  checkoutNudge: (plan: string, trial: boolean): EmailSpec => ({
+  /** A day after an unfinished checkout: finish today and the first month is 25% off. `extra` when the first bill would still run a week longer. */
+  checkoutNudge: (plan: string, extra: boolean): EmailSpec => ({
     subject: "25% off your first month, today only",
     preheader: "Finish signing up today and your first month is 25% off.",
     heading: "Still thinking it over?",
     paragraphs: [
       `You started signing up for <strong>${plan}</strong> and did not finish. Finish today and your first month is <strong>25% off</strong>.`,
-      trial
-        ? "Your free trial still comes first: every runner rated, the bets and lays at 11am, and the Data Hub. Nothing is charged until it ends."
+      extra
+        ? "And the first bill still runs a week longer: every runner rated, the bets and lays at 11am, and the Data Hub, from the moment you finish."
         : "Every runner rated, the bets and lays at 11am, and the Data Hub, from the moment you finish.",
       "The offer runs until midnight tonight.",
     ],
@@ -265,31 +265,31 @@ export const EMAILS = {
   }),
 
   /** The last of the sign-up chase: a week on, still no plan. */
-  trialLastCall: (days: number): EmailSpec => ({
-    subject: "Last call on your longer trial",
-    preheader: `${days} days of the full board free, then we stop asking.`,
+  firstMonthLastCall: (): EmailSpec => ({
+    subject: "Last call: 5 weeks for the price of 4",
+    preheader: "Your first month runs 5 weeks, then we stop asking.",
     heading: "One more nudge, then we leave it.",
     paragraphs: [
-      `Your account is still there and the free trial is still <strong>${days} days</strong> for you. Pick the days you bet and every call lands in your inbox at 11am.`,
-      "Nothing is charged until the trial ends, and you can cancel from your account before then.",
+      "Your account is still there. Pick the days you bet, your first month runs <strong>5 weeks</strong>, and every call lands in your inbox at 11am.",
+      "Cancel any time from your account.",
       "This is the last one of these we send.",
     ],
-    cta: { label: "Start the trial", url: `${SITE}/pricing` },
+    cta: { label: "Get my 5 weeks", url: `${SITE}/pricing` },
     note: "No promise of winning: the numbers are a guide and every bet is your own call.",
   }),
 
-  /** Signed up, confirmed, never started a plan: a longer trial to try it properly. */
-  trialExtended: (days: number): EmailSpec => ({
-    subject: `${days} days of the full board, free`,
-    preheader: "Your free trial is longer now. Pick a plan and nothing is charged until it ends.",
-    heading: `Your trial is ${days} days now.`,
+  /** Signed up, confirmed, never started a plan: the five-week first month. */
+  firstMonthOffer: (): EmailSpec => ({
+    subject: "5 weeks of the full board for the price of 4",
+    preheader: "Pick a plan and your first month runs 5 weeks.",
+    heading: "Your first month runs 5 weeks.",
     paragraphs: [
-      `You have an account and never started a plan, so the free trial is <strong>${days} days</strong> for you instead of seven.`,
-      "Pick the days you bet, the full board opens straight away, and nothing is charged until the trial ends. Cancel any time before then from your account.",
+      "You have an account and never started a plan. Pick one and your first month runs <strong>5 weeks</strong>.",
+      "Pick the days you bet and the full board opens straight away. Cancel any time from your account.",
       "Every race we cover gets a top four, ratings across eight categories, a rated price for every runner and our bet or lay calls, settled at the price we post, wins and losses.",
       DISCORD,
     ],
-    cta: { label: "Start the trial", url: `${SITE}/pricing` },
+    cta: { label: "Get my 5 weeks", url: `${SITE}/pricing` },
     note: "No promise of winning: the numbers are a guide and every bet is your own call.",
   }),
 

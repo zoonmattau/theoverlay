@@ -243,7 +243,7 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
       {!you && !member && (
         <div className="card border-lime bg-lime-soft mb-4 flex flex-wrap items-center gap-3">
           <span className="text-sm">See {tipster.name}&apos;s calls next to our rated price for every runner, and whether the model agrees. One race is free every day.</span>
-          <Link href="/pricing" className="btn btn-primary ml-auto">Start free trial</Link>
+          <Link href="/pricing" className="btn btn-primary ml-auto">See the plans</Link>
         </div>
       )}
     </>

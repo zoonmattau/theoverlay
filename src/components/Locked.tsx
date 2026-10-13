@@ -31,7 +31,7 @@ export function Locked({
         <div className="section-body text-sm text-ink-secondary">
           Opens with a plan or a day pass.{" "}
           <Link href={`/pricing${raceId ? `?from=${encodeURIComponent(raceId)}` : ""}`} className="font-semibold text-blue">
-            Try free for 7 days
+            5 weeks for the price of 4
           </Link>
         </div>
       </Section>
@@ -61,7 +61,7 @@ export function Locked({
               href={`/pricing${raceId ? `?from=${encodeURIComponent(raceId)}` : ""}`}
               className="btn btn-primary mt-3 w-full"
             >
-              Try free for 7 days
+              5 weeks for the price of 4
             </Link>
             <Link href="/pricing" className="mt-2 block text-xs text-blue font-semibold">
               Or a day pass from $10

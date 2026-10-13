@@ -58,8 +58,8 @@ export async function NavUser({ links }: { links: { href: string; label: string 
         </Link>
         {passButton}
         <Link href="/pricing" className="btn btn-primary btn-sm ml-1 topbar-cta topbar-cta-first">
-          <span className="sm:hidden">Try free</span>
-          <span className="hidden sm:inline">Start free trial</span>
+          <span className="sm:hidden">Join</span>
+          <span className="hidden sm:inline">Join now</span>
         </Link>
       </>
     );

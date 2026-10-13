@@ -183,9 +183,9 @@ export function teaserEmail(date: string, card: StoredCard, userId: string): Ema
         ? [`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#6f9a12">Free race: ${esc(freeRace.m.track)} R${freeRace.r.raceNumber}</strong>${free.length ? table(free) : `<p style="margin:6px 0 16px;font:400 14px ${FONT};color:#454a44">No call in it today. <a href="${SITE}/racing/${date}/${encodeURIComponent(freeRace.m.meetingId)}/${encodeURIComponent(freeRace.r.raceId)}" style="color:#1f6fd6">Every runner is rated on the race page.</a></p>`}`]
         : []),
       ...(locked.length ? [`<strong style="font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:#8b918a">The rest of the calls</strong><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 16px;border-collapse:collapse">${locked.map(lockRow).join("")}</table>`] : []),
-      "Start a free trial and every call lands here at 11am. Nothing is charged until the trial ends.",
+      "Pick a plan and every call lands here at 11am. Your first month runs 5 weeks.",
     ],
-    cta: { label: "Start my free trial", url: `${SITE}/pricing` },
+    cta: { label: "Get my 5 weeks", url: `${SITE}/pricing` },
     note: `You get this because you ticked tips emails. <a href="${unsubscribeUrl(userId)}" style="color:#8b918a">Unsubscribe</a> with one click.`,
   };
 }

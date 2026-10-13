@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { getViewer } from "@/lib/auth";
-import { TRIAL_DAYS } from "@/lib/billing/plans";
 
 /** The launch offer, under the top bar for anyone who has not subscribed yet. */
 export async function LaunchOffer() {
@@ -10,7 +9,7 @@ export async function LaunchOffer() {
   return (
     <Link href="/pricing" className="offer-bar">
       <span className="offer-tag">Launch offer</span>
-      <span className="offer-cta">Join today for {TRIAL_DAYS === 7 ? "one week" : `${TRIAL_DAYS} days`} free</span>
+      <span className="offer-cta">Join today, get a week free</span>
     </Link>
   );
 }

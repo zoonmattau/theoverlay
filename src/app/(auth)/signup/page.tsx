@@ -12,7 +12,7 @@ export default function Page({ searchParams }: PageProps<"/signup">) {
   return (
     <AuthShell
       title="Create an account"
-      intro="Free to join, and every plan starts with a 7-day free trial."
+      intro="Free to join, and your first month on a plan runs 5 weeks."
       pitch={{
         aside: <Suspense fallback={null}><SignupPitch dark /></Suspense>,
         inline: <Suspense fallback={null}><SignupPitch /></Suspense>,

@@ -7,12 +7,14 @@ import { JsonLd, SITE_URL } from "@/components/JsonLd";
 import { getViewer } from "@/lib/auth";
 import { PassPicker } from "@/components/PassPicker";
 import { PlanPicker, type PickerPlan } from "@/components/PlanPicker";
+import { supabaseAdmin } from "@/lib/billing/access";
+import { comebackDays } from "@/lib/billing/comeback";
 import { firstMonthOfferUntil } from "@/lib/billing/first-month";
-import { PASS_BUNDLES, PASS_PRICE, PLANS, TRIAL_DAYS, termById, termPrice, termPriceId, termSave, TERM_SAVES } from "@/lib/billing/plans";
+import { PASS_BUNDLES, PASS_PRICE, PLANS, termById, termPrice, termPriceId, termSave, TERM_SAVES } from "@/lib/billing/plans";
 
 export const metadata: Metadata = {
   title: "Pricing",
-  description: "Saturday, Saturday plus Wednesday, or every day, all with a 7-day free trial. Or buy day passes and use them when you like.",
+  description: "Saturday, Saturday plus Wednesday, or every day, with a free week on your first month. Or buy day passes and use them when you like.",
   alternates: { canonical: "/pricing" },
 };
 
@@ -48,6 +50,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
           Know the price <br className="sm:hidden" />
           <span className="inline-block whitespace-nowrap bg-lime px-2 mt-1 sm:mt-0 rounded-sm">before you bet.</span>
         </h1>
+        <p className="mt-3 text-ink-secondary">Every plan comes with a free week: your first month runs 5 weeks.</p>
       </section>
 
       <Suspense fallback={<div className="skeleton h-96" />}>
@@ -55,7 +58,7 @@ export default function Page({ searchParams }: PageProps<"/pricing">) {
       </Suspense>
 
       <p className="mt-8 text-xs text-ink-soft text-center">
-        Prices in AUD. Subscriptions renew each week, month, quarter or year until cancelled, and can be cancelled any time from your account. Weekly has no free trial and starts today. Day passes do not expire, and one used after 4pm Sydney time opens the next day too. 18+ only, gamble responsibly.{" "}
+        Prices in AUD. Subscriptions renew each week, month, quarter or year until cancelled, and can be cancelled any time from your account. Every plan starts today, and the first bill on monthly, quarterly or yearly comes with a free week on top. Day passes do not expire, and one used after 4pm Sydney time opens the next day too. 18+ only, gamble responsibly.{" "}
         <Link href="/terms" className="underline">Terms</Link>.
       </p>
     </div>
@@ -66,6 +69,9 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
   const [viewer, sp] = await Promise.all([getViewer(), searchParams]);
   const signedIn = Boolean(viewer.id);
   const offerUntil = viewer.id ? await firstMonthOfferUntil(viewer.id) : undefined;
+  // The free week is on a first subscription, or a returning member's when the win-back offered it, as checkout gives it.
+  const subscribedBefore = viewer.id ? Boolean((await supabaseAdmin().from("profiles").select("subscription_status").eq("id", viewer.id).maybeSingle()).data?.subscription_status) : false;
+  const freeWeek = !viewer.pro && (!subscribedBefore || (await comebackDays(viewer.id!)) > 0);
   // A choice made before signing up: passes_N, a plan id, or a plan id and term (everyday_year).
   const buy = typeof sp.buy === "string" && /^(passes_\d+|[a-z]+(_(quarter|year|week))?)$/.test(sp.buy) ? sp.buy : undefined;
   // The plans and the three ways to pay, on one switch that starts on Monthly (components/PlanPicker).
@@ -74,8 +80,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
     id: p.id,
     name: p.name,
     blurb: p.blurb,
-    // The trial is on the button; the list says what the plan opens.
-    features: p.features.filter((f) => !/free trial/i.test(f)),
+    features: p.features,
     days: p.days,
     highlight: p.highlight,
     prices: {
@@ -95,7 +100,7 @@ async function Plans({ searchParams }: { searchParams: PageProps<"/pricing">["se
           <strong>25% off your first month</strong> on any plan, applied at checkout. Today only, until midnight.
         </div>
       )}
-      <PlanPicker plans={plans} signedIn={signedIn} pro={Boolean(viewer.pro)} currentPlan={viewer.plan ?? undefined} trialDays={TRIAL_DAYS} savings={TERM_SAVES} />
+      <PlanPicker plans={plans} signedIn={signedIn} pro={Boolean(viewer.pro)} currentPlan={viewer.plan ?? undefined} savings={TERM_SAVES} freeWeek={freeWeek} />
 
       <PassPicker bundles={PASS_BUNDLES.map(({ qty, price }) => ({ qty, price }))} single={PASS_PRICE} signedIn={signedIn} />
       <p className="mt-6 text-center text-sm text-ink-secondary">

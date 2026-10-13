@@ -5,7 +5,6 @@ import { Suspense } from "react";
 
 import { ShareInvite } from "@/components/ShareInvite";
 import { getViewer } from "@/lib/auth";
-import { TRIAL_DAYS } from "@/lib/billing/plans";
 import { longDate } from "@/lib/format";
 import { BONUS_DAYS, ensureReferralCode, referralCount } from "@/lib/referrals";
 
@@ -25,8 +24,8 @@ export default function Page() {
   );
 }
 
-/** What a friend gets free: the trial and the fortnight together. */
-const WEEKS = Math.round((TRIAL_DAYS + BONUS_DAYS) / 7);
+/** What a friend gets free: the extra week on the first bill and the fortnight together. */
+const WEEKS = Math.round((7 + BONUS_DAYS) / 7);
 
 async function Invite() {
   const viewer = await getViewer();
@@ -44,8 +43,8 @@ async function Invite() {
           Give a mate {WEEKS} weeks free. <span className="bg-lime px-2 box-decoration-clone">Get a fortnight yourself.</span>
         </h1>
         <p className="mt-3 text-ink-secondary max-w-2xl">
-          When a friend joins on your link and starts a plan, the full board opens to both of you for {BONUS_DAYS} days. Theirs sits on top
-          of the {TRIAL_DAYS}-day trial, yours on top of whatever you already have. No card is charged for either of you.
+          When a friend joins on your link and starts a plan, the full board opens to both of you for {BONUS_DAYS} days. Theirs comes with
+          the extra week on their first bill, yours on top of whatever you already have.
         </p>
       </section>
 
@@ -59,7 +58,7 @@ async function Invite() {
           Text it, drop it in the group chat, or share it from your phone.
         </Step>
         <Step n={2} title="They start a plan">
-          Any plan, on the free trial. Nothing is charged for {TRIAL_DAYS} days and they can cancel in a click.
+          Any plan, and the first bill runs a week longer. They can cancel in a click.
         </Step>
         <Step n={3} title={`You both get ${BONUS_DAYS} days`}>
           The moment they start, every meeting on every race day is open to both of you for a fortnight.

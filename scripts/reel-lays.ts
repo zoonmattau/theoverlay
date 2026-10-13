@@ -15,7 +15,7 @@ import { chromium, type Locator, type Page } from "playwright-core";
 import { readFileSync, readdirSync, renameSync, unlinkSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { KNOWN_BOOKIES } from "../src/lib/bookies";
-import { PLANS, TRIAL_DAYS } from "../src/lib/billing/plans";
+import { PLANS } from "../src/lib/billing/plans";
 import { readRaceRuns, readStoredCard } from "../src/lib/model/store";
 
 void (async () => {
@@ -123,7 +123,7 @@ void (async () => {
   const beats: { id: string; at: number; until: number; say: string }[] = [{ id: "0-title", at: 0, until: TITLE, say: title }];
   lays.forEach((l, i) => beats.push({ id: `${i + 1}-r${l.number}`, at: TITLE + i * EACH, until: TITLE + (i + 1) * EACH, say: `R${l.number} ${l.horse}: ${l.market} against our ${l.rated}. ${l.reason}` }));
   const closeAt = TITLE + lays.length * EACH;
-  beats.push({ id: `${lays.length + 1}-close`, at: closeAt, until: closeAt + CLOSE, say: `all ${lays.length}, every runner rated, ${TRIAL_DAYS} days free, theoverlay.com.au, 18+` });
+  beats.push({ id: `${lays.length + 1}-close`, at: closeAt, until: closeAt + CLOSE, say: `all ${lays.length}, every runner rated, 5 weeks for the price of 4, theoverlay.com.au, 18+` });
   const total = closeAt + CLOSE;
 
   const ord = (n: number) => `${n}<sup>${n % 100 >= 11 && n % 100 <= 13 ? "th" : ["th", "st", "nd", "rd"][n % 10] ?? "th"}</sup>`;
@@ -222,7 +222,7 @@ body { width:1080px; height:1920px; overflow:hidden; background:var(--ink); font
     `<div class="what" style="${anim("rise", closeAt + 0.05, 0.35)}">Today's ${lays.length} lays at ${meeting.track}</div>` +
     `<div class="rows" style="${anim("rise", closeAt + 0.2, 0.45)}">` +
     lays.map((l) => `<div class="row"><b>R${l.number}</b><span>${l.horse}</span><i>${l.market} · ours ${l.rated}</i></div>`).join("") +
-    `</div><div class="tonight" style="${anim("pop", closeAt + 0.8, 0.4)}">Every runner rated. <em>${TRIAL_DAYS} days free.</em></div>` +
+    `</div><div class="tonight" style="${anim("pop", closeAt + 0.8, 0.4)}">Every runner rated. <em>5 weeks for 4.</em></div>` +
     `<div class="then" style="${anim("rise", closeAt + 1.1, 0.35)}">Every call before the jump, then from $${Math.min(...PLANS.map((p) => p.price))} a month</div>` +
     `<div class="site" style="${anim("pop", closeAt + 1.3, 0.4)}">theoverlay.com.au</div>` +
     `<div class="rg" style="${anim("rise", closeAt + 1.6, 0.35)}">18+ · Gamble responsibly · 1800 858 858</div></div>`;

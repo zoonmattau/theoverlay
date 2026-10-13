@@ -32,7 +32,7 @@ export function LockedSelectionCard({ s }: { s: Selection }) {
         <Stat label="Rated" value="$—" muted />
         <Stat label="Edge" value={lay ? "-—%" : "+—%"} accent={prime} blue={!prime && !lay} red={lay} />
       </dl>
-      <span className="btn btn-primary w-full mt-4">Try free for 7 days</span>
+      <span className="btn btn-primary w-full mt-4">5 weeks for the price of 4</span>
     </Link>
   );
 }

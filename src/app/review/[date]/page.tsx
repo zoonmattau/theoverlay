@@ -42,9 +42,9 @@ async function Review({ params }: { params: PageProps<"/review/[date]">["params"
       <section className="card border-lime bg-lime-soft mt-6 flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="font-display text-lg font-extrabold tracking-tight">See the numbers before the race, not after.</h2>
-          <p className="mt-1 text-sm text-ink-secondary">Every runner rated, a rated price against the market, and the calls, every race day. 7-day free trial.</p>
+          <p className="mt-1 text-sm text-ink-secondary">Every runner rated, a rated price against the market, and the calls, every race day. Your first month runs 5 weeks.</p>
         </div>
-        <Link href="/pricing" className="btn btn-primary">Start free trial</Link>
+        <Link href="/pricing" className="btn btn-primary">See the plans</Link>
       </section>
     </>
   );

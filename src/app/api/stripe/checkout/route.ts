@@ -2,7 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { logEvent } from "@/lib/admin";
 import { getViewer } from "@/lib/auth";
-import { passBundle, planById, termById, termPrice, termPriceId, TRIAL_DAYS } from "@/lib/billing/plans";
+import { EXTRA_DAYS, passBundle, planById, termById, termPrice, termPriceId, TRIAL_DAYS } from "@/lib/billing/plans";
 import { integrationId, siteUrl, stripe, stripeConfigured } from "@/lib/billing/stripe";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { comebackDays } from "@/lib/billing/comeback";
@@ -62,43 +62,42 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ url: session.url });
   }
 
-  // Every plan is a subscription with a free trial, whatever the term, one trial per
-  // customer, so a second subscription starts paid. A customer made just now
-  // cannot have one, which saves a round trip on the common path.
-  const trialled = newCustomer
+  // Every plan is paid from today (13 Oct 2026): an empty card fails here, not on day eight. A
+  // customer made just now has never subscribed, which saves a round trip on the common path.
+  const subscribed = newCustomer
     ? false
     : (await stripe().subscriptions.list({ customer, status: "all", limit: 1 })).data.length > 0;
-  // A longer trial offered to this person (scripts/out/nudge-signups.ts writes it) beats the standard one.
+  // A longer free trial the sign-up chase promised before the change is still honoured, once.
   const offered = Number((await supabaseAdmin().auth.admin.getUserById(viewer.id)).data.user?.app_metadata?.trial_days);
-  const trialDays = offered > TRIAL_DAYS ? offered : TRIAL_DAYS;
-  // The trial ends at midnight Sydney time as the seventh day begins, not
-  // seven days to the minute: buy on a Tuesday afternoon and the first
-  // charge comes as the clock ticks over to next Tuesday.
-  const trialEnd = trialEndAt(trialDays);
-  // A returning member offered the extra week pays now; the webhook pushes the next bill out once this one is paid.
-  const comeback = trialled ? await comebackDays(viewer.id) : 0;
+  const trialDays = !subscribed && offered > TRIAL_DAYS ? offered : 0;
+  // The trial ends at midnight Sydney time as its last day begins, not to the
+  // minute: buy on a Tuesday afternoon and the first charge comes as the
+  // clock ticks over to that Tuesday.
+  const trialEnd = trialDays ? trialEndAt(trialDays) : undefined;
+  // The first bill runs a week longer on monthly, quarterly and yearly; a returning member gets
+  // it only when the win-back offered it. The webhook pushes the next bill out once this one is paid.
+  const extra = trialDays ? 0 : subscribed ? await comebackDays(viewer.id) : term.noExtra ? 0 : EXTRA_DAYS;
 
   // 25% off the first month, offered by email a day after an unfinished checkout. Stripe takes a
   // discount or promotion codes, not both, so the offer replaces the code box while it runs.
-  // Weekly is paid from today: no trial, and no first-month discount sized for a monthly bill.
-  const noTrial = Boolean(term.noTrial);
-  const firstMonth = !noTrial && (await firstMonthOfferUntil(viewer.id)) ? await firstMonthCoupon(plan!) : undefined;
+  // No first-month discount on weekly, sized as it is for a monthly bill.
+  const firstMonth = !term.noExtra && (await firstMonthOfferUntil(viewer.id)) ? await firstMonthCoupon(plan!) : undefined;
 
   const session = await stripe().checkout.sessions.create({
     mode: "subscription",
     customer,
     line_items: [{ price: priceId!, quantity: 1 }],
-    success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${termPrice(plan!, term)}&trial=${trialled || noTrial ? 0 : 1}`,
+    success_url: `${siteUrl()}/account?checkout=success&plan=${plan!.id}&amount=${termPrice(plan!, term)}&trial=${trialEnd ? 1 : 0}`,
     cancel_url: `${siteUrl()}/pricing`,
     ...(firstMonth ? { discounts: [{ coupon: firstMonth }] } : { allow_promotion_codes: true }),
     metadata: { userId: viewer.id, plan: plan!.id, term: term.id },
     subscription_data: {
-      metadata: { userId: viewer.id, plan: plan!.id, term: term.id, ...(comeback ? { comeback_days: String(comeback) } : {}), ...(firstMonth ? { first_month_off: firstMonth } : {}) },
-      ...(trialled || noTrial ? {} : { trial_end: trialEnd }),
+      metadata: { userId: viewer.id, plan: plan!.id, term: term.id, ...(extra ? { comeback_days: String(extra) } : {}), ...(firstMonth ? { first_month_off: firstMonth } : {}) },
+      ...(trialEnd ? { trial_end: trialEnd } : {}),
     },
     integration_identifier: integrationId(`overlay_${plan!.id}`),
   });
-  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: !trialled && !noTrial, term: term.id } });
+  await log({ user_id: viewer.id, kind: "checkout_started", plan: chosen, amount_cents: null, meta: { session: session.id, trial: Boolean(trialEnd), extra, term: term.id } });
 
   return NextResponse.json({ url: session.url });
 }

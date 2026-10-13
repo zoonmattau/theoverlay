@@ -1,5 +1,5 @@
 import type { Faq } from "@/components/JsonLd";
-import { PASS_PRICE, planById, TRIAL_DAYS, weeklyLabel } from "@/lib/billing/plans";
+import { PASS_PRICE, planById, weeklyLabel } from "@/lib/billing/plans";
 import { BRAND_SOCIAL } from "@/lib/social";
 
 const [SAT, MID, DAY] = (["saturday", "midweek", "everyday"] as const).map((id) => planById(id)!);
@@ -12,7 +12,7 @@ export const ABOUT_FAQ: Faq[] = [
   { q: "Which races are covered?", a: "Every TAB flat meeting in Australia, every state, with one race a day free and the rest open to members.", links: [{ label: "Today's board", href: "/" }] },
   { q: "Where can I see your results?", a: "Every settled call, won and lost, is on our results page, day by day, and it updates through the day.", links: [{ label: "Results", href: "/results" }] },
   { q: "Is there a Discord?", a: "Yes, members get every call and every lay in our Discord before the jump, and the free race, winners and Saturday review are open to everyone.", links: [{ label: "Join the Discord", href: `${BRAND_SOCIAL.discord}` }, { label: "Link it to your account", href: "/account" }] },
-  { q: "How much does it cost?", a: `Saturday tips are ${weeklyLabel(SAT.price)} a week, Saturday plus Wednesday ${weeklyLabel(MID.price)}, every day ${weeklyLabel(DAY.price)}, billed monthly at $${SAT.price}, $${MID.price} and $${DAY.price}, all with a ${TRIAL_DAYS}-day free trial. Pay weekly from $${SAT.weekPrice} with no trial, or save 40% quarterly and 50% yearly on the weekly price. Or buy day passes from $${PASS_PRICE} each.`, links: [{ label: "See the plans", href: "/pricing" }] },
+  { q: "How much does it cost?", a: `Saturday tips are ${weeklyLabel(SAT.price)} a week, Saturday plus Wednesday ${weeklyLabel(MID.price)}, every day ${weeklyLabel(DAY.price)}, billed monthly at $${SAT.price}, $${MID.price} and $${DAY.price}, and your first month runs 5 weeks. Pay weekly from $${SAT.weekPrice}, or save 40% quarterly and 50% yearly on the weekly price. Or buy day passes from $${PASS_PRICE} each.`, links: [{ label: "See the plans", href: "/pricing" }] },
 ];
 
 export const RATINGS_FAQ: Faq[] = [
@@ -24,8 +24,8 @@ export const RATINGS_FAQ: Faq[] = [
 ];
 
 export const PLANS_FAQ: Faq[] = [
-  { q: "How do I sign up?", a: "Create a free account with your email or Google, then start a 7-day free trial or buy a day pass to open every race.", links: [{ label: "Create an account", href: "/signup" }, { label: "Plans and passes", href: "/pricing" }] },
-  { q: "Is there a free trial?", a: "Yes, every subscription starts with a 7-day free trial and nothing is charged if you cancel before it ends, and on a 3-month or yearly plan the first bill is the whole term.", links: [{ label: "Start a free trial", href: "/pricing" }] },
+  { q: "How do I sign up?", a: "Create a free account with your email or Google, then pick a plan or buy a day pass to open every race.", links: [{ label: "Create an account", href: "/signup" }, { label: "Plans and passes", href: "/pricing" }] },
+  { q: "Is there a free trial?", a: "No, plans are paid from the day you start, but the first bill runs a week longer: a month is 5 weeks, a quarter or a year a week more. One race is free every day without a plan.", links: [{ label: "See the plans", href: "/pricing" }] },
   { q: "What does a day pass do?", a: "A day pass opens every race and our Discord for one race day, costs $10, never expires, gets cheaper in bundles of 3, 5 or 10, and you use it on the day from the home page, Today's tips or any race. Use one after 4pm and it opens tomorrow too.", links: [{ label: "Buy day passes", href: "/pricing#passes" }] },
   { q: "Can I cancel any time?", a: "Yes, cancel from your account and the board stays open until the end of the period you have paid for.", links: [{ label: "Your account", href: "/account" }] },
   { q: "What is free without a plan?", a: "The race board, jump times, results, the live market and one free race every day.", links: [{ label: "Today's board", href: "/" }] },

@@ -16,6 +16,17 @@ import { siteUrl, stripe } from "@/lib/billing/stripe";
 const COUPON_ID = "HALF_FIRST_MONTH";
 const OFFER_KIND = "retention_offer";
 
+/**
+ * A real trial: Stripe says trialing and nothing has been paid. A paid bill pushed back
+ * (the extra week on every first bill from 13 Oct 2026, the win-back) reads trialing too,
+ * for the whole year on a yearly plan, and must not be offered trial switches.
+ */
+async function onTrial(sub: { id: string; status: string }): Promise<boolean> {
+  if (sub.status !== "trialing") return false;
+  const paid = await stripe().invoices.list({ subscription: sub.id, status: "paid", limit: 10 });
+  return !paid.data.some((i) => i.amount_paid > 0);
+}
+
 export interface Offer {
   subscriptionId: string;
   planName: string;
@@ -39,7 +50,7 @@ export async function offerFor(userId: string): Promise<Offer | { reason: "no-su
   // Only before the first paid month has been billed: a trial, or an active plan with nothing paid yet.
   const paidInvoices = await stripe().invoices.list({ subscription: sub.id, status: "paid", limit: 3 });
   const nothingPaid = paidInvoices.data.every((i) => i.amount_paid === 0);
-  if (!(sub.status === "trialing" || (sub.status === "active" && nothingPaid))) return { reason: "not-eligible" };
+  if (!nothingPaid || !(sub.status === "trialing" || sub.status === "active")) return { reason: "not-eligible" };
   // Half off the first bill is half a month on monthly; on a longer term it would be months free, so it is monthly only.
   if (termById(sub.metadata?.term).id !== "month") return { reason: "not-eligible" };
   const plan = planById(p.plan ?? undefined);
@@ -119,10 +130,14 @@ export async function switchesFor(userId: string, from: "cancel" | "change"): Pr
   if (!plan) return null;
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
   // A trialist on the way out moves to the cheaper plan's monthly price: a big bill up front is what puts them off.
-  const term = from === "cancel" && sub.status === "trialing" ? termById("month") : termById(sub.metadata?.term);
-  const options = PLANS.filter((o) => o.id !== plan.id && (from === "change" || o.price < plan.price) && termPriceId(o, term)).map((o) => ({ plan: o, price: termPrice(o, term) }));
+  const trialing = await onTrial(sub);
+  const term = from === "cancel" && trialing ? termById("month") : termById(sub.metadata?.term);
+  // Stripe prorates nothing inside a pushed-back bill, so an upgrade there would run free to the
+  // next bill: up to a year on a yearly plan. Those members can move down, not up, until it is due.
+  const pushed = sub.status === "trialing" && !trialing && term.id !== "month";
+  const options = PLANS.filter((o) => o.id !== plan.id && ((from === "change" && !pushed) || o.price < plan.price) && termPriceId(o, term)).map((o) => ({ plan: o, price: termPrice(o, term) }));
   if (options.length === 0) return null;
-  return { subscriptionId: sub.id, current: plan.name, trialing: sub.status === "trialing", term, options };
+  return { subscriptionId: sub.id, current: plan.name, trialing, term, options };
 }
 
 export async function switchPlan(userId: string, planId: string, from: "cancel" | "change" = "cancel"): Promise<boolean> {
@@ -184,7 +199,7 @@ export async function monthlyFor(userId: string): Promise<MonthlySwitch | null> 
   // Pay-monthly-instead is for a big bill up front: quarterly or yearly, never weekly.
   if (term.id !== "quarter" && term.id !== "year") return null;
   let failedInvoice: string | undefined;
-  if (sub.status !== "trialing") {
+  if (!(await onTrial(sub))) {
     const paid = await stripe().invoices.list({ subscription: sub.id, status: "paid", limit: 3 });
     if (paid.data.some((i) => i.amount_paid > 0)) return null;
     // A first bill that has been tried and failed; the failure can arrive before the subscription reads past due.
@@ -306,8 +321,11 @@ export async function weeklyFor(userId: string): Promise<WeeklySwitch | null> {
   const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
   const term = termById(sub.metadata?.term);
   if (term.id === "week") return null;
+  // A paid bill pushed back reads trialing; moving it to weekly would end the push and lose what was paid.
+  const trialing = await onTrial(sub);
+  if (sub.status === "trialing" && !trialing) return null;
   let failedInvoice: string | undefined;
-  if (sub.status !== "trialing") {
+  if (!trialing) {
     // The failure can land before the subscription reads past due, as with monthlyFor.
     const open = await stripe().invoices.list({ subscription: sub.id, status: "open", limit: 3 });
     failedInvoice = open.data.find((i) => i.attempt_count > 0)?.id;

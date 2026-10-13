@@ -38,10 +38,11 @@ export default function Page() {
         and that using it and betting on racing is lawful where you are.
       </Clause>
 
-      <Clause n="04" title="Plans and trials">
-        Every plan starts with a free trial. We email you the date it ends when it
-        starts, and if you do not cancel before then your plan begins and your card is
-        charged for the term you chose. Plans renew automatically until you cancel, and
+      <Clause n="04" title="Plans">
+        Plans are paid from the day you start, and your card is charged for the term you
+        chose. On monthly, quarterly and yearly the first bill runs a week longer. A free
+        trial already started runs to the date we emailed you, and your card is charged
+        then unless you cancel first. Plans renew automatically until you cancel, and
         you can cancel any time from your account, keeping access to the end of the
         period you have paid for. We may change plan prices. When we do, we email you
         the new price before it applies to your plan, and you can cancel any time

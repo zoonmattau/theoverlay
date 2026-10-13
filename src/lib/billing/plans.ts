@@ -1,6 +1,6 @@
 /**
- * The plans on the pricing page. All monthly subscriptions with a 7-day free
- * trial; what differs is which days of the week the plan opens. Display
+ * The plans on the pricing page. Subscriptions paid from the day they start;
+ * what differs is which days of the week the plan opens. Display
  * prices are here, Stripe holds the real ones behind STRIPE_PRICE_* env vars,
  * one Stripe Product per plan.
  */
@@ -28,7 +28,18 @@ export interface Plan {
   highlight?: boolean;
 }
 
+/**
+ * The free trial every plan started with until 13 Oct 2026. Now only for an
+ * account the sign-up chase promised a longer one before then.
+ */
 export const TRIAL_DAYS = 7;
+
+/**
+ * Paid from today, and the first bill runs this many days longer: a month is
+ * five weeks, a quarter or a year a week more. Weekly gets none. An empty card
+ * fails at checkout instead of a week in (the user, 13 Oct 2026).
+ */
+export const EXTRA_DAYS = 7;
 
 export const PLANS: Plan[] = [
   {
@@ -39,7 +50,7 @@ export const PLANS: Plan[] = [
     quarterPrice: 79,
     yearPrice: 259,
     blurb: "The big day, every week.",
-    features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls", "7-day free trial"],
+    features: ["Every Saturday meeting we cover", "Top four, ratings and rated prices in every race", "Bet and lay calls"],
     days: [6],
     priceId: process.env.STRIPE_PRICE_SATURDAY,
     termPriceIds: { week: process.env.STRIPE_PRICE_SATURDAY_WEEK, quarter: process.env.STRIPE_PRICE_SATURDAY_QUARTER, year: process.env.STRIPE_PRICE_SATURDAY_YEAR },
@@ -52,7 +63,7 @@ export const PLANS: Plan[] = [
     quarterPrice: 119,
     yearPrice: 389,
     blurb: "The two metro days.",
-    features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls", "7-day free trial"],
+    features: ["Everything in Saturday", "Wednesday metro meetings too", "Bet and lay calls"],
     days: [3, 6],
     priceId: process.env.STRIPE_PRICE_MIDWEEK,
     termPriceIds: { week: process.env.STRIPE_PRICE_MIDWEEK_WEEK, quarter: process.env.STRIPE_PRICE_MIDWEEK_QUARTER, year: process.env.STRIPE_PRICE_MIDWEEK_YEAR },
@@ -67,7 +78,7 @@ export const PLANS: Plan[] = [
     quarterPrice: 199,
     yearPrice: 649,
     blurb: "The full board, seven days a week.",
-    features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls", "7-day free trial"],
+    features: ["Every meeting we cover, every day", "Carnivals and public holidays included", "Bet and lay calls"],
     days: [],
     priceId: process.env.STRIPE_PRICE_EVERYDAY,
     termPriceIds: { week: process.env.STRIPE_PRICE_EVERYDAY_WEEK, quarter: process.env.STRIPE_PRICE_EVERYDAY_QUARTER, year: process.env.STRIPE_PRICE_EVERYDAY_YEAR },
@@ -78,8 +89,8 @@ export const planById = (id: string | undefined) => PLANS.find((p) => p.id === i
 
 /**
  * How often a plan is billed. Weekly is the full price; monthly, quarterly and
- * yearly are each cheaper by the week. Same plan, same days, same trial; the
- * term only changes the Stripe Price, and it rides on the subscription's metadata.
+ * yearly are each cheaper by the week. Same plan, same days; the term only
+ * changes the Stripe Price, and it rides on the subscription's metadata.
  */
 export type TermId = "week" | "month" | "quarter" | "year";
 
@@ -89,12 +100,12 @@ export interface Term {
   months: number;
   /** "a month", "a quarter", "a year". */
   every: string;
-  /** Paid from today, no free trial: weekly is for trying it without one (5 Oct 2026). */
-  noTrial?: boolean;
+  /** No extra week on the first bill (EXTRA_DAYS): weekly is week to week. */
+  noExtra?: boolean;
 }
 
 export const TERMS: Term[] = [
-  { id: "week", name: "Weekly", months: 12 / 52, every: "a week", noTrial: true },
+  { id: "week", name: "Weekly", months: 12 / 52, every: "a week", noExtra: true },
   { id: "month", name: "Monthly", months: 1, every: "a month" },
   { id: "quarter", name: "Quarterly", months: 3, every: "a quarter" },
   { id: "year", name: "Yearly", months: 12, every: "a year" },

@@ -55,15 +55,15 @@ export async function nudgeCheckouts(opts: { dry?: boolean; now?: number } = {})
     if (["active", "trialing", "past_due"].includes(p.subscription_status ?? "")) continue;
     const plan = planById(start.plan.replace(/_(quarter|year|week)$/, ""));
     if (!plan) continue;
-    // Anyone who has had a subscription before pays from day one; the email should not promise a trial.
-    const trial = !p.subscription_status;
+    // Anyone who has had a subscription before gets no extra week; the email should not promise one.
+    const extra = !p.subscription_status && !start.plan.endsWith("_week");
     if (opts.dry) {
-      console.log("[checkout-nudge]", p.email, start.plan, new Date(start.at).toISOString().slice(0, 16), trial ? "trial" : "no trial");
+      console.log("[checkout-nudge]", p.email, start.plan, new Date(start.at).toISOString().slice(0, 16), extra ? "extra week" : "no extra week");
       count++;
       continue;
     }
     await offerFirstMonth(userId, sydneyMidnightAfter(now));
-    const spec = EMAILS.checkoutNudge(plan.name, trial);
+    const spec = EMAILS.checkoutNudge(plan.name, extra);
     const unsub = unsubscribeUrl(userId);
     const ok = await sendEmail(p.email, { ...spec, note: `${spec.note} You get this because you ticked tips emails. <a href="${unsub}" style="color:#8b918a">Unsubscribe</a> with one click.` }, {
       "List-Unsubscribe": `<${unsub}>`,

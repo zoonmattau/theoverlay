@@ -53,7 +53,7 @@ export function AuthShell({
           {pitch && <div>{pitch.aside}</div>}
           <div className="mt-auto space-y-3 pt-2">
             <div className="flex flex-wrap gap-2">
-              {["7-day free trial", "Cancel any time"].map((t) => (
+              {["First month runs 5 weeks", "Cancel any time"].map((t) => (
                 <span key={t} className="rounded-full border border-lime/40 px-2.5 py-1 text-xs font-semibold text-lime">{t}</span>
               ))}
             </div>
