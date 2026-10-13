@@ -27,7 +27,7 @@ export async function HomeTipsters() {
   const today = [...counts.values()].reduce((a, n) => a + n, 0);
   return (
     <Fold title="Tipsters" className="mt-6">
-      <p className="text-sm text-ink-secondary">Punters posting their own calls with their reasons, every one settled by us at the price posted. Follow one and their calls land in your inbox and on every race page. <Link href="/tipsters" className="text-blue whitespace-nowrap">{today ? `${today} ${today === 1 ? "call" : "calls"} today, see them all` : "See them all"} &rarr;</Link></p>
+      <p className="text-sm text-ink-secondary">Punters posting their own calls with their reasons, every one settled by us at the price posted. Members see their calls before the jump, and following one puts them in your inbox and on every race page. <Link href="/tipsters" className="text-blue whitespace-nowrap">{today ? `${today} ${today === 1 ? "call" : "calls"} today, see them all` : "See them all"} &rarr;</Link></p>
       <ul className="mt-3 grid gap-3 md:grid-cols-3">
         {top.map((p) => {
           const n = counts.get(p.tipster.id) ?? 0;
