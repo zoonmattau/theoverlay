@@ -117,7 +117,14 @@ export function MatrixCell({
   );
 }
 
+const sydneyDay = (t: number) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
+
+/**
+ * The label for a race: a countdown on its own day, the clock time on any other
+ * (looking at tomorrow's card, "6:15pm" reads better than "22h 40m", 13 Oct 2026).
+ */
 function countdown(ms: number, clock: string): string {
+  if (ms > 0 && sydneyDay(Date.now() + ms) !== sydneyDay(Date.now())) return clock;
   if (ms <= -10 * 60_000) return "Run";
   if (ms <= 0) return "Now";
   const mins = Math.round(ms / 60_000);
