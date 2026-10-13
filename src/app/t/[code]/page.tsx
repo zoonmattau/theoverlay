@@ -15,7 +15,7 @@ import { TipsterAvatar } from "@/components/TipsterAvatar";
 import { FormDots, pct, perWeek, units } from "@/components/TipsterCard";
 import { now } from "@/lib/admin";
 import { getViewer, hasAccess } from "@/lib/auth";
-import { creatorTips, followedTipsters, tipVisible, stakeLabel, struckAt, TIPSTER_PERIODS, tipsterByCode, tipsterHistory, tipsterPeriod, tipsterProfiles, type CreatorTip } from "@/lib/creators";
+import { creatorTips, followedTipsters, followersOf, tipVisible, stakeLabel, struckAt, TIPSTER_PERIODS, tipsterByCode, tipsterHistory, tipsterPeriod, tipsterProfiles, type CreatorTip } from "@/lib/creators";
 import { jumpTime, longDate, price } from "@/lib/format";
 import { getTodayCard } from "@/lib/model/source";
 import { reactionsFor } from "@/lib/reactions";
@@ -70,6 +70,8 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
   const todayHidden = todayAll.length - today.length;
   const reactions = await reactionsFor(today.map((t) => t.id), viewer.id);
   const following = followingList.some((t) => t.id === tipster.id);
+  // The admin can open the follower count to see who they are.
+  const followers = viewer.admin ? await followersOf(tipster.id) : [];
   const you = tipster.user_id === viewer.id;
 
   // The window the record shows, and the calls in it, oldest first for the line.
@@ -107,12 +109,24 @@ async function TipsterPage({ params, searchParams }: { params: Props["params"]; 
             <SocialLinks instagram={tipster.instagram} twitter={tipster.twitter} tiktok={tipster.tiktok} />
           </div>
           {tipster.blurb && <p className="mt-1 text-ink-secondary">{tipster.blurb}</p>}
-          <p className="mt-1 text-xs text-ink-soft">
-            {p.followers} {p.followers === 1 ? "follower" : "followers"}
-            {p.perWeek > 0 ? ` · ${perWeek(p.perWeek)}` : ""}
-            {p.since ? ` · posting since ${monthYear(p.since)}` : ""}
-            {p.best ? ` · best win ${p.best.horse} at ${price(p.best.price)}` : ""}
-          </p>
+          <div className="mt-1 text-xs text-ink-soft">
+            {[p.perWeek > 0 ? perWeek(p.perWeek) : "", p.since ? `posting since ${monthYear(p.since)}` : "", p.best ? `best win ${p.best.horse} at ${price(p.best.price)}` : ""].filter(Boolean).map((x) => `${x} · `).join("")}
+            {viewer.admin && followers.length ? (
+              <details className="inline">
+                <summary className="inline cursor-pointer list-none"><b className="text-sm text-ink">{p.followers}</b> {p.followers === 1 ? "follower" : "followers"} <span className="underline decoration-dotted">who?</span></summary>
+                <ul className="mt-2 mb-1 max-w-xl max-h-72 overflow-auto rounded-lg border border-line bg-panel p-2 text-sm text-ink">
+                  {followers.map((f) => (
+                    <li key={f.id} className="flex items-baseline justify-between gap-4 py-0.5">
+                      <Link href={`/admin/${f.id}`} className="font-semibold hover:text-blue">{f.name}</Link>
+                      <span className="text-xs text-ink-soft">{f.email} · since {new Date(f.since).toLocaleDateString("en-AU", { day: "numeric", month: "short", timeZone: "Australia/Sydney" })}</span>
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            ) : (
+              <span><b className="text-sm text-ink">{p.followers}</b> {p.followers === 1 ? "follower" : "followers"}</span>
+            )}
+          </div>
           {!tipster.listed && <p className="mt-1 text-sm text-ink-soft">Not public yet: only you and the admins can see this page.</p>}
         </div>
         <div className="flex flex-col items-stretch sm:items-end gap-1 w-full sm:w-auto">

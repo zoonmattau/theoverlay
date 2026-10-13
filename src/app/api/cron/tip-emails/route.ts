@@ -5,6 +5,7 @@ import { remindUnpaid } from "@/lib/billing/grace";
 import { chaseSignups } from "@/lib/email/chase";
 import { nudgeLongTermTrials } from "@/lib/email/term-nudge";
 import { nudgeCheckouts } from "@/lib/email/checkout-nudge";
+import { nudgePasses } from "@/lib/email/pass-nudge";
 import { winBack } from "@/lib/email/winback";
 import { notifyFollowers, TIP_EMAIL_HOUR } from "@/lib/email/tipster";
 import { sydneyHour } from "@/lib/model/source";
@@ -51,6 +52,8 @@ export async function GET(request: NextRequest) {
   const nudged = await nudgeLongTermTrials();
   // And a plan checkout opened yesterday and never finished: 25% off the first month, today only.
   const checkouts = await nudgeCheckouts();
+  // And on a Saturday or Cup day, anyone sitting on unused day passes: today's card is up, use one.
+  const passes = await nudgePasses().catch((e) => { console.error("[pass-nudge]", e); return 0; });
   // And on the 11th, before Form King renews: what is left, and the command to spend it on careers.
   const credits = await remindCredits().catch((e) => { console.error("[credits]", e); return false; });
   const tipsters = [...new Set((data ?? []).map((r) => r.affiliate_id as string))];
@@ -67,6 +70,7 @@ export async function GET(request: NextRequest) {
     wonBack,
     nudged,
     checkouts,
+    passes,
     credits,
   });
 }

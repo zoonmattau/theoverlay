@@ -125,6 +125,17 @@ export async function followerIds(tipsterId: string): Promise<string[]> {
   return (data ?? []).map((r) => r.user_id as string);
 }
 
+/** Who follows a tipster, newest first, for the admin's list on the tipster page. */
+export async function followersOf(tipsterId: string): Promise<{ id: string; name: string; email: string | null; since: string }[]> {
+  const db = supabaseAdmin();
+  const { data: f } = await db.from("follows").select("user_id, created_at").eq("tipster_id", tipsterId).order("created_at", { ascending: false });
+  const rows = (f ?? []) as { user_id: string; created_at: string }[];
+  if (!rows.length) return [];
+  const { data: p } = await db.from("profiles").select("id, full_name, email").in("id", rows.map((r) => r.user_id));
+  const who = new Map(((p ?? []) as { id: string; full_name: string | null; email: string | null }[]).map((x) => [x.id, x]));
+  return rows.map((r) => ({ id: r.user_id, name: who.get(r.user_id)?.full_name || who.get(r.user_id)?.email?.split("@")[0] || "Member", email: who.get(r.user_id)?.email ?? null, since: r.created_at }));
+}
+
 /** Today's call count for every tipster, for the directory. */
 export async function tipsterCallCounts(date: string): Promise<Map<string, number>> {
   const { data } = await supabaseAdmin().from("creator_tips").select("affiliate_id").eq("date", date);

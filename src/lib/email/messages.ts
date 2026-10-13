@@ -365,6 +365,20 @@ export const EMAILS = {
     ],
     cta: { label: "Your account", url: `${SITE}/account` },
   }),
+  /** A big day and unused passes: today's card is up, use one. After 4pm a pass opens tomorrow too. */
+  passNudge: (passes: number, late: boolean): EmailSpec => ({
+    subject: `You've got ${passes} day ${passes === 1 ? "pass" : "passes"} waiting`,
+    preheader: "Today's card is up. Every runner rated and priced.",
+    heading: `${passes} day ${passes === 1 ? "pass" : "passes"}, ready when you are.`,
+    paragraphs: [
+      "Today's card is up: every runner in every race we cover rated and priced, and the bets and lays are in.",
+      late
+        ? "Use a pass now and it opens the rest of today <strong>and all of tomorrow</strong>."
+        : "Use a pass and every race today opens, the calls and the full board.",
+      `Your ${passes === 1 ? "pass never expires" : "passes never expire"}, so there's no rush. But today's a good day for one.`,
+    ],
+    cta: { label: "Use a pass today", url: `${SITE}/` },
+  }),
   passesAdded: (qty: number, total: number): EmailSpec => ({
     subject: `${qty} day ${qty === 1 ? "pass" : "passes"} added`,
     preheader: "Use them on any race day you like.",

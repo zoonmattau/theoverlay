@@ -45,21 +45,25 @@ async function lastWeek(now: number): Promise<WeekRecord> {
  * waiting, and the last one). A plan that renews is never emailed; coming
  * back ends the series, since the plan is live again.
  * Only to accounts that ticked tips emails, never to admins, tipsters or our
- * own addresses, and never after a `winback` event with step "skip" (set by
+ * own addresses, never to anyone holding unused day passes or with a pass
+ * day still to come (they have not left, 13 Oct 2026), and never after a `winback` event with step "skip" (set by
  * hand for anyone who should not get them). Each lapse gets its own series,
  * keyed by the date access ends. Runs from the midday cron.
  */
 export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promise<Record<Step, number>> {
   const now = opts.now ?? Date.now();
   const db = supabaseAdmin();
-  const [{ data: profs }, { data: affs }, { data: sent }, { data: cancels }, { data: graces }] = await Promise.all([
-    db.from("profiles").select("id, email, plan, access_until, bonus_until, subscription_status, cancel_at, paused_at, is_admin").eq("marketing_opt_in", true).not("email", "is", null),
+  const [{ data: profs }, { data: affs }, { data: sent }, { data: cancels }, { data: graces }, { data: passDays }] = await Promise.all([
+    db.from("profiles").select("id, email, plan, access_until, bonus_until, subscription_status, cancel_at, paused_at, is_admin, pass_credits").eq("marketing_opt_in", true).not("email", "is", null),
     db.from("affiliates").select("user_id").not("user_id", "is", null),
     db.from("events").select("user_id, meta").eq("kind", "winback"),
     // A subscription cancelled outright leaves access_until at 1970, so when it ended is when it was cancelled.
     db.from("events").select("user_id, created_at").eq("kind", "subscription").eq("meta->>status", "canceled"),
     db.from("events").select("user_id, created_at").eq("kind", "payment_grace"),
+    db.from("day_passes").select("user_id").gte("date", sydneyDay(now)),
   ]);
+  // Unused passes, or a pass day still ahead: they are still with us.
+  const passHolders = new Set(((passDays ?? []) as { user_id: string }[]).map((d) => d.user_id));
   // A lapse that follows a failed payment: their board closed when the grace ran out, while Stripe kept trying.
   const unpaid = new Map<string, number[]>();
   for (const g of (graces ?? []) as { user_id: string; created_at: string }[]) unpaid.set(g.user_id, [...(unpaid.get(g.user_id) ?? []), new Date(g.created_at).getTime()]);
@@ -78,6 +82,7 @@ export async function winBack(opts: { dry?: boolean; now?: number } = {}): Promi
 
   for (const p of profs ?? []) {
     if (!p.email || p.is_admin || isAdminEmail(p.email) || tipsters.has(p.id) || skip.has(p.id) || /@theoverlay\.com\.au$/i.test(p.email) || p.paused_at) continue;
+    if ((p.pass_credits ?? 0) > 0 || passHolders.has(p.id)) continue;
     // A subscription that renews is not ending, whatever access_until says.
     const renewing = ["active", "trialing", "past_due"].includes(p.subscription_status ?? "") && !p.cancel_at;
     if (renewing) continue;
