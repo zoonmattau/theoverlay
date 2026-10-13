@@ -4,7 +4,7 @@ import "server-only";
 import { accessHistory, type AccessDay } from "@/lib/access-history";
 import { foundUs } from "@/lib/arrival";
 
-import { listMembers, type Member } from "@/lib/admin";
+import { freeForGood, listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { PLANS, planById, termById, termPrice } from "@/lib/billing/plans";
 import { stripe, stripeConfigured } from "@/lib/billing/stripe";
@@ -276,7 +276,9 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
         : live && (m.subscription_status === "trialing" || m.subscription_status === "active") ? "trial"
         : m.subscribed_since ? "ended"
         : m.confirmed_at ? "confirmed" : "unconfirmed";
-      return { ...person(m), stage };
+      // Their plan is how they got in, never "no plan" (the user, 13 Oct 2026).
+      const who = person(m);
+      return { ...who, plan: kind === "granted" ? (freeForGood(m.bonus_until) ? "Granted access, for good" : "Granted access") : kind === "tipster" ? "Tipster" : who.plan, stage };
     }),
   };
   const bySource = new Map<string, { signups: number; confirmed: number; paying: number; revenue_cents: number }>();
