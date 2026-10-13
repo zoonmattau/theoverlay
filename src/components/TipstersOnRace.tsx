@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { Fold } from "./Fold";
 import { FollowButton } from "./FollowButton";
-import { TipsterAvatar } from "./TipsterAvatar";
+import { TipsterAvatar, type TipsterFace } from "./TipsterAvatar";
 import { pct, units } from "./TipsterCard";
 import { stakeLabel, struckAt, type CreatorTip, type TipsterProfile } from "@/lib/creators";
 import { price } from "@/lib/format";
@@ -45,5 +45,27 @@ export function TipstersOnRace({ calls }: { calls: { profile: TipsterProfile; ti
         })}
       </ul>
     </Fold>
+  );
+}
+
+/**
+ * Tipsters with a call on a race the viewer cannot open: who has one, never the horse or
+ * the side, so the members-only call is a reason to join rather than nothing at all.
+ */
+export function TipstersLocked({ tipsters, raceId, join }: { tipsters: TipsterFace[]; raceId: string; join: boolean }) {
+  if (tipsters.length === 0) return null;
+  const names = tipsters.map((t) => t.name);
+  const who = names.length === 1 ? names[0] : `${names.slice(0, -1).join(", ")} and ${names.at(-1)}`;
+  const one = tipsters.length === 1;
+  return (
+    <div className="card border-lime bg-lime-soft mb-4 flex flex-wrap items-center gap-3">
+      <div className="flex -space-x-2">
+        {tipsters.slice(0, 4).map((t) => <TipsterAvatar key={t.name} tipster={t} size={32} className="ring-2 ring-lime-soft" />)}
+      </div>
+      <span className="text-sm">
+        <strong>{who}</strong> {one ? "has a call" : "have calls"} in this race. Members see {one ? "it" : "them"} before the jump.
+      </span>
+      {join && <Link href={`/pricing?from=${encodeURIComponent(raceId)}`} className="btn btn-primary btn-sm ml-auto">Join and get a week free</Link>}
+    </div>
   );
 }
