@@ -101,6 +101,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
       {sp.ig === "bill" && <Notice>Thanks for the follow. A free day has been added to your plan.</Notice>}
       {sp.ig === "handle" && <Notice>Enter your Instagram username so we can see the follow, then claim your day.</Notice>}
       {sp.ig === "claimed" && <Notice>You have already had your Instagram day. Thanks for following.</Notice>}
+      {sp.ig === "plan" && <Notice>The Instagram free day is for members on a plan. Thanks for following.</Notice>}
       {typeof sp.switched === "string" && planById(sp.switched) && <Notice>Done, you are on {planById(sp.switched)!.name}.</Notice>}
       {sp.switched === "paid-now" && <Notice>Paid, thank you. Your first month runs 5 weeks.</Notice>}
       {sp.switched === "weekly" && <Notice>Paid, thank you. You are on weekly now, and your board is open.</Notice>}
@@ -138,7 +139,7 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
         </nav>
 
         <div className="account-body">
-          {tab === "overview" && !viewer.admin && !igClaimed && <InstagramDay member={viewer.pro} />}
+          {tab === "overview" && !viewer.admin && !igClaimed && viewer.pro && <InstagramDay />}
           {tab === "overview" && <Overview viewer={viewer} following={following.length} invited={invited} runs={Boolean(runs)} />}
 
           {tab === "plan" && (
@@ -298,15 +299,13 @@ async function Account({ searchParams }: { searchParams: PageProps<"/account">["
   );
 }
 
-/** Follow us on Instagram for a free day. Instagram cannot tell us who follows, so it is their word and their handle. */
-function InstagramDay({ member }: { member: boolean }) {
+/** Follow us on Instagram for a free day on your plan, members only. Instagram cannot tell us who follows, so it is their word and their handle. */
+function InstagramDay() {
   return (
     <div id="instagram" className="card border-lime bg-lime-soft mb-4">
       <h2 className="font-display text-lg font-extrabold">Follow us on Instagram, get a free day</h2>
       <p className="mt-1 text-sm text-ink-secondary">
-        {member
-          ? `Follow @${BRAND_SOCIAL.instagram} and we add a free day to your plan. Once per account.`
-          : `Follow @${BRAND_SOCIAL.instagram} and the full board is yours for the day: every runner rated, every bet and lay. Once per account.`}
+        Follow @{BRAND_SOCIAL.instagram} and we add a free day to your plan. Once per account.
       </p>
       <div className="mt-3 flex flex-wrap items-end gap-2">
         <a href={`https://instagram.com/${BRAND_SOCIAL.instagram}`} target="_blank" rel="noopener" className="btn btn-secondary btn-sm">1. Follow @{BRAND_SOCIAL.instagram}</a>

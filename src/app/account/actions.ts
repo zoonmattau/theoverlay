@@ -68,14 +68,14 @@ export async function revokeApiKey(): Promise<void> {
   revalidatePath("/account");
 }
 
-/** Followed us on Instagram: a free day, once per account. */
+/** Followed us on Instagram: a free day on their plan, once per account. */
 export async function claimInstagram(form: FormData): Promise<void> {
   const viewer = await getViewer();
   if (!viewer.id) return;
   // No day without a real username to check the follow against (the user, 12 Oct 2026).
   const handle = String(form.get("handle") ?? "").trim().replace(/^@/, "");
   if (!/^[A-Za-z0-9._]{1,30}$/.test(handle)) redirect("/account?ig=handle#instagram");
-  const { ok, billDelayed, until } = await claimInstagramDay(viewer.id, handle);
+  const { ok, reason, billDelayed, until } = await claimInstagramDay(viewer.id, handle);
   revalidatePath("/account");
-  redirect(`/account?ig=${!ok ? "claimed" : billDelayed ? `bill&until=${encodeURIComponent(until ?? "")}` : "added"}`);
+  redirect(`/account?ig=${!ok ? (reason ?? "claimed") : billDelayed ? `bill&until=${encodeURIComponent(until ?? "")}` : "added"}`);
 }

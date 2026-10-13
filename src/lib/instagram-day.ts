@@ -6,9 +6,11 @@ import { stripe } from "@/lib/billing/stripe";
 import { syncDiscordMember } from "@/lib/discord";
 
 /**
- * A free day for following us on Instagram. Instagram will not tell us who
- * follows, so the member says they did and gives their handle for a spot
- * check. Once per account, ever, logged as ig_follow_claim.
+ * A free day for following us on Instagram, for members on a plan only since
+ * plans stopped having a free trial (13 Oct 2026): a free day for anyone was a
+ * way round paying. Instagram will not tell us who follows, so the member says
+ * they did and gives their handle for a spot check. Once per account, ever,
+ * logged as ig_follow_claim.
  */
 
 const sydneyDate = (t: number) => new Date(t).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" });
@@ -28,28 +30,27 @@ export async function claimedInstagramDay(userId: string): Promise<boolean> {
 }
 
 /**
- * On a plan, the next bill (or the trial's end) moves a day later, since a
- * free day inside paid access is worth nothing. Without one, the rest of
- * today, or through tomorrow when it is past 5pm and today's racing is
- * nearly done, on top of any gift already running.
+ * The next bill (or the trial's end) moves a day later, since a free day
+ * inside paid access is worth nothing. A plan booked to end gets the day on
+ * the end of its access instead: the rest of that day, or through the next
+ * when it is past 5pm and the racing is nearly done. No plan, no day.
  */
-export async function claimInstagramDay(userId: string, handle: string): Promise<{ ok: boolean; until?: string; billDelayed?: boolean }> {
-  if (await claimedInstagramDay(userId)) return { ok: false };
+export async function claimInstagramDay(userId: string, handle: string): Promise<{ ok: boolean; reason?: "claimed" | "plan"; until?: string; billDelayed?: boolean }> {
+  if (await claimedInstagramDay(userId)) return { ok: false, reason: "claimed" };
   const db = supabaseAdmin();
   const { data: p } = await db.from("profiles").select("access_until, bonus_until, stripe_subscription_id, subscription_status").eq("id", userId).maybeSingle();
+  if (!p?.stripe_subscription_id || !["active", "trialing"].includes(p.subscription_status ?? "")) return { ok: false, reason: "plan" };
   const now = Date.now();
   const tag = handle.replace(/^@/, "").trim().slice(0, 40) || null;
-  if (p?.stripe_subscription_id && ["active", "trialing"].includes(p.subscription_status ?? "")) {
-    const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
-    const next = sub.status === "trialing" && sub.trial_end ? sub.trial_end : sub.items.data[0]?.current_period_end;
-    if (next && !sub.cancel_at && !sub.cancel_at_period_end) {
-      const moved = next + 86400;
-      // A trial end on the subscription, with no proration, is the free day; the webhook carries the new date.
-      await stripe().subscriptions.update(sub.id, { trial_end: moved, proration_behavior: "none" });
-      const until = new Date(moved * 1000).toISOString();
-      await logEvent({ user_id: userId, kind: "ig_follow_claim", plan: null, amount_cents: null, meta: { handle: tag, nextBill: until } });
-      return { ok: true, until, billDelayed: true };
-    }
+  const sub = await stripe().subscriptions.retrieve(p.stripe_subscription_id);
+  const next = sub.status === "trialing" && sub.trial_end ? sub.trial_end : sub.items.data[0]?.current_period_end;
+  if (next && !sub.cancel_at && !sub.cancel_at_period_end) {
+    const moved = next + 86400;
+    // A trial end on the subscription, with no proration, is the free day; the webhook carries the new date.
+    await stripe().subscriptions.update(sub.id, { trial_end: moved, proration_behavior: "none" });
+    const until = new Date(moved * 1000).toISOString();
+    await logEvent({ user_id: userId, kind: "ig_follow_claim", plan: null, amount_cents: null, meta: { handle: tag, nextBill: until } });
+    return { ok: true, until, billDelayed: true };
   }
   const day = sydneyHour(now) >= 17 ? sydneyDate(now + 86400_000) : sydneyDate(now);
   const end = new Date(endOfSydneyDay(day)).getTime();
