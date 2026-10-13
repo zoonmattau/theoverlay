@@ -161,6 +161,7 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         </details>
       </Fold>
 
+      <Toward t={r.toward} />
       <Growth g={r.growth} />
     </>
   );
@@ -293,6 +294,30 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
       <span className={`font-semibold tabular-nums ${up ? "text-accent" : down ? "text-red" : "text-ink-soft"}`}>
         {up ? "▲" : down ? "▼" : "="} {pct === undefined ? (now ? "new" : "") : `${Math.abs(pct)}%`}
       </span>
+    </div>
+  );
+}
+
+/**
+ * Toward 100 paying: the last 30 days' new and lost paying members, and where that rate
+ * levels off. The level is new a month over the share lost a month, so either side moves it.
+ */
+function Toward({ t }: { t: MoneyReport["toward"] }) {
+  const pctLost = Math.round(t.lossRate * 100);
+  return (
+    <div className="card mb-6">
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+        <h2 className="font-display text-lg font-extrabold">Toward {t.goal} paying</h2>
+        <span className="text-sm nums"><strong>{t.paying}</strong> paying now</span>
+        <span className="text-sm nums text-accent font-semibold">+{t.added} new</span>
+        <span className="text-sm nums text-red font-semibold">&minus;{t.lost} lost ({pctLost}%)</span>
+        <span className="text-sm nums">
+          {t.level !== undefined ? <>Levels off near <strong className={t.level >= t.goal ? "text-accent" : ""}>{t.level}</strong></> : "Nobody lost yet"}
+        </span>
+      </div>
+      <p className="mt-1 text-xs text-ink-soft">
+        Last 30 days. New had never paid before, lost paid in the month and not today. {t.goal} needs about 15 new a month losing 15%, or 20 losing 20%.
+      </p>
     </div>
   );
 }

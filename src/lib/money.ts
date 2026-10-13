@@ -1,6 +1,7 @@
+import type Stripe from "stripe";
 import "server-only";
 
-import { accessHistory } from "@/lib/access-history";
+import { accessHistory, type AccessDay } from "@/lib/access-history";
 import { foundUs } from "@/lib/arrival";
 
 import { listMembers, type Member } from "@/lib/admin";
@@ -73,6 +74,7 @@ export interface MoneyReport {
   byWeekday: number[];
   /** New accounts and trial sign-ups by day, and this week against last, to see if it is growing. */
   growth: { accounts: Series; trials: Series; allAccounts: Series; paying: Series; week: { accounts: [number, number]; trials: [number, number] } };
+  toward: Toward;
   /** The last 50 plan clicks and checkouts, newest first. */
   recent: { at: string; kind: string; plan: string | null; who: string; anonymous: boolean; userId?: string }[];
 }
@@ -132,6 +134,48 @@ function funnel(id: string, name: string, price: number, events: Ev[], members: 
 }
 
 /** Clicks, checkouts, trials, payments and cancellations by plan over the last n days, with the rates between them. */
+/** The goal the user set on 13 Oct 2026: this many paying members by Oct 2027. */
+export const PAYING_GOAL = 100;
+
+/**
+ * Toward the goal, always over the last 30 days whatever the window: paying members new
+ * (never paid before), lost (paying in the month, not today), and where membership levels off
+ * if both hold, new a month divided by the share lost a month.
+ */
+export interface Toward {
+  goal: number;
+  paying: number;
+  added: number;
+  lost: number;
+  /** Lost over the month's average paying count, 0 to 1. */
+  lossRate: number;
+  /** Where it levels off; undefined while nobody has been lost. */
+  level?: number;
+}
+
+async function towardGoal(): Promise<Toward> {
+  const [all, { data: pays }] = await Promise.all([
+    accessHistory(undefined, undefined, { everyDay: true }),
+    supabaseAdmin().from("events").select("user_id, created_at").eq("kind", "payment").gt("amount_cents", 0).order("created_at").limit(20000),
+  ]);
+  // Paying means money taken by then: a plan Stripe calls active with nothing paid is not a member
+  // gained or lost (the five 12 Oct 2026 rebills that never paid read as both).
+  const firstPaid = new Map<string, string>();
+  for (const e of (pays ?? []) as { user_id: string | null; created_at: string }[]) if (e.user_id && !firstPaid.has(e.user_id)) firstPaid.set(e.user_id, sydneyDay(e.created_at));
+  const ids = (h?: AccessDay) => (h?.who?.paying ?? []).filter((id) => (firstPaid.get(id) ?? "9999") <= h!.date);
+  const month = all.slice(-30);
+  const start = new Set(ids(all.at(-31)));
+  const before = new Set(all.slice(0, -30).flatMap(ids));
+  const inMonth = new Set([...start, ...month.flatMap(ids)]);
+  const today = new Set(ids(all.at(-1)));
+  const added = [...inMonth].filter((id) => !before.has(id)).length;
+  const lost = [...inMonth].filter((id) => !today.has(id)).length;
+  // Over the members there were to lose: those at the start, and half of those who joined in the month.
+  const exposed = start.size + added / 2;
+  const lossRate = exposed ? lost / exposed : 0;
+  return { goal: PAYING_GOAL, paying: today.size, added, lost, lossRate, level: lossRate ? Math.round(added / lossRate) : undefined };
+}
+
 export async function moneyReport(days: number): Promise<MoneyReport> {
   const now = Date.now();
   const since = new Date(now - days * 86400_000).toISOString();
@@ -287,7 +331,8 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     week: { accounts: weekOf(accountDays), trials: weekOf(trialDays) },
   };
 
-  return { days, plans, totals, mrr_cents, signups, paidPeople, payingNow, sources, bookies, trials, byDay, byHour, byWeekday, growth, recent };
+  const toward = await towardGoal();
+  return { days, plans, totals, mrr_cents, signups, paidPeople, payingNow, sources, bookies, trials, byDay, byHour, byWeekday, growth, toward, recent };
 }
 
 /** A charge Stripe will try on a live subscription: a trial turning into its first bill, or a renewal. */
@@ -380,8 +425,12 @@ function termOf(r?: { interval: string; interval_count: number } | null): string
 export async function trialConversion(): Promise<{ ended: number; paid: number; rate: number }> {
   const nowS = Math.floor(Date.now() / 1000);
   let ended = 0, paid = 0;
-  for await (const s of stripe().subscriptions.list({ status: "all", limit: 100 })) {
-    if (!s.trial_end || pushedBill(s)) continue;
+  const subs: Stripe.Subscription[] = [];
+  for await (const s of stripe().subscriptions.list({ status: "all", limit: 100 })) subs.push(s);
+  // The 12 Oct 2026 rebills are no trials: the new subscriptions (rebill=1, a 90-second trial) and the ones they replaced.
+  const replaced = new Set(subs.map((s) => s.metadata?.replaces).filter(Boolean));
+  for (const s of subs) {
+    if (!s.trial_end || pushedBill(s) || s.metadata?.rebill === "1" || replaced.has(s.id)) continue;
     const over = s.trial_end <= nowS || s.status === "canceled" || s.status === "incomplete_expired";
     if (!over) continue;
     ended++;
