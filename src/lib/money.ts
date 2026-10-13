@@ -244,14 +244,20 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     return { id, who: m?.full_name || m?.email || "a member", email: m?.email ?? null, plan, cents: v.cents };
   }).sort((a, b) => b.cents - a.cents);
 
-  // New accounts split by kind: tipsters, and anyone the admin gave access (days, an invite, free for good).
+  // New accounts split by kind: tipsters, and anyone whose access came from the admin. An invite or free for
+  // good always does; days added only for someone who never started a plan, not a top-up on their own trial (Zac, 21 Sep 2026).
   const [{ data: affs }, { data: gifts }] = await Promise.all([
     supabaseAdmin().from("affiliates").select("user_id").not("user_id", "is", null),
-    supabaseAdmin().from("events").select("user_id").eq("kind", "admin").in("meta->>action", ["add_days", "invite", "free_for_good"]),
+    supabaseAdmin().from("events").select("user_id, meta").eq("kind", "admin").in("meta->>action", ["add_days", "invite", "free_for_good"]),
   ]);
   const tipsterIds = new Set((affs ?? []).map((a) => a.user_id as string));
-  const grantedIds = new Set((gifts ?? []).map((g) => g.user_id as string));
-  const kindOf = (m: Member) => (tipsterIds.has(m.id) ? "tipster" : grantedIds.has(m.id) ? "granted" : "member");
+  const given = new Map<string, Set<string>>();
+  for (const g of (gifts ?? []) as { user_id: string; meta: { action?: string } | null }[]) given.set(g.user_id, (given.get(g.user_id) ?? new Set()).add(g.meta?.action ?? ""));
+  const granted = (m: Member) => {
+    const how = given.get(m.id);
+    return Boolean(how && (how.has("invite") || how.has("free_for_good") || (how.has("add_days") && !m.subscribed_since)));
+  };
+  const kindOf = (m: Member) => (tipsterIds.has(m.id) ? "tipster" : granted(m) ? "granted" : "member");
   const joined = members.filter((m) => m.created_at >= since);
   const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && paidUp(m));
   const signups = {
