@@ -83,7 +83,7 @@ async function Admin() {
             {lastMail ? ` Tips email sent ${when(lastMail.created_at)} to ${String((lastMail.meta as { sent?: number })?.sent ?? 0)}.` : " No tips email sent yet."}
           </div>
         </div>
-        <div className="ml-auto flex gap-2">
+        <div className="ml-auto flex flex-wrap gap-2">
           <ActionButton action={rebuildCard} busy="Rebuilding, about a minute">Rebuild today</ActionButton>
           <ActionButton action={resendTips} busy="Sending">Resend tips email</ActionButton>
           <ActionButton action={buildTomorrow} busy="Building tomorrow, a few minutes">Build tomorrow now</ActionButton>

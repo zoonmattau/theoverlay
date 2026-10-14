@@ -66,19 +66,17 @@ const CATEGORIES: { id: Category; label: string; hint: string }[] = [
 
 type Key = "name" | "account" | "plan" | "found" | "status" | "accessUntil" | "since" | "spent" | "passes" | "emails" | "lastSeen" | "discordState" | "api";
 
+// Fits the page with Delete on it (14 Oct 2026): Account shows beside the name only when it isn't confirmed,
+// Emails and API live on the member's own page (their filters stay), and Since is gone: the list still sorts newest first.
 const COLS: { key: Key; label: string; right?: boolean }[] = [
   { key: "name", label: "Member" },
-  { key: "account", label: "Account" },
   { key: "plan", label: "Plan" },
   { key: "found", label: "Found us" },
   { key: "status", label: "Status" },
   { key: "accessUntil", label: "Access until" },
-  { key: "since", label: "Since" },
   { key: "spent", label: "Spent", right: true },
   { key: "passes", label: "Passes", right: true },
-  { key: "emails", label: "Emails" },
   { key: "discordState", label: "Discord" },
-  { key: "api", label: "API" },
   { key: "lastSeen", label: "Last seen" },
 ];
 const DISCORD_ORDER = { member: 0, joined: 1, linked: 2, none: 3 };
@@ -196,7 +194,7 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
       ) : (
       <div className="overflow-x-auto">
         {/* One line a member: second details sit beside the first, small, and rows are tight. */}
-        <table className="data-table stack-sm text-xs min-w-[1180px] [&_td]:py-1 [&_th]:py-1.5">
+        <table className="data-table stack-sm text-xs [&_td]:py-1 [&_th]:py-1.5">
           <thead>
             <tr>
               {COLS.map((c) => (
@@ -215,12 +213,12 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
             )}
             {shown.map((m) => (
               <tr key={m.id}>
-                <td className="max-w-[18rem] truncate" title={m.email}>
+                <td className="max-w-[16rem] truncate" title={m.email}>
                   <Link href={`/admin/${m.id}`} className="font-semibold hover:text-blue">{m.name}</Link>
                   {m.name !== m.email && <span className="text-ink-soft"> · {m.email}</span>}
                   {m.admin && <span className="badge badge-prime ml-2">Admin</span>}
+                  {m.account !== "active" && <span className="badge badge-warn ml-2">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}
                 </td>
-                <td data-label="Account">{m.account === "active" ? <span className="badge badge-muted" title="Email confirmed, can log in; says nothing about a plan">Confirmed</span> : <span className="badge badge-warn">{m.account === "invited" ? "Invited" : "Unconfirmed"}</span>}</td>
                 <td data-label="Plan">
                   {m.tipster ? <span className="badge badge-prime">Tipster</span> : m.plan || "—"}
                   {m.term && <span className="text-ink-soft"> · {m.term}</span>}
@@ -231,10 +229,8 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                 </td>
                 <td data-label="Status">{m.status === "paused" ? <span className="badge badge-warn">Paused</span> : m.status === "live" ? (m.statusLabel === "cancelling" ? <span className="badge badge-muted" title="Booked to cancel; access runs to the end of what they paid for">cancelling</span> : <span className="badge badge-prime">{m.statusLabel}</span>) : <span className="badge badge-muted">{m.statusLabel}</span>}</td>
                 <td data-label="Access until" className="nums">{day(m.accessUntil)}</td>
-                <td data-label="Since" className="nums">{day(m.since)}</td>
                 <td data-label="Spent" className="text-right nums">{money(m.spent)}</td>
                 <td data-label="Passes" className="text-right nums">{m.passes}</td>
-                <td data-label="Emails">{m.emails ? <span className="badge badge-prime">On</span> : <span className="badge badge-muted">Off</span>}</td>
                 <td data-label="Discord">
                   {m.discordState === "none" ? (
                     <span className="text-xs text-ink-soft">—</span>
@@ -242,16 +238,6 @@ export function MembersTable({ rows, plans, found: foundGroups, remove, self }: 
                     <>
                       {m.discordState === "member" ? <span className="badge badge-prime">Member</span> : m.discordState === "joined" ? <span className="badge badge-warn">No role</span> : <span className="badge badge-muted">Not joined</span>}
                       <span className="block text-xs text-ink-soft">{m.discord}</span>
-                    </>
-                  )}
-                </td>
-                <td data-label="API">
-                  {m.api === "none" ? (
-                    <span className="text-xs text-ink-soft">—</span>
-                  ) : (
-                    <>
-                      {m.api === "live" ? <span className="badge badge-prime">Key</span> : <span className="badge badge-muted">Revoked</span>}
-                      <span className="block text-xs text-ink-soft nums">{m.apiUses} {m.apiUses === 1 ? "call" : "calls"}{m.apiLastUsed ? `, ${when(m.apiLastUsed)}` : ""}</span>
                     </>
                   )}
                 </td>
