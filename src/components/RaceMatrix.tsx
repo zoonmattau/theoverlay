@@ -28,7 +28,7 @@ export function RaceMatrix({
   date: string;
   /** Marked in the grid for viewers who cannot open the rest. */
   freeRaceId?: string;
-  /** The tipsters the viewer follows, each with the races they have called. */
+  /** Every tipster with a call today, the viewer's follows first, each with the races they have called. */
   tipsters?: (TipsterFace & { raceIds: string[] })[];
 }) {
   // Their avatars, the letters or logo they picked, not the first letter of a name ("The Grey Wolf" read T, 12 Oct 2026).
@@ -106,7 +106,7 @@ export function RaceMatrix({
         <span><span className="legend-dot bg-blue-soft" />Way Overlay</span>
         <span><span className="legend-dot bg-red" />Lay</span>
         <span><span className="legend-dot bg-surface-alt" />Run, with what it returned us</span>
-        {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />A tipster you follow has a call in this race</span>}
+        {tipsters && tipsters.length > 0 && <span><span className="legend-dot legend-dot-tipster" />A tipster has a call in this race</span>}
       </div>
     </div>
   );

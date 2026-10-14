@@ -16,8 +16,8 @@ import { UsePassButton } from "@/components/UsePassButton";
 import { ReviewBanner } from "@/components/ReviewStory";
 import { bannerReview } from "@/lib/reviews";
 import { now } from "@/lib/admin";
-import { getViewer, hasAccess } from "@/lib/auth";
-import { followedCalls } from "@/lib/creators";
+import { getViewer, hasAccess, seesFreeRace } from "@/lib/auth";
+import { boardTipsters } from "@/lib/creators";
 import { HomeTipsters } from "@/components/HomeTipsters";
 import { getCardFor, keepFresh, keepPrices, racingToday, RELEASE_HOUR } from "@/lib/model/source";
 import { dailyUnits, publicRecord } from "@/lib/tips";
@@ -183,8 +183,8 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
   const released = card.released || viewer.admin;
   keepFresh(date, card);
   keepPrices(date, card);
-  // The tipsters this viewer follows, and which races each has called today.
-  const tipsters = (await followedCalls(viewer, date)).map(({ tipster, tips }) => ({ ...faceOf(tipster), raceIds: tips.map((t) => t.race_id) }));
+  // Every tipster with a call today and which races, shown to anyone; the horse stays for members.
+  const tipsters = (await boardTipsters(viewer, date)).map(({ tipster, raceIds }) => ({ ...faceOf(tipster), raceIds }));
   const access = hasAccess(viewer, date);
   const free = access ? undefined : freeRaceOf(card);
   const upcoming = meetings.flatMap((m) => m.races).filter((r) => !r.result);
@@ -195,7 +195,7 @@ async function TodayCard({ searchParams }: { searchParams: PageProps<"/">["searc
     <>
       <NextToGo meetings={meetings} selections={selections} date={date} tipsters={tipsters} />
 
-      {free && released && <FreeRace date={date} meeting={free.meeting} race={free.race} />}
+      {free && released && <FreeRace date={date} meeting={free.meeting} race={free.race} account={!seesFreeRace(viewer)} />}
 
       <section className="mt-6" id="board">
         {previewing && (
@@ -240,7 +240,7 @@ function freeRaceOf(card: { freeRaceId?: string; meetings: PublishedMeeting[] })
  * to find it in the matrix: the race, the jump, what we have on in it, and
  * the way in.
  */
-function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMeeting; race: PublishedRace }) {
+function FreeRace({ date, meeting, race, account }: { date: string; meeting: PublishedMeeting; race: PublishedRace; account: boolean }) {
   const calls = race.runners.filter((x) => x.signal && !x.scratched);
   const bets = calls.filter((x) => x.signal === "back").length;
   const lays = calls.filter((x) => x.signal === "lay").length;
@@ -255,7 +255,9 @@ function FreeRace({ date, meeting, race }: { date: string; meeting: PublishedMee
         <h2 className="mt-1.5 font-display text-xl font-extrabold tracking-tight leading-tight">
           {summary[0].toUpperCase()}{summary.slice(1)}
         </h2>
-        <p className="mt-1 text-sm text-ink-secondary">Free to see. Every other race opens with a plan or a day pass.</p>
+        <p className="mt-1 text-sm text-ink-secondary">
+          {account ? "Free with an account, no card needed." : "Free to see."} Every other race opens with a plan or a day pass.
+        </p>
       </div>
       <JumpTile title={`${meeting.track} R${race.raceNumber}, ${race.distance}m`} iso={race.jumpTime} clock={jumpTime(race.jumpTime)} run={Boolean(race.result)} />
       <Link href={href} className="btn btn-primary sm:justify-self-end">See the free race</Link>

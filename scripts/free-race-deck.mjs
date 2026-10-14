@@ -145,7 +145,7 @@ for (const [i, s] of picked.entries()) {
     <h1>${s.title}<span>${from + i} / ${total}</span></h1>
     <div class="sub">${s.sub}</div>
     <div class="stack">${s.imgs.map((b) => `<img src="${data(b)}">`).join("")}</div>
-    <div class="foot"><div><b>${raceLabel}</b> · ${raceMeta}</div><div class="cta">7-day free trial · theoverlay.com.au</div></div>
+    <div class="foot"><div><b>${raceLabel}</b> · ${raceMeta}</div><div class="cta">Free race every day · theoverlay.com.au</div></div>
   </body></html>`;
   const p = await browser.newPage({ viewport: { width: 1080, height: 1080 } });
   await p.setContent(html);

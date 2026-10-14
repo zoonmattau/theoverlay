@@ -19,7 +19,7 @@ import { TrackMenu, type MiniMeeting } from "@/components/TrackMenu";
 import { TipsterTips } from "@/components/TipsterTips";
 import { TipstersLocked, TipstersOnRace } from "@/components/TipstersOnRace";
 import { WhatToWatch } from "@/components/WhatToWatch";
-import { getViewer, hasAccess } from "@/lib/auth";
+import { getViewer, hasAccess, seesFreeRace } from "@/lib/auth";
 import { allTipsters, callsOn, creatorTips, followedCalls, tipVisible, stakeLabel, struckAt, tipsterForUser, tipsterProfiles } from "@/lib/creators";
 import { postTip, removeTip } from "@/app/tipster/actions";
 import type { Tipping } from "@/components/RunnerTable";
@@ -101,7 +101,10 @@ async function Race({ params }: { params: Props["params"] }) {
   const raceHref = (r: { raceId: string } | undefined) => (r ? `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(r.raceId)}` : undefined);
   const prevHref = raceHref(meeting.races[idx - 1]);
   const nextHref = raceHref(meeting.races[idx + 1]);
-  const open = free || hasAccess(viewer, date);
+  // The free race asks for an account with a confirmed email (14 Oct 2026); a plan or pass opens every race.
+  const open = (free && seesFreeRace(viewer)) || hasAccess(viewer, date);
+  // Shut only for want of an account: the locked sections point at signing up, not the plans.
+  const account = free && !open ? `/racing/${date}/${encodeURIComponent(meetingId)}/${encodeURIComponent(raceId)}` : undefined;
   const field = race.runners.filter((r) => !r.scratched).length;
   const followed = await followedCalls(viewer, date);
   // A tipster gets a Tip column in the market table to post on a runner from here.
@@ -125,14 +128,19 @@ async function Race({ params }: { params: Props["params"] }) {
   const inRace = followed.map((f) => ({ ...f, tips: f.tips.filter((t) => t.race_id === raceId).filter(tipVisible(open)) })).filter((f) => f.tips.length > 0);
   // Every other listed tipster's calls on this race, with their records: where people first meet a tipster.
   const followedIds = new Set(followed.map((f) => f.tipster.id));
-  const othersAll = (await callsOn(date, (await allTipsters()).filter((t) => !followedIds.has(t.id)))).filter((t) => t.race_id === raceId);
+  const othersDay = await callsOn(date, (await allTipsters()).filter((t) => !followedIds.has(t.id)));
+  const othersAll = othersDay.filter((t) => t.race_id === raceId);
   const others = othersAll.filter(tipVisible(open));
   // A call held back for members still says it is there: who has one, never the horse or the side.
   const held = open ? [] : [...followed.flatMap((f) => f.tips.filter((t) => t.race_id === raceId && !t.settled_at).map(() => f.tipster)), ...othersAll.filter((t) => !t.settled_at).map((t) => t.tipster)];
   const lockedTipsters = [...new Map(held.map((t) => [t.id, faceOf(t)])).values()];
   const otherProfiles = new Map((await tipsterProfiles([...new Map(others.map((t) => [t.tipster.id, t.tipster])).values()])).map((p) => [p.tipster.id, p]));
   const othersOnRace = others.map((tip) => ({ profile: otherProfiles.get(tip.affiliate_id)!, tip })).filter((x) => x.profile);
-  const facesFor = (id: string) => followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => faceOf(f.tipster));
+  // Anyone sees who has a call in each race of the mini matrix, the viewer's follows first.
+  const facesFor = (id: string) => [
+    ...followed.filter((f) => f.tips.some((t) => t.race_id === id)).map((f) => faceOf(f.tipster)),
+    ...[...new Map(othersDay.filter((t) => t.race_id === id).map((t) => [t.tipster.id, faceOf(t.tipster)])).values()],
+  ];
 
   // The mini matrix behind the track name: every race on the day, coloured
   // like the board.
@@ -266,7 +274,21 @@ async function Race({ params }: { params: Props["params"] }) {
 
       <Results race={race} />
 
-      {free && !hasAccess(viewer, date) && (
+      {account && (
+        <div className="card border-lime bg-lime-soft flex flex-wrap items-center gap-3">
+          <span className="badge badge-prime">Free race</span>
+          {viewer.id ? (
+            <span className="text-sm">Confirm your email to open today&apos;s free race: the link is in your inbox.</span>
+          ) : (
+            <>
+              <span className="text-sm">Today&apos;s free race. Make a free account to see it, no card needed.</span>
+              <Link href={`/signup?next=${encodeURIComponent(account)}`} className="btn btn-primary ml-auto">Make a free account</Link>
+            </>
+          )}
+        </div>
+      )}
+
+      {free && open && !hasAccess(viewer, date) && (
         <div className="card border-lime bg-lime-soft flex flex-wrap items-center gap-3">
           <span className="badge badge-prime">Free race</span>
           <span className="text-sm">Today&apos;s free race, every other race opens with a plan or a day pass.</span>
@@ -304,7 +326,7 @@ async function Race({ params }: { params: Props["params"] }) {
           </div>
         </Section>
       ) : (
-        <Locked id="selections" title="Our selections" letter="O" raceId={raceId} />
+        <Locked id="selections" title="Our selections" letter="O" raceId={raceId} account={account} />
       )}
 
       {open && released ? (
@@ -315,13 +337,13 @@ async function Race({ params }: { params: Props["params"] }) {
         </Section>
       ) : null}
 
-      {open ? <Rankings race={race} /> : <Locked id="rankings" title="Rankings" letter="R" lines={10} raceId={raceId} brief />}
+      {open ? <Rankings race={race} /> : <Locked id="rankings" title="Rankings" letter="R" lines={10} raceId={raceId} brief account={account} />}
 
       <PaceGrid race={race} rail={meeting.railPosition} locked={!open} />
 
       <RunnerTable race={race} locked={!open} people={people} tipping={tipping} calls={calls} />
 
-      {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} brief />}
+      {open ? <WhatToWatch race={race} /> : <Locked id="watch" title="What to watch" letter="W" lines={6} raceId={raceId} brief account={account} />}
     </div>
   );
 }

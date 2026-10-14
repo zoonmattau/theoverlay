@@ -119,6 +119,26 @@ export async function followedCalls(viewer: Viewer, date: string): Promise<{ tip
   return Promise.all(tipsters.map(async (tipster) => ({ tipster, tips: await creatorTips(tipster.id, date) })));
 }
 
+/**
+ * Every listed tipster with a call on the day and the races they called, the
+ * viewer's follows first, for the logos on the board. Anyone sees who has a
+ * call in a race, signed in or not (14 Oct 2026); the horse stays behind
+ * tipVisible.
+ */
+export async function boardTipsters(viewer: Viewer, date: string): Promise<{ tipster: Tipster; raceIds: string[] }[]> {
+  const followed = await followedCalls(viewer, date);
+  const ids = new Set(followed.map((f) => f.tipster.id));
+  const others = await callsOn(date, (await allTipsters()).filter((t) => !ids.has(t.id)));
+  const out = new Map<string, { tipster: Tipster; raceIds: string[] }>();
+  for (const f of followed) if (f.tips.length > 0) out.set(f.tipster.id, { tipster: f.tipster, raceIds: f.tips.map((t) => t.race_id) });
+  for (const t of others) {
+    const row = out.get(t.affiliate_id) ?? { tipster: t.tipster, raceIds: [] };
+    row.raceIds.push(t.race_id);
+    out.set(t.affiliate_id, row);
+  }
+  return [...out.values()];
+}
+
 /** Everyone who follows a tipster, for their emails. */
 export async function followerIds(tipsterId: string): Promise<string[]> {
   const { data } = await supabaseAdmin().from("follows").select("user_id").eq("tipster_id", tipsterId);

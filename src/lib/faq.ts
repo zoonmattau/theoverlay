@@ -28,5 +28,5 @@ export const PLANS_FAQ: Faq[] = [
   { q: "Is there a free trial?", a: "No, plans are paid from the day you start, but the first bill runs a week longer: a month is 5 weeks, a quarter or a year a week more. One race is free every day without a plan.", links: [{ label: "See the plans", href: "/pricing" }] },
   { q: "What does a day pass do?", a: "A day pass opens every race and our Discord for one race day, costs $10, never expires, gets cheaper in bundles of 3, 5 or 10, and you use it on the day from the home page, Today's tips or any race. Use one after 4pm and it opens tomorrow too.", links: [{ label: "Buy day passes", href: "/pricing#passes" }] },
   { q: "Can I cancel any time?", a: "Yes, cancel from your account and the board stays open until the end of the period you have paid for.", links: [{ label: "Your account", href: "/account" }] },
-  { q: "What is free without a plan?", a: "The race board, jump times, results, the live market and one free race every day.", links: [{ label: "Today's board", href: "/" }] },
+  { q: "What is free without a plan?", a: "The race board, jump times, results and the live market. Make a free account and one race a day opens too.", links: [{ label: "Today's board", href: "/" }] },
 ];

@@ -35,6 +35,8 @@ export interface Viewer {
   tipster: boolean;
   /** The linked Discord account, once there is one. */
   discordName?: string;
+  /** Signed in with a confirmed email, which is what the free race asks for (14 Oct 2026). */
+  confirmed: boolean;
   details: Details;
 }
 
@@ -58,7 +60,12 @@ export function isAdminEmail(email?: string | null): boolean {
   return Boolean(email && list.includes(email.toLowerCase()));
 }
 
-export const ANON: Viewer = { pro: false, paused: false, admin: false, tipsEmails: false, tipster: false, details: NO_DETAILS, passCredits: 0, passDates: [], bonusLive: false };
+export const ANON: Viewer = { confirmed: false, pro: false, paused: false, admin: false, tipsEmails: false, tipster: false, details: NO_DETAILS, passCredits: 0, passDates: [], bonusLive: false };
+
+/** The free race opens to anyone with an account and a confirmed email, no plan needed (14 Oct 2026). */
+export function seesFreeRace(viewer: Viewer): boolean {
+  return Boolean(viewer.id && viewer.confirmed);
+}
 
 /** Can this viewer see the paid parts of a given racing date? */
 export function hasAccess(viewer: Viewer, date: string): boolean {
@@ -83,7 +90,7 @@ export function apiAccess(viewer: Viewer, date: string): boolean {
 export const getViewer = cache(async function getViewer(): Promise<Viewer> {
   // Local escape hatch: everything unlocked, no account needed.
   // OVERLAY_ADMIN=1 alongside it opens the admin panel too.
-  if (process.env.OVERLAY_OPEN === "1") return { ...ANON, pro: true, plan: "open", admin: process.env.OVERLAY_ADMIN === "1" };
+  if (process.env.OVERLAY_OPEN === "1") return { ...ANON, confirmed: true, pro: true, plan: "open", admin: process.env.OVERLAY_ADMIN === "1" };
   if (!supabaseConfigured()) return ANON;
   const supabase = await supabaseServer();
   const {
@@ -107,7 +114,7 @@ export const getViewer = cache(async function getViewer(): Promise<Viewer> {
       .then(({ error }) => error && console.error("[seen]", error.message));
   }
 
-  return toViewer(user.id, user.email ?? undefined, profile, passes, Boolean(tipster));
+  return toViewer(user.id, user.email ?? undefined, profile, passes, Boolean(tipster), Boolean(user.email_confirmed_at));
 });
 
 const PROFILE = "email, plan, access_until, stripe_customer_id, pass_credits, bonus_until, referral_code, paused_at, marketing_opt_in, is_admin, last_seen_at, full_name, phone, address1, address2, suburb, state, postcode, dob, discord_name";
@@ -125,11 +132,12 @@ export async function viewerById(id: string): Promise<Viewer> {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function toViewer(id: string, email: string | undefined, profile: any, passes: { date: unknown }[] | null, tipster: boolean): Viewer {
+function toViewer(id: string, email: string | undefined, profile: any, passes: { date: unknown }[] | null, tipster: boolean, confirmed = true): Viewer {
   const until = profile?.access_until ? new Date(profile.access_until) : undefined;
   const pro = Boolean(until && until.getTime() > Date.now());
   return {
     id,
+    confirmed,
     email,
     pro,
     plan: pro ? (profile?.plan ?? undefined) : undefined,

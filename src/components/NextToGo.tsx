@@ -21,7 +21,7 @@ export function NextToGo({
   meetings: PublishedMeeting[];
   selections: Selection[];
   date: string;
-  /** The tipsters the viewer follows, each with the races they have called, for the badge the board carries. */
+  /** Every tipster with a call today, each with the races they have called, for the badge the board carries. */
   tipsters?: (TipsterFace & { raceIds: string[] })[];
 }) {
   // Their avatars, the letters or logo they picked, not the first letter of a name ("The Grey Wolf" read T, 12 Oct 2026).

@@ -184,7 +184,7 @@ export function NtgCountdown({
   return (
     <Link href={href} className={`ntg-item ${state.status} ${tip ? `tip-${tip}` : ""} ${mixClass(mix)}`} style={mixStyle(mix)}>
       {tipsters && tipsters.length > 0 && (
-        <span className="matrix-tipsters" title="A tipster you follow has a call in this race">{tipsters.slice(0, 3).map((t, i) => <TipsterAvatar key={i} tipster={t} size={16} className="matrix-tipster-face" />)}</span>
+        <span className="matrix-tipsters" title={tipsters.map((t) => t.name).join(", ") + " " + (tipsters.length > 1 ? "have calls" : "has a call") + " in this race"}>{tipsters.slice(0, 3).map((t, i) => <TipsterAvatar key={i} tipster={t} size={16} className="matrix-tipster-face" />)}</span>
       )}
       <span className="ntg-head">
         <span className="ntg-track">{label}</span>
