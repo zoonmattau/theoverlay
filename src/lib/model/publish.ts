@@ -264,12 +264,14 @@ export function publishRace(
   // official rating, blindRun) and that the market fancies: without it the race cannot be priced,
   // so no new call is made in it. Well Written, Randwick R8, 3 Oct 2026: five NZ wins and nothing
   // else. "If we don't have the data we don't have to make a play" (the user, 2 Oct 2026).
+  // A blind latest run counts too: older Australian form is not today's horse. Ka Ying Rising,
+  // Everest 17 Oct 2026: a year of Hong Kong runs since the last one we can read.
   const unread = race.entries.some(
     (e) =>
       !e.scratched &&
-      (e.pastEvents ?? []).some((p) => p.race !== false && !p.trial) &&
-      (ratedByTab.get(String(e.number))?.ratings.runs ?? 0) === 0 &&
-      (e.odds?.bestNow ?? Infinity) <= NO_FORM_PRICE,
+      (e.odds?.bestNow ?? Infinity) <= NO_FORM_PRICE &&
+      ((e.pastEvents ?? []).some((p) => p.race !== false && !p.trial) &&
+        ((ratedByTab.get(String(e.number))?.ratings.runs ?? 0) === 0 || latestRunBlind(e, race.date))),
   );
   const guessing = priced.confidence < MIN_CONFIDENCE || !marketWhole || unread;
   const signalByTab = new Map(
@@ -446,6 +448,19 @@ export function publishRace(
 
 /** A runner with no readable form at this price or shorter takes the calls out of its race. */
 const NO_FORM_PRICE = Number(process.env.OVERLAY_NO_FORM_PRICE ?? 10);
+
+const AU_STATES = new Set(["NSW", "VIC", "QLD", "WA", "SA", "TAS", "ACT", "NT"]);
+
+/**
+ * The horse's latest start was overseas and is one we cannot read (blindRun). Australian
+ * runs can be blind too ("Hcp (55)", country cups, about one in ten), so the state decides.
+ */
+function latestRunBlind(e: RaceEntry, asOf?: number): boolean {
+  const last = (e.pastEvents ?? [])
+    .filter((p) => p.race !== false && !p.trial && !p.spell && !p.scratched && !isJumps(p) && (!asOf || p.date < asOf))
+    .sort((a, b) => b.date - a.date)[0];
+  return !!last && !AU_STATES.has(String(last.state ?? "").toUpperCase()) && blindRun(last);
+}
 
 /** A market closed this long before the jump is a race called off. */
 const ABANDON_BEFORE_MS = 5 * 60_000;

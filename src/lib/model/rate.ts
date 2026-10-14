@@ -93,9 +93,11 @@ const FL_POWER = Number(process.env.OVERLAY_FL_POWER ?? 1);
  * Spreads the rated prices apart, 1 for none: each chance is raised to this
  * power and the race brought back to 100%. Over 25 days to 5 Oct 2026 the
  * rated prices were bunched: horses rated under $2 won 74% against 60% said,
- * those rated $8 to $16 won less than said. Under test, off by default.
+ * those rated $8 to $16 won less than said. Shadowed at 1.05 from 5 Oct (+33u on live over nine
+ * days, lays 273 → 220) and backtested 1 to 1.2 on 1,370 clean races (1.05 +58.8u v +21.1u; wider
+ * floods bets): live at 1.05 from 14 Oct 2026.
  */
-const SPREAD = Number(process.env.OVERLAY_SPREAD ?? 1);
+const SPREAD = Number(process.env.OVERLAY_SPREAD ?? 1.05);
 const SHORT_FROM = 0.25;
 const SHORT_TO = 0.5;
 /**

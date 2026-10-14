@@ -835,11 +835,24 @@ export const isJumps = (p: { raceName?: string; distance?: number; benchmark?: {
  * time performance in lengths vs the class benchmark moves it up or down.
  * The result itself never adds points.
  */
+/**
+ * The feed's margin is signed: negative lengths behind for a beaten horse, the distance to second
+ * for the winner. runPoints reads it as lengths beaten, nought for the winner. Found 14 Oct 2026:
+ * all 68,455 beaten runs in the cache negative, so a well-beaten run read better than a win on the
+ * margin, and the clock ceiling capped big winners. On from 14 Oct 2026 (bets +15u over 1,370
+ * clean races, form log loss better on both day types); OVERLAY_MARGIN_FIX=0 brings the old reading back.
+ */
+const MARGIN_FIX = process.env.OVERLAY_MARGIN_FIX !== "0";
+function lengthsBeaten<T extends { margin?: number; finishPosition?: number }>(p: T): T {
+  if (!MARGIN_FIX || p.margin === undefined || p.margin === null) return p;
+  return { ...p, margin: p.finishPosition === 1 ? 0 : Math.abs(p.margin) };
+}
+
 export function runPoints(run: PastEvent, todayPar: number, ageNow?: number, asOf?: number): number {
   // A margin of nought behind the winner is a margin the feed does not have: overseas runs come with
   // nought whatever the finish (De Armas 4th at Ellerslie, Iceford 8th at Galway, 2 Oct 2026), and read
   // as wins. Missing, the beaten distance falls back to the placing.
-  const kept = cleanClock(run);
+  const kept = lengthsBeaten(cleanClock(run));
   const r = kept.margin === 0 && (kept.finishPosition ?? 1) > 1 ? { ...kept, margin: undefined } : kept;
   // Today's race is the prior for the level a horse races at: an official
   // rating is trusted only within reach of it, an unparsed race name means par.

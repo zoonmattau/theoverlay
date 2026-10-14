@@ -702,9 +702,10 @@ const pad = (n: number) => String(n).padStart(2, "0");
  * The spread on the rated prices under test (5 Oct 2026): 1.05 recorded
  * alongside the live calls, 0 or 1 for none. Over the clean cache it kept
  * the bets and halved the lays on short favourites; the shadow is how it
- * gets checked on races it was not tuned on.
+ * gets checked on races it was not tuned on. Went live 14 Oct 2026 (rate.ts SPREAD), so the
+ * shadow is off until the next variant; the 1.05 rows from 5 to 14 Oct stay under source "shadow".
  */
-const SHADOW_SPREAD = Number(process.env.OVERLAY_SHADOW_SPREAD ?? 1.05);
+const SHADOW_SPREAD = Number(process.env.OVERLAY_SHADOW_SPREAD ?? 0);
 
 /**
  * Prices every race again with the variant and records the calls it would
