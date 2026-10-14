@@ -22,8 +22,15 @@ const winnerList = (w: string[]) =>
     ? `<ul style="margin:6px 0 0;padding-left:20px">${w.map((x) => `<li style="margin:4px 0;font:400 15px -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;color:#454a44">${x}</li>`).join("")}</ul>`
     : "";
 
+/** Each email named after its builder, the campaign its links carry ("winbackOffer"). */
+function named<T extends Record<string, (...args: never[]) => EmailSpec>>(builders: T): T {
+  return Object.fromEntries(
+    Object.entries(builders).map(([name, build]) => [name, (...args: never[]) => ({ campaign: name, ...build(...args) })]),
+  ) as T;
+}
+
 /** Every email we send, in one place, so the voice stays consistent. */
-export const EMAILS = {
+export const EMAILS = named({
   /** `bill` is the first charge as it reads, "$470 a year", when we have it. */
   trialStarted: (plan: string, trialEnds: string, bill?: string): EmailSpec => ({
     subject: `Your ${plan} trial has started`,
@@ -389,4 +396,4 @@ export const EMAILS = {
     ],
     cta: { label: "Open today's board", url: `${SITE}/` },
   }),
-};
+});

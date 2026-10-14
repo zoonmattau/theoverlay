@@ -17,6 +17,8 @@ export interface EmailSpec {
   cta?: { label: string; url: string };
   /** Small print under the button, e.g. "This link expires in an hour." */
   note?: string;
+  /** utm_campaign on the email's links to the site, so a click shows as a visit from it. */
+  campaign?: string;
 }
 
 const FONT = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif";

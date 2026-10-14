@@ -138,6 +138,7 @@ export function morningTipsEmail(date: string, card: StoredCard, userId: string,
   const races = card.meetings.reduce((a, m) => a + m.races.length, 0);
   const day = longDate(date);
   return {
+    campaign: "morningTips",
     subject: `${day}: ${bets.length} ${bets.length === 1 ? "bet" : "bets"}, ${lays.length} ${lays.length === 1 ? "lay" : "lays"}`,
     preheader: primes ? `${primes} Prime ${primes === 1 ? "Overlay" : "Overlays"} on the card.` : `${races} races rated, prices refresh through the day.`,
     heading: `Today's calls, ${day}.`,
@@ -174,6 +175,7 @@ export function teaserEmail(date: string, card: StoredCard, userId: string): Ema
   const lockRow = (c: Call) =>
     `<tr><td style="padding:7px 6px;border-top:1px solid #eef0ea;font:400 14px ${FONT};color:#14161a"><strong>${esc(c.track)} R${c.raceNumber}</strong></td><td style="padding:7px 6px;border-top:1px solid #eef0ea;font:400 14px ${FONT};color:#8b918a;text-align:right">${c.jump ? jumpTime(c.jump) : ""}</td><td style="padding:7px 6px;border-top:1px solid #eef0ea;font:700 12px ${FONT};color:#8b918a;text-align:right">&#128274; Members</td></tr>`;
   return {
+    campaign: "teaser",
     subject: `${day}: ${bets} ${bets === 1 ? "bet" : "bets"} and ${lays} ${lays === 1 ? "lay" : "lays"} are up`,
     preheader: primes ? `${primes} Prime ${primes === 1 ? "Overlay" : "Overlays"} on the card. The free race is open to you.` : "The free race is open to you.",
     heading: `Today's calls are up, ${day}.`,

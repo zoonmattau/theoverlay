@@ -37,6 +37,7 @@ function newTipsEmail(tipster: Tipster, tips: CreatorTip[], userId: string): Ema
   const date = tips[0].date;
   const n = tips.length;
   return {
+    campaign: "tipsterTips",
     subject: `${tipster.name}: ${n} new ${n === 1 ? "tip" : "tips"} for ${longDate(date)}`,
     preheader: tips.map((t) => `${t.horse_name} ${price(struckAt(t))}`).join(", "),
     heading: `${tipster.name} just posted.`,
