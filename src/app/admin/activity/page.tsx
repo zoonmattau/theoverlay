@@ -6,7 +6,7 @@ import { Suspense } from "react";
 import { isAdmin, listMembers, memberStatus, type MemberStatus, now } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
 import { getViewer } from "@/lib/auth";
-import { type Area, activityReport, AREA_LABEL, daysOfViews } from "@/lib/activity";
+import { type Area, activityReport, AREA_LABEL, daysOfViews, emailName } from "@/lib/activity";
 import { LiveNow } from "@/components/LiveNow";
 import { LiveRefresh } from "@/components/LiveRefresh";
 import { moneyReport } from "@/lib/money";
@@ -47,7 +47,11 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   const days = all ? await daysOfViews() : WINDOWS.includes(Number(sp.days)) ? Number(sp.days) : 7;
   // What links carry to keep the window: "all" stays all as the days go by.
   const param = all ? "all" : String(days);
-  const cut = { area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined, day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined };
+  const cut = {
+    area: typeof sp.area === "string" && sp.area ? (sp.area as Area) : undefined,
+    day: typeof sp.day === "string" && /^\d{4}-\d{2}-\d{2}$/.test(sp.day) ? sp.day : undefined,
+    email: typeof sp.email === "string" && sp.email ? sp.email : undefined,
+  };
   const [r, money, members, { data: tipsterRows }] = await Promise.all([activityReport(days, cut, !all), moneyReport(days), listMembers(), supabaseAdmin().from("affiliates").select("user_id").not("user_id", "is", null)]);
   const at = now();
   // A tipster reads as Tipster, invited by us, never "no plan" (the user, 12 Oct 2026).
@@ -56,7 +60,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
   // Every day in the window, oldest first, a quiet day as nought, for the charts.
   const window = Array.from({ length: days }, (_, i) => new Date(now() - (days - 1 - i) * 86400_000).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }));
   const perDay = new Map(r.byDay.map((d) => [d.day, d]));
-  const series = (key: "views" | "people" | "ads", title: string): Series => {
+  const series = (key: "views" | "people" | "ads" | "email", title: string): Series => {
     const points = window.map((date) => ({ date, value: perDay.get(date)?.[key] ?? 0 }));
     return { key, title, format: "count", points, total: points.reduce((a, p) => a + p.value, 0) };
   };
@@ -145,6 +149,18 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
                   <BarList items={r.sources.map((x) => ({ key: x.source, label: x.source, value: x.people, tone: x.source.endsWith(" ads") ? "bg-blue" : undefined }))} />
                 </Fold>
               )}
+              <Fold id="email" title="Email clicks">
+                <p className="text-xs text-ink-soft mb-2">People who clicked through from each email, every click counted. Counted from 15 Oct 2026. Click one for who.</p>
+                <BarList empty="No clicks from an email yet." items={r.emails.map((x) => ({
+                  key: x.campaign,
+                  label: emailName(x.campaign),
+                  value: x.people,
+                  sub: `${x.people === 1 ? "person" : "people"}, ${x.clicks} ${x.clicks === 1 ? "click" : "clicks"}, ${x.pricing} then pricing, ${x.plans} then a plan`,
+                  href: `/admin/activity?days=${param}&email=${encodeURIComponent(x.campaign)}#people`,
+                  on: cut.email === x.campaign,
+                }))} />
+                {days > 1 && r.emails.length > 0 && <div className="mt-4"><DayChart s={series("email", "People from email")} hrefBase={`/admin/activity?days=${param}&day=`} /></div>}
+              </Fold>
             </div>
             <div className="flex flex-col gap-4 min-w-0">
               <Fold title="Tipsters they look at">
@@ -175,7 +191,7 @@ async function Activity({ searchParams }: { searchParams: PageProps<"/admin/acti
             id="people"
             closed={!r.cut}
             className="mt-4 overflow-x-auto"
-            title={r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}
+            title={r.cut?.email ? `The ${r.people.length} who clicked ${emailName(r.cut.email).toLowerCase()}` : r.cut?.area ? `The ${r.people.length} who looked at ${(AREA_LABEL[r.cut.area] ?? r.cut.area).toLowerCase()}` : r.cut?.day ? `The ${r.people.length} on ${dayLabel(r.cut.day)}` : "Most active"}
           >
             <p className="text-xs text-ink-soft mb-3">
               Members by email. A visitor is a browser with no account: the number is its cookie, the source where its first view in the window came from. {r.cut && <Link href={`/admin/activity?days=${param}`} className="underline">Back to everyone</Link>}

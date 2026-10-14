@@ -14,6 +14,8 @@ export interface SpendDay {
   date: string;
   /** Dollars, all campaigns. */
   spend: number;
+  /** Link clicks: taps that went through to the site, Meta's count. */
+  clicks: number;
   byCampaign: Record<string, number>;
 }
 
@@ -36,7 +38,7 @@ export async function metaSpend(since: string, until: string): Promise<SpendDay[
     level: "campaign",
     time_increment: "1",
     time_range: JSON.stringify({ since, until }),
-    fields: "campaign_name,spend",
+    fields: "campaign_name,spend,inline_link_clicks",
     limit: "500",
     access_token: token,
   });
@@ -45,13 +47,14 @@ export async function metaSpend(since: string, until: string): Promise<SpendDay[
   try {
     while (url) {
       const res: Response = await fetch(url);
-      const body = (await res.json()) as { data?: { date_start: string; campaign_name: string; spend: string }[]; paging?: { next?: string }; error?: { message: string } };
+      const body = (await res.json()) as { data?: { date_start: string; campaign_name: string; spend: string; inline_link_clicks?: string }[]; paging?: { next?: string }; error?: { message: string } };
       if (!res.ok || body.error) return { error: body.error?.message ?? `HTTP ${res.status}` };
       for (const row of body.data ?? []) {
         if (OTHER_PROJECTS.test(row.campaign_name)) continue;
-        const d = days.get(row.date_start) ?? { date: row.date_start, spend: 0, byCampaign: {} };
+        const d = days.get(row.date_start) ?? { date: row.date_start, spend: 0, clicks: 0, byCampaign: {} };
         const spend = Number(row.spend) || 0;
         d.spend = Math.round((d.spend + spend) * 100) / 100;
+        d.clicks += Number(row.inline_link_clicks) || 0;
         d.byCampaign[row.campaign_name] = Math.round(((d.byCampaign[row.campaign_name] ?? 0) + spend) * 100) / 100;
         days.set(row.date_start, d);
       }

@@ -510,12 +510,13 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             By day
           </summary>
           <table className="data-table stack-sm text-xs mt-3">
-            <thead><tr><th>Day</th><th className="text-right">Spend</th><th className="text-right">Accounts</th><th className="text-right">Paid</th></tr></thead>
+            <thead><tr><th>Day</th><th className="text-right">Spend</th><th className="text-right">Link clicks</th><th className="text-right">Accounts</th><th className="text-right">Paid</th></tr></thead>
             <tbody>
               {days.map((d) => (
                 <tr key={d.date}>
                   <td className="nums whitespace-nowrap">{dayLabel(d.date, { weekday: "short", day: "numeric", month: "short" })}</td>
                   <td data-label="Spend" className="text-right nums">{d.spend ? `$${d.spend.toFixed(2)}` : ""}</td>
+                  <td data-label="Link clicks" className="text-right nums">{d.clicks || ""}</td>
                   <td data-label="Accounts" className="text-right nums">{d.signups || ""}</td>
                   <td data-label="Paid" className="text-right nums">{d.paid || ""}</td>
                 </tr>

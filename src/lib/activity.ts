@@ -71,18 +71,29 @@ export interface ActivityReport {
   byArea: { area: Area; views: number; people: number }[];
   /** Each day in the window, the 7 days ending on it: views, and different people. Smooths the race-day swing. */
   rolling: { day: string; views: number; people: number }[];
-  /** Views and people each day, and how many of those people first came that day from an ad. */
-  byDay: { day: string; views: number; people: number; ads: number }[];
+  /** Views and people each day, how many of those people came from an ad and how many from one of our emails. */
+  byDay: { day: string; views: number; people: number; ads: number; email: number }[];
   topRaces: { key: string; date: string; meetingId: string; raceId: string; views: number; people: number }[];
   topTipsters: { code: string; views: number; people: number }[];
   /** The people behind the count: members by email, visitors by id and where they came from. Every one of them when a cut is asked for, else the forty most active. */
   people: { id: string; email: string | null; from: string | null; views: number; last: string; areas: string; races: number }[];
   /** The cut the people list is for, if any. */
-  cut?: { area?: Area; day?: string };
+  cut?: Cut;
   follows: { follower: string; followerId: string; tipster: string; tipsterCode?: string; since: string }[];
   /** Where people first came from in the window: an ad network, a tagged campaign or the referring site. */
   sources: { source: string; people: number }[];
+  /** Clicks from our emails, by email: every click counts, a member's as much as a newcomer's. Pricing and plans count people who went there after their first click. */
+  emails: { campaign: string; people: number; clicks: number; pricing: number; plans: number }[];
 }
+
+/** The people list cut to an area, a day or the people who clicked one email. */
+export type Cut = { area?: Area; day?: string; email?: string };
+
+/** The email a view came from, by its campaign tag, if it came from one. */
+export const emailOf = (meta: ViewRow["meta"]) => (meta?.utm?.source === "email" ? (meta.utm.campaign ?? "email") : undefined);
+
+/** An email's campaign tag as words: morningTips reads Morning tips. */
+export const emailName = (campaign: string) => (campaign === "email" ? "Untagged email" : campaign.replace(/([A-Z])/g, " $1").toLowerCase().replace(/^./, (c) => c.toUpperCase()));
 
 /** Where a view came from: an ad (a paid campaign tag, or Google's click id) first, then a tagged campaign, then the referring site. */
 export function sourceOf(meta: ViewRow["meta"]): string {
@@ -136,7 +147,7 @@ export async function daysOfViews(): Promise<number> {
   return Math.max(1, Math.ceil((Date.now() - first) / 86400_000) + 1);
 }
 
-export async function activityReport(days = 7, cut: { area?: Area; day?: string } = {}, compare = true): Promise<ActivityReport> {
+export async function activityReport(days = 7, cut: Cut = {}, compare = true): Promise<ActivityReport> {
   const db = supabaseAdmin();
   // Whole Sydney days: from midnight `days - 1` days ago, so the oldest row is a full day (it started at
   // this time of day, and 27 Sep read 365 views of its 475, 4 Oct 2026).
@@ -149,11 +160,12 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
   // Read back far enough for a whole week behind the window's first day (the rolling count) and, to
   // compare, the window before this one as long.
   const back = compare ? Math.max(6, days) : 6;
-  const [wide, { data: profiles }, { data: follows }, { data: tipsters }] = await Promise.all([
+  const [wide, { data: profiles }, { data: follows }, { data: tipsters }, { data: planClicks }] = await Promise.all([
     pageViewsSince(new Date(new Date(since).getTime() - back * 86400_000).toISOString()),
     db.from("profiles").select("id, email"),
     db.from("follows").select("user_id, tipster_id, created_at"),
     db.from("affiliates").select("id, name, code"),
+    db.from("events").select("user_id, created_at").eq("kind", "plan_click").not("user_id", "is", null).gte("created_at", since),
   ]);
   const views = wide.filter((v) => v.created_at >= since);
   const owners = cookieOwners(wide);
@@ -198,9 +210,38 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     adPeople.set(d, (adPeople.get(d) ?? new Set()).add(who(v, owners)));
   }
   const adsByDay = new Map([...adPeople].map(([d, s]) => [d, s.size]));
+  // From our emails, the same way: every click, so a member already on the site that day still counts (15 Oct 2026).
+  const emailPeople = new Map<string, Set<string>>();
+  const clicked = new Map<string, { clicks: number; first: Map<string, string> }>();
+  for (const v of views) {
+    const c = emailOf(v.meta);
+    if (!c) continue;
+    const id = who(v, owners);
+    const d = dayOf(v);
+    emailPeople.set(d, (emailPeople.get(d) ?? new Set()).add(id));
+    const e = clicked.get(c) ?? { clicks: 0, first: new Map<string, string>() };
+    e.clicks++;
+    if (!e.first.has(id) || v.created_at < e.first.get(id)!) e.first.set(id, v.created_at);
+    clicked.set(c, e);
+  }
+  // Each person's latest pricing view and plan click, to ask whether they came after the email.
+  const lastPricing = new Map<string, string>();
+  for (const v of views) {
+    if (v.meta?.area !== "pricing") continue;
+    const id = who(v, owners);
+    if (v.created_at > (lastPricing.get(id) ?? "")) lastPricing.set(id, v.created_at);
+  }
+  const lastPlan = new Map<string, string>();
+  for (const e of (planClicks ?? []) as { user_id: string; created_at: string }[]) if (e.created_at > (lastPlan.get(e.user_id) ?? "")) lastPlan.set(e.user_id, e.created_at);
+  const emails = [...clicked.entries()]
+    .map(([campaign, e]) => {
+      const after = (last: Map<string, string>) => [...e.first].filter(([id, at]) => (last.get(id) ?? "") >= at).length;
+      return { campaign, people: e.first.size, clicks: e.clicks, pricing: after(lastPricing), plans: after(lastPlan) };
+    })
+    .sort((a, b) => b.people - a.people);
   const sources = [...bySource.entries()].map(([source, people]) => ({ source, people })).sort((a, b) => b.people - a.people).slice(0, 12);
   const byDay = tally(dayOf)
-    .map((x) => ({ day: x.key, views: x.views, people: x.people, ads: adsByDay.get(x.key) ?? 0 }))
+    .map((x) => ({ day: x.key, views: x.views, people: x.people, ads: adsByDay.get(x.key) ?? 0, email: emailPeople.get(x.key)?.size ?? 0 }))
     .sort((a, b) => a.day.localeCompare(b.day));
   const topRaces = tally((v) => (v.meta?.raceId ? `${v.meta.date}|${v.meta.meetingId}|${v.meta.raceId}` : undefined))
     .slice(0, 15)
@@ -211,7 +252,7 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
   const topTipsters = tally((v) => v.meta?.code).slice(0, 10).map((x) => ({ code: tipsterByCode.get(x.key) ?? x.key, views: x.views, people: x.people }));
 
   // The people list: everyone who viewed the cut asked for (an area, a day), else everyone, forty most active shown.
-  const inCut = (v: ViewRow) => (!cut.area || v.meta?.area === cut.area) && (!cut.day || new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) === cut.day);
+  const inCut = (v: ViewRow) => (!cut.area || v.meta?.area === cut.area) && (!cut.day || new Date(v.created_at).toLocaleDateString("en-CA", { timeZone: "Australia/Sydney" }) === cut.day) && (!cut.email || emailOf(v.meta) === cut.email);
   const cutIds = new Set(views.filter(inCut).map((v) => who(v, owners)));
   const perPerson = new Map<string, { views: number; last: string; first: string; from: string | null; areas: Map<string, number>; races: Set<string> }>();
   for (const v of views) {
@@ -238,7 +279,7 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
       races: e.races.size,
     }))
     .sort((a, b) => b.views - a.views)
-    .slice(0, cut.area || cut.day ? 1000 : 40);
+    .slice(0, cut.area || cut.day || cut.email ? 1000 : 40);
 
   // The week ending each day of the window: views, and different people across those seven days.
   const weekBy = new Map<string, ViewRow[]>();
@@ -268,7 +309,7 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
     rolling,
     reach: counts(views).reach,
     before,
-    cut: cut.area || cut.day ? cut : undefined,
+    cut: cut.area || cut.day || cut.email ? cut : undefined,
     views: views.length,
     members: new Set(views.filter((v) => v.user_id).map((v) => v.user_id)).size,
     visitors: new Set(views.filter((v) => !v.user_id && v.meta?.vid).map((v) => v.meta!.vid)).size,
@@ -281,6 +322,7 @@ export async function activityReport(days = 7, cut: { area?: Area; day?: string 
       .map((f) => ({ follower: email.get(f.user_id) ?? f.user_id, followerId: f.user_id, tipster: tipsterName.get(f.tipster_id) ?? f.tipster_id, tipsterCode: tipsterCode.get(f.tipster_id), since: f.created_at }))
       .sort((a, b) => b.since.localeCompare(a.since)),
     sources,
+    emails,
   };
 }
 

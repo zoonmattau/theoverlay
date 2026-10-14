@@ -17,6 +17,8 @@ import { metaAds, metaSpend } from "./meta-spend";
 export interface AdsDay {
   date: string;
   spend: number;
+  /** Meta's link clicks: taps through to the site. */
+  clicks: number;
   signups: number;
   trials: number;
   paid: number;
@@ -92,7 +94,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   };
   for (const p of (profs ?? []) as { utm: Record<string, string> | null }[]) tagOf(p.utm);
   const created = new Map(((profs ?? []) as { id: string; created_at: string }[]).map((p) => [p.id, p.created_at]));
-  const blank = (date: string): AdsDay => ({ date, spend: 0, signups: 0, trials: 0, paid: 0 });
+  const blank = (date: string): AdsDay => ({ date, spend: 0, clicks: 0, signups: 0, trials: 0, paid: 0 });
   const by = new Map(dates.map((d) => [d, blank(d)]));
   const bump = (iso: string, key: "signups" | "trials" | "paid") => {
     const d = by.get(sydneyDay(iso));
@@ -116,7 +118,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
   let missing: string | undefined;
   if (spend === undefined) missing = "Meta is not connected yet: set META_ADS_TOKEN and META_AD_ACCOUNT.";
   else if ("error" in spend) missing = `Meta did not answer: ${spend.error}`;
-  else for (const s of spend) { const d = by.get(s.date); if (d) d.spend = s.spend; }
+  else for (const s of spend) { const d = by.get(s.date); if (d) { d.spend = s.spend; d.clicks = s.clicks; } }
 
   // Visitors by ad: distinct visitor ids whose page views carry a paid Meta tag, paged past Supabase's 1,000-row cap.
   const visitors = new Map<string, Set<string>>();
@@ -177,7 +179,7 @@ export async function adsReport(windowDays: number): Promise<AdsReport> {
 
   const days = [...by.values()];
   const sum = (k: keyof Omit<AdsDay, "date">) => Math.round(days.reduce((a, d) => a + d[k], 0) * 100) / 100;
-  const t = { date: "", spend: sum("spend"), signups: sum("signups"), trials: sum("trials"), paid: sum("paid") };
+  const t = { date: "", spend: sum("spend"), clicks: sum("clicks"), signups: sum("signups"), trials: sum("trials"), paid: sum("paid") };
   const per = (n: number) => (n > 0 && t.spend > 0 ? Math.round((t.spend / n) * 100) / 100 : undefined);
   // Dollars back for each dollar spent: everything the window's Meta accounts have paid, plans and passes, over the spend.
   const revenue = Math.round([...cohort.values()].reduce((a, c) => a + c.revenue, 0) * 100) / 100;
