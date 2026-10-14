@@ -6,7 +6,7 @@ import { Record } from "@/components/Record";
 import { Section } from "@/components/Section";
 import { SheetDay } from "@/components/SheetDay";
 import { RESULTS_SHEET } from "@/lib/social";
-import { bestLabel, dailyUnits, publicRecord, resultCalls, type ResultCall } from "@/lib/tips";
+import { dailyUnits, publicRecord, resultCalls, type ResultCall } from "@/lib/tips";
 import { racingToday } from "@/lib/model/source";
 import { filterParams, passes, readFilter } from "@/lib/results-filter";
 import { ResultsFilters } from "@/components/ResultsFilters";
@@ -218,8 +218,6 @@ function SheetRow({ c, running }: { c: ResultCall; running: number }) {
       </td>
       <td className="num sheet-wide">
         {price(c.market_price)}
-        {/* Who held the price and when, kept from 12 Oct 2026. */}
-        {bestLabel(c.best_bookies, c.best_at) && <span className="block text-[0.68rem] font-normal text-ink-soft whitespace-nowrap">{bestLabel(c.best_bookies, c.best_at)}</span>}
       </td>
       <td className="num sheet-wide">{c.finish_position === 0 ? "Unpl" : ordinal(c.finish_position)}</td>
       <td className={u > 0 ? "win" : "loss"}>{u > 0 ? (lay ? "Held" : "Won") : lay ? "Lost" : "Lost"}</td>

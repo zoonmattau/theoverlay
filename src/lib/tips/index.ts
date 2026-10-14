@@ -5,7 +5,6 @@ import { deducted, keptAfter } from "@/lib/model/deductions";
 import { CALL_LOCK_MS } from "@/lib/model/publish";
 
 import { supabaseAdmin } from "@/lib/billing/access";
-import { bookieName } from "@/lib/bookies";
 import type { StoredCard } from "@/lib/model/store";
 import { callEdge, callPrice, callUnits, stakeOf, type Signal } from "@/lib/model/types";
 import { EXCLUDED_CALLS } from "./excluded";
@@ -285,37 +284,15 @@ export function holdBetRatedUnder(card: Pick<StoredCard, "meetings">, calls: Map
   }
 }
 
-/**
- * Who held a call's price and when, for under the price: "Sportsbet 9:42am", "Betfair 1:10pm",
- * "SP", "BSP", "at the jump". Undefined for calls from before it was kept (12 Oct 2026).
- */
-export function bestLabel(bookies?: string[] | null, at?: string | null): string | undefined {
-  if (!bookies?.length) return undefined;
-  const [first] = bookies;
-  if (first === "sp") return "SP";
-  if (first === "bsp") return "BSP";
-  if (first === "jump") return "at the jump";
-  const names = bookies.map((c) => (c === "betfair" ? "Betfair" : bookieName(c))).filter(Boolean);
-  if (!names.length) return undefined;
-  const who = names.length > 2 ? `${names.slice(0, 2).join(", ")} +${names.length - 2}` : names.join(", ");
-  const when = at ? new Date(at).toLocaleTimeString("en-AU", { timeZone: "Australia/Sydney", hour: "numeric", minute: "2-digit" }).replace(/\s/g, "").toLowerCase() : "";
-  return when ? `${who} ${when}` : who;
-}
-
-/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen and who held it, the units once settled, and the rated price and edge the call was made on. */
-export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number; rated?: number; edge?: number; seen?: string }>> {
+/** The day's model calls as the ledger holds them, keyed raceId:tab: the best price seen, the units once settled, and the rated price and edge the call was made on. */
+export async function ledgerFor(date: string): Promise<Map<string, { price: number; units?: number; rated?: number; edge?: number }>> {
   const cols = "race_id, tab_number, market_price, units, settled_at, rated_price, edge";
-  const read = (c: string) => supabaseAdmin().from("tips").select(c).eq("date", date).eq("source", "model");
-  let { data, error } = await read(bestColumns ? `${cols}, best_bookies, best_at` : cols);
-  if (error && missingBest(error.message)) {
-    bestColumns = false;
-    ({ data, error } = await read(cols));
-  }
+  const { data, error } = await supabaseAdmin().from("tips").select(cols).eq("date", date).eq("source", "model");
   if (error) console.error("[tips]", error.message);
   return new Map(
-    ((data ?? []) as unknown as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null; rated_price: number | null; edge: number | null; best_bookies?: string[] | null; best_at?: string | null }[]).map((r) => [
+    ((data ?? []) as unknown as { race_id: string; tab_number: number; market_price: number; units: number | null; settled_at: string | null; rated_price: number | null; edge: number | null }[]).map((r) => [
       `${r.race_id}:${r.tab_number}`,
-      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined, rated: r.rated_price === null ? undefined : Number(r.rated_price), edge: r.edge === null ? undefined : Number(r.edge), seen: bestLabel(r.best_bookies, r.best_at) },
+      { price: Number(r.market_price), units: r.settled_at && r.units !== null ? Number(r.units) : undefined, rated: r.rated_price === null ? undefined : Number(r.rated_price), edge: r.edge === null ? undefined : Number(r.edge) },
     ]),
   );
 }

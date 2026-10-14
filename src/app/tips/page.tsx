@@ -78,8 +78,6 @@ interface Call {
   /** The rated price and edge the call was made on, from the ledger: once a race has run the card's own have melded into the jump price. */
   calledRated?: number;
   calledEdge?: number;
-  /** Who held that price and when: "Sportsbet 9:42am" (kept from 12 Oct 2026). */
-  seen?: string;
 }
 
 async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["searchParams"] }) {
@@ -135,7 +133,6 @@ async function Tips({ searchParams }: { searchParams: PageProps<"/tips">["search
               profit: row?.units ?? profit(x.signal!, at, r.result ? x.finishPosition : undefined, stakeOf(x)),
               calledRated: row?.rated,
               calledEdge: row?.edge,
-              seen: row?.seen,
             };
           }),
       ),
@@ -305,7 +302,7 @@ function PhoneCall({ call: c, side }: { call: Call; side: Signal }) {
         <div className="tp-line">
           {horse}
           <span className="tp-sub nums">
-            {placed} · {lay ? "laid" : "bet"} {price(c.price)}{c.seen ? `, ${c.seen}` : ""}
+            {placed} · {lay ? "laid" : "bet"} {price(c.price)}
           </span>
         </div>
       </div>
@@ -435,7 +432,7 @@ function CallTable({
                     <MarketHover r={c.runner} className="market-right">
                       <span className={`price-chip ${c.prime ? "is-prime" : side === "back" ? "is-back" : "is-lay"}`}>{price(c.resulted ? c.price : callPrice(c.runner) ?? c.runner.marketPrice)}</span>
                     </MarketHover>
-                    {c.resulted ? (c.seen ? <span className="block text-[10px] mt-0.5 text-ink-soft whitespace-nowrap">{c.seen}</span> : null) : side === "lay" || !takeable(c.runner) ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
+                    {c.resulted ? null : side === "lay" || !takeable(c.runner) ? null : <BookieLink codes={c.runner.bookies} raceId={c.raceId} className="block text-[10px] mt-0.5" />}
                   </td>
                   <td data-col="rated" className="text-right nums font-semibold whitespace-nowrap">
                     {/* A run race shows what the call was made on; the card's numbers there are the jump's. */}
