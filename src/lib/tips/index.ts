@@ -190,9 +190,13 @@ export async function recordTips(date: string, card: StoredCard, source: TipSour
       // A race called off or a scratching voids either side, as a bookie settles it.
       target = { market_price: price, ...voidSettlement(), settled_at: voided ? was.settled_at : now };
     } else {
-      // The recorded price: a bet's longest while it was a bet, a lay's shortest while it was a lay.
-      const recorded = cents(!live ? price : was.side === "back" ? Math.max(price, live.market_price) : Math.min(price, live.market_price));
-      if (live && !was.settled_at && (recorded !== price || !was.best_at) && cents(live.market_price) === recorded) best = { best_bookies: live.best_bookies ?? null, best_at: now };
+      // The recorded price: a bet's longest while it was a bet, a lay's shortest while it was a lay, and only
+      // before the jump. The card is repriced every minute after it, and the exchange's in-running $1.01 on a
+      // horse that went on to win settled four winning lays at -0.01u (Ice Kool, Warwick Farm R7, 5 Oct 2026).
+      const open = !race.result?.length && (!race.jumpTime || Date.now() < new Date(race.jumpTime).getTime());
+      const quote = open ? live : undefined;
+      const recorded = cents(!quote ? price : was.side === "back" ? Math.max(price, quote.market_price) : Math.min(price, quote.market_price));
+      if (quote && !was.settled_at && (recorded !== price || !was.best_at) && cents(quote.market_price) === recorded) best = { best_bookies: quote.best_bookies ?? null, best_at: now };
       if (race.result?.length) {
         const placing = race.placings?.find((p) => p.tabNumber === was.tab_number);
         // A price taken before a late scratching pays less by the official deductions; the jump and starting prices come after it.
