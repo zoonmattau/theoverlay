@@ -3,6 +3,7 @@ import "server-only";
 
 import { accessHistory, type AccessDay } from "@/lib/access-history";
 import { foundUs } from "@/lib/arrival";
+import { isAdminEmail } from "@/lib/auth";
 
 import { freeForGood, listMembers, type Member } from "@/lib/admin";
 import { supabaseAdmin } from "@/lib/billing/access";
@@ -258,7 +259,8 @@ export async function moneyReport(days: number): Promise<MoneyReport> {
     return Boolean(how && (how.has("invite") || how.has("free_for_good") || (how.has("add_days") && !m.subscribed_since)));
   };
   const kindOf = (m: Member) => (tipsterIds.has(m.id) ? "tipster" : granted(m) ? "granted" : "member");
-  const joined = members.filter((m) => m.created_at >= since);
+  // Our own accounts are not sign-ups: the admin's affiliate row read as a sixth tipster (14 Oct 2026).
+  const joined = members.filter((m) => m.created_at >= since && !m.is_admin && !isAdminEmail(m.email));
   const paying = (m: Member) => Boolean(m.access_until && new Date(m.access_until).getTime() > now && paidUp(m));
   const signups = {
     made: joined.length,

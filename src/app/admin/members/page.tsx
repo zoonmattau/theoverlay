@@ -16,6 +16,8 @@ import { AccessChart } from "@/components/AccessChart";
 import { accessHistory } from "@/lib/access-history";
 import { instagramClaims } from "@/lib/instagram-day";
 import { InstagramClaims } from "../InstagramClaims";
+import { Funnel } from "../money/People";
+import { moneyReport } from "@/lib/money";
 
 export const metadata: Metadata = { title: "Members", robots: { index: false } };
 
@@ -39,7 +41,8 @@ async function removeFromList(id: string) {
 async function Members() {
   const viewer = await getViewer();
   if (!isAdmin(viewer)) notFound();
-  const [members, tipsters, { data: affiliates }, keys, access, claims] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser(), accessHistory(), instagramClaims()]);
+  // A window back past the first account: every account, each at the furthest place it got.
+  const [members, tipsters, { data: affiliates }, keys, access, claims, everyone] = await Promise.all([listMembers(), allTipsters({ unlisted: true }), supabaseAdmin().from("affiliates").select("id, code"), keysByUser(), accessHistory(), instagramClaims(), moneyReport(3650)]);
   // Discord asked one linked account at a time, so the page knows who is really in the server.
   const { presence, serverMembers } = await discordRoster(members.map((m) => m.discord_id).filter((id): id is string => Boolean(id)));
   const tipsterIds = new Set(tipsters.map((t) => t.user_id));
@@ -111,6 +114,16 @@ async function Members() {
           <span className="ml-auto text-sm font-sans font-semibold nums text-ink-secondary">{access.at(-1)?.total ?? 0} today</span>
         </summary>
         <div className="mt-3"><AccessChart days={access.map(({ date, counts, total }) => ({ date, counts, total }))} /></div>
+      </details>
+
+      <details className="card mb-6 group">
+        <summary className="cursor-pointer select-none font-display font-extrabold flex items-center gap-2 list-none [&::-webkit-details-marker]:hidden">
+          <span className="inline-block transition-transform group-open:rotate-90 text-sm" aria-hidden>▸</span>
+          All accounts
+          <span className="ml-auto text-sm font-sans font-semibold nums text-ink-secondary">{everyone.signups.people.length}</span>
+        </summary>
+        <p className="mt-2 mb-3 text-xs text-ink-soft">Every account, and how far each got. Click a piece for who.</p>
+        <Funnel people={everyone.signups.people} />
       </details>
 
       <InstagramClaims claims={claims} />

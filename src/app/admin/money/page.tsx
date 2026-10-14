@@ -14,7 +14,7 @@ import { RunningTotals } from "@/components/RunningTotals";
 import { addCost, removeCost, stopCost } from "./actions";
 import { Fold } from "@/components/Fold";
 import { ByAd } from "./ByAd";
-import { Funnel, PeopleTile } from "./People";
+import { PeopleTile } from "./People";
 import { planById, TERMS } from "@/lib/billing/plans";
 import { priceBook, type PriceBook } from "@/lib/billing/prices";
 import { getViewer } from "@/lib/auth";
@@ -126,11 +126,8 @@ async function Money({ searchParams }: { searchParams: PageProps<"/admin/money">
         <div className="flex flex-col gap-6 min-w-0">
           <Bank b={cash} />
           <Ads r={ads} n={n} />
-          <Fold title="New accounts" className="min-w-0">
-            <p className="text-xs text-ink-soft mb-3">Everyone who signed up in {span}, and how far they got. Click a piece for who.</p>
-            <Funnel people={r.signups.people} />
-            <Toward t={r.toward} />
-          </Fold>
+          {/* The accounts graphic moved to Members as All accounts (14 Oct 2026). */}
+          <Toward t={r.toward} />
           <Fold title="Trials">
             <p className="text-xs text-ink-soft mb-3">Subscriptions that began in the window.</p>
             <div className="panel-row"><span>Started</span><span className="nums font-bold">{r.trials.started}</span></div>
@@ -321,7 +318,7 @@ function Week({ label, w }: { label: string; w: [number, number] }) {
 function Toward({ t }: { t: MoneyReport["toward"] }) {
   const pctLost = Math.round(t.lossRate * 100);
   return (
-    <Fold title={`Toward ${t.goal} paying`} className="mt-3 shadow-none" summary={
+    <Fold title={`Toward ${t.goal} paying`} className="min-w-0" summary={
       <div className="mt-1 flex flex-wrap items-baseline gap-x-6 gap-y-1">
         <span className="text-sm nums"><strong>{t.paying}</strong> paying now</span>
         <span className="text-sm nums text-accent font-semibold">+{t.added} new</span>
@@ -477,14 +474,14 @@ function Totals({ t }: { t: Invested }) {
 }
 
 /**
- * Meta's spend against what it brought over the window: cost per account,
- * per trial and per paying member, then the days. Paying lags a trial by its
- * length, so read cost per paying member over the window, not a day.
+ * Meta's spend against what it brought over the window: cost per account and
+ * per paying member, then the days. No trials since 13 Oct 2026 (paid from day
+ * one), so the trial counts went from here on 14 Oct.
  */
 function Ads({ r, n }: { r: AdsReport; n: number }) {
   const t = r.totals;
   const cost = (v?: number) => (v === undefined ? "–" : `$${v.toFixed(v >= 100 ? 0 : 2)}`);
-  const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.trials || d.paid);
+  const days = [...r.days].reverse().filter((d) => d.spend || d.signups || d.paid);
   return (
     <Fold title="Meta ads" className="min-w-0">
       <p className="mt-1 text-xs text-ink-soft">Last {n} days, against accounts from our own ad-link tags. A boost with no link counts as Instagram.</p>
@@ -493,7 +490,7 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
       <div className="mt-3 grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Mini n={`$${Math.round(t.spend).toLocaleString("en-AU")}`} label="spent" />
         <Mini n={cost(t.perSignup)} label="per account" sub={`${t.signups} accounts`} />
-        <Mini n={cost(t.perTrial)} label="per trial" sub={`${t.trials} trials`} tone="prime" />
+        <Mini n={cost(t.perPaid)} label="per paying member" sub={`${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="prime" />
         <Mini n={t.backPerDollar !== undefined ? `${t.backPerDollar.toFixed(2)}x` : "–"} label="ROAS" sub={`$${Math.round(t.revenue)} in · ${t.paid} ${t.paid === 1 ? "member" : "members"}`} tone="bet" />
       </div>
       {r.byAd.length > 0 && (
@@ -513,16 +510,14 @@ function Ads({ r, n }: { r: AdsReport; n: number }) {
             By day
           </summary>
           <table className="data-table stack-sm text-xs mt-3">
-            <thead><tr><th>Day</th><th className="text-right">Spend</th><th className="text-right">Accounts</th><th className="text-right">Trials</th><th className="text-right">Paid</th><th className="text-right">Per trial</th></tr></thead>
+            <thead><tr><th>Day</th><th className="text-right">Spend</th><th className="text-right">Accounts</th><th className="text-right">Paid</th></tr></thead>
             <tbody>
               {days.map((d) => (
                 <tr key={d.date}>
                   <td className="nums whitespace-nowrap">{dayLabel(d.date, { weekday: "short", day: "numeric", month: "short" })}</td>
                   <td data-label="Spend" className="text-right nums">{d.spend ? `$${d.spend.toFixed(2)}` : ""}</td>
                   <td data-label="Accounts" className="text-right nums">{d.signups || ""}</td>
-                  <td data-label="Trials" className="text-right nums">{d.trials || ""}</td>
                   <td data-label="Paid" className="text-right nums">{d.paid || ""}</td>
-                  <td data-label="Per trial" className="text-right nums">{d.trials && d.spend ? `$${(d.spend / d.trials).toFixed(2)}` : ""}</td>
                 </tr>
               ))}
             </tbody>

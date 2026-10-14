@@ -4,27 +4,27 @@ import { useState } from "react";
 
 import type { AdRow } from "@/lib/ads/report";
 
-type Key = "spend" | "trials" | "perTrial" | "back";
+type Key = "spend" | "paid" | "perMember" | "back";
 
 const SORTS: { key: Key; label: string }[] = [
   { key: "spend", label: "Spend" },
-  { key: "trials", label: "Trials" },
-  { key: "perTrial", label: "Per trial" },
+  { key: "paid", label: "Members" },
+  { key: "perMember", label: "Per member" },
   { key: "back", label: "ROAS" },
 ];
 
 /** Meta's status as it reads: a deleted ad comes back ARCHIVED, so both say deleted. */
 const statusLabel = (status: string) => (status === "ARCHIVED" || status === "DELETED" ? "deleted" : status.toLowerCase().replace(/_/g, " "));
-const perTrial = (a: AdRow) => (a.trials && a.spend ? a.spend / a.trials : undefined);
+const perMember = (a: AdRow) => (a.paid && a.spend ? a.spend / a.paid : undefined);
 const back = (a: AdRow) => (a.spend ? a.revenue / a.spend : undefined);
 
-const value = (a: AdRow, k: Key): number | undefined => (k === "perTrial" ? perTrial(a) : k === "back" ? back(a) : a[k]);
+const value = (a: AdRow, k: Key): number | undefined => (k === "perMember" ? perMember(a) : k === "back" ? back(a) : a[k]);
 
 /**
  * Phone: each ad as a block, since ten columns are unreadable that narrow (12 Oct
  * 2026; the table stays on desktop for clarity): name and spend, a bar for its share of the spend, the funnel from its
- * own link (visits, accounts, trials, members), then what a trial cost and
- * the ROAS. Sort by the buttons; cheapest first for per trial,
+ * own link (visits, accounts, members), then what a paying member cost and
+ * the ROAS (no trials since 13 Oct 2026). Sort by the buttons; cheapest first for per member,
  * and rows with nothing to sort on go last. An ad that spent nothing and
  * brought nothing is left out.
  */
@@ -37,7 +37,7 @@ function ByAdBlocks({ rows }: { rows: AdRow[] }) {
     if (a === undefined && b === undefined) return y.spend - x.spend;
     if (a === undefined) return 1;
     if (b === undefined) return -1;
-    return sort === "perTrial" ? a - b : b - a;
+    return sort === "perMember" ? a - b : b - a;
   });
   return (
     <div className="mt-2">
@@ -51,12 +51,11 @@ function ByAdBlocks({ rows }: { rows: AdRow[] }) {
       <ul className="divide-y divide-line">
         {sorted.map((a) => {
           const off = a.status && a.status !== "ACTIVE";
-          const pt = perTrial(a);
+          const pm = perMember(a);
           const bk = back(a);
           const funnel = [
             [a.visits, "visits"],
             [a.accounts, a.accounts === 1 ? "account" : "accounts"],
-            [a.trials, a.trials === 1 ? "trial" : "trials"],
             [a.paid, a.paid === 1 ? "member" : "members"],
           ] as const;
           return (
@@ -83,7 +82,7 @@ function ByAdBlocks({ rows }: { rows: AdRow[] }) {
                   ))}
                 </span>
                 <span className="nums whitespace-nowrap">
-                  <span className="text-ink-soft">{pt !== undefined ? `$${Math.round(pt)} a trial` : a.spend ? "no trials" : ""}</span>
+                  <span className="text-ink-soft">{pm !== undefined ? `$${Math.round(pm)} a member` : a.spend ? "no members" : ""}</span>
                   {bk !== undefined && a.revenue > 0 && <strong className={`ml-2 ${bk >= 1 ? "text-accent" : ""}`}>{bk.toFixed(2)}x ROAS</strong>}
                 </span>
               </div>
@@ -100,7 +99,7 @@ export function ByAd({ rows }: { rows: AdRow[] }) {
   return (
     <>
       <div className="hidden sm:block overflow-x-auto -mx-1 px-1">
-        {/* Tight: ten columns in half a page. Short headings, little padding, whole dollars where cents add nothing. */}
+        {/* Tight: nine columns in half a page. Short headings, little padding, whole dollars where cents add nothing. */}
         <ByAdTable rows={rows} />
       </div>
       <div className="sm:hidden">
@@ -110,18 +109,17 @@ export function ByAd({ rows }: { rows: AdRow[] }) {
   );
 }
 
-type TableKey = "ad" | "spend" | "visits" | "accounts" | "trials" | "paid" | "revenue" | "perVisit" | "perTrial" | "back";
+type TableKey = "ad" | "spend" | "visits" | "accounts" | "paid" | "revenue" | "perVisit" | "perMember" | "back";
 
 const COLS: { key: TableKey; label: string; title?: string }[] = [
   { key: "ad", label: "Ad" },
   { key: "spend", label: "Spend" },
   { key: "visits", label: "Visits", title: "Real visitors from the ad's link; Meta's review bots left out" },
   { key: "accounts", label: "Accts" },
-  { key: "trials", label: "Trials" },
   { key: "paid", label: "Mbr", title: "Paying members" },
   { key: "revenue", label: "Rev", title: "What they have paid, plans and passes" },
   { key: "perVisit", label: "/visit" },
-  { key: "perTrial", label: "/trial" },
+  { key: "perMember", label: "/mbr", title: "Spend per paying member" },
   { key: "back", label: "ROAS", title: "Return on ad spend: what they paid over what the ad cost" },
 ];
 
@@ -129,7 +127,7 @@ const cell = (a: AdRow, k: TableKey): number | string | undefined => {
   switch (k) {
     case "ad": return a.ad.toLowerCase();
     case "perVisit": return a.visits && a.spend ? a.spend / a.visits : undefined;
-    case "perTrial": return a.trials && a.spend ? a.spend / a.trials : undefined;
+    case "perMember": return a.paid && a.spend ? a.spend / a.paid : undefined;
     case "back": return a.spend ? a.revenue / a.spend : undefined;
     default: return a[k];
   }
@@ -138,7 +136,7 @@ const cell = (a: AdRow, k: TableKey): number | string | undefined => {
 /**
  * Desktop: each ad's spend against what it brought, sortable: a click on a heading
  * sorts by it, a second click turns it round. Rows with nothing to sort on
- * (no trials for /trial, say) go to the bottom either way.
+ * (no members for /mbr, say) go to the bottom either way.
  */
 function ByAdTable({ rows }: { rows: AdRow[] }) {
   const [sort, setSort] = useState<{ key: TableKey; desc: boolean }>({ key: "spend", desc: true });
@@ -150,7 +148,7 @@ function ByAdTable({ rows }: { rows: AdRow[] }) {
     const c = typeof a === "string" ? a.localeCompare(String(b)) : a - Number(b);
     return sort.desc ? -c : c;
   });
-  const click = (key: TableKey) => setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: key !== "ad" && key !== "perVisit" && key !== "perTrial" }));
+  const click = (key: TableKey) => setSort((s) => (s.key === key ? { key, desc: !s.desc } : { key, desc: key !== "ad" && key !== "perVisit" && key !== "perMember" }));
   return (
     <table className="data-table stack-sm text-[11px] mt-2 [&_th]:px-1 [&_td]:px-1 [&_th]:whitespace-nowrap">
       <thead>
@@ -167,7 +165,7 @@ function ByAdTable({ rows }: { rows: AdRow[] }) {
       <tbody>
         {sorted.map((a) => {
           const off = a.status && a.status !== "ACTIVE";
-          const per = cell(a, "perTrial") as number | undefined;
+          const per = cell(a, "perMember") as number | undefined;
           const back = cell(a, "back") as number | undefined;
           return (
             <tr key={`${a.campaign}-${a.ad}`} className={off ? "text-ink-soft" : ""}>
@@ -178,11 +176,10 @@ function ByAdTable({ rows }: { rows: AdRow[] }) {
               <td data-label="Spend" className="text-right nums">{a.spend ? `$${Math.round(a.spend)}` : "–"}</td>
               <td data-label="Visits" className="text-right nums">{a.visits || ""}</td>
               <td data-label="Accounts" className="text-right nums">{a.accounts || ""}</td>
-              <td data-label="Trials" className="text-right nums">{a.trials || ""}</td>
               <td data-label="Members" className="text-right nums font-semibold">{a.paid || ""}</td>
               <td data-label="Revenue" className="text-right nums">{a.revenue ? `$${Math.round(a.revenue)}` : ""}</td>
               <td data-label="Per visit" className="text-right nums">{a.visits && a.spend ? `$${(a.spend / a.visits).toFixed(2)}` : ""}</td>
-              <td data-label="Per trial" className="text-right nums">{per !== undefined ? `$${Math.round(per)}` : a.spend ? "–" : ""}</td>
+              <td data-label="Per member" className="text-right nums">{per !== undefined ? `$${Math.round(per)}` : a.spend ? "–" : ""}</td>
               <td data-label="ROAS" className={`text-right nums font-semibold ${back !== undefined && back >= 1 ? "text-accent" : ""}`}>{back !== undefined ? `${back.toFixed(2)}x` : ""}</td>
             </tr>
           );
