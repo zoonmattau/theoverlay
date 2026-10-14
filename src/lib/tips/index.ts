@@ -325,7 +325,8 @@ export async function recordStats(today: string, source?: TipSource): Promise<Re
   const rows = await settledRows(source);
   const day = new Date(`${today}T12:00:00Z`).getTime();
   return PERIODS.map((p) => {
-    const from = p.days ? new Date(day - p.days * 86400_000).toISOString().slice(0, 10) : undefined;
+    // Today counts as the first of the window's days: 7 days is today and the six before, not eight (14 Oct 2026).
+    const from = p.days ? new Date(day - (p.days - 1) * 86400_000).toISOString().slice(0, 10) : undefined;
     const inWindow = rows.filter((r) => !from || r.date >= from);
     const dates = inWindow.map((r) => r.date).sort();
     const { bets, lays } = tally(inWindow);
