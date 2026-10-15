@@ -120,6 +120,20 @@ export async function POST(request: NextRequest) {
         await logEvent({ user_id: userId, kind: "comeback", plan: sub.metadata?.plan ?? null, amount_cents: null, meta: { days: extra, nextBill: new Date(trialEnd * 1000).toISOString() } });
         period = new Date(trialEnd * 1000);
       }
+      // A new plan replaces any other the member still has: Thrive's failed Midweek trial sat past due,
+      // retrying $45, beside the Every day plan they then paid for (15 Oct 2026). A paid one being
+      // left is credited for its unused days; a trial or an unpaid bill is cancelled and its invoice voided.
+      if (event.type === "customer.subscription.created" && (sub.status === "active" || sub.status === "trialing")) {
+        const others = await stripe().subscriptions.list({ customer: customerId, status: "all", limit: 10 });
+        for (const o of others.data) {
+          if (o.id === sub.id || !["active", "trialing", "past_due", "unpaid", "incomplete"].includes(o.status)) continue;
+          const paid = o.status === "active";
+          await stripe().subscriptions.cancel(o.id, { invoice_now: paid, prorate: paid });
+          const open = paid ? { data: [] } : await stripe().invoices.list({ subscription: o.id, status: "open", limit: 10 });
+          for (const inv of open.data) if (inv.id) await stripe().invoices.voidInvoice(inv.id);
+          await logEvent({ user_id: userId, kind: "subscription_replaced", plan: o.metadata?.plan ?? null, amount_cents: null, meta: { subscription: o.id, status: o.status, by: sub.id, voided: open.data.map((i) => i.id) } });
+        }
+      }
       // A rebill (metadata rebill=1, 12 Oct 2026) replaces a subscription whose bill went wrong: it is
       // no new trial, no grace when it fails, and none of the welcome that a new member gets.
       const rebill = sub.metadata?.rebill === "1";
